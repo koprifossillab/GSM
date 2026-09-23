@@ -59,6 +59,7 @@ def _key_from_file() -> str:
     path = env("GSM_KIGAM_KEY_FILE")
     if not path:
         path = str(Path(env("GSM_DB_PATH", str(REPO_DIR / "GSM.db"))).parent / "kigam_key")
+    # _data_dir() 를 쓰지 않는 것은 차례 때문이다 — 이 함수가 더 위에 있다.
     try:
         return Path(path).read_text(encoding="utf-8").strip()
     except OSError:
@@ -117,7 +118,54 @@ CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")
 DEBUG = env_bool("GSM_DEBUG", True)
-ALLOWED_HOSTS = [h.strip() for h in env("GSM_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
+
+
+def _data_dir() -> Path:
+    """앱을 돌리는 사람이 쓸 수 있는 자리. DB 가 있는 곳이다."""
+    return Path(env("GSM_DB_PATH", str(REPO_DIR / "GSM.db"))).parent
+
+
+def _lines_from(path_env: str, default_name: str) -> list:
+    """한 줄에 하나씩 적힌 파일을 읽는다. 없으면 빈 목록."""
+    path = env(path_env) or str(_data_dir() / default_name)
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    out = []
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        out.extend(part.strip() for part in line.split(",") if part.strip())
+    return out
+
+
+def _allowed_hosts() -> list:
+    """들어와도 되는 호스트 이름.
+
+    **파일에서도 더 받는다.** 까닭은 인증키와 같다 — 배포한 자리의
+    `/srv/GSM/.env` 는 root 의 것이라 앱을 돌리는 사람이 못 고친다. 그런데
+    이 장비는 `paleolab`·`paleo-server`·IP 로 두루 불리고, 목록에 없는
+    이름으로 들어오면 Django 가 **400 을 낸다** — 2026-09-23 배포 직후
+    `http://paleolab/GSM/` 이 그랬다.
+
+    `*` 로 열지 않는다. 열어 두면 될 일이지만, 어떤 이름으로 불리는지를
+    적어 두는 편이 나중에 읽힌다.
+
+    자리: `GSM_ALLOWED_HOSTS_FILE`, 없으면 `<DB 가 있는 곳>/allowed_hosts`.
+    """
+    hosts = [h.strip() for h in env("GSM_ALLOWED_HOSTS").split(",") if h.strip()]
+    hosts += _lines_from("GSM_ALLOWED_HOSTS_FILE", "allowed_hosts")
+    if not hosts:
+        hosts = ["127.0.0.1", "localhost"]
+    seen, out = set(), []
+    for host in hosts:
+        if host not in seen:
+            seen.add(host)
+            out.append(host)
+    return out
+
+
+ALLOWED_HOSTS = _allowed_hosts()
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("GSM_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
 # nginx 서브패스로 걸 때 `GSM/`. 뿌리에 걸려면 빈 값.

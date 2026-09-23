@@ -131,15 +131,13 @@ def wms(request):
         return _tile(hit, cached=True)
 
     if not kigam.has_key():
-        return _tile(tiles.notice_tile(width, height, "인증키가 없다 — .env 의 GSM_KIGAM_KEY"),
-                     store=False)
+        return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
     try:
         content, ctype = kigam.get_map(params)
     except kigam.UpstreamError as exc:
         log.warning("타일을 받지 못했다: %s", exc)
-        return _tile(tiles.notice_tile(width, height, "상류가 지도를 주지 않았다"),
-                     store=False)
+        return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
 
     # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
     tilecache.put(cache_key, content)

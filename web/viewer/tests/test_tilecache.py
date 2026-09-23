@@ -146,3 +146,36 @@ class Stats(CacheCase):
         got = tilecache.stats()
         self.assertEqual(got["count"], 2)
         self.assertEqual(got["bytes"], len(PNG) * 2)
+
+
+class NoticeTile(SimpleTestCase):
+    """안내 타일.
+
+    **한글을 적지 않는다.** 컨테이너 이미지에 폰트가 없어 PIL 기본 글꼴로
+    한글을 그리면 네모가 찍힌다 — 첫 배포 화면이 그랬다. 까닭은 레이어
+    패널의 안내 띠가 한국어로 말한다.
+    """
+
+    def test_png_이_나온다(self):
+        from viewer import tiles
+        data = tiles.notice_tile(256, 256, tiles.NO_KEY)
+        self.assertTrue(data.startswith(b"\x89PNG"))
+
+    def test_적는_말에_한글이_없다(self):
+        import re
+
+        from viewer import tiles
+        for text in (tiles.NO_KEY, tiles.NO_MAP):
+            self.assertIsNone(re.search(r"[가-힣]", text), text)
+
+    def test_아주_작은_타일도_견딘다(self):
+        from viewer import tiles
+        self.assertTrue(tiles.notice_tile(1, 1, tiles.NO_KEY).startswith(b"\x89PNG"))
+
+    def test_터무니없이_큰_것은_잘린다(self):
+        from PIL import Image
+        import io
+
+        from viewer import tiles
+        img = Image.open(io.BytesIO(tiles.notice_tile(99999, 99999, tiles.NO_KEY)))
+        self.assertEqual(img.size, (4096, 4096))
