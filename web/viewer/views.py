@@ -80,6 +80,7 @@ def map_view(request):
         "catalog": json.dumps(_catalog(), ensure_ascii=False),
         "pointsets": json.dumps(_pointset_list(), ensure_ascii=False),
         "has_key": kigam.has_key(),
+        "dev_direct": settings.DEV_DIRECT_WMS,
     })
 
 

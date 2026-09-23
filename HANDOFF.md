@@ -7,9 +7,21 @@
 
 ## 한 줄
 
-뼈대가 섰고 **끝까지 돈다.** 다만 아직 **인증키 없이** — 개발 스위치를 켜고
-GeoServer 로 곧장 가서 돌려본 것이다. 키가 나오면 스위치를 끄고
-`verify_layers` 를 한 번 돌리면 된다.
+**배포했다.** `http://paleolab/GSM/` 에 서 있다 (짧은 주소 `/geomap/`).
+다만 아직 **인증키 없이** — 임시 스위치를 켜고 GeoServer 로 곧장 가서
+지도를 받는다. 화면 맨 위에 그 사실이 띠로 떠 있다.
+
+**키가 들어오면 할 일**
+
+```bash
+echo '<받은 키>' > /srv/GSM/db/kigam_key
+rm /srv/GSM/db/dev_direct_wms
+cd /srv/GSM && GSM_TAG=v0.1.0 docker compose up -d --force-recreate web
+cd /home/sclee/projects/GSM/web && python manage.py verify_layers
+```
+
+`/srv/GSM/.env` 는 root 의 것이라 못 고친다. 그래서 설정을 **DB 옆 파일**로도
+읽게 해 두었다 — `kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
 
 ## 돌려보는 법
 

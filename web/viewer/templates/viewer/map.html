@@ -15,11 +15,17 @@
     <p class="sub">한국지질자원연구원 지오빅데이터 오픈플랫폼</p>
   </header>
 
-  {% if not has_key %}
+  {% if dev_direct %}
+  <p class="warn direct">
+    <b>임시 경로로 받고 있다.</b> 인증키가 아직 없어 문서에 없는 주소
+    (<code>/mgeo/geoserver/wms</code>)로 지도를 받는다. 키가 들어오면
+    <code>dev_direct_wms</code> 를 지우고 다시 띄운다 — 그때부터 문서화된
+    <code>/openapi/wms</code> 로 간다.
+  </p>
+  {% elif not has_key %}
   <p class="warn">
     인증키가 없다. 타일 자리에 안내가 뜬다 —
-    <code>.env</code> 의 <code>GSM_KIGAM_KEY</code> 를 채우거나,
-    개발 중이라면 <code>GSM_DEV_DIRECT_WMS=1</code> 로 둔다.
+    <code>GSM_KIGAM_KEY</code> 를 채우거나 <code>kigam_key</code> 파일을 둔다.
   </p>
   {% endif %}
 

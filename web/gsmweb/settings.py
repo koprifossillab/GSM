@@ -45,6 +45,26 @@ def env_int(key: str, default: int) -> int:
 # ── 상류 ──────────────────────────────────────────────────────────────
 
 
+def _data_dir() -> Path:
+    """앱을 돌리는 사람이 쓸 수 있는 자리. DB 가 있는 곳이다."""
+    return Path(env("GSM_DB_PATH", str(REPO_DIR / "GSM.db"))).parent
+
+
+def _lines_from(path_env: str, default_name: str) -> list:
+    """한 줄에 하나씩 적힌 파일을 읽는다. 없으면 빈 목록."""
+    path = env(path_env) or str(_data_dir() / default_name)
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    out = []
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        out.extend(part.strip() for part in line.split(",") if part.strip())
+    return out
+
+
+
 def _key_from_file() -> str:
     """인증키를 파일에서 읽는다. 환경변수가 비었을 때만 본다.
 
@@ -107,36 +127,35 @@ def _default_ca_bundle() -> str:
 
 CA_BUNDLE = _default_ca_bundle()
 
-# 개발 중에만 켠다. 켜면 GetMap·GetFeatureInfo·GetLegendGraphic 이 문서화된
-# 주소 대신 GeoServer 로 곧장 간다 — 인증키 없이 뷰어를 끝까지 굴려보려는
-# 것이다. 상류 플랫폼이 자기 지도 페이지에 쓰는 것과 같은 주소이지만,
-# 오픈API 제품은 아니다. 운영에서는 반드시 꺼 둔다.
-DEV_DIRECT_WMS = env_bool("GSM_DEV_DIRECT_WMS", False)
+def _dev_direct_wms() -> bool:
+    """켜면 상류 요청이 문서화된 `/openapi/wms` 가 아니라 GeoServer 로 곧장 간다.
+
+    **인증키를 기다리는 동안의 임시 조치다.** 키 없이도 타일·속성·범례가
+    다 나와서 그 사이에도 일을 할 수 있다. 상류 플랫폼이 자기 지도 페이지에
+    쓰는 것과 같은 주소이지만 오픈API 제품은 아니고, 예고 없이 닫혀도
+    할 말이 없다.
+
+    환경변수(`GSM_DEV_DIRECT_WMS`)와 파일(`<DB 옆>/dev_direct_wms`) 둘 다
+    본다. 파일을 보는 까닭은 인증키와 같다 — 배포한 자리의 `.env` 는 root 의
+    것이라 앱을 돌리는 사람이 못 고친다.
+
+    **켜져 있으면 화면에 띠가 뜬다**(`map.html` 의 `.warn.direct`). 이것이
+    이 스위치를 파일로도 열어 둔 값이다 — 끄는 것을 잊어도 보는 사람이
+    안다. 키가 들어오면 파일을 지우고 다시 띄운다.
+    """
+    if env_bool("GSM_DEV_DIRECT_WMS", False):
+        return True
+    flag = _lines_from("GSM_DEV_DIRECT_WMS_FILE", "dev_direct_wms")
+    return bool(flag) and flag[0].lower() in ("1", "true", "yes", "on")
+
+
+DEV_DIRECT_WMS = _dev_direct_wms()
 
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")
 DEBUG = env_bool("GSM_DEBUG", True)
-
-
-def _data_dir() -> Path:
-    """앱을 돌리는 사람이 쓸 수 있는 자리. DB 가 있는 곳이다."""
-    return Path(env("GSM_DB_PATH", str(REPO_DIR / "GSM.db"))).parent
-
-
-def _lines_from(path_env: str, default_name: str) -> list:
-    """한 줄에 하나씩 적힌 파일을 읽는다. 없으면 빈 목록."""
-    path = env(path_env) or str(_data_dir() / default_name)
-    try:
-        text = Path(path).read_text(encoding="utf-8")
-    except OSError:
-        return []
-    out = []
-    for line in text.splitlines():
-        line = line.split("#", 1)[0].strip()
-        out.extend(part.strip() for part in line.split(",") if part.strip())
-    return out
 
 
 def _allowed_hosts() -> list:

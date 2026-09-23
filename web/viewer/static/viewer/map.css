@@ -441,3 +441,12 @@ li.empty { padding: 9px 0; font-size: 12.5px; color: var(--ink-faint); }
   border-radius: 10px;
 }
 .proplink:hover { color: #fff; background: var(--accent); }
+
+/* 임시 경로로 받고 있을 때의 띠. 인증키가 없던 때의 노란 띠와 색을 달리해
+   "설정을 안 했다" 와 "다른 길로 받고 있다" 를 눈으로 가른다. */
+.warn.direct {
+  color: #5c3a52;
+  background: #f8eef5;
+  border-color: #dcc0d3;
+}
+.warn.direct code { background: rgba(92, 58, 82, .1); }
