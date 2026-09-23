@@ -11,7 +11,7 @@
 
 <aside id="panel">
   <header>
-    <h1>대돌여지도</h1>
+    <h1>대돌여지도 <span class="ver">v{{ version }}</span></h1>
     <p class="sub">한국지질자원연구원 지오빅데이터 오픈플랫폼</p>
   </header>
 
@@ -32,19 +32,63 @@
   <nav class="tabs">
     <button class="tab on" data-tab="layers">레이어</button>
     <button class="tab" data-tab="points">내 자료</button>
+    <button class="tab" data-tab="tools">도구</button>
   </nav>
 
   <section id="tab-layers" class="tabbody on">
-    <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
-    <label class="basemap-row">
-      <span>배경</span>
-      <select id="basemap"></select>
-    </label>
-    <div id="layer-active">
-      <h2>켠 레이어 <span class="hint">위가 앞이다</span></h2>
-      <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
+    <div class="box">
+      <h2 class="box-head">레이어 고르기</h2>
+      <label class="basemap-row">
+        <span>배경</span>
+        <select id="basemap"></select>
+      </label>
+      <label class="basemap-labels" id="basemap-labels-wrap">
+        <input type="checkbox" id="basemap-labels" checked>
+        <span>지명 보이기</span>
+      </label>
+      <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
+      <div id="layer-catalog"></div>
     </div>
-    <div id="layer-catalog"></div>
+
+    <div class="box">
+      <h2 class="box-head">그리기 <span class="hint">지금 지도에 있는 것</span></h2>
+
+      <details class="folder" open>
+        <summary>지질 레이어 <span class="count" id="count-layers">0</span>
+          <span class="hint">위가 앞이다</span></summary>
+        <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
+      </details>
+
+      <details class="folder" open>
+        <summary>내 자료 <span class="count" id="count-points">0</span></summary>
+        <ul id="pointset-list"></ul>
+      </details>
+
+      <details class="folder" open>
+        <summary>임시 표시 <span class="count" id="count-temp">0</span>
+          <span class="hint">저장하지 않는다</span></summary>
+        <p id="measure-out" class="measure-out">아직 잰 것이 없다</p>
+        <ul id="temp-list"><li class="empty">아직 찍은 점이 없다</li></ul>
+        <div class="folder-acts">
+          <button type="button" id="save-temp" class="ghost accent">목록으로 저장</button>
+          <button type="button" id="clear-temp" class="ghost">모두 지운다</button>
+        </div>
+        <p id="save-msg" class="msg"></p>
+      </details>
+    </div>
+  </section>
+
+  <section id="tab-tools" class="tabbody">
+    <h2>무엇을 할까 <span class="hint">지도를 누르면</span></h2>
+    <div id="modes" class="modes">
+      <button type="button" class="mode on" data-mode="info">속성 읽기</button>
+      <button type="button" class="mode" data-mode="point">점 찍기</button>
+      <button type="button" class="mode" data-mode="line">거리 재기</button>
+      <button type="button" class="mode" data-mode="area">넓이 재기</button>
+    </div>
+    <p id="mode-hint" class="hint">지도를 누르면 그 지점의 지질 속성이 뜬다.</p>
+
+    <p class="hint">찍은 점과 잰 것은 <b>레이어 탭의 "그리기" 칸</b>에 모인다.</p>
   </section>
 
   <section id="tab-points" class="tabbody">
@@ -65,9 +109,23 @@
       </p>
       <p id="upload-msg" class="msg"></p>
     </form>
-    <ul id="pointset-list"></ul>
   </section>
+  <button type="button" id="gear" class="gear" title="설정과 판 이력">&#9881;</button>
 </aside>
+
+<div id="settings" class="sheet" hidden>
+  <div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <button type="button" id="settings-close" class="popup-close" title="닫는다">&times;</button>
+    <h2 id="settings-title">대돌여지도 <span class="ver">v{{ version }}</span></h2>
+    <p class="hint">GSM — 한국지질자원연구원 지오빅데이터 오픈플랫폼 오픈API 지도뷰어</p>
+
+    <h3>지금 상태</h3>
+    <dl id="settings-state" class="kv"></dl>
+
+    <h3>판 이력</h3>
+    <div id="notes" class="notes">읽는 중…</div>
+  </div>
+</div>
 
 <main id="map-wrap">
   <div id="map"></div>
@@ -76,6 +134,8 @@
     <button id="popup-close" class="popup-close" title="닫는다">&times;</button>
     <div id="popup-body"></div>
   </div>
+
+  <div id="scalebar"></div>
 
   <div id="coordbar">
     <form id="goto-form">

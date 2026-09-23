@@ -14,7 +14,20 @@
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
+  //: 레이어를 켤 때의 투명도. 배경지도를 깔고 보는 것이 예사이므로
+  //  처음부터 밑이 비치게 둔다. 100% 로 두면 배경을 덮어서, 사람이
+  //  슬라이더를 찾아 내려야 배경이 보인다.
+  var DEFAULT_OPACITY = 0.5;
+
+  //: 5만 지질도 도폭 하나가 덮는 범위. 경도 15분 × 위도 10분이다.
+  //  좌표를 찍어 이동할 때 이만큼이 화면에 들어오게 맞춘다 — "도폭 한 장"
+  //  이 이 축척을 쓰는 사람의 눈금이라, 줌 단계 숫자보다 뜻이 분명하다.
+  var SHEET_LON = 15 / 60;
+  var SHEET_LAT = 10 / 60;
+
   var map, popupOverlay, pointLayerGroup;
+  var tempSource, tempLayer, measureSource, measureLayer, foundSource, foundLayer;
+  var mode = "info", drawInteraction = null, tempSeq = 0;
   var active = [];        // 켠 레이어. 앞이 위다 (화면에서 앞에 그려진다)
   var byName = {};        // 레이어명 -> 카탈로그 행
   var pointLayers = {};   // 점묶음 id -> ol 레이어
@@ -48,15 +61,11 @@
    *  배경이 없어도 읽힌다 — 지질도 자체가 지명·행정경계·수계를 그려 준다.
    *  종이 지질도가 그렇게 생겼다.
    */
+  // OpenStreetMap 은 고르개에서 뺐다. 기관 망의 바깥 IP 가 OSM 정책 위반으로
+  // 막혀 있어(devlog 003) 고를 수 있게 두면 `403 Access blocked` 타일만
+  // 깔린다. 고쳐지지 않는 것을 목록에 두는 것은 고르개가 아니라 함정이다.
   var BASEMAPS = {
     none: { title: "없음 (바탕만)", make: null },
-    osm: {
-      title: "OpenStreetMap",
-      note: "기관 망에서는 막혀 있을 수 있다",
-      make: function () {
-        return new ol.layer.Tile({ source: new ol.source.OSM(), opacity: 0.55 });
-      },
-    },
   };
 
   // VWorld 는 열쇠가 있을 때만 고르개에 오른다.
@@ -83,10 +92,23 @@
         });
       },
     };
+    // 위성 사진과 지명은 **따로 오는 레이어다**(`Satellite`·`Hybrid`).
+    // 그래서 지명만 끌 수 있다 — 지질 경계를 볼 때 글자가 방해가 된다.
+    // 일반 배경지도(`Base`)는 지명이 그림에 박혀 있어 끄지 못한다.
     BASEMAPS.vworld_hybrid = {
-      title: "VWorld 위성 + 지명",
-      note: "국토지리정보원",
+      title: "VWorld 위성",
+      note: "국토지리정보원. 지명을 끄고 켤 수 있다",
+      labels: true,
       make: function () {
+        var labels = new ol.layer.Tile({
+          source: new ol.source.XYZ({
+            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+                 + "/Hybrid/{z}/{y}/{x}.png",
+            crossOrigin: "anonymous", maxZoom: 19,
+          }),
+          visible: labelsOn(),
+        });
+        labels.set("gsmLabels", true);
         return new ol.layer.Group({ layers: [
           new ol.layer.Tile({ source: new ol.source.XYZ({
             url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
@@ -94,11 +116,7 @@
             crossOrigin: "anonymous", maxZoom: 19,
             attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
           })}),
-          new ol.layer.Tile({ source: new ol.source.XYZ({
-            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
-                 + "/Hybrid/{z}/{y}/{x}.png",
-            crossOrigin: "anonymous", maxZoom: 19,
-          })}),
+          labels,
         ]});
       },
     };
@@ -119,20 +137,49 @@
     try { localStorage.setItem("gsm.basemap", key); } catch (e) { /* 사생활 모드 */ }
   }
 
+  function labelsOn() {
+    try {
+      return localStorage.getItem("gsm.basemapLabels") !== "0";
+    } catch (e) { return true; }
+  }
+
+  /** 배경지도의 지명 겹을 켜고 끈다. 겹이 없는 배경이면 아무 일도 안 한다. */
+  function setLabels(on) {
+    try { localStorage.setItem("gsm.basemapLabels", on ? "1" : "0"); } catch (e) { /* 사생활 모드 */ }
+    if (!baseLayer || !baseLayer.getLayers) return;
+    baseLayer.getLayers().forEach(function (l) {
+      if (l.get("gsmLabels")) l.setVisible(on);
+    });
+  }
+
   function savedBasemap() {
     try {
       var key = localStorage.getItem("gsm.basemap");
       if (key && BASEMAPS[key]) return key;
     } catch (e) { /* 사생활 모드 */ }
+    // 열쇠가 있으면 위성+지명으로 시작한다. 지질을 지형·시설과 견주어
+    // 보는 것이 예사라 빈 바탕보다 낫다.
+    if (BASEMAPS.vworld_hybrid) return "vworld_hybrid";
     return "none";
   }
 
   function initMap() {
     pointLayerGroup = new ol.layer.Group({ layers: [] });
 
+    // 재는 것과 찍은 점. **어느 것도 저장하지 않는다** — 새로 고치면 사라진다.
+    // 점묶음(`PointSet`)과 다른 자리다. 저쪽은 올린 자료라 남고, 이쪽은
+    // 지금 보면서 재는 것이라 남을 까닭이 없다.
+    measureSource = new ol.source.Vector();
+    measureLayer = new ol.layer.Vector({ source: measureSource, style: measureStyle });
+    tempSource = new ol.source.Vector();
+    tempLayer = new ol.layer.Vector({ source: tempSource, style: tempStyle });
+    // 좌표를 찍어 찾아간 자리. 한 번에 하나만 둔다.
+    foundSource = new ol.source.Vector();
+    foundLayer = new ol.layer.Vector({ source: foundSource, style: foundStyle });
+
     map = new ol.Map({
       target: "map",
-      layers: [pointLayerGroup],
+      layers: [pointLayerGroup, measureLayer, tempLayer, foundLayer],
       view: new ol.View({
         // 남한 전체가 들어오는 자리
         center: ol.proj.fromLonLat([127.8, 36.2]),
@@ -140,8 +187,12 @@
         minZoom: 5,
         maxZoom: 19,
       }),
+      // 축척 막대는 제 자리(왼쪽 아래)에 두면 좌표 막대가 덮는다.
+      // 그래서 좌표 막대 바로 위의 칸에 붙인다.
       controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } })
-        .extend([new ol.control.ScaleLine()]),
+        .extend([
+          new ol.control.ScaleLine({ target: document.getElementById("scalebar"), bar: true, steps: 2, text: true, minWidth: 130 }),
+        ]),
     });
 
     popupOverlay = new ol.Overlay({
@@ -170,6 +221,9 @@
       map.getLayers().insertAt(baseCount + index, entry.layer);
     });
     pointLayerGroup.setZIndex(500);
+    measureLayer.setZIndex(600);
+    tempLayer.setZIndex(700);
+    foundLayer.setZIndex(800);
     renderActive();
   }
 
@@ -180,9 +234,9 @@
     active.unshift({
       name: name,
       title: row.title,
-      opacity: 1,
+      opacity: DEFAULT_OPACITY,
       legendOpen: false,
-      layer: new ol.layer.Tile({ source: wmsSource(name), opacity: 1 }),
+      layer: new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY }),
     });
     restack();
   }
@@ -254,8 +308,14 @@
     });
   }
 
+  function setCount(id, n) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = n;
+  }
+
   function renderActive() {
     var host = document.getElementById("active-list");
+    setCount("count-layers", active.length);
     host.innerHTML = "";
     if (!active.length) {
       host.innerHTML = '<li class="empty">아직 켠 레이어가 없다</li>';
@@ -330,13 +390,329 @@
     return p;
   }
 
+  // ── 도구 — 점 찍기·거리·넓이 ───────────────────────────────────
+  //
+  // 공식 뷰어가 주는 보조 기능을 옮겨 왔다. **하나도 저장하지 않는다** —
+  // 지금 보면서 재는 것이라, 새로 고치면 사라지는 것이 맞다. 남길 것은
+  // "내 자료" 로 올린다.
+
+  var MODE_HINT = {
+    info: "지도를 누르면 그 지점의 지질 속성이 뜬다.",
+    point: "지도를 누르면 점이 찍히고 위경도가 적힌다. 점을 눌러 지운다.",
+    line: "눌러 가며 선을 잇는다. 두 번 누르면 끝난다.",
+    area: "눌러 가며 둘레를 두른다. 두 번 누르면 끝난다.",
+  };
+
+  function tempStyle(feature) {
+    return new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: 6,
+        fill: new ol.style.Fill({ color: "#27456f" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 2 }),
+      }),
+      text: new ol.style.Text({
+        text: String(feature.get("no")),
+        offsetY: -14,
+        font: "600 11px ui-monospace, Menlo, monospace",
+        fill: new ol.style.Fill({ color: "#1a2f4f" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
+      }),
+    });
+  }
+
+  /** 찾아간 자리. 겹고리로 눈에 띄게 하고 위경도를 곁에 적는다. */
+  function foundStyle(feature) {
+    return [
+      new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 15,
+          fill: new ol.style.Fill({ color: "rgba(196, 63, 74, .16)" }),
+          stroke: new ol.style.Stroke({ color: "rgba(196, 63, 74, .55)", width: 2 }),
+        }),
+      }),
+      new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 5,
+          fill: new ol.style.Fill({ color: "#c43f4a" }),
+          stroke: new ol.style.Stroke({ color: "#fff", width: 2 }),
+        }),
+        text: new ol.style.Text({
+          text: feature.get("label") || "",
+          offsetY: -26,
+          font: "600 11px ui-monospace, Menlo, monospace",
+          fill: new ol.style.Fill({ color: "#8d2b33" }),
+          stroke: new ol.style.Stroke({ color: "#fff", width: 4 }),
+          overflow: true,
+        }),
+      }),
+    ];
+  }
+
+  /** 찍어 넣은 좌표로 간다.
+   *
+   *  **도폭 한 장이 화면에 들어오게** 맞춘다(`SHEET_LON`×`SHEET_LAT`).
+   *  줌 단계를 숫자로 박으면 화면 크기에 따라 보이는 범위가 달라지는데,
+   *  범위를 주고 맞추면 어느 화면에서나 같은 만큼이 보인다.
+   */
+  function goTo(lat, lon) {
+    var extent = ol.proj.transformExtent(
+      [lon - SHEET_LON / 2, lat - SHEET_LAT / 2,
+       lon + SHEET_LON / 2, lat + SHEET_LAT / 2],
+      "EPSG:4326", map.getView().getProjection());
+
+    foundSource.clear();
+    foundSource.addFeature(new ol.Feature({
+      geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+      label: formatPair(lon, lat),
+    }));
+
+    map.getView().fit(extent, { duration: 450, callback: function () {
+      // 화면 한복판에 정확히 놓는다. fit 은 범위를 맞출 뿐이라
+      // 가장자리에서 한두 픽셀 어긋나는 일이 있다.
+      map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+    } });
+  }
+
+  function measureStyle(feature) {
+    var label = feature.get("label") || "";
+    return new ol.style.Style({
+      fill: new ol.style.Fill({ color: "rgba(39, 69, 111, .14)" }),
+      stroke: new ol.style.Stroke({ color: "#27456f", width: 2.5, lineDash: [7, 5] }),
+      image: new ol.style.Circle({
+        radius: 4,
+        fill: new ol.style.Fill({ color: "#27456f" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }),
+      }),
+      text: label ? new ol.style.Text({
+        text: label,
+        font: "600 12px ui-monospace, Menlo, monospace",
+        fill: new ol.style.Fill({ color: "#1a2f4f" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 4 }),
+        overflow: true,
+      }) : undefined,
+    });
+  }
+
+  /** 미터를 사람이 읽는 길이로. */
+  function asLength(m) {
+    return m >= 1000 ? (m / 1000).toFixed(2) + " km" : m.toFixed(1) + " m";
+  }
+
+  /** 제곱미터를 사람이 읽는 넓이로. 헥타르를 함께 적는다 —
+   *  현장에서 면적을 말할 때 ha 를 쓰는 일이 잦다. */
+  function asArea(m2) {
+    if (m2 >= 1e6) return (m2 / 1e6).toFixed(3) + " km² (" + (m2 / 1e4).toFixed(1) + " ha)";
+    if (m2 >= 1e4) return (m2 / 1e4).toFixed(2) + " ha (" + Math.round(m2).toLocaleString() + " m²)";
+    return Math.round(m2).toLocaleString() + " m²";
+  }
+
+  function measureOf(geometry) {
+    var opts = { projection: map.getView().getProjection() };
+    if (geometry instanceof ol.geom.Polygon) {
+      return { text: asArea(ol.sphere.getArea(geometry, opts)), kind: "넓이" };
+    }
+    return { text: asLength(ol.sphere.getLength(geometry, opts)), kind: "거리" };
+  }
+
+  function setMode(next) {
+    mode = next;
+    if (drawInteraction) {
+      map.removeInteraction(drawInteraction);
+      drawInteraction = null;
+    }
+    document.querySelectorAll(".mode").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.mode === next);
+    });
+    document.getElementById("mode-hint").textContent = MODE_HINT[next] || "";
+    document.getElementById("map").style.cursor =
+      next === "info" ? "" : "crosshair";
+
+    if (next !== "line" && next !== "area") return;
+
+    drawInteraction = new ol.interaction.Draw({
+      source: measureSource,
+      type: next === "line" ? "LineString" : "Polygon",
+      style: measureStyle,
+    });
+    drawInteraction.on("drawstart", function (evt) {
+      // 재는 것은 한 번에 하나만 둔다. 여럿이 겹치면 어느 것이 어느 것인지
+      // 알 수 없고, 화면이 금세 지저분해진다.
+      measureSource.clear();
+      var geometry = evt.feature.getGeometry();
+      geometry.on("change", function () {
+        var got = measureOf(geometry);
+        evt.feature.set("label", got.text);
+        showMeasure(got);
+      });
+    });
+    drawInteraction.on("drawend", function (evt) {
+      var got = measureOf(evt.feature.getGeometry());
+      evt.feature.set("label", got.text);
+      showMeasure(got, true);
+    });
+    map.addInteraction(drawInteraction);
+  }
+
+  function showMeasure(got, done) {
+    var out = document.getElementById("measure-out");
+    out.textContent = got.kind + " " + got.text;
+    out.classList.toggle("done", !!done);
+  }
+
+  function addTempPoint(coordinate) {
+    var ll = ol.proj.toLonLat(coordinate);
+    tempSeq += 1;
+    var feature = new ol.Feature({
+      geometry: new ol.geom.Point(coordinate),
+      no: tempSeq,
+      lat: ll[1],
+      lon: ll[0],
+    });
+    tempSource.addFeature(feature);
+    renderTemp();
+  }
+
+  function renderTemp() {
+    var host = document.getElementById("temp-list");
+    var features = tempSource.getFeatures();
+    setCount("count-temp", features.length);
+    host.innerHTML = "";
+    if (!features.length) {
+      host.innerHTML = '<li class="empty">아직 찍은 점이 없다</li>';
+      return;
+    }
+    features.forEach(function (feature) {
+      var li = document.createElement("li");
+
+      var no = document.createElement("span");
+      no.className = "temp-no";
+      no.textContent = feature.get("no");
+
+      var text = document.createElement("button");
+      text.type = "button";
+      text.className = "temp-coord";
+      text.title = "눌러서 복사한다";
+      text.textContent = formatPair(feature.get("lon"), feature.get("lat"));
+      text.addEventListener("click", function () {
+        var value = text.textContent;
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(value).then(function () {
+          text.textContent = "복사했다";
+          setTimeout(function () { text.textContent = value; }, 700);
+        });
+      });
+
+      var go = iconButton("⊙", "이 점으로 이동", false, function () {
+        map.getView().animate({
+          center: feature.getGeometry().getCoordinates(), duration: 300,
+        });
+      });
+      var del = iconButton("×", "지운다", false, function () {
+        tempSource.removeFeature(feature);
+        renderTemp();
+      });
+
+      li.append(no, text, go, del);
+      host.appendChild(li);
+    });
+  }
+
+  /** 찍어 둔 점을 **목록으로 저장한다.** 구글 지도의 "장소 저장" 과 같은 자리다.
+   *
+   *  임시 표시는 새로 고치면 사라진다. 그러다 "이건 남겨야겠다" 싶은 때가
+   *  오는데, 그때 파일로 내보냈다 다시 올리게 하면 아무도 안 한다.
+   *  있는 그대로 점묶음이 되게 했다.
+   */
+  function saveTemp() {
+    var features = tempSource.getFeatures();
+    var msg = document.getElementById("save-msg");
+    if (!features.length) {
+      msg.className = "msg bad";
+      msg.textContent = "저장할 점이 없다.";
+      return;
+    }
+    var name = prompt("목록 이름", "찍은 점 " + new Date().toLocaleDateString("ko-KR"));
+    if (name === null) return;
+
+    msg.className = "msg";
+    msg.textContent = "저장하는 중…";
+
+    fetch(BASE + "pointsets/create/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+      body: JSON.stringify({
+        name: name,
+        color: "#27456f",
+        points: features.map(function (f) {
+          return { lat: f.get("lat"), lon: f.get("lon"), label: "점 " + f.get("no") };
+        }),
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          msg.className = "msg bad";
+          msg.textContent = res.d.error || "저장하지 못했다";
+          return;
+        }
+        pointsets.unshift(res.d.pointset);
+        renderPointSets();
+        // 저장했으니 임시 표시는 치운다. 같은 점이 두 겹으로 남으면 헷갈린다.
+        tempSource.clear();
+        tempSeq = 0;
+        renderTemp();
+        msg.className = "msg good";
+        msg.textContent = "'" + res.d.pointset.name + "' 으로 저장했다.";
+      })
+      .catch(function () {
+        msg.className = "msg bad";
+        msg.textContent = "저장하지 못했다";
+      });
+  }
+
+  function wireTools() {
+    document.querySelectorAll(".mode").forEach(function (button) {
+      button.addEventListener("click", function () { setMode(button.dataset.mode); });
+    });
+    document.getElementById("save-temp").addEventListener("click", saveTemp);
+    document.getElementById("clear-temp").addEventListener("click", function () {
+      tempSource.clear();
+      measureSource.clear();
+      foundSource.clear();
+      tempSeq = 0;
+      renderTemp();
+      var out = document.getElementById("measure-out");
+      out.textContent = "아직 잰 것이 없다";
+      out.classList.remove("done");
+    });
+    renderTemp();
+    setMode("info");
+  }
+
   // ── 클릭해 속성 읽기 ────────────────────────────────────────────
 
   function onClick(evt) {
+    if (mode === "point") {
+      addTempPoint(evt.coordinate);
+      return;
+    }
+    if (mode !== "info") return;      // 재는 중에는 팝업을 띄우지 않는다
+
     var parts = [];
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+      if (feature.get("no") !== undefined && feature.get("lat") !== undefined) {
+        parts.push({
+          title: "찍은 점 " + feature.get("no"),
+          props: {
+            "위도": feature.get("lat").toFixed(6),
+            "경도": feature.get("lon").toFixed(6),
+            "도분초": coordText(feature.get("lon"), feature.get("lat")),
+          },
+        });
+        return;
+      }
       parts.push({ title: feature.get("_점묶음") || "내 자료", props: plain(feature.getProperties()) });
     }, { hitTolerance: 5 });
 
@@ -385,8 +761,30 @@
   function showPopup(coordinate, parts, emptyText) {
     var body = document.getElementById("popup-body");
     body.innerHTML = "";
+
+    // **첫 줄은 언제나 누른 자리의 위경도다.** 속성이 무엇이 나오든,
+    // 무엇도 안 나오든 "여기가 어디인가" 는 늘 답이 되어야 한다.
+    var ll = ol.proj.toLonLat(coordinate);
+    var head = document.createElement("button");
+    head.type = "button";
+    head.className = "popup-coord";
+    head.title = "눌러서 복사한다";
+    head.textContent = formatPair(ll[0], ll[1]);
+    head.addEventListener("click", function () {
+      var value = head.textContent;
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(value).then(function () {
+        head.textContent = "복사했다";
+        setTimeout(function () { head.textContent = value; }, 700);
+      });
+    });
+    body.appendChild(head);
+
     if (!parts.length) {
-      body.innerHTML = '<p class="none">' + esc(emptyText || "") + "</p>";
+      var none = document.createElement("p");
+      none.className = "none";
+      none.textContent = emptyText || "";
+      body.appendChild(none);
     } else {
       parts.forEach(function (part) {
         var h = document.createElement("h3");
@@ -455,6 +853,10 @@
       sec.toFixed(1).padStart(4, "0") + '"' + hemi;
   }
 
+  function coordText(lon, lat) {
+    return dd2dms(lat, true) + " " + dd2dms(lon, false);
+  }
+
   function formatPair(lon, lat) {
     return useDms
       ? dd2dms(lat, true) + " " + dd2dms(lon, false)
@@ -502,6 +904,7 @@
 
   function renderPointSets() {
     var host = document.getElementById("pointset-list");
+    setCount("count-points", pointsets.length);
     host.innerHTML = "";
     if (!pointsets.length) {
       host.innerHTML = '<li class="empty">올린 자료가 없다</li>';
@@ -580,12 +983,109 @@
       if (BASEMAPS[key].note) option.title = BASEMAPS[key].note;
       select.appendChild(option);
     });
+    var labelBox = document.getElementById("basemap-labels");
+    var labelWrap = document.getElementById("basemap-labels-wrap");
+
+    function syncLabelBox() {
+      var spec = BASEMAPS[select.value];
+      var has = !!(spec && spec.labels);
+      labelWrap.style.display = has ? "" : "none";
+      labelBox.checked = labelsOn();
+    }
+
     select.value = savedBasemap();
     select.addEventListener("change", function () {
       setBasemap(select.value);
+      syncLabelBox();
       restack();
     });
+    labelBox.addEventListener("change", function () { setLabels(labelBox.checked); });
+
     setBasemap(select.value);
+    syncLabelBox();
+  }
+
+  // ── 설정과 판 이력 ─────────────────────────────────────────────
+
+  function wireSettings() {
+    var sheet = document.getElementById("settings");
+    var loaded = false;
+
+    function open() {
+      sheet.hidden = false;
+      renderState();
+      if (loaded) return;
+      loaded = true;
+      fetch(BASE + "patchnotes/")
+        .then(function (r) { return r.json(); })
+        .then(function (d) { renderNotes(d.notes || []); })
+        .catch(function () {
+          document.getElementById("notes").textContent = "판 이력을 읽지 못했다.";
+        });
+    }
+
+    function close() { sheet.hidden = true; }
+
+    document.getElementById("gear").addEventListener("click", open);
+    document.getElementById("settings-close").addEventListener("click", close);
+    sheet.addEventListener("click", function (e) { if (e.target === sheet) close(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !sheet.hidden) close();
+    });
+  }
+
+  /** 지금 무엇으로 돌고 있는지. 화면을 보고 상태를 물어오는 일이 잦아 둔다. */
+  function renderState() {
+    var rows = [
+      ["배경지도", (BASEMAPS[document.getElementById("basemap").value] || {}).title || "없음"],
+      ["켠 레이어", active.length ? active.map(function (e) { return e.title; }).join(", ") : "없음"],
+      ["찍은 점", tempSource.getFeatures().length + "개"],
+      ["올린 자료", pointsets.length + "묶음"],
+      ["좌표 표기", useDms ? "도분초" : "십진도"],
+    ];
+    var host = document.getElementById("settings-state");
+    host.innerHTML = "";
+    rows.forEach(function (row) {
+      var dt = document.createElement("dt");
+      dt.textContent = row[0];
+      var dd = document.createElement("dd");
+      dd.textContent = row[1];
+      host.append(dt, dd);
+    });
+  }
+
+  function renderNotes(notes) {
+    var host = document.getElementById("notes");
+    host.innerHTML = "";
+    if (!notes.length) {
+      host.textContent = "아직 적힌 판이 없다.";
+      return;
+    }
+    notes.forEach(function (note) {
+      var head = document.createElement("h4");
+      head.innerHTML = esc(note.version) +
+        (note.title ? ' <span class="note-title">' + esc(note.title) + "</span>" : "") +
+        (note.date ? ' <span class="note-date">' + esc(note.date) + "</span>" : "");
+      host.appendChild(head);
+
+      if (note.lead) {
+        var lead = document.createElement("p");
+        lead.className = "note-lead";
+        lead.textContent = note.lead;
+        host.appendChild(lead);
+      }
+      if (note.items.length) {
+        var ul = document.createElement("ul");
+        note.items.forEach(function (item) {
+          var li = document.createElement("li");
+          // 문서에 `코드` 가 섞여 온다. 한 겹만 풀어 준다.
+          li.innerHTML = esc(item).replace(/`([^`]+)`/g, "<code>$1</code>")
+                                  .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+          ul.appendChild(li);
+        });
+        host.appendChild(ul);
+      }
+    });
   }
 
   function wireTabs() {
@@ -640,9 +1140,7 @@
       fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q))
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (d) {
-          map.getView().animate({
-            center: ol.proj.fromLonLat([d.lon, d.lat]), zoom: 13, duration: 400,
-          });
+          goTo(d.lat, d.lon);
           input.setCustomValidity("");
         })
         .catch(function () {
@@ -722,6 +1220,8 @@
   renderCatalog();
   renderActive();
   renderPointSets();
+  wireTools();
+  wireSettings();
   wireTabs();
   wireFilter();
   wireCoordBar();

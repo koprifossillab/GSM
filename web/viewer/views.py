@@ -13,7 +13,9 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
-from . import coords, kigam, pointsets, tilecache, tiles
+from gsmweb.version import VERSION
+
+from . import coords, kigam, patchnotes, pointsets, tilecache, tiles
 from .models import Layer, LayerGroup, Point, PointSet
 
 log = logging.getLogger(__name__)
@@ -21,6 +23,10 @@ log = logging.getLogger(__name__)
 #: 레이어 하나가 팝업에 내놓는 속성 덩이의 최대 수. 겹친 폴리곤을 추린
 #: 뒤에도 여럿 남을 수 있어 둔다 — 팝업이 길어지면 읽히지 않는다.
 MAX_FEATURES = 3
+
+#: 찍어 둔 점을 한 번에 목록으로 저장할 수 있는 수. 손으로 찍는 것이라
+#: 이보다 많을 일이 드물고, 한계가 없으면 한 번의 요청이 얼마든 커진다.
+MAX_SAVED_POINTS = 2000
 
 _ANCHOR = re.compile(r"""<a\s[^>]*href=["']([^"']+)["'][^>]*>(.*?)</a>""", re.I | re.S)
 _TAG = re.compile(r"<[^>]+>")
@@ -83,6 +89,7 @@ def map_view(request):
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
         "vworld_key": settings.VWORLD_KEY,
+        "version": VERSION,
     })
 
 
@@ -102,6 +109,21 @@ def _catalog():
         if layers:
             groups.append({"name": group.name, "layers": layers})
     return groups
+
+
+@require_GET
+def patch_notes(request):
+    """판 이력. 설정 창이 펼쳐 보인다.
+
+    `CHANGELOG.md` 를 **그때그때 읽는다.** 이미지에 구워 넣은 파일이라
+    바뀌지 않고, 파일 하나 읽는 값이 캐시를 두는 값보다 싸다.
+    """
+    path = settings.REPO_DIR / "CHANGELOG.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return JsonResponse({"version": VERSION, "notes": []})
+    return JsonResponse({"version": VERSION, "notes": patchnotes.parse(text)})
 
 
 @require_GET
@@ -288,6 +310,58 @@ def pointset_upload(request):
                      "count": len(points)},
         "notes": notes,
     })
+
+
+@require_POST
+def pointset_create(request):
+    """찍어 둔 점을 **목록으로 저장한다.** 구글 지도의 "장소 저장" 과 같은 자리다.
+
+    지도에서 찍은 점은 새로 고치면 사라지는 임시 표시다. 그러다 "이건 남겨야
+    겠다" 싶은 때가 오는데, 그때 파일로 내보냈다 다시 올리게 하면 아무도 안
+    한다. 그래서 있는 그대로 점묶음이 되게 했다.
+
+    받는 것: `{"name": "...", "color": "#rrggbb", "points": [{lat, lon, label}]}`
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "읽지 못했다"}, status=400)
+
+    rows = payload.get("points") or []
+    if not rows:
+        return JsonResponse({"error": "저장할 점이 없다"}, status=400)
+    if len(rows) > MAX_SAVED_POINTS:
+        return JsonResponse(
+            {"error": f"한 번에 {MAX_SAVED_POINTS}점까지 저장한다"}, status=400)
+
+    points = []
+    for row in rows:
+        try:
+            lat, lon = float(row["lat"]), float(row["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            continue
+        points.append((lat, lon, str(row.get("label") or "")[:200]))
+    if not points:
+        return JsonResponse({"error": "쓸 만한 좌표가 없다"}, status=400)
+
+    name = (payload.get("name") or "").strip() or "찍은 점"
+    color = (payload.get("color") or "").strip() or "#27456f"
+
+    with transaction.atomic():
+        pointset = PointSet.objects.create(
+            name=name[:120], source_filename="", color=color[:7])
+        Point.objects.bulk_create([
+            Point(pointset=pointset, lat=lat, lon=lon, label=label)
+            for lat, lon, label in points
+        ])
+
+    log.info("찍은 점 %d개를 '%s' 로 저장했다", len(points), pointset.name)
+    return JsonResponse({"pointset": {
+        "id": pointset.id, "name": pointset.name, "color": pointset.color,
+        "visible": True, "count": len(points),
+    }})
 
 
 @require_GET

@@ -15,9 +15,11 @@ urlpatterns = [
     path("legend/", views.legend, name="legend"),
 
     path("catalog/", views.catalog_json, name="catalog"),
+    path("patchnotes/", views.patch_notes, name="patchnotes"),
 
     path("pointsets/", views.pointset_index, name="pointset-index"),
     path("pointsets/upload/", views.pointset_upload, name="pointset-upload"),
+    path("pointsets/create/", views.pointset_create, name="pointset-create"),
     path("pointsets/<int:pk>/geojson/", views.pointset_geojson, name="pointset-geojson"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
 
