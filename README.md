@@ -45,6 +45,7 @@ python manage.py runserver
 
 ## 문서
 
+- [docs/설치.md](docs/설치.md) — paleo-server 에 세우는 절차 (**root 가 필요하다**)
 - [CLAUDE.md](CLAUDE.md) — 이름·낱말·구조의 규약
 - [HANDOFF.md](HANDOFF.md) — 지금 어디까지 왔고 다음이 무엇인지
 - [CHANGELOG.md](CHANGELOG.md) — 판 이력
