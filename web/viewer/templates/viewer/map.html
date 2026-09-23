@@ -36,6 +36,10 @@
 
   <section id="tab-layers" class="tabbody on">
     <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
+    <label class="basemap-row">
+      <span>배경</span>
+      <select id="basemap"></select>
+    </label>
     <div id="layer-active">
       <h2>켠 레이어 <span class="hint">위가 앞이다</span></h2>
       <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
@@ -83,6 +87,7 @@
   </div>
 </main>
 
+<script id="vworld-key" type="application/json">"{{ vworld_key|escapejs }}"</script>
 <script id="catalog-data" type="application/json">{{ catalog|safe }}</script>
 <script id="pointset-data" type="application/json">{{ pointsets|safe }}</script>
 <script src="{% static 'viewer/vendor/ol.js' %}"></script>

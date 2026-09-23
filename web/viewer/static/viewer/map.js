@@ -10,6 +10,7 @@
   "use strict";
 
   var BASE = location.pathname.replace(/\/+$/, "") + "/";
+  var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
@@ -35,15 +36,103 @@
     });
   }
 
+  /** 배경지도.
+   *
+   *  **기본은 "없음" 이다.** 처음에는 OpenStreetMap 을 깔았는데, 기관 망의
+   *  바깥 IP 가 OSM 정책 위반으로 막혀 있어 타일 자리마다
+   *  `403 Access blocked` 그림이 깔렸다 (2026-09-23).
+   *
+   *  우리 서버로 중계하면 화면은 살지만 그것이야말로 OSM 이 막는 행동이고,
+   *  이번엔 서버 IP 가 막힌다. 그래서 중계하지 않고 **고르게** 했다.
+   *
+   *  배경이 없어도 읽힌다 — 지질도 자체가 지명·행정경계·수계를 그려 준다.
+   *  종이 지질도가 그렇게 생겼다.
+   */
+  var BASEMAPS = {
+    none: { title: "없음 (바탕만)", make: null },
+    osm: {
+      title: "OpenStreetMap",
+      note: "기관 망에서는 막혀 있을 수 있다",
+      make: function () {
+        return new ol.layer.Tile({ source: new ol.source.OSM(), opacity: 0.55 });
+      },
+    },
+  };
+
+  // VWorld 는 열쇠가 있을 때만 고르개에 오른다.
+  //
+  // **브라우저가 곧장 부른다.** 상류 지질도와 다른 점이다 — VWorld 는
+  // 브라우저가 직접 부르는 것을 전제로 하고 열쇠에 도메인 제한을 걸어
+  // 지킨다. 서버가 중계하면 그 제한이 뜻을 잃고 타일을 전부 우리가 짊어진다.
+  //
+  // WMTS 의 자리 차례가 **z/y/x** 다. z/x/y 로 적으면 엉뚱한 곳이 그려진다.
+  if (vworldKey) {
+    BASEMAPS.vworld = {
+      title: "VWorld 배경지도",
+      note: "국토지리정보원",
+      make: function () {
+        return new ol.layer.Tile({
+          opacity: 0.85,
+          source: new ol.source.XYZ({
+            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+                 + "/Base/{z}/{y}/{x}.png",
+            crossOrigin: "anonymous",
+            maxZoom: 19,
+            attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
+          }),
+        });
+      },
+    };
+    BASEMAPS.vworld_hybrid = {
+      title: "VWorld 위성 + 지명",
+      note: "국토지리정보원",
+      make: function () {
+        return new ol.layer.Group({ layers: [
+          new ol.layer.Tile({ source: new ol.source.XYZ({
+            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+                 + "/Satellite/{z}/{y}/{x}.jpeg",
+            crossOrigin: "anonymous", maxZoom: 19,
+            attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
+          })}),
+          new ol.layer.Tile({ source: new ol.source.XYZ({
+            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+                 + "/Hybrid/{z}/{y}/{x}.png",
+            crossOrigin: "anonymous", maxZoom: 19,
+          })}),
+        ]});
+      },
+    };
+  }
+  var baseLayer = null;
+
+  function setBasemap(key) {
+    if (baseLayer) {
+      map.removeLayer(baseLayer);
+      baseLayer = null;
+    }
+    var spec = BASEMAPS[key];
+    if (spec && spec.make) {
+      baseLayer = spec.make();
+      baseLayer.setZIndex(0);
+      map.getLayers().insertAt(0, baseLayer);
+    }
+    try { localStorage.setItem("gsm.basemap", key); } catch (e) { /* 사생활 모드 */ }
+  }
+
+  function savedBasemap() {
+    try {
+      var key = localStorage.getItem("gsm.basemap");
+      if (key && BASEMAPS[key]) return key;
+    } catch (e) { /* 사생활 모드 */ }
+    return "none";
+  }
+
   function initMap() {
     pointLayerGroup = new ol.layer.Group({ layers: [] });
 
     map = new ol.Map({
       target: "map",
-      layers: [
-        new ol.layer.Tile({ source: new ol.source.OSM(), opacity: 0.55 }),
-        pointLayerGroup,
-      ],
+      layers: [pointLayerGroup],
       view: new ol.View({
         // 남한 전체가 들어오는 자리
         center: ol.proj.fromLonLat([127.8, 36.2]),
@@ -73,7 +162,8 @@
     map.getLayers().getArray().slice().forEach(function (l) {
       if (l.get("gsm")) map.removeLayer(l);
     });
-    var baseCount = 1;   // OSM
+    // 배경지도는 있으면 z=0 에 있다. 켠 레이어는 그 위에 쌓는다.
+    var baseCount = baseLayer ? 1 : 0;
     active.slice().reverse().forEach(function (entry, index) {
       entry.layer.setZIndex(baseCount + index);
       entry.layer.set("gsm", true);
@@ -481,6 +571,23 @@
 
   // ── 붙이기 ──────────────────────────────────────────────────────
 
+  function wireBasemap() {
+    var select = document.getElementById("basemap");
+    Object.keys(BASEMAPS).forEach(function (key) {
+      var option = document.createElement("option");
+      option.value = key;
+      option.textContent = BASEMAPS[key].title;
+      if (BASEMAPS[key].note) option.title = BASEMAPS[key].note;
+      select.appendChild(option);
+    });
+    select.value = savedBasemap();
+    select.addEventListener("change", function () {
+      setBasemap(select.value);
+      restack();
+    });
+    setBasemap(select.value);
+  }
+
   function wireTabs() {
     document.querySelectorAll(".tab").forEach(function (tab) {
       tab.addEventListener("click", function () {
@@ -611,6 +718,7 @@
   }
 
   initMap();
+  wireBasemap();
   renderCatalog();
   renderActive();
   renderPointSets();

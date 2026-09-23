@@ -81,6 +81,8 @@ def map_view(request):
         "pointsets": json.dumps(_pointset_list(), ensure_ascii=False),
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
+        # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
+        "vworld_key": settings.VWORLD_KEY,
     })
 
 

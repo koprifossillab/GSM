@@ -65,6 +65,15 @@ def _lines_from(path_env: str, default_name: str) -> list:
 
 
 
+def _one_line(path_env: str, default_name: str) -> str:
+    """한 줄짜리 비밀을 파일에서 읽는다. 없으면 빈 문자열."""
+    path = env(path_env) or str(_data_dir() / default_name)
+    try:
+        return Path(path).read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
 def _key_from_file() -> str:
     """인증키를 파일에서 읽는다. 환경변수가 비었을 때만 본다.
 
@@ -88,6 +97,16 @@ def _key_from_file() -> str:
 
 # 인증키. 비어 있어도 뷰어는 돈다 — 타일 자리에 안내가 뜰 뿐이다.
 KIGAM_KEY = env("GSM_KIGAM_KEY") or _key_from_file()
+
+#: 배경지도(VWorld) 열쇠. 비어 있으면 배경 고르개에 VWorld 가 안 뜬다.
+#:
+#: **이 키는 브라우저로 나간다.** 상류 인증키와 다른 점이다 — VWorld 의
+#: WMTS 는 브라우저가 직접 부르는 것을 전제로 하고, 키에 도메인 제한을
+#: 걸어 지킨다. 그래서 서버가 중계하지 않는다. 중계하면 도메인 제한이
+#: 뜻을 잃고 우리 서버가 모든 타일을 짊어진다.
+#:
+#: `<DB 옆>/vworld_key` 에 적어도 된다 — 배포한 자리의 .env 를 못 고치기 때문.
+VWORLD_KEY = env("GSM_VWORLD_KEY") or _one_line("GSM_VWORLD_KEY_FILE", "vworld_key")
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
 # 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.
