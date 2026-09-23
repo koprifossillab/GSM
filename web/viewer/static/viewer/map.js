@@ -307,9 +307,7 @@
           var tr = document.createElement("tr");
           var th = document.createElement("th");
           th.textContent = key;
-          var td = document.createElement("td");
-          td.textContent = String(part.props[key]);
-          tr.append(th, td);
+          tr.append(th, valueCell(part.props[key]));
           table.appendChild(tr);
         });
         body.appendChild(table);
@@ -317,6 +315,29 @@
     }
     document.getElementById("popup").classList.add("on");
     popupOverlay.setPosition(coordinate);
+  }
+
+  /** 속성값 한 칸. 서버가 `{text, links}` 로 갈라 보낸 것은 진짜 링크로 그린다.
+   *  **5만 지질도의 `도폭`** 이 그렇게 온다 — 원도 PDF 와 수치지질도 DOI 가
+   *  딸려 있다. 주소 검사는 서버가 이미 했다(`views._split_links`). 여기서는
+   *  `textContent` 와 `href` 만 쓰고 **innerHTML 을 쓰지 않는다.** */
+  function valueCell(value) {
+    var td = document.createElement("td");
+    if (value && typeof value === "object" && value.links) {
+      if (value.text) td.appendChild(document.createTextNode(value.text));
+      value.links.forEach(function (link) {
+        var a = document.createElement("a");
+        a.className = "proplink";
+        a.href = link.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = link.label;
+        td.appendChild(a);
+      });
+    } else {
+      td.textContent = String(value);
+    }
+    return td;
   }
 
   function plain(props) {
@@ -599,10 +620,12 @@
   wireUpload();
   wirePopup();
 
-  // 처음 열면 25만 지질도를 켜 둔다 — 빈 지도보다 무엇이든 보이는 편이 낫다
-  if (byName["L_250K_Geology_Map"]) {
-    var box = document.querySelector('input[data-layer="L_250K_Geology_Map"]');
+  // 처음 열면 5만 지질도를 켜 둔다. 빈 지도보다 무엇이든 보이는 편이 낫고,
+  // **5만이 실제로 가장 많이 보는 축척이다.** 100만·25만은 켜서 보는 것이지
+  // 켜 두고 시작할 것이 아니다.
+  if (byName["L_50K_Geology_Map"]) {
+    var box = document.querySelector('input[data-layer="L_50K_Geology_Map"]');
     if (box) { box.checked = true; }
-    addLayer("L_250K_Geology_Map");
+    addLayer("L_50K_Geology_Map");
   }
 })();

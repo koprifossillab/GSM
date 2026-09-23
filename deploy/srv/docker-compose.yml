@@ -17,9 +17,11 @@ services:
     environment:
       TZ: Asia/Seoul
       GSM_DB_PATH: /srv/GSM/db/GSM.db
+      GSM_TILE_CACHE_DIR: /srv/GSM/tiles
       GSM_DEBUG: "0"
       GSM_URL_PREFIX: "GSM/"
     volumes:
       - /srv/GSM/db:/srv/GSM/db
+      - /srv/GSM/tiles:/srv/GSM/tiles
     ports:
-      - "127.0.0.1:9310:9310"
+      - "127.0.0.1:8094:9090"

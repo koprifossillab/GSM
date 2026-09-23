@@ -50,8 +50,16 @@ WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
 # 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.
 CAPABILITIES_URL = env("GSM_CAPABILITIES_URL",
                        "https://data.kigam.re.kr/mgeo/geoserver/wms")
+#: 브라우저에게 "이만큼 들고 있어라" 고 말하는 시간 (HTTP Cache-Control).
 TILE_CACHE_SECONDS = env_int("GSM_TILE_CACHE_SECONDS", 86400)
 UPSTREAM_TIMEOUT = env_int("GSM_UPSTREAM_TIMEOUT", 20)
+
+#: 받아온 타일을 우리 디스크에 두는 자리. 비우면 캐시를 끈다.
+#: 위의 TILE_CACHE_SECONDS 와 **다른 것이다** — 저쪽은 브라우저,
+#: 이쪽은 서버다. 까닭은 `viewer/tilecache.py`.
+TILE_CACHE_DIR = env("GSM_TILE_CACHE_DIR", str(REPO_DIR / "web" / ".tilecache"))
+TILE_CACHE_MAX_AGE_DAYS = env_int("GSM_TILE_CACHE_MAX_AGE_DAYS", 30)
+TILE_CACHE_MAX_BYTES = env_int("GSM_TILE_CACHE_MAX_BYTES", 2 * 1024 * 1024 * 1024)
 
 
 def _default_ca_bundle() -> str:

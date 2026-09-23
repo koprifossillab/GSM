@@ -5,6 +5,7 @@
 """
 import json
 import logging
+import re
 
 from django.conf import settings
 from django.db import transaction
@@ -12,7 +13,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
-from . import coords, kigam, pointsets, tiles
+from . import coords, kigam, pointsets, tilecache, tiles
 from .models import Layer, LayerGroup, Point, PointSet
 
 log = logging.getLogger(__name__)
@@ -20,6 +21,55 @@ log = logging.getLogger(__name__)
 #: 레이어 하나가 팝업에 내놓는 속성 덩이의 최대 수. 겹친 폴리곤을 추린
 #: 뒤에도 여럿 남을 수 있어 둔다 — 팝업이 길어지면 읽히지 않는다.
 MAX_FEATURES = 3
+
+_ANCHOR = re.compile(r"""<a\s[^>]*href=["']([^"']+)["'][^>]*>(.*?)</a>""", re.I | re.S)
+_TAG = re.compile(r"<[^>]+>")
+
+#: 팝업에 올리지 않는 곁가지. 상류의 지질도는 레이어 하나가 아니라 **묶음**이라,
+#: 하나를 물으면 밑에 깔린 것까지 함께 온다. 행정경계가 그렇다 —
+#: `ufid`·`bjcd`·`divi`·`scls` 같은 코드뿐이고 읽을 수 있는 것은 `name` 하나인데,
+#: 그 이름은 배경지도에 이미 글자로 적혀 있다. 지질을 물었는데 먼저 보이면
+#: 방해가 된다. 도곽(`…_frame…`)은 **버리지 않는다** — 도폭명·제작연도·조사자가
+#: 들어 있어 5만 지질도를 볼 때 쓸모가 있다.
+NOISE_PREFIXES = ("admin_boundary",)
+
+
+def _is_noise(feature_id: str) -> bool:
+    return str(feature_id).lower().startswith(NOISE_PREFIXES)
+
+
+def _split_links(value):
+    """속성값에 섞여 온 `<a>` 를 글자와 링크로 가른다.
+
+    **5만 지질도의 `도폭` 이 그렇게 온다** — `유성[1977]` 뒤에 원도 PDF 와
+    수치지질도 DOI 가 앵커로 붙어 있다. 쓸모 있는 링크라 버리기 아깝다.
+
+    그대로 두면 팝업에 태그가 글자로 보이고, 브라우저에서 `innerHTML` 로
+    넣으면 **상류가 준 HTML 을 그대로 믿는 것**이 된다. 그래서 여기서 갈라
+    보낸다 — 글자는 글자대로, 링크는 주소와 이름표로. 주소는 http·https 만
+    받는다(`javascript:` 를 막는다).
+
+    앵커가 없으면 값을 그대로 돌려준다 — 대부분이 그 경우다.
+    """
+    if not isinstance(value, str) or "<a" not in value.lower():
+        return value
+
+    links = []
+
+    def take(match):
+        url = match.group(1).strip()
+        label = _TAG.sub("", match.group(2)).strip()
+        if not url.lower().startswith(("http://", "https://")):
+            # 받지 않은 주소다. **글자는 남긴다** — 이름표가 뜻을 담고 있는데
+            # 주소가 못 미덥다고 글자까지 지우면 사람이 읽을 것이 사라진다.
+            return label
+        links.append({"label": (label or "열기")[:40], "url": url})
+        return ""              # 링크로 옮겼으니 글자에서는 뺀다
+
+    text = _TAG.sub("", _ANCHOR.sub(take, value)).strip()
+    if not links:
+        return text or value
+    return {"text": text, "links": links}
 
 
 # ── 화면 ──────────────────────────────────────────────────────────────
@@ -70,26 +120,49 @@ def wms(request):
     width = _int(params.get("width"), 256)
     height = _int(params.get("height"), 256)
 
-    if not kigam.has_key():
-        return _tile(tiles.notice_tile(width, height, "인증키가 없다 — .env 의 GSM_KIGAM_KEY"))
-
     params.setdefault("format", "image/png")
     params.setdefault("transparent", "true")
+
+    # 들고 있으면 상류에 묻지 않는다. **인증키가 없어도 캐시는 내준다** —
+    # 이미 받아둔 그림이고, 다시 받을 일이 없으니 막을 까닭이 없다.
+    cache_key = tilecache.key_for("map", params)
+    hit = tilecache.get(cache_key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+
+    if not kigam.has_key():
+        return _tile(tiles.notice_tile(width, height, "인증키가 없다 — .env 의 GSM_KIGAM_KEY"),
+                     store=False)
+
     try:
         content, ctype = kigam.get_map(params)
     except kigam.UpstreamError as exc:
         log.warning("타일을 받지 못했다: %s", exc)
-        return _tile(tiles.notice_tile(width, height, "상류가 지도를 주지 않았다"))
+        return _tile(tiles.notice_tile(width, height, "상류가 지도를 주지 않았다"),
+                     store=False)
+
+    # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
+    tilecache.put(cache_key, content)
 
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    response["X-GSM-Cache"] = "miss"
     return response
 
 
-def _tile(png: bytes):
+def _tile(png: bytes, *, cached: bool = False, store: bool = True):
+    """안내 타일과 캐시에서 꺼낸 타일을 같은 문으로 내보낸다.
+
+    안내 타일은 `store=False` 다 — 브라우저가 들고 있으면 인증키가 생긴 뒤에도
+    "키가 없다" 가 계속 뜬다. 캐시에서 꺼낸 것은 진짜 지도이므로 평소대로 둔다.
+    """
     response = HttpResponse(png, content_type="image/png")
-    response["Cache-Control"] = "no-store"     # 키가 생기면 곧바로 진짜가 뜨게 한다
+    if store and settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    else:
+        response["Cache-Control"] = "no-store"
+    response["X-GSM-Cache"] = "hit" if cached else "bypass"
     return response
 
 
@@ -118,6 +191,8 @@ def feature_info(request):
     # "여기가 무엇인가" 한 답이면 되므로 **속성이 같은 것은 하나로 친다.**
     features, seen = [], set()
     for feature in (data.get("features") or []):
+        if _is_noise(feature.get("id", "")):
+            continue
         props = {k: v for k, v in (feature.get("properties") or {}).items()
                  if v not in (None, "", "null")}
         if not props:
@@ -126,6 +201,7 @@ def feature_info(request):
         if mark in seen:
             continue
         seen.add(mark)
+        props = {k: _split_links(v) for k, v in props.items()}
         features.append({"id": feature.get("id", ""), "props": props})
         if len(features) >= MAX_FEATURES:
             break
@@ -138,6 +214,18 @@ def legend(request):
     layer = request.GET.get("layer", "")
     if not layer:
         return JsonResponse({"error": "layer 가 없다"}, status=400)
+
+    # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
+    # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.
+    cache_key = tilecache.key_for("legend", {"layer": layer})
+    hit = tilecache.get(cache_key)
+    if hit is not None:
+        response = HttpResponse(hit, content_type="image/png")
+        response["X-GSM-Cache"] = "hit"
+        if settings.TILE_CACHE_SECONDS > 0:
+            response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+        return response
+
     if not kigam.has_key():
         return JsonResponse({"error": "인증키가 없다"}, status=503)
     try:
@@ -145,6 +233,7 @@ def legend(request):
     except kigam.UpstreamError as exc:
         log.info("범례를 받지 못했다 (%s): %s", layer, exc)
         return JsonResponse({"error": str(exc)}, status=502)
+    tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

@@ -1,13 +1,13 @@
 #!/bin/bash
 # 올린 뒤 살아 있는지 본다. 돌아가는 장비에서 돌린다.
 #
-#   deploy/host/smoke.sh [주소]      기본 http://127.0.0.1:9310/GSM/
+#   deploy/host/smoke.sh [주소]      기본 http://127.0.0.1:8094/GSM/
 #
 # 상류를 타는 것(타일·속성)은 인증키가 있어야 하므로, 키가 없으면 그 둘은
 # 건너뛰고 화면과 카탈로그만 본다.
 set -uo pipefail
 
-BASE="${1:-http://127.0.0.1:9310/GSM/}"
+BASE="${1:-http://127.0.0.1:8094/GSM/}"
 BASE="${BASE%/}"
 fail=0
 

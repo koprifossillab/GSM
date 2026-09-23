@@ -37,6 +37,6 @@ RUN cd web && GSM_SECRET_KEY=build-only python manage.py collectstatic --noinput
 ENV HOME=/tmp \
     XDG_CACHE_HOME=/tmp/.cache
 
-EXPOSE 9310
+EXPOSE 9090
 
 ENTRYPOINT ["/app/deploy/entrypoint-web.sh"]

@@ -28,3 +28,6 @@ venv/
 .vscode/
 *.swp
 .DS_Store
+
+# 받아둔 타일. 캐시지 자료가 아니다 — 지워도 다시 받는다.
+/web/.tilecache/
