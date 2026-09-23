@@ -113,6 +113,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # 정적 파일을 gunicorn 이 직접 내준다. DEBUG=0 이면 Django 가 안 내주고,
+    # nginx 에게 맡기려면 이미지 안의 파일을 호스트로 꺼내야 해서 번거롭다.
+    # 까닭은 requirements-web.txt 의 주석.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -155,6 +159,14 @@ USE_TZ = True
 
 STATIC_URL = f"/{URL_PREFIX}static/" if URL_PREFIX else "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# 눌러서 보낸다. 해시 이름(Manifest)은 쓰지 않는다 — 파일 하나가 빠지면
+# 화면 전체가 멈추는데, 얻는 것은 캐시 무효화뿐이고 그건 nginx 의 expires 와
+# 판 올리기로 충분하다.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 MEDIA_URL = f"/{URL_PREFIX}media/" if URL_PREFIX else "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

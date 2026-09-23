@@ -9,4 +9,11 @@
 Django==5.2.16
 pillow==12.2.0        # 인증키가 없을 때 띄우는 안내 타일을 그린다 (viewer/tiles.py)
 requests==2.32.3      # 상류 WMS 중계 (viewer/kigam.py)
+whitenoise==6.8.2     # 정적 파일 서빙. 아래 주석을 볼 것
 gunicorn==26.0.0      # 운영 서빙. 개발용 runserver 를 대신한다
+
+# **whitenoise 가 왜 필요한가.** DEBUG=0 이면 Django 는 정적 파일을 내주지
+# 않는다. ForGIA·DiaRUGA 는 템플릿이 CSS·JS 를 인라인으로 들고 있어 이 일을
+# 겪지 않지만, 여기는 OpenLayers 를 저장소에 담아 파일로 부른다
+# (web/viewer/static/viewer/vendor/). 없으면 컨테이너에서 화면이 뜨되
+# 지도가 하나도 안 그려진다 — 2026-09-23 에 그렇게 한 번 겪었다.
