@@ -37,19 +37,18 @@ python manage.py runserver
 
 ### 지금의 .env
 
-인증키가 없으므로 개발 스위치를 켜 두었다.
+인증키가 없으므로 임시 스위치를 켜 두었다.
 
 ```
 GSM_KIGAM_KEY=
 GSM_DEV_DIRECT_WMS=1
 ```
 
-**키가 나오면** `GSM_KIGAM_KEY` 를 채우고 `GSM_DEV_DIRECT_WMS=0` 으로 되돌린다.
 둘의 갈래는 CLAUDE.md 의 "두 개의 상류 주소".
 
 ## 무엇이 확인됐나
 
-2026-09-23 에 직접 받아본 것들이다. 개발 스위치를 켠 상태였다.
+2026-09-23 에 직접 받아본 것들이다. 임시 스위치를 켠 상태였다.
 
 | | |
 |---|---|
@@ -59,7 +58,8 @@ GSM_DEV_DIRECT_WMS=1
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 49 개 다 돈다 (`manage.py test viewer`) |
+| 시험 | 83 개 다 돈다 (`manage.py test viewer`) |
+| 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 
 ## 무엇이 아직 아닌가
 
@@ -69,13 +69,14 @@ GSM_DEV_DIRECT_WMS=1
 - **`GetLegendGraphic` 이 `/openapi/wms` 로도 되는지 모른다.** 문서에 없는
   기능이라 프록시 쪽에서 막아둘 수도 있다. 안 되면 범례 단추를 내려야 한다
 - 호출 제한의 실제 수치를 모른다. 문서는 "지나치게 잦은 호출" 이라고만 적었다.
-  타일 캐시(`GSM_TILE_CACHE_SECONDS`, 기본 하루)를 미리 둔 것이 이 때문이다
-- Docker 이미지를 실제로 구워보지 않았다. `Dockerfile.web` 은 적어만 두었다
-- 배포하지 않았다. nginx 조각과 `/srv` 구성은 적어만 두었다
+  타일 캐시를 둔 것이 이 때문이다 (브라우저 쪽 하루, 디스크 쪽 30 일·2 GB)
+- 판을 붙이지 않았다. 이미지는 `v0.1.0` 으로 굽고 돌리지만 태그를 밀지 않았고
+  Docker Hub 에도 올리지 않았다 — 이 장비에서 굽고 이 장비에서 돈다
 
 ## 키가 나오면 — 차례대로
 
-1. `.env` 에 `GSM_KIGAM_KEY` 를 채우고 `GSM_DEV_DIRECT_WMS=0`
+1. `/srv/GSM/db/kigam_key` 에 키를 적고 `dev_direct_wms` 를 지운 뒤 다시 띄운다
+   (`.env` 는 root 의 것이라 못 고친다. 맨 위 "한 줄" 의 명령 묶음을 볼 것)
 2. `cd web && python manage.py verify_layers`
    레이어 61 개를 한 장씩 받아보고 `verified_at` 에 날짜를 남긴다.
    안 그려지는 것은 `enabled=False` 로 내려가고 까닭이 `verify_note` 에 남는다.
@@ -114,6 +115,24 @@ ForGIA `deploy/ca/README.md` 가 같은 것을 먼저 겪었다.
 타일은 `./wms/`, 속성은 `./featureinfo/`, 범례는 `./legend/` 로 부르고, 키는
 Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` 를 **버린다** —
 시험(`test_kigam.py`)이 그것을 지킨다.
+
+## 배포한 자리에서 알아둘 것
+
+`/srv/GSM` 은 배포한 사람(root)의 것이라 **`.env` 도 `docker-compose.yml` 도
+못 고친다.** 쓸 수 있는 것은 `db/` 와 `tiles/` 뿐이다. 2026-09-23 에 이것이
+세 번 걸렸다 — 빈 `SECRET_KEY` 로 기동 실패, `ALLOWED_HOSTS` 에 `paleolab` 이
+없어 400, 그리고 임시 스위치.
+
+그래서 설정을 **DB 옆 파일**로도 읽는다.
+
+| 파일 | 하는 일 |
+|---|---|
+| `secret_key` | 없으면 entrypoint 가 만든다 |
+| `allowed_hosts` | 들어와도 되는 이름. 한 줄에 하나 |
+| `kigam_key` | 인증키 |
+| `dev_direct_wms` | `1` 이면 임시 경로로 간다 |
+
+환경변수가 있으면 그쪽이 이긴다. 파일은 없어도 된다.
 
 ## 걸린 것 — 없음
 
