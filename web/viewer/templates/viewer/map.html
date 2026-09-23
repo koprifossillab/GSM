@@ -29,15 +29,16 @@
   </p>
   {% endif %}
 
+  <div id="panel-body">
   <nav class="tabs">
     <button class="tab on" data-tab="layers">레이어</button>
     <button class="tab" data-tab="points">내 자료</button>
-    <button class="tab" data-tab="tools">도구</button>
   </nav>
 
   <section id="tab-layers" class="tabbody on">
     <div class="box">
       <h2 class="box-head">레이어 고르기</h2>
+      <div class="box-body">
       <label class="basemap-row">
         <span>배경</span>
         <select id="basemap"></select>
@@ -46,18 +47,19 @@
         <input type="checkbox" id="basemap-labels" checked>
         <span>지명 보이기</span>
       </label>
+
+      <h3 class="sub-head">켠 지질 레이어 <span class="count" id="count-layers">0</span>
+        <span class="hint">위가 앞이다</span></h3>
+      <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
+
       <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
       <div id="layer-catalog"></div>
+      </div>
     </div>
 
     <div class="box">
       <h2 class="box-head">그리기 <span class="hint">지금 지도에 있는 것</span></h2>
-
-      <details class="folder" open>
-        <summary>지질 레이어 <span class="count" id="count-layers">0</span>
-          <span class="hint">위가 앞이다</span></summary>
-        <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
-      </details>
+      <div class="box-body">
 
       <details class="folder" open>
         <summary>내 자료 <span class="count" id="count-points">0</span></summary>
@@ -75,20 +77,8 @@
         </div>
         <p id="save-msg" class="msg"></p>
       </details>
+      </div>
     </div>
-  </section>
-
-  <section id="tab-tools" class="tabbody">
-    <h2>무엇을 할까 <span class="hint">지도를 누르면</span></h2>
-    <div id="modes" class="modes">
-      <button type="button" class="mode on" data-mode="info">속성 읽기</button>
-      <button type="button" class="mode" data-mode="point">점 찍기</button>
-      <button type="button" class="mode" data-mode="line">거리 재기</button>
-      <button type="button" class="mode" data-mode="area">넓이 재기</button>
-    </div>
-    <p id="mode-hint" class="hint">지도를 누르면 그 지점의 지질 속성이 뜬다.</p>
-
-    <p class="hint">찍은 점과 잰 것은 <b>레이어 탭의 "그리기" 칸</b>에 모인다.</p>
   </section>
 
   <section id="tab-points" class="tabbody">
@@ -110,7 +100,15 @@
       <p id="upload-msg" class="msg"></p>
     </form>
   </section>
-  <button type="button" id="gear" class="gear" title="설정과 판 이력">&#9881;</button>
+  </div>
+
+  <footer id="panel-foot">
+    <span class="foot-name">GSM <span class="ver">v{{ version }}</span></span>
+    <button type="button" id="gear" class="gear" title="설정과 판 이력">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path class="stroke" d="m19.2 13.6.1-1.6-.1-1.6 1.7-1.3-1.7-2.9-2 .7a7.4 7.4 0 0 0-2.8-1.6L14 3h-4l-.4 2.3a7.4 7.4 0 0 0-2.8 1.6l-2-.7-1.7 2.9 1.7 1.3-.1 1.6.1 1.6-1.7 1.3 1.7 2.9 2-.7a7.4 7.4 0 0 0 2.8 1.6L10 21h4l.4-2.3a7.4 7.4 0 0 0 2.8-1.6l2 .7 1.7-2.9-1.7-1.3Z"/></svg>
+      <span>설정</span>
+    </button>
+  </footer>
 </aside>
 
 <div id="settings" class="sheet" hidden>
@@ -133,6 +131,28 @@
   <div id="popup" class="popup">
     <button id="popup-close" class="popup-close" title="닫는다">&times;</button>
     <div id="popup-body"></div>
+  </div>
+
+  <div id="toolbar" class="toolbar">
+    <output id="tool-out" class="tool-out" hidden></output>
+    <div class="tool-row">
+      <button type="button" class="tool" data-mode="point" title="점 찍기 — 누른 자리에 점을 찍고 위경도를 적는다">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Z"/><circle cx="12" cy="9" r="2.6" class="hole"/></svg>
+        <span class="sr">점 찍기</span>
+      </button>
+      <button type="button" class="tool" data-mode="line" title="거리 재기 — 눌러 가며 잇고, 두 번 누르면 끝난다">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 20 4" class="stroke"/><circle cx="4.5" cy="19.5" r="2.6"/><circle cx="19.5" cy="4.5" r="2.6"/></svg>
+        <span class="sr">거리 재기</span>
+      </button>
+      <button type="button" class="tool" data-mode="area" title="넓이 재기 — 눌러 가며 두르고, 두 번 누르면 끝난다">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8 12 3l8 5v8l-8 5-8-5V8Z" class="stroke"/></svg>
+        <span class="sr">넓이 재기</span>
+      </button>
+      <button type="button" class="tool danger" id="tool-clear" title="찍은 점과 잰 것을 모두 지운다">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" class="stroke"/></svg>
+        <span class="sr">모두 지운다</span>
+      </button>
+    </div>
   </div>
 
   <div id="scalebar"></div>

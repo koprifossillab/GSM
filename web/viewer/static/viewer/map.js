@@ -27,7 +27,7 @@
 
   var map, popupOverlay, pointLayerGroup;
   var tempSource, tempLayer, measureSource, measureLayer, foundSource, foundLayer;
-  var mode = "info", drawInteraction = null, tempSeq = 0;
+  var mode = "info", drawInteraction = null, tempSeq = 0, lastMeasure = "";
   var active = [];        // 켠 레이어. 앞이 위다 (화면에서 앞에 그려진다)
   var byName = {};        // 레이어명 -> 카탈로그 행
   var pointLayers = {};   // 점묶음 id -> ol 레이어
@@ -262,9 +262,23 @@
 
   // ── 레이어 패널 ─────────────────────────────────────────────────
 
+  /** 카탈로그.
+   *
+   *  **첫 묶음(지질도)만 펼치고 나머지는 "추가 주제도" 안으로 접는다.**
+   *  61 개를 한 줄로 늘어놓으면 패널이 화면보다 길어져서 아래의 "그리기"
+   *  칸이 밀려 안 보인다. 늘 보는 것은 지질도 네 장이고, 나머지는 찾아서
+   *  켜는 것이다 — 그 차이를 접기로 나타낸다.
+   */
   function renderCatalog() {
     var host = document.getElementById("layer-catalog");
     host.innerHTML = "";
+
+    var more = document.createElement("details");
+    more.className = "group more";
+    var moreCount = 0;
+    var moreSummary = document.createElement("summary");
+    more.appendChild(moreSummary);
+
     catalog.forEach(function (group, index) {
       var details = document.createElement("details");
       details.className = "group";
@@ -304,8 +318,18 @@
         row.appendChild(label);
         details.appendChild(row);
       });
-      host.appendChild(details);
+      if (index === 0) {
+        host.appendChild(details);
+      } else {
+        moreCount += group.layers.length;
+        more.appendChild(details);
+      }
     });
+
+    if (moreCount) {
+      moreSummary.innerHTML = '추가 주제도 <span class="count">' + moreCount + "</span>";
+      host.appendChild(more);
+    }
   }
 
   function setCount(id, n) {
@@ -520,12 +544,12 @@
       map.removeInteraction(drawInteraction);
       drawInteraction = null;
     }
-    document.querySelectorAll(".mode").forEach(function (b) {
+    document.querySelectorAll(".tool[data-mode]").forEach(function (b) {
       b.classList.toggle("on", b.dataset.mode === next);
     });
-    document.getElementById("mode-hint").textContent = MODE_HINT[next] || "";
     document.getElementById("map").style.cursor =
       next === "info" ? "" : "crosshair";
+    updateToolOut();
 
     if (next !== "line" && next !== "area") return;
 
@@ -557,6 +581,26 @@
     var out = document.getElementById("measure-out");
     out.textContent = got.kind + " " + got.text;
     out.classList.toggle("done", !!done);
+    lastMeasure = got.kind + " " + got.text;
+    updateToolOut();
+  }
+
+  /** 지도 위 손잡이 옆의 알림.
+   *
+   *  **재는 결과가 손잡이 곁에 있어야 한다.** 처음에는 왼쪽 패널에만
+   *  적었는데, 손잡이를 누른 자리에서는 아무 일도 안 일어나는 것처럼
+   *  보였다. 누른 곳에서 답이 나와야 한다. */
+  function updateToolOut() {
+    var out = document.getElementById("tool-out");
+    var points = tempSource ? tempSource.getFeatures().length : 0;
+    var bits = [];
+    if (lastMeasure) bits.push(lastMeasure);
+    if (points) bits.push("점 " + points + "개");
+    if (mode === "point" && !points) bits.push("지도를 눌러 점을 찍는다");
+    if (mode === "line" && !lastMeasure) bits.push("눌러 가며 잇는다 · 두 번 누르면 끝");
+    if (mode === "area" && !lastMeasure) bits.push("눌러 가며 두른다 · 두 번 누르면 끝");
+    out.textContent = bits.join("  ·  ");
+    out.hidden = !bits.length;
   }
 
   function addTempPoint(coordinate) {
@@ -576,6 +620,7 @@
     var host = document.getElementById("temp-list");
     var features = tempSource.getFeatures();
     setCount("count-temp", features.length);
+    updateToolOut();
     host.innerHTML = "";
     if (!features.length) {
       host.innerHTML = '<li class="empty">아직 찍은 점이 없다</li>';
@@ -671,22 +716,31 @@
   }
 
   function wireTools() {
-    document.querySelectorAll(".mode").forEach(function (button) {
-      button.addEventListener("click", function () { setMode(button.dataset.mode); });
+    // **누른 손잡이를 다시 누르면 꺼진다.** 아무것도 안 켜져 있으면 속성을
+    // 읽는 것이 기본이라, "속성 읽기" 단추를 따로 두지 않는다.
+    document.querySelectorAll(".tool[data-mode]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        setMode(mode === button.dataset.mode ? "info" : button.dataset.mode);
+      });
     });
+    document.getElementById("tool-clear").addEventListener("click", clearDrawn);
     document.getElementById("save-temp").addEventListener("click", saveTemp);
-    document.getElementById("clear-temp").addEventListener("click", function () {
-      tempSource.clear();
-      measureSource.clear();
-      foundSource.clear();
-      tempSeq = 0;
-      renderTemp();
-      var out = document.getElementById("measure-out");
-      out.textContent = "아직 잰 것이 없다";
-      out.classList.remove("done");
-    });
+    document.getElementById("clear-temp").addEventListener("click", clearDrawn);
     renderTemp();
     setMode("info");
+  }
+
+  function clearDrawn() {
+    tempSource.clear();
+    measureSource.clear();
+    foundSource.clear();
+    tempSeq = 0;
+    lastMeasure = "";
+    renderTemp();
+    var out = document.getElementById("measure-out");
+    out.textContent = "아직 잰 것이 없다";
+    out.classList.remove("done");
+    updateToolOut();
   }
 
   // ── 클릭해 속성 읽기 ────────────────────────────────────────────

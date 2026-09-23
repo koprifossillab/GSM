@@ -51,9 +51,7 @@ body { display: flex; }
   width: var(--panel-w);
   flex: 0 0 var(--panel-w);
   height: 100vh;
-  overflow-y: auto;
-  padding: 18px 16px 24px;
-  background: var(--panel);
+  background: var(--bg);
   border-right: 1px solid var(--line);
 }
 
@@ -605,29 +603,6 @@ li.empty { padding: 9px 0; font-size: 12.5px; color: var(--ink-faint); }
   vertical-align: 2px;
 }
 
-#panel { position: relative; padding-bottom: 46px; }
-.gear {
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  width: 30px; height: 30px;
-  padding: 0;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--ink-faint);
-  background: var(--panel-tint);
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: color .12s, background .12s, border-color .12s, transform .3s;
-}
-.gear:hover {
-  color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
-  transform: rotate(60deg);
-}
-
 .sheet {
   position: fixed;
   inset: 0;
@@ -689,26 +664,39 @@ li.empty { padding: 9px 0; font-size: 12.5px; color: var(--ink-faint); }
   border-radius: 3px;
 }
 
-/* ── 박스와 폴더 ── */
+/* ── 박스와 폴더 ──
+ *
+ * 박스는 **눈에 박스로 보여야 한다.** 처음에는 패널과 같은 흰 바탕에 실선
+ * 하나만 둘렀더니 칸이 나뉜 것이 보이지 않았다. 패널을 바탕색으로 낮추고
+ * 박스를 흰 카드로 띄운다 — 머리에 띠를 두고 왼쪽에 강조선을 세운다.
+ */
 .box {
   margin-bottom: 14px;
-  padding: 12px 12px 10px;
-  background: var(--panel-tint);
+  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(23, 31, 46, .04), 0 3px 10px rgba(23, 31, 46, .05);
+  overflow: hidden;
 }
 .box-head {
-  margin: 0 0 10px;
-  padding-bottom: 7px;
-  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px 9px 14px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: .08em;
-  color: var(--ink-soft);
-  border-bottom: 1px solid var(--line);
+  letter-spacing: .07em;
+  color: var(--accent-deep);
+  background: var(--accent-wash);
+  border-bottom: 1px solid var(--accent-edge);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
+.box-head .hint { margin-left: auto; letter-spacing: 0; }
+.box-body { padding: 12px 12px 11px; }
 .box .basemap-row { margin: 0 0 8px; }
 .box .basemap-labels { margin: 0 0 10px 2px; }
-.box #layer-filter { margin-bottom: 10px; background: #fff; }
+.box #layer-filter { margin-bottom: 10px; }
 
 .folder { border-bottom: 1px solid var(--line); }
 .folder:last-of-type { border-bottom: 0; }
@@ -749,3 +737,130 @@ li.empty { padding: 9px 0; font-size: 12.5px; color: var(--ink-faint); }
 .folder-acts .ghost { margin-top: 0; }
 .ghost.accent { color: var(--accent); border-color: var(--accent-edge); }
 .ghost.accent:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+/* ── 패널 바닥 — 스크롤해도 늘 보인다 ── */
+#panel { display: flex; flex-direction: column; overflow: hidden; padding: 18px 0 0; }
+#panel > header,
+#panel > .warn { margin-left: 16px; margin-right: 16px; }
+#panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 16px; }
+
+#panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  background: var(--panel-tint);
+  border-top: 1px solid var(--line);
+}
+.foot-name {
+  font-size: 11.5px;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+}
+.foot-name .ver { vertical-align: 0; }
+
+.gear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px 6px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-soft);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .14s, background .14s, border-color .14s;
+}
+.gear svg { width: 15px; height: 15px; transition: transform .45s ease; }
+.gear .stroke { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.gear:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+.gear:hover svg { transform: rotate(90deg); }
+
+/* ── 지도 위 손잡이 ── */
+.toolbar {
+  position: absolute;
+  right: 12px;
+  bottom: 54px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+.tool-row {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(23,31,46,.05), 0 6px 18px rgba(23,31,46,.10);
+}
+.tool {
+  display: grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  padding: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color .12s, background .12s;
+}
+.tool svg { width: 20px; height: 20px; fill: currentColor; }
+.tool svg .stroke { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tool svg .hole { fill: #fff; }
+.tool:hover { color: var(--accent); background: var(--accent-wash); }
+.tool.on { color: #fff; background: var(--accent); }
+.tool.on svg .hole { fill: var(--accent); }
+.tool.danger:hover { color: #fff; background: var(--bad); }
+.sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tool-out {
+  padding: 6px 11px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12.5px;
+  color: #fff;
+  background: rgba(26, 47, 79, .93);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(23,31,46,.18);
+  white-space: nowrap;
+}
+.tool-out[hidden] { display: none; }
+
+/* 카탈로그가 패널을 밀어내지 않게 — 넘치면 제 안에서 구른다 */
+#layer-catalog { max-height: 38vh; overflow-y: auto; }
+.group.more > summary { color: var(--ink-soft); }
+.group.more > summary:hover { color: var(--accent); }
+.group.more .group { border-bottom: 0; }
+.group.more .group > summary { padding-left: 14px; font-weight: 500; }
+.group.more .layer-row { padding-left: 28px; }
+
+/* 박스 안의 작은 머리 — "켠 지질 레이어" 처럼 폴더가 아닌 칸에 쓴다 */
+.sub-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 12px 0 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.sub-head .hint { margin-left: auto; }
+.box #active-list { margin-bottom: 12px; }
+
+/* 눌러서 옮은 포커스가 "켜짐" 처럼 보이지 않게 한다 — 켜짐은 배경색,
+   포커스는 테두리로 가른다. */
+.tool:focus { outline: none; }
+.tool:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: -2px; }
