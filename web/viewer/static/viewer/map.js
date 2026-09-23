@@ -262,74 +262,90 @@
 
   // ── 레이어 패널 ─────────────────────────────────────────────────
 
+  /** 늘 펼쳐 두는 기본 지질도 다섯 장. 차례가 화면의 차례다.
+   *  지체구조도는 상류가 "그 밖" 에 넣어 두었지만 지질도로 늘 보는 것이라
+   *  여기로 끌어온다. */
+  var BASE_LAYERS = [
+    "L_1M_Geology_Map",
+    "L_250K_Geology_Map",
+    "L_50K_Geology_Map",
+    "l_50k_geology_frame_latest",
+    "G_tectonic",
+  ];
+
   /** 카탈로그.
    *
-   *  **첫 묶음(지질도)만 펼치고 나머지는 "추가 주제도" 안으로 접는다.**
-   *  61 개를 한 줄로 늘어놓으면 패널이 화면보다 길어져서 아래의 "그리기"
-   *  칸이 밀려 안 보인다. 늘 보는 것은 지질도 네 장이고, 나머지는 찾아서
-   *  켜는 것이다 — 그 차이를 접기로 나타낸다.
+   *  **기본 지질도 다섯 장만 펼치고 나머지는 모두 "추가 지질도" 안으로
+   *  접는다.** 61 개를 한 줄로 늘어놓으면 패널이 화면보다 길어져서 아래의
+   *  "그리기" 칸이 밀려 안 보인다. 늘 보는 것과 찾아서 켜는 것의 차이를
+   *  접기로 나타낸다. 추가 지질도 안에서는 상류의 레이어군을 그대로 쓴다.
    */
   function renderCatalog() {
     var host = document.getElementById("layer-catalog");
     host.innerHTML = "";
 
-    var more = document.createElement("details");
-    more.className = "group more";
-    var moreCount = 0;
-    var moreSummary = document.createElement("summary");
-    more.appendChild(moreSummary);
+    function layerRow(layer) {
+      var row = document.createElement("div");
+      row.className = "layer-row";
+      row.dataset.search = (layer.title + " " + layer.name).toLowerCase();
 
-    catalog.forEach(function (group, index) {
-      var details = document.createElement("details");
-      details.className = "group";
-      if (index === 0) details.open = true;
-
-      var summary = document.createElement("summary");
-      summary.innerHTML = esc(group.name) +
-        ' <span class="count">' + group.layers.length + "</span>";
-      details.appendChild(summary);
-
-      group.layers.forEach(function (layer) {
-        var row = document.createElement("div");
-        row.className = "layer-row";
-        row.dataset.search = (layer.title + " " + layer.name).toLowerCase();
-
-        var box = document.createElement("input");
-        box.type = "checkbox";
-        box.id = "lyr-" + layer.name;
-        box.dataset.layer = layer.name;
-        box.addEventListener("change", function () {
-          if (box.checked) addLayer(layer.name); else removeLayer(layer.name);
-        });
-
-        var label = document.createElement("label");
-        label.htmlFor = box.id;
-        label.textContent = layer.title;
-        if (layer.abstract) label.title = layer.abstract;
-        if (!layer.verified) {
-          var mark = document.createElement("span");
-          mark.className = "unverified";
-          mark.textContent = " ·";
-          mark.title = "오픈API 로 그려지는지 아직 대조하지 않았다";
-          label.appendChild(mark);
-        }
-
-        row.appendChild(box);
-        row.appendChild(label);
-        details.appendChild(row);
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.id = "lyr-" + layer.name;
+      box.dataset.layer = layer.name;
+      box.addEventListener("change", function () {
+        if (box.checked) addLayer(layer.name); else removeLayer(layer.name);
       });
-      if (index === 0) {
-        host.appendChild(details);
-      } else {
-        moreCount += group.layers.length;
-        more.appendChild(details);
-      }
-    });
 
-    if (moreCount) {
-      moreSummary.innerHTML = '추가 주제도 <span class="count">' + moreCount + "</span>";
-      host.appendChild(more);
+      var label = document.createElement("label");
+      label.htmlFor = box.id;
+      label.textContent = layer.title;
+      if (layer.abstract) label.title = layer.abstract;
+      if (!layer.verified) {
+        var mark = document.createElement("span");
+        mark.className = "unverified";
+        mark.textContent = " ·";
+        mark.title = "오픈API 로 그려지는지 아직 대조하지 않았다";
+        label.appendChild(mark);
+      }
+
+      row.appendChild(box);
+      row.appendChild(label);
+      return row;
     }
+
+    function folder(className, title, count, open) {
+      var details = document.createElement("details");
+      details.className = className;
+      details.open = !!open;
+      var summary = document.createElement("summary");
+      summary.innerHTML = esc(title) + ' <span class="count">' + count + "</span>";
+      details.appendChild(summary);
+      return details;
+    }
+
+    var base = BASE_LAYERS.filter(function (name) { return byName[name]; });
+    var baseBox = folder("group base", "기본 지질도", base.length, true);
+    base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
+    host.appendChild(baseBox);
+
+    var rest = [];
+    var restCount = 0;
+    catalog.forEach(function (group) {
+      var layers = group.layers.filter(function (l) { return BASE_LAYERS.indexOf(l.name) < 0; });
+      if (!layers.length) return;
+      restCount += layers.length;
+      rest.push({ name: group.name, layers: layers });
+    });
+    if (!restCount) return;
+
+    var more = folder("group more", "추가 지질도", restCount, false);
+    rest.forEach(function (group) {
+      var details = folder("group", group.name, group.layers.length, false);
+      group.layers.forEach(function (layer) { details.appendChild(layerRow(layer)); });
+      more.appendChild(details);
+    });
+    host.appendChild(more);
   }
 
   function setCount(id, n) {
@@ -623,7 +639,7 @@
     updateToolOut();
     host.innerHTML = "";
     if (!features.length) {
-      host.innerHTML = '<li class="empty">아직 찍은 점이 없다</li>';
+      host.innerHTML = '<li class="empty">지도 오른쪽 위 <b>점</b> 도구로 찍는다</li>';
       return;
     }
     features.forEach(function (feature) {
@@ -823,13 +839,22 @@
     head.type = "button";
     head.className = "popup-coord";
     head.title = "눌러서 복사한다";
-    head.textContent = formatPair(ll[0], ll[1]);
+    var value = formatPair(ll[0], ll[1]);
+    var lat = useDms ? dd2dms(ll[1], true) : ll[1].toFixed(6);
+    var lon = useDms ? dd2dms(ll[0], false) : ll[0].toFixed(6);
+    head.innerHTML =
+      '<span class="k">위도</span><span class="v">' + esc(lat) + "</span>" +
+      '<span class="k">경도</span><span class="v">' + esc(lon) + "</span>" +
+      '<span class="copy">복사</span>';
     head.addEventListener("click", function () {
-      var value = head.textContent;
       if (!navigator.clipboard) return;
       navigator.clipboard.writeText(value).then(function () {
-        head.textContent = "복사했다";
-        setTimeout(function () { head.textContent = value; }, 700);
+        head.classList.add("copied");
+        head.querySelector(".copy").textContent = "복사했다";
+        setTimeout(function () {
+          head.classList.remove("copied");
+          head.querySelector(".copy").textContent = "복사";
+        }, 900);
       });
     });
     body.appendChild(head);
@@ -961,7 +986,7 @@
     setCount("count-points", pointsets.length);
     host.innerHTML = "";
     if (!pointsets.length) {
-      host.innerHTML = '<li class="empty">올린 자료가 없다</li>';
+      host.innerHTML = '<li class="empty">왼쪽 위 <b>불러오기</b> 탭에서 올린다</li>';
       return;
     }
     pointsets.forEach(function (ps) {
@@ -1067,15 +1092,20 @@
   // 계정이 있어야 하는데 이 뷰어에는 계정이 없다.
 
   var LOOKS = [
-    { key: "theme", attr: "data-theme", store: "gsm.theme", fallback: "auto", sel: "#opt-theme" },
+    { key: "theme", attr: "data-theme", store: "gsm.theme", fallback: "brown", sel: "#opt-theme" },
     { key: "font", attr: "data-font", store: "gsm.font", fallback: "sans", sel: "#opt-font" },
     { key: "size", attr: "data-size", store: "gsm.size", fallback: "m", sel: "#opt-size" },
   ];
 
+  /** 고르개에 없는 값이 남아 있으면 기본으로 돌린다. 앞 판의
+   *  `auto`·`dark` 가 이 브라우저에 남아 있을 수 있다. */
   function readLook(spec) {
-    try {
-      return localStorage.getItem(spec.store) || spec.fallback;
-    } catch (e) { return spec.fallback; }
+    var value;
+    try { value = localStorage.getItem(spec.store); } catch (e) { value = null; }
+    var known = Array.prototype.some.call(
+      document.querySelectorAll(spec.sel + " button"),
+      function (b) { return b.dataset[spec.key] === value; });
+    return known ? value : spec.fallback;
   }
 
   function applyLook(spec, value) {
@@ -1325,4 +1355,28 @@
     if (box) { box.checked = true; }
     addLayer("L_50K_Geology_Map");
   }
+
+  // ── 대기 화면 ────────────────────────────────────────────────────
+  //
+  // **덜 그려진 지도를 보이지 않는다.** 첫 타일이 다 그려질 때
+  // (`rendercomplete`) 걷는다. 너무 빨리 걷히면 깜빡이는 것처럼 보여서
+  // 적어도 한 바퀴(1.2 초)는 보이고, 상류가 느려 타일이 끝내 안 와도
+  // 12 초 뒤에는 걷는다 — 지도 말고 나머지는 쓸 수 있어야 한다.
+  (function () {
+    var splash = document.getElementById("splash");
+    if (!splash) return;
+    var shownAt = Date.now();
+    var done = false;
+    function lift() {
+      if (done) return;
+      done = true;
+      var wait = Math.max(0, 1200 - (Date.now() - shownAt));
+      setTimeout(function () {
+        splash.classList.add("gone");
+        setTimeout(function () { splash.remove(); }, 600);
+      }, wait);
+    }
+    map.once("rendercomplete", lift);
+    setTimeout(lift, 12000);
+  })();
 })();

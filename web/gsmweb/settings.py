@@ -269,8 +269,8 @@ STATIC_URL = f"/{URL_PREFIX}static/" if URL_PREFIX else "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # 눌러서 보낸다. 해시 이름(Manifest)은 쓰지 않는다 — 파일 하나가 빠지면
-# 화면 전체가 멈추는데, 얻는 것은 캐시 무효화뿐이고 그건 nginx 의 expires 와
-# 판 올리기로 충분하다.
+# 화면 전체가 멈춘다. 캐시 무효화는 템플릿이 주소 끝에 붙이는 내용 표
+# (`views.asset_stamp`, `?v=`)가 맡는다. 판 번호만으로는 모자랐다 (005).
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},

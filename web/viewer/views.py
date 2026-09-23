@@ -3,11 +3,14 @@
 프록시가 있는 까닭은 인증키다 — 브라우저는 키를 모른 채 `/wms/` 를 부르고,
 여기서 키를 붙여 상류로 넘긴다. CLAUDE.md 의 "인증키" 를 볼 것.
 """
+import functools
+import hashlib
 import json
 import logging
 import re
 
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -80,6 +83,29 @@ def _split_links(value):
 
 # ── 화면 ──────────────────────────────────────────────────────────────
 
+#: 주소 끝에 붙여 캐시를 끊는 파일들.
+STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg")
+
+
+@functools.lru_cache(maxsize=1)
+def asset_stamp():
+    """CSS·JS 의 내용으로 만든 짧은 표. `?v=` 로 주소 끝에 붙인다.
+
+    **nginx 가 정적 파일을 7 일간 `immutable` 로 내보낸다.** 파일 이름이
+    그대로면 브라우저는 새로 배포한 것을 받지 않고 들고 있던 것을 쓴다 —
+    v0.2.1 을 배포하고도 화면에 옛 판이 뜬 까닭이다. 판 번호가 아니라
+    내용으로 만드는 것은, 같은 판을 다시 구워도 내용이 바뀌면 표가 바뀌게
+    하려는 것이다. 프로세스가 뜰 때 한 번 센다.
+    """
+    digest = hashlib.sha256(VERSION.encode())
+    for name in STAMPED:
+        path = finders.find(name)
+        if path:
+            with open(path, "rb") as fh:
+                digest.update(fh.read())
+    return digest.hexdigest()[:10]
+
+
 @require_GET
 def map_view(request):
     return render(request, "viewer/map.html", {
@@ -90,6 +116,7 @@ def map_view(request):
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
         "vworld_key": settings.VWORLD_KEY,
         "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
     })
 
 
