@@ -32,7 +32,7 @@
   <div id="panel-body">
   <nav class="tabs">
     <button class="tab on" data-tab="layers">레이어</button>
-    <button class="tab" data-tab="points">내 자료</button>
+    <button class="tab" data-tab="points">불러오기</button>
   </nav>
 
   <section id="tab-layers" class="tabbody on">
@@ -52,7 +52,6 @@
         <span class="hint">위가 앞이다</span></h3>
       <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
 
-      <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
       <div id="layer-catalog"></div>
       </div>
     </div>
@@ -62,7 +61,8 @@
       <div class="box-body">
 
       <details class="folder" open>
-        <summary>내 자료 <span class="count" id="count-points">0</span></summary>
+        <summary>점묶음 <span class="count" id="count-points">0</span>
+          <span class="hint">불러온 자료</span></summary>
         <ul id="pointset-list"></ul>
       </details>
 
@@ -72,8 +72,14 @@
         <p id="measure-out" class="measure-out">아직 잰 것이 없다</p>
         <ul id="temp-list"><li class="empty">아직 찍은 점이 없다</li></ul>
         <div class="folder-acts">
-          <button type="button" id="save-temp" class="ghost accent">목록으로 저장</button>
-          <button type="button" id="clear-temp" class="ghost">모두 지운다</button>
+          <button type="button" id="save-temp" class="btn primary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M5 5h11l3 3v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5Z"/><path class="stroke" d="M8 5v5h7V5M8 19v-5h8v5"/></svg>
+            목록으로 저장
+          </button>
+          <button type="button" id="clear-temp" class="btn quiet danger" title="찍은 점과 잰 것을 모두 지운다">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>
+            <span class="sr">모두 지운다</span>
+          </button>
         </div>
         <p id="save-msg" class="msg"></p>
       </details>
@@ -82,6 +88,9 @@
   </section>
 
   <section id="tab-points" class="tabbody">
+    <div class="box">
+      <h2 class="box-head">불러오기 <span class="hint">바깥 자료를 지도에</span></h2>
+      <div class="box-body">
     <form id="upload-form">
       {% csrf_token %}
       <label class="filebox">
@@ -92,13 +101,18 @@
         <input type="text" id="upload-name" placeholder="점묶음 이름 (비우면 파일 이름)">
         <input type="color" id="upload-color" value="#e4572e" title="점 색">
       </div>
-      <button type="submit">올린다</button>
+      <button type="submit" class="btn primary wide">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 16V4m0 0L8 8m4-4 4 4"/><path class="stroke" d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        올린다
+      </button>
       <p class="hint">
         위경도 열은 이름으로 알아낸다 — <code>lat</code>·<code>위도</code>·<code>y</code>,
         <code>lon</code>·<code>경도</code>·<code>x</code>. 나머지 열은 점을 누르면 뜬다.
       </p>
       <p id="upload-msg" class="msg"></p>
     </form>
+      </div>
+    </div>
   </section>
   </div>
 
@@ -113,15 +127,62 @@
 
 <div id="settings" class="sheet" hidden>
   <div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <button type="button" id="settings-close" class="popup-close" title="닫는다">&times;</button>
-    <h2 id="settings-title">대돌여지도 <span class="ver">v{{ version }}</span></h2>
-    <p class="hint">GSM — 한국지질자원연구원 지오빅데이터 오픈플랫폼 오픈API 지도뷰어</p>
+    <header class="sheet-head">
+      <div>
+        <h2 id="settings-title">대돌여지도 <span class="ver">v{{ version }}</span></h2>
+        <p class="hint">GSM — 한국지질자원연구원 지오빅데이터 오픈플랫폼 오픈API 지도뷰어</p>
+      </div>
+      <button type="button" id="settings-close" class="icon-btn" title="닫는다">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
 
-    <h3>지금 상태</h3>
-    <dl id="settings-state" class="kv"></dl>
+    <nav class="sheet-tabs">
+      <button class="stab on" data-stab="look">모양</button>
+      <button class="stab" data-stab="notes">판 이력</button>
+      <button class="stab" data-stab="state">지금 상태</button>
+    </nav>
 
-    <h3>판 이력</h3>
-    <div id="notes" class="notes">읽는 중…</div>
+    <section id="stab-look" class="stabbody on">
+      <div class="field">
+        <label for="opt-theme">화면</label>
+        <div class="seg" id="opt-theme">
+          <button type="button" data-theme="auto">자동</button>
+          <button type="button" data-theme="light">밝게</button>
+          <button type="button" data-theme="dark">어둡게</button>
+        </div>
+        <p class="hint">자동은 쓰는 기기의 설정을 따른다.</p>
+      </div>
+
+      <div class="field">
+        <label for="opt-font">글꼴</label>
+        <div class="seg" id="opt-font">
+          <button type="button" data-font="sans">고딕</button>
+          <button type="button" data-font="serif">명조</button>
+          <button type="button" data-font="system">기기 기본</button>
+        </div>
+        <p class="hint">지질도 위의 글자는 상류가 그린 것이라 바뀌지 않는다.</p>
+      </div>
+
+      <div class="field">
+        <label for="opt-size">글자 크기</label>
+        <div class="seg" id="opt-size">
+          <button type="button" data-size="s">작게</button>
+          <button type="button" data-size="m">보통</button>
+          <button type="button" data-size="l">크게</button>
+        </div>
+      </div>
+
+      <p class="field-note">고른 것은 이 브라우저에만 남는다. 서버로 가지 않는다.</p>
+    </section>
+
+    <section id="stab-notes" class="stabbody">
+      <div id="notes" class="notes">읽는 중…</div>
+    </section>
+
+    <section id="stab-state" class="stabbody">
+      <dl id="settings-state" class="kv"></dl>
+    </section>
   </div>
 </div>
 

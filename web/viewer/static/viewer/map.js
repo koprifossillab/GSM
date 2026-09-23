@@ -431,14 +431,14 @@
     return new ol.style.Style({
       image: new ol.style.Circle({
         radius: 6,
-        fill: new ol.style.Fill({ color: "#27456f" }),
+        fill: new ol.style.Fill({ color: "#5c3a1e" }),
         stroke: new ol.style.Stroke({ color: "#fff", width: 2 }),
       }),
       text: new ol.style.Text({
         text: String(feature.get("no")),
         offsetY: -14,
         font: "600 11px ui-monospace, Menlo, monospace",
-        fill: new ol.style.Fill({ color: "#1a2f4f" }),
+        fill: new ol.style.Fill({ color: "#3f2712" }),
         stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
       }),
     });
@@ -450,21 +450,21 @@
       new ol.style.Style({
         image: new ol.style.Circle({
           radius: 15,
-          fill: new ol.style.Fill({ color: "rgba(196, 63, 74, .16)" }),
-          stroke: new ol.style.Stroke({ color: "rgba(196, 63, 74, .55)", width: 2 }),
+          fill: new ol.style.Fill({ color: "rgba(158, 59, 42, .16)" }),
+          stroke: new ol.style.Stroke({ color: "rgba(158, 59, 42, .6)", width: 2 }),
         }),
       }),
       new ol.style.Style({
         image: new ol.style.Circle({
           radius: 5,
-          fill: new ol.style.Fill({ color: "#c43f4a" }),
+          fill: new ol.style.Fill({ color: "#9e3b2a" }),
           stroke: new ol.style.Stroke({ color: "#fff", width: 2 }),
         }),
         text: new ol.style.Text({
           text: feature.get("label") || "",
           offsetY: -26,
           font: "600 11px ui-monospace, Menlo, monospace",
-          fill: new ol.style.Fill({ color: "#8d2b33" }),
+          fill: new ol.style.Fill({ color: "#7a2c1f" }),
           stroke: new ol.style.Stroke({ color: "#fff", width: 4 }),
           overflow: true,
         }),
@@ -500,17 +500,17 @@
   function measureStyle(feature) {
     var label = feature.get("label") || "";
     return new ol.style.Style({
-      fill: new ol.style.Fill({ color: "rgba(39, 69, 111, .14)" }),
-      stroke: new ol.style.Stroke({ color: "#27456f", width: 2.5, lineDash: [7, 5] }),
+      fill: new ol.style.Fill({ color: "rgba(92, 58, 30, .16)" }),
+      stroke: new ol.style.Stroke({ color: "#5c3a1e", width: 2.5, lineDash: [7, 5] }),
       image: new ol.style.Circle({
         radius: 4,
-        fill: new ol.style.Fill({ color: "#27456f" }),
+        fill: new ol.style.Fill({ color: "#5c3a1e" }),
         stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }),
       }),
       text: label ? new ol.style.Text({
         text: label,
         font: "600 12px ui-monospace, Menlo, monospace",
-        fill: new ol.style.Fill({ color: "#1a2f4f" }),
+        fill: new ol.style.Fill({ color: "#3f2712" }),
         stroke: new ol.style.Stroke({ color: "#fff", width: 4 }),
         overflow: true,
       }) : undefined,
@@ -687,7 +687,7 @@
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
       body: JSON.stringify({
         name: name,
-        color: "#27456f",
+        color: "#5c3a1e",
         points: features.map(function (f) {
           return { lat: f.get("lat"), lon: f.get("lon"), label: "점 " + f.get("no") };
         }),
@@ -1061,6 +1061,47 @@
 
   // ── 설정과 판 이력 ─────────────────────────────────────────────
 
+  // ── 모양 고르기 — 이 브라우저에만 남는다 ─────────────────────────
+  //
+  // 서버로 보내지 않는다. 고른 사람의 눈에만 걸린 일이고, 저장하려면
+  // 계정이 있어야 하는데 이 뷰어에는 계정이 없다.
+
+  var LOOKS = [
+    { key: "theme", attr: "data-theme", store: "gsm.theme", fallback: "auto", sel: "#opt-theme" },
+    { key: "font", attr: "data-font", store: "gsm.font", fallback: "sans", sel: "#opt-font" },
+    { key: "size", attr: "data-size", store: "gsm.size", fallback: "m", sel: "#opt-size" },
+  ];
+
+  function readLook(spec) {
+    try {
+      return localStorage.getItem(spec.store) || spec.fallback;
+    } catch (e) { return spec.fallback; }
+  }
+
+  function applyLook(spec, value) {
+    document.documentElement.setAttribute(spec.attr, value);
+    try { localStorage.setItem(spec.store, value); } catch (e) { /* 사생활 모드 */ }
+    document.querySelectorAll(spec.sel + " button").forEach(function (b) {
+      b.classList.toggle("on", b.dataset[spec.key] === value);
+    });
+  }
+
+  /** 설정 창을 열기 전에도 걸어 둔다 — 창을 한 번도 안 연 사람도
+   *  지난번에 고른 모양으로 보아야 한다. */
+  function initLooks() {
+    LOOKS.forEach(function (spec) { applyLook(spec, readLook(spec)); });
+  }
+
+  function wireLooks() {
+    LOOKS.forEach(function (spec) {
+      document.querySelectorAll(spec.sel + " button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          applyLook(spec, button.dataset[spec.key]);
+        });
+      });
+    });
+  }
+
   function wireSettings() {
     var sheet = document.getElementById("settings");
     var loaded = false;
@@ -1086,6 +1127,17 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !sheet.hidden) close();
     });
+
+    document.querySelectorAll(".stab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".stab").forEach(function (t) { t.classList.remove("on"); });
+        document.querySelectorAll(".stabbody").forEach(function (b) { b.classList.remove("on"); });
+        tab.classList.add("on");
+        document.getElementById("stab-" + tab.dataset.stab).classList.add("on");
+      });
+    });
+
+    wireLooks();
   }
 
   /** 지금 무엇으로 돌고 있는지. 화면을 보고 상태를 물어오는 일이 잦아 둔다. */
@@ -1149,23 +1201,6 @@
         document.querySelectorAll(".tabbody").forEach(function (b) { b.classList.remove("on"); });
         tab.classList.add("on");
         document.getElementById("tab-" + tab.dataset.tab).classList.add("on");
-      });
-    });
-  }
-
-  function wireFilter() {
-    var input = document.getElementById("layer-filter");
-    input.addEventListener("input", function () {
-      var q = input.value.trim().toLowerCase();
-      document.querySelectorAll("#layer-catalog .group").forEach(function (group) {
-        var shown = 0;
-        group.querySelectorAll(".layer-row").forEach(function (row) {
-          var hit = !q || row.dataset.search.indexOf(q) >= 0;
-          row.style.display = hit ? "" : "none";
-          if (hit) shown += 1;
-        });
-        group.style.display = shown ? "" : "none";
-        if (q) group.open = true;
       });
     });
   }
@@ -1269,6 +1304,7 @@
     return String(text).replace(/["\\]/g, "\\$&");
   }
 
+  initLooks();
   initMap();
   wireBasemap();
   renderCatalog();
@@ -1277,7 +1313,6 @@
   wireTools();
   wireSettings();
   wireTabs();
-  wireFilter();
   wireCoordBar();
   wireUpload();
   wirePopup();
