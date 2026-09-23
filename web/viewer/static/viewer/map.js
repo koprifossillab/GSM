@@ -197,13 +197,16 @@
 
     popupOverlay = new ol.Overlay({
       element: document.getElementById("popup"),
-      autoPan: { animation: { duration: 200 } },
+      // 아래 가장자리에는 좌표 막대가 덮여 있다. 여백을 주지 않으면 팝업
+      // 아랫단이 막대 밑으로 들어간다.
+      autoPan: { animation: { duration: 200 }, margin: 72 },
       offset: [0, -8],
       positioning: "bottom-center",
     });
     map.addOverlay(popupOverlay);
 
-    map.on("pointermove", onMove);
+    map.on("moveend", renderEdges);
+    window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
   }
 
@@ -656,8 +659,7 @@
       text.textContent = formatPair(feature.get("lon"), feature.get("lat"));
       text.addEventListener("click", function () {
         var value = text.textContent;
-        if (!navigator.clipboard) return;
-        navigator.clipboard.writeText(value).then(function () {
+        copyText(value).then(function () {
           text.textContent = "복사했다";
           setTimeout(function () { text.textContent = value; }, 700);
         });
@@ -847,8 +849,7 @@
       '<span class="k">경도</span><span class="v">' + esc(lon) + "</span>" +
       '<span class="copy">복사</span>';
     head.addEventListener("click", function () {
-      if (!navigator.clipboard) return;
-      navigator.clipboard.writeText(value).then(function () {
+      copyText(value).then(function () {
         head.classList.add("copied");
         head.querySelector(".copy").textContent = "복사했다";
         setTimeout(function () {
@@ -870,18 +871,64 @@
         h.textContent = part.title;
         body.appendChild(h);
         var table = document.createElement("table");
+        var extras = 0;
         Object.keys(part.props).forEach(function (key) {
           var tr = document.createElement("tr");
           var th = document.createElement("th");
           th.textContent = key;
           tr.append(th, valueCell(part.props[key]));
+          if (EXTRA_PROPS.indexOf(key) >= 0) {
+            tr.className = "extra";
+            extras += 1;
+          }
           table.appendChild(tr);
         });
+        table.classList.toggle("show-extra", showExtraProps);
         body.appendChild(table);
+        if (extras) body.appendChild(extraToggle(table, extras));
       });
     }
     document.getElementById("popup").classList.add("on");
+    document.getElementById("map-wrap").classList.add("popup-open");
     popupOverlay.setPosition(coordinate);
+    // 속성이 늦게 와서 팝업이 자라도 자리는 그대로라 OL 이 다시 끌어오지
+    // 않는다. 채운 뒤에 한 번 더 화면 안으로 끌어온다.
+    popupOverlay.panIntoView({ animation: { duration: 200 }, margin: 72 });
+  }
+
+  /** 평소에는 접어 두는 속성. 사람이 읽을 것이 아니거나 다른 줄과 겹친다.
+   *
+   *  - `symnum` — 대표암상의 분류 번호로 보인다. 같은 쥐라기 화강암이면
+   *    도폭이 달라도(`Jbgr` 무주 · `Jsgr` 뚝섬) 같은 값(101401)이다
+   *  - `mapname` — 도폭 이름. `도폭` 줄에 이미 있다
+   *  - `mapidx` — 도폭 번호(`GF20`). 도폭을 찾을 때만 쓴다
+   *
+   *  "모두 표시" 를 누르면 펼친다. 한 번 펼치면 다음 팝업에도 펼쳐 둔다. */
+  var EXTRA_PROPS = ["symnum", "mapname", "mapidx"];
+  var showExtraProps = false;
+
+  function extraToggle(table, count) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "extra-toggle";
+    b.dataset.count = count;
+    b.addEventListener("click", function () {
+      showExtraProps = !showExtraProps;
+      syncExtra();
+    });
+    syncExtra(b);
+    return b;
+  }
+
+  function syncExtra(only) {
+    var buttons = only ? [only] : document.querySelectorAll("#popup-body .extra-toggle");
+    buttons.forEach(function (b) {
+      b.textContent = showExtraProps ? "접기" : "모두 표시 (" + b.dataset.count + ")";
+    });
+    if (only) return;
+    document.querySelectorAll("#popup-body table").forEach(function (t) {
+      t.classList.toggle("show-extra", showExtraProps);
+    });
   }
 
   /** 속성값 한 칸. 서버가 `{text, links}` 로 갈라 보낸 것은 진짜 링크로 그린다.
@@ -942,10 +989,30 @@
       : lat.toFixed(6) + ", " + lon.toFixed(6);
   }
 
-  function onMove(evt) {
-    if (evt.dragging) return;
-    var ll = ol.proj.toLonLat(evt.coordinate);
-    document.getElementById("mouse-coord").textContent = formatPair(ll[0], ll[1]);
+  /** 보이는 지도의 네 가장자리 위경도. 종이 지도의 테두리 눈금처럼 읽는다.
+   *
+   *  **커서 자리의 좌표는 없앴다.** 움직일 때마다 바뀌어 읽을 틈이 없고,
+   *  누른 자리는 팝업 첫 줄이 이미 답한다. 대신 "지금 어디를 보고 있나" 를
+   *  테두리에 적는다. 웹 메르카토르라 위도는 x 와, 경도는 y 와 무관하다 —
+   *  가장자리 한가운데 한 점씩만 읽으면 된다. 아래쪽은 좌표 막대가 덮는
+   *  만큼을 빼고 읽는다. */
+  function renderEdges() {
+    var size = map.getSize();
+    if (!size) return;
+    var w = size[0], h = size[1];
+    var bar = document.getElementById("coordbar").offsetHeight || 0;
+    var bottom = h - bar;
+    function at(px, py) { return ol.proj.toLonLat(map.getCoordinateFromPixel([px, py])); }
+    var n = at(w / 2, 0)[1];
+    var s = at(w / 2, bottom)[1];
+    var west = at(0, bottom / 2)[0];
+    var east = at(w, bottom / 2)[0];
+    function lat(v) { return useDms ? dd2dms(v, true) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "N" : "S"); }
+    function lon(v) { return useDms ? dd2dms(v, false) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "E" : "W"); }
+    document.getElementById("edge-n").textContent = lat(n);
+    document.getElementById("edge-s").textContent = lat(s);
+    document.getElementById("edge-w").textContent = lon(west);
+    document.getElementById("edge-e").textContent = lon(east);
   }
 
   // ── 점묶음 ──────────────────────────────────────────────────────
@@ -1239,16 +1306,7 @@
     document.getElementById("dms-toggle").addEventListener("click", function () {
       useDms = !useDms;
       this.classList.toggle("on", useDms);
-    });
-
-    document.getElementById("mouse-coord").addEventListener("click", function () {
-      var text = this.textContent;
-      if (!text || text === "—" || !navigator.clipboard) return;
-      var self = this;
-      navigator.clipboard.writeText(text).then(function () {
-        self.textContent = "복사했다";
-        setTimeout(function () { self.textContent = text; }, 700);
-      });
+      renderEdges();
     });
 
     document.getElementById("goto-form").addEventListener("submit", function (e) {
@@ -1320,6 +1378,7 @@
   function wirePopup() {
     document.getElementById("popup-close").addEventListener("click", function () {
       document.getElementById("popup").classList.remove("on");
+      document.getElementById("map-wrap").classList.remove("popup-open");
       popupOverlay.setPosition(undefined);
     });
   }
@@ -1328,6 +1387,35 @@
     return String(text).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
+  }
+
+  /** 클립보드에 넣는다. 됐으면 풀리고 못 했으면 거절되는 Promise.
+   *
+   *  **`navigator.clipboard` 는 https 나 localhost 에서만 있다.** 운영은
+   *  `http://paleolab` 이라 그것이 아예 없어서, 앞 판에서는 복사를 눌러도
+   *  아무 일 없이 넘어갔다. 그때는 옛 길(`execCommand("copy")`)로 간다 —
+   *  낡았다고 적혀 있지만 모든 브라우저가 아직 받는다. 누른 그 순간에
+   *  불러야 하므로 이 함수는 클릭 처리기 안에서 곧장 부른다. */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        return legacyCopy(text) ? undefined : Promise.reject();
+      });
+    }
+    return legacyCopy(text) ? Promise.resolve() : Promise.reject();
+  }
+
+  function legacyCopy(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    area.remove();
+    return ok;
   }
 
   function cssEscape(text) {

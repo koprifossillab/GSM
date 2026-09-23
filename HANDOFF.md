@@ -16,7 +16,7 @@
 ```bash
 echo '<받은 키>' > /srv/GSM/db/kigam_key
 rm /srv/GSM/db/dev_direct_wms
-cd /srv/GSM && GSM_TAG=v0.3.0 docker compose up -d --force-recreate web
+cd /srv/GSM && GSM_TAG=v0.3.1 docker compose up -d --force-recreate web
 cd /home/sclee/projects/GSM/web && python manage.py verify_layers
 ```
 
