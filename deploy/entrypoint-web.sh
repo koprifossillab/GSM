@@ -4,6 +4,26 @@ set -e
 
 cd /app/web
 
+# ── 비밀키 ────────────────────────────────────────────────────────────
+# `.env` 의 GSM_SECRET_KEY 가 비어 있으면 **여기서 만들어 자료 자리에 둔다.**
+#
+# 왜 이렇게 하는가: /srv/GSM/.env 는 배포한 사람(root)의 것이라 앱을 돌리는
+# 사람이 못 고친다. 빈 값이면 Django 가 ImproperlyConfigured 로 **멈춘다** —
+# 2026-09-23 첫 배포가 그렇게 멈췄다. 사람에게 다시 부탁하러 가는 대신,
+# 쓸 수 있는 자리(DB 옆)에 한 번 만들어 두고 계속 쓴다.
+#
+# **워커가 아니라 여기서 만드는 것이 요점이다.** gunicorn 워커 셋이 저마다
+# 만들면 서로 다른 키를 들게 되고, 그러면 세션이 워커를 옮길 때마다 풀린다.
+if [[ -z "${GSM_SECRET_KEY:-}" ]]; then
+    KEY_FILE="$(dirname "${GSM_DB_PATH:-/srv/GSM/db/GSM.db}")/secret_key"
+    if [[ ! -s "$KEY_FILE" ]]; then
+        python -c "import secrets; print(secrets.token_urlsafe(64))" > "$KEY_FILE"
+        chmod 600 "$KEY_FILE" 2>/dev/null || true
+        echo "비밀키를 새로 만들어 두었다: $KEY_FILE"
+    fi
+    export GSM_SECRET_KEY="$(cat "$KEY_FILE")"
+fi
+
 # 이미 적용돼 있으면 아무 일도 하지 않는다. 새 장비에 올릴 때를 위해 둔다.
 python manage.py migrate --noinput
 

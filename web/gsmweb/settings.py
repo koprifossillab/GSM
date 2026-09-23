@@ -43,8 +43,30 @@ def env_int(key: str, default: int) -> int:
 
 
 # ── 상류 ──────────────────────────────────────────────────────────────
+
+
+def _key_from_file() -> str:
+    """인증키를 파일에서 읽는다. 환경변수가 비었을 때만 본다.
+
+    **왜 두 갈래인가.** 배포한 자리의 `/srv/GSM/.env` 는 root 의 것이라 앱을
+    돌리는 사람이 못 고친다. 인증키는 심사가 끝나는 날 들어오는데, 그때마다
+    배포한 사람을 다시 부르는 것은 일이 아니다. 그래서 **쓸 수 있는 자리**
+    (DB 옆)에 놓아도 읽는다.
+
+    자리: `GSM_KIGAM_KEY_FILE`, 없으면 `<DB 가 있는 곳>/kigam_key`.
+    키 하나만 적은 파일이고 앞뒤 공백은 버린다.
+    """
+    path = env("GSM_KIGAM_KEY_FILE")
+    if not path:
+        path = str(Path(env("GSM_DB_PATH", str(REPO_DIR / "GSM.db"))).parent / "kigam_key")
+    try:
+        return Path(path).read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
 # 인증키. 비어 있어도 뷰어는 돈다 — 타일 자리에 안내가 뜰 뿐이다.
-KIGAM_KEY = env("GSM_KIGAM_KEY")
+KIGAM_KEY = env("GSM_KIGAM_KEY") or _key_from_file()
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
 # 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.

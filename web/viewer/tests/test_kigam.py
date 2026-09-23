@@ -140,3 +140,47 @@ class Catalog(SimpleTestCase):
         """안내 페이지는 이것들을 전부 L_geochemMP_V 로 적었다 (devlog 001)."""
         self.assertEqual(catalog.group_for("L_geochemMP_CU"), "지화학도")
         self.assertEqual(catalog.group_for("L_geochemMP_FE2O3"), "지화학도")
+
+
+class KeyFromFile(SimpleTestCase):
+    """인증키를 파일에서도 읽는다.
+
+    배포한 자리의 `.env` 는 root 의 것이라 앱을 돌리는 사람이 못 고친다.
+    그래서 쓸 수 있는 자리에 놓아도 읽게 했다 — 그 길이 살아 있는지 지킨다.
+    """
+
+    def test_파일에서_읽는다(self):
+        import tempfile
+        from pathlib import Path
+
+        from gsmweb import settings as s
+
+        with tempfile.TemporaryDirectory() as tmp:
+            key_file = Path(tmp) / "kigam_key"
+            key_file.write_text("  ABC123  \n", encoding="utf-8")
+            with self.settings():
+                import os
+                old = os.environ.get("GSM_KIGAM_KEY_FILE")
+                os.environ["GSM_KIGAM_KEY_FILE"] = str(key_file)
+                try:
+                    self.assertEqual(s._key_from_file(), "ABC123")
+                finally:
+                    if old is None:
+                        os.environ.pop("GSM_KIGAM_KEY_FILE", None)
+                    else:
+                        os.environ["GSM_KIGAM_KEY_FILE"] = old
+
+    def test_파일이_없으면_빈_값(self):
+        import os
+
+        from gsmweb import settings as s
+
+        old = os.environ.get("GSM_KIGAM_KEY_FILE")
+        os.environ["GSM_KIGAM_KEY_FILE"] = "/없는자리/kigam_key"
+        try:
+            self.assertEqual(s._key_from_file(), "")
+        finally:
+            if old is None:
+                os.environ.pop("GSM_KIGAM_KEY_FILE", None)
+            else:
+                os.environ["GSM_KIGAM_KEY_FILE"] = old
