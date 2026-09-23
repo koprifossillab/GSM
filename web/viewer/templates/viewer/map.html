@@ -1,0 +1,85 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대돌여지도</title>
+<link rel="stylesheet" href="{% static 'viewer/vendor/ol.css' %}">
+<link rel="stylesheet" href="{% static 'viewer/map.css' %}">
+</head>
+<body>
+
+<aside id="panel">
+  <header>
+    <h1>대돌여지도</h1>
+    <p class="sub">한국지질자원연구원 지오빅데이터 오픈플랫폼</p>
+  </header>
+
+  {% if not has_key %}
+  <p class="warn">
+    인증키가 없다. 타일 자리에 안내가 뜬다 —
+    <code>.env</code> 의 <code>GSM_KIGAM_KEY</code> 를 채우거나,
+    개발 중이라면 <code>GSM_DEV_DIRECT_WMS=1</code> 로 둔다.
+  </p>
+  {% endif %}
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="layers">레이어</button>
+    <button class="tab" data-tab="points">내 자료</button>
+  </nav>
+
+  <section id="tab-layers" class="tabbody on">
+    <input id="layer-filter" type="search" placeholder="레이어 찾기" autocomplete="off">
+    <div id="layer-active">
+      <h2>켠 레이어 <span class="hint">위가 앞이다</span></h2>
+      <ul id="active-list"><li class="empty">아직 켠 레이어가 없다</li></ul>
+    </div>
+    <div id="layer-catalog"></div>
+  </section>
+
+  <section id="tab-points" class="tabbody">
+    <form id="upload-form">
+      {% csrf_token %}
+      <label class="filebox">
+        <input type="file" id="upload-file" name="file" accept=".csv,.tsv,.txt,.geojson,.json" required>
+        <span>CSV · GeoJSON 고르기</span>
+      </label>
+      <div class="row">
+        <input type="text" id="upload-name" placeholder="점묶음 이름 (비우면 파일 이름)">
+        <input type="color" id="upload-color" value="#e4572e" title="점 색">
+      </div>
+      <button type="submit">올린다</button>
+      <p class="hint">
+        위경도 열은 이름으로 알아낸다 — <code>lat</code>·<code>위도</code>·<code>y</code>,
+        <code>lon</code>·<code>경도</code>·<code>x</code>. 나머지 열은 점을 누르면 뜬다.
+      </p>
+      <p id="upload-msg" class="msg"></p>
+    </form>
+    <ul id="pointset-list"></ul>
+  </section>
+</aside>
+
+<main id="map-wrap">
+  <div id="map"></div>
+
+  <div id="popup" class="popup">
+    <button id="popup-close" class="popup-close" title="닫는다">&times;</button>
+    <div id="popup-body"></div>
+  </div>
+
+  <div id="coordbar">
+    <form id="goto-form">
+      <input id="goto-input" type="text" placeholder="좌표를 찍어 이동 — 37.5665, 126.978 또는 37°30&#39;N 127°E">
+      <button type="submit">간다</button>
+    </form>
+    <button id="dms-toggle" type="button" title="십진도와 도분초를 오간다">도분초</button>
+    <output id="mouse-coord" title="눌러서 복사한다">—</output>
+  </div>
+</main>
+
+<script id="catalog-data" type="application/json">{{ catalog|safe }}</script>
+<script id="pointset-data" type="application/json">{{ pointsets|safe }}</script>
+<script src="{% static 'viewer/vendor/ol.js' %}"></script>
+<script src="{% static 'viewer/map.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# 파이썬
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Django
+*.db
+*.sqlite3
+/web/staticfiles/
+/web/media/
+/web/.thumbcache/
+
+# 비밀 — 절대 커밋하지 않는다. 인증키가 여기 든다
+.env
+.env.*
+!.env.template
+
+# 올린 자료
+/web/uploads/
+
+# 상류에서 새로 뽑은 씨앗의 원본 XML (822 KB, 저장소에 두지 않는다)
+/data/*.xml
+
+# 편집기·OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

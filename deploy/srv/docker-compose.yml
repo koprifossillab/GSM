@@ -1,0 +1,25 @@
+# /srv/GSM/docker-compose.yml 에 두는 것. **운영이 이 파일로 돈다.**
+#
+#   cd /srv/GSM && docker compose up -d web
+#   cd /srv/GSM && docker compose pull && docker compose up -d web
+#
+# 굽는 쪽(저장소의 deploy/docker-compose.yml)과 갈라 둔 까닭은 ForGIA 와 같다 —
+# 운영 장비에 저장소를 두지 않기 위해서다. 여기에는 이미지 이름과 마운트만 있다.
+
+name: gsm
+
+services:
+  web:
+    image: koprifossillab/gsm:${GSM_TAG:-latest}
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      GSM_DB_PATH: /srv/GSM/db/GSM.db
+      GSM_DEBUG: "0"
+      GSM_URL_PREFIX: "GSM/"
+    volumes:
+      - /srv/GSM/db:/srv/GSM/db
+    ports:
+      - "127.0.0.1:9310:9310"

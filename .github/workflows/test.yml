@@ -1,0 +1,67 @@
+# 시험과 이미지 굽기. ForGIA 의 `test.yml` 을 본떴다.
+#
+# **배포는 여기서 안 한다.** `deploy/host/deploy.sh` 는 사람이 부른다.
+#
+# 상류(data.kigam.re.kr)를 타는 시험은 없다. 인증키가 있어야 하고, 있어도
+# CI 가 남의 서버를 두드리는 것이 되기 때문이다. `kigam.py` 는 변수를 거르고
+# 주소를 고르는 부분만 시험하고, 실제 왕복은 사람이 `smoke.sh` 로 본다.
+name: 시험
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 뷰어 시험
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements-web.txt -r requirements-dev.txt
+
+      # 마이그레이션을 실제로 돌린다 — 빠뜨린 칸은 그래야 보인다.
+      - name: manage.py test
+        run: python web/manage.py test viewer --verbosity 2
+        env:
+          GSM_SECRET_KEY: ci-only-not-a-secret
+
+      # 정적 파일이 모이는지 본다. Dockerfile 이 이것에 기댄다.
+      - name: collectstatic
+        run: python web/manage.py collectstatic --noinput
+        env:
+          GSM_SECRET_KEY: ci-only-not-a-secret
+
+  build:
+    name: 이미지 굽기
+    needs: test        # 시험을 통과한 것만 이미지가 된다
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Docker Hub 로그인
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 태그를 밀 때만 올린다. 그 밖에는 굽기만 한다.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: koprifossillab/gsm:${{ github.ref_type == 'tag' && github.ref_name || 'ci' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
