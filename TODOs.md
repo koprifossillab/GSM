@@ -9,7 +9,7 @@
 속성만 막혀 GeoServer 로 갈라 보낸다 (006).
 
 - [ ] 호출 제한에 걸리는 지점을 찾아둔다. 걸리면 `GSM_TILE_CACHE_SECONDS` 를 올린다
-- [ ] 운영 DB 에도 `verify_layers` 를 돌린다 (컨테이너 안에서)
+- [x] 운영 DB 에도 `verify_layers` 를 돌렸다 — 2026-09-27, 61 개 전부
 - [ ] 가끔 `/openapi/wms` 의 `GetFeatureInfo` 를 다시 찔러본다. 열리면
       `kigam.DIRECT_REQUESTS` 에서 지운다
 

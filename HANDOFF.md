@@ -64,8 +64,8 @@ GSM_DEV_DIRECT_WMS=0
   보고, `/openapi/wms` 가 열렸는지 다시 찔러본다
 - 호출 제한의 실제 수치를 모른다. 문서는 "지나치게 잦은 호출" 이라고만 적었다.
   타일 캐시를 둔 것이 이 때문이다 (브라우저 쪽 하루, 디스크 쪽 30 일·2 GB)
-- 운영 DB 의 `Layer.verified_at` 은 아직 비어 있다. 대조는 로컬 DB 에 대고
-  했다 — 운영에서 돌리려면 컨테이너 안에서 `python manage.py verify_layers`
+- 운영 DB 의 대조는 2026-09-27 에 끝났다 (61/61). 다시 돌릴 때는
+  `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --redo`
 
 ## 알아두면 좋은 것
 
