@@ -19,6 +19,8 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from django.conf import settings
 
+from . import usage
+
 log = logging.getLogger(__name__)
 
 SEARCH_URL = "https://api.vworld.kr/req/search"
@@ -116,6 +118,10 @@ def search(query: str) -> list:
             results.extend(f.result())
         except VWorldError as exc:
             errors.append(exc)
+    # 스레드 안에서 세지 않는다 — DB 연결이 스레드마다 생긴다
+    usage.record("vworld", ok=True, count=len(futures) - len(errors))
+    if errors:
+        usage.record("vworld", ok=False, count=len(errors))
     if errors and len(errors) == len(futures):
         raise errors[0]
     # 이름이 같으면 하나로 친다. 한 번지에 건물이 여럿이면(연구원 캠퍼스처럼)
@@ -136,8 +142,13 @@ def reverse(lat: float, lon: float) -> dict:
 
     바다 한가운데처럼 주소가 없는 자리는 VWorld 가 `NOT_FOUND` 를 준다.
     """
-    result = _get(ADDRESS_URL, {"service": "address", "request": "getAddress",
-                                "type": "both", "point": f"{lon},{lat}"})
+    try:
+        result = _get(ADDRESS_URL, {"service": "address", "request": "getAddress",
+                                    "type": "both", "point": f"{lon},{lat}"})
+    except VWorldError:
+        usage.record("vworld", ok=False)
+        raise
+    usage.record("vworld", ok=True)
     out = {"road": "", "parcel": ""}
     rows = result if isinstance(result, list) else []
     for row in rows:

@@ -115,7 +115,7 @@ class KeyGoesOnlyToOpenapi(SimpleTestCase):
     def _sent(self, request):
         from unittest import mock
         with mock.patch.object(kigam.requests, "get") as get:
-            get.return_value = mock.Mock(url="u", status_code=200)
+            get.return_value = mock.Mock(url="u", status_code=200, content=b"")
             kigam._get({"request": request, "layers": "a"})
         return get.call_args
 

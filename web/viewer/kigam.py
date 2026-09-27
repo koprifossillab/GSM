@@ -11,6 +11,8 @@ import re
 import requests
 from django.conf import settings
 
+from . import usage
+
 log = logging.getLogger(__name__)
 
 #: 브라우저가 넘겨도 되는 WMS 변수. 여기 없는 것은 버린다.
@@ -122,14 +124,24 @@ def _get(params: dict, *, stream=False):
         sent = dict(sent, key=settings.KIGAM_KEY)
     else:
         raise UpstreamError("인증키가 없다")
+    # 차단 조짐이 이어지면 잠시 묻지 않는다 (usage.py). 캐시가 대신 내준다
+    left = usage.paused()
+    if left:
+        raise UpstreamError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
     try:
         r = requests.get(url, params=sent, stream=stream,
                          timeout=settings.UPSTREAM_TIMEOUT,
                          verify=_verify(),
                          headers={"User-Agent": "GSM/0.1"})
     except requests.RequestException as exc:
-        raise UpstreamError(f"상류에 닿지 못했다: {exc}") from exc
+        usage.record("kigam", ok=False)
+        raise UpstreamError(f"상류에 닿지 못했다: {redact(str(exc))}") from exc
     log.info("상류 %s -> %s", redact(r.url), r.status_code)
+    head = b"" if stream else r.content[:1000]
+    blocked = usage.looks_blocked(r.status_code, head)
+    if blocked:
+        log.warning("상류가 차단하는 얼굴을 보였다 (status=%s)", r.status_code)
+    usage.record("kigam", ok=r.status_code == 200, blocked=blocked)
     return r
 
 

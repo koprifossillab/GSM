@@ -99,3 +99,27 @@ class Point(models.Model):
 
     def __str__(self):
         return self.label or f"({self.lat:.5f}, {self.lon:.5f})"
+
+
+class UpstreamDay(models.Model):
+    """상류에 하루 몇 번 물었나. **한계를 재지 않고 지켜보려고** 둔다.
+
+    KIGAM 은 호출 제한의 수치를 밝히지 않는다("지나치게 잦은 호출"). 걸릴
+    때까지 두드려 재면 걸리는 순간 서버 IP 가 막힌다. 그래서 두드리지 않고
+    평소에 얼마나 묻는지, 차단 조짐(403·429·`Request Blocked`)이 있었는지를
+    날마다 센다. `manage.py upstream_stats` 가 보여준다. devlog 010.
+    """
+
+    day = models.DateField("날짜")
+    upstream = models.CharField("상류", max_length=20)     # kigam · vworld
+    ok = models.PositiveIntegerField("성공", default=0)
+    fail = models.PositiveIntegerField("실패", default=0)
+    blocked = models.PositiveIntegerField("차단 조짐", default=0)
+
+    class Meta:
+        ordering = ["-day", "upstream"]
+        constraints = [models.UniqueConstraint(fields=["day", "upstream"],
+                                               name="upstream_day_once")]
+
+    def __str__(self):
+        return f"{self.day} {self.upstream} {self.ok}/{self.fail}/{self.blocked}"
