@@ -128,6 +128,7 @@ EN = {
     "한국": "Korea",
     "그린란드": "Greenland",
     "남극": "Antarctica",
+    "얀마옌": "Jan Mayen",
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
@@ -418,6 +419,10 @@ EN = {
     "중시생대 이전": "Mesoarchean and older",
     # 남극 지질도 (geomap.py)
     "남극 지질도 자료(GeoMAP)가 서버에 없다": "The Antarctic geology data (GeoMAP) is not on the server",
+    # 얀마옌 지질도 (janmayen.py, map.js 의 dataLegend)
+    "얀마옌 지질도 자료(NPI)가 서버에 없다": "The Jan Mayen geology data (NPI) is not on the server",
+    "얀마옌 지질도 자료(NPI)를 읽지 못했다": "Could not read the Jan Mayen geology data (NPI)",
+    "원본 자료 — Norsk Polarinstitutt, CC BY 4.0": "Source dataset — Norsk Polarinstitutt, CC BY 4.0",
     "그런 타일은 없다": "No such tile",
 }
 
@@ -509,6 +514,10 @@ PROP_EN = {
     "문헌": "Reference",
     "GEUS 상세": "GEUS details",
     "이름": "Name",
+    # 얀마옌 지질도 (janmayen.LABELS)
+    "노르웨이어 이름": "Norwegian name",
+    "층서 계통": "Lithostratigraphic hierarchy",
+    "암층 코드": "Unit code (geo_code)",
     "광종": "Commodity",
     "광종 무리": "Commodity group",
     "경제성": "Economic status",
@@ -653,6 +662,8 @@ GROUP_EN = {
     "시료·연대 (정부 포털)": "Samples & ages (government portal)",
     # 남극 (GeoMAP)
     "GeoMAP 지질도": "GeoMAP geological maps",
+    # 얀마옌 (NPI)
+    "얀마옌 지질 (NPI)": "Jan Mayen geology (NPI)",
 }
 
 LAYER_EN = {
@@ -751,4 +762,8 @@ LAYER_EN = {
     "geomap_simple_lithology": "Lithology (simplified)",
     "geomap_faults": "Faults",
     "geomap_quality": "Data quality",
+    # 얀마옌 (NPI 지질도, janmayen.py)
+    "janmayen:units": "Geological units (1:250K)",
+    "janmayen:lines": "Eruptive fissures, lava fronts & caldera",
+    "janmayen:vents": "Eruptive centres & fumaroles",
 }

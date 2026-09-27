@@ -120,6 +120,11 @@ GRPORTAL_URL = env("GSM_GRPORTAL_URL",
 #: (devlog 018). 비어 있거나 파일이 없으면 남극 레이어 자리에 "자료가 없다" 안내가
 #: 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/geomap/` 이다 — 운영은 /srv/GSM/geomap.
 GEOMAP_DIR = env("GSM_GEOMAP_DIR") or str(_data_dir() / "geomap")
+#: 노르웨이 극지연구소(NPI)에서 받아 둔 파일이 있는 곳. 지금은 얀마옌 지질도
+#: (`<여기>/NP_J250_Geologi/NP_J250_Geologi_{f,l,p}.geojson`) 하나다 (devlog 022).
+#: GeoMAP 과 같다 — 저장소에 두지 않고, 없으면 그 레이어에 "자료가 없다" 가 뜰
+#: 뿐 뷰어는 돈다. 기본은 `<DB 옆>/npolar/` 이다 — 운영은 /srv/GSM/npolar.
+NPOLAR_DIR = env("GSM_NPOLAR_DIR") or str(_data_dir() / "npolar")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -198,6 +203,7 @@ VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 GRPORTAL_CATALOG_SEED = REPO_DIR / "data" / "grportal_layers.json"
 #: 남극(GeoMAP) 카탈로그 씨앗과, .qml 에서 뽑아 둔 색 (manage.py geomap_styles)
 GEOMAP_CATALOG_SEED = REPO_DIR / "data" / "geomap_layers.json"
+JANMAYEN_CATALOG_SEED = REPO_DIR / "data" / "janmayen_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

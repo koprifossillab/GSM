@@ -36,3 +36,5 @@ venv/
 # geomap/ 을 본다. 490 MB 라 커밋하지 않는다 — 자료의 주인은 GNS Science 다.
 /geomap/
 *.gpkg
+# 얀마옌 지질도(NPI) — 기본 자리 <DB 옆>/npolar/. 저장소가 공개라 받은 것을 올리지 않는다 (devlog 022)
+/npolar/

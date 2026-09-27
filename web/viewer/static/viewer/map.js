@@ -60,6 +60,15 @@
                   base: ["geomap_simple_geology", "geomap_chronostratigraphic",
                          "geomap_simple_lithology", "geomap_faults"],
                   first: "geomap_simple_geology" },
+    // ── 얀마옌 (devlog 022) ──
+    // NPI 의 1:25만 지질도를 모양째 받아 우리가 그린다. 섬이 길이 55 km 라 범위를
+    // 섬 둘레로 잡는다. 3413 은 경도 -45° 가 위라, 북동-남서로 누운 섬이 거의
+    // 남북으로 선다. `first` 가 여럿이면 처음 올 때 다 켠다 — 면·선·점이 한 장이다
+    jan_mayen: { title: "얀마옌", proj: "EPSG:3413", center: [-8.4, 71.0], zoom: 9, vworld: false,
+                 home: [1200000, -1704000, 1270000, -1634000],
+                 basemap: "eox_s2",
+                 base: ["janmayen:units", "janmayen:lines", "janmayen:vents"],
+                 first: ["janmayen:units", "janmayen:lines", "janmayen:vents"] },
   };
   var region = "korea";
 
@@ -223,6 +232,7 @@
     vworld: { source: wmsSource, info: wmsInfoUrl },
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
+    janmayen: { source: null, info: null },
   };
 
   function layerKind(name) {
@@ -479,25 +489,25 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
-    regions: ["greenland"],
+    regions: ["greenland", "jan_mayen"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
-    regions: ["greenland"],
+    regions: ["greenland", "jan_mayen"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -838,8 +848,9 @@
     if (active.some(function (e) { return e.name === name; })) return;
     var row = byName[name];
     if (!row) return;
-    // 점 레이어(`kind: points`)는 밑을 가리지 않으므로 처음부터 진하게 둔다
-    var opacity = row.kind === "points" ? 1 : DEFAULT_OPACITY;
+    // 점 레이어(`kind: points`)는 밑을 가리지 않으므로 처음부터 진하게 둔다.
+    // 면을 싣는 것(얀마옌 지질 단위)은 카탈로그가 투명도를 따로 준다
+    var opacity = row.opacity || (row.kind === "points" ? 1 : DEFAULT_OPACITY);
     active.unshift({
       name: name,
       title: row.title,
@@ -1061,6 +1072,10 @@
       foot.append(range, num);
 
       li.append(head, foot);
+
+      // 서버가 "자료가 없다" 고 답한 레이어는 범례를 펴지 않아도 까닭이 보이게
+      var failed = entry.layer.get && entry.layer.get("gsmError");
+      if (failed) li.appendChild(note(failed));
 
       var src = sourceNote(entry.name);
       if (src) {
@@ -1664,14 +1679,22 @@
     var source = new ol.source.Vector({
       attributions: pointAttribution(row),
       loader: function (extent, resolution, projection, success, failure) {
-        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name))
-          .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG)
+          .then(function (r) {
+            if (r.ok) return r.json();
+            // 서버가 까닭을 적어 보낸다 — "자료가 서버에 없다" 따위. 패널에 띄운다
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              layer.set("gsmError", d.error || "");
+              throw new Error(String(r.status));
+            });
+          })
           .then(function (data) {
             var features = new ol.format.GeoJSON().readFeatures(data, {
               dataProjection: "EPSG:4326",
               featureProjection: projection || map.getView().getProjection(),
             });
             layer.set("gsmLabels", data.labels || {});
+            layer.set("gsmLegend", data.legend || null);
             layer.set("gsmCount", features.length);
             source.addFeatures(features);
             if (success) success(features);
@@ -1687,7 +1710,8 @@
     });
     layer = new ol.layer.Vector({
       source: source,
-      style: portalPointStyle(row.style || "sample"),
+      style: LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
+        : portalPointStyle(row.style || "sample"),
       opacity: 1,
       // 겹친 점을 하나씩 그린다 — 2 만 점이라 글자처럼 걸러내지(declutter) 않는다
     });
@@ -1698,6 +1722,7 @@
   /** 지도 귀퉁이의 출처. 레이어마다 같은 글로 적어 OL 이 한 줄로 합치게 한다 —
    *  레이어별 항목 주소는 범례 칸에 둔다(`pointLegend`). */
   function pointAttribution(row) {
+    if (row.attribution) return row.attribution;       // 얀마옌(NPI) — 서버가 적어 준다
     return '<a href="' + esc(row.portal || "") + '" target="_blank" rel="noopener">' +
       esc(T("그린란드 정부 광물자원 포털")) + "</a> · GEUS · " + esc(T("이용 조건 표시 없음"));
   }
@@ -1768,6 +1793,7 @@
     var kind = row.style || "sample";
     var box = document.createElement("div");
     box.className = "vector-legend";
+    if (LEGEND_STYLED[kind]) return dataLegend(entry, row, box);
     function item(color, text, shape) {
       var line = document.createElement("div");
       var sw = document.createElement("span");
@@ -1800,6 +1826,86 @@
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.textContent = T("포털의 원본 항목 — 이용 조건 표시 없음");
+      box.appendChild(a);
+    }
+    return box;
+  }
+
+  // ── 자료가 색을 주는 레이어 — 얀마옌 지질도 (devlog 022) ─────────
+  //
+  // 포털 점과 같은 길(`/points/`)로 오지만 선·면도 싣고, 색은 자료가 준다.
+  // 서버가 `legend` 에 geo_code 마다 색·굵기·끊음·모양을 적어 보내고, 그리는 것과
+  // 범례가 같은 표를 읽는다 — 둘이 어긋날 수 없다. 면의 색은 feature 의 `color`
+  // (자료의 `rgb` 열)다.
+  var LEGEND_STYLED = { unit: true, line: true, vent: true };
+
+  function legendStyle(kind, getLayer) {
+    var cache = {};
+    return function (feature) {
+      var code = feature.get("code");
+      if (cache[code]) return cache[code];
+      var table = {};
+      (getLayer().get("gsmLegend") || []).forEach(function (r) { table[r.code] = r; });
+      var spec = table[code] || {};
+      var color = feature.get("color") || spec.color || "#888888";
+      var style;
+      if (kind === "unit") {
+        style = new ol.style.Style({
+          fill: new ol.style.Fill({ color: color }),
+          stroke: new ol.style.Stroke({ color: "rgba(40, 30, 20, 0.55)", width: 0.6 }),
+        });
+      } else if (kind === "line") {
+        style = [
+          new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.7)", width: (spec.width || 1.6) + 2 }) }),
+          new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: spec.width || 1.6,
+                                                               lineDash: spec.dash || undefined }) }),
+        ];
+      } else {
+        var fill = new ol.style.Fill({ color: color });
+        var stroke = new ol.style.Stroke({ color: "rgba(20,20,20,0.9)", width: 1 });
+        style = new ol.style.Style({ image: spec.shape === "star"
+          ? new ol.style.RegularShape({ points: 5, radius: 6.5, radius2: 2.8, angle: 0, fill: fill, stroke: stroke })
+          : new ol.style.RegularShape({ points: 3, radius: 4.5, angle: 0, fill: fill, stroke: stroke }) });
+      }
+      cache[code] = style;
+      return style;
+    };
+  }
+
+  /** 범례 — 서버가 보낸 표(`legend`)를 그대로. 이름은 자료의 영어 이름이라 옮기지 않는다. */
+  function dataLegend(entry, row, box) {
+    var rows = entry.layer.get("gsmLegend") || [];
+    rows.forEach(function (r) {
+      var line = document.createElement("div");
+      if (r.depth) line.style.paddingLeft = (r.depth * 14) + "px";
+      var sw;
+      if (row.style === "line") {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
+          esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.6) + '"' +
+          (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
+      } else {
+        sw = document.createElement("span");
+        sw.className = "sw " + (row.style === "unit" ? "box" : r.shape === "star" ? "star" : "triangle");
+        sw.style.background = r.color || "#888";
+      }
+      var label = document.createElement("span");
+      label.textContent = r.label + "  (" + r.count + ")";
+      line.append(sw, label);
+      box.appendChild(line);
+    });
+    var err = entry.layer.get("gsmError");
+    if (!rows.length) {
+      box.appendChild(note(entry.layer.get("gsmFailed") ? (err || T("점을 받지 못했다")) : T("받는 중…")));
+    }
+    if (row.source) {
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.source;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
       box.appendChild(a);
     }
     return box;
@@ -2394,14 +2500,15 @@
   /** 처음 온 지역이면 대표 레이어 하나를 켜 둔다. */
   function openFirstLayer() {
     // 대표가 카탈로그에 없으면 그 지역 목록의 첫 레이어
+    // `first` 가 여럿이면(얀마옌) 적힌 차례로 켠다 — 뒤의 것이 위에 얹힌다
     var here = regionCatalog();
-    var first = byName[REGIONS[region].first] ? REGIONS[region].first
-      : (here[0] && here[0].layers[0] && here[0].layers[0].name);
-    if (first && byName[first]) {
+    var firsts = [].concat(REGIONS[region].first || []).filter(function (n) { return byName[n]; });
+    if (!firsts.length && here[0] && here[0].layers[0]) firsts = [here[0].layers[0].name];
+    firsts.forEach(function (first) {
       var box = document.querySelector('input[data-layer="' + cssEscape(first) + '"]');
       if (box) box.checked = true;
       addLayer(first);
-    }
+    });
   }
 
   // ── 주제도 비교 ──────────────────────────────────────────────────

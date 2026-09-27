@@ -1290,6 +1290,28 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   --glass: rgba(251, 252, 255, .95); --glass-line: #cfd5ec;
 }
 
+/* ── 얀마옌 (devlog 022) — 현무암: 숯빛 바탕에 용암 주황 ──
+   그린란드(빙하 청)·남극(오로라 청록)·스발바르(노르웨이 남색·빨강)와 겹치지 않게,
+   섬을 이룬 것(현무암 용암)에서 땄다. 한국의 금빛보다 붉고 채도가 높다 */
+:root[data-region="jan_mayen"] {
+  --bg: #1a1817; --panel: #22201f; --panel-tint: #171514; --raise: #2d2a28;
+  --ink: #f0e9e4; --ink-soft: #c2b6ad; --ink-faint: #85786f;
+  --line: #3a3532; --line-soft: #2b2725;
+  --gold: #ff7a2f; --gold-bright: #ffa468; --gold-muted: #d9713a;
+  --gold-wash: rgba(255, 122, 47, .13); --gold-edge: rgba(255, 122, 47, .42);
+  --hi: #ff7a2f; --hi-deep: #ffa468; --on-hi: #171514; --hi-ink: #ffa468;
+  --glass: rgba(23, 21, 20, .93); --glass-line: rgba(255, 122, 47, .35);
+}
+:root[data-region="jan_mayen"][data-theme="light"] {
+  --bg: #efebe8; --panel: #fcfaf9; --panel-tint: #f4f0ed; --raise: #e5dfdb;
+  --ink: #1d1a18; --ink-soft: #564c46; --ink-faint: #8f837b;
+  --line: #d9d1cb; --line-soft: #e5dfdb;
+  --gold: #d4561a; --gold-bright: #a83f0e; --gold-muted: #b8612f;
+  --gold-wash: #fbe9df; --gold-edge: #efb897;
+  --hi: #3a3330; --hi-deep: #1d1a18; --on-hi: #fff4ec; --hi-ink: #b8480f;
+  --glass: rgba(252, 250, 249, .95); --glass-line: #d9d1cb;
+}
+
 /* 실험 기능 — 설정에서 켠 사람에게만 보인다 */
 .tool.labs { text-decoration: none; }
 .tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */
@@ -1298,9 +1320,13 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .tool.labs { position: relative; }
 
 /* ── 점 레이어의 범례 (그린란드 정부 포털, map.js 의 vectorLegend) ── */
-.vector-legend { margin-top: 8px; font-size: 11.5px; color: var(--ink-soft); }
+.vector-legend { margin-top: 8px; font-size: 11.5px; }   /* 글자색은 위(흰 바탕의 #333)를 따른다 */
 .vector-legend > div { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
 .vector-legend .sw { flex: none; width: 10px; height: 10px; border: 1px solid rgba(20, 20, 20, .85); }
 .vector-legend .sw.dot { border-radius: 50%; }
 .vector-legend .sw.diamond { transform: rotate(45deg) scale(.85); }
 .vector-legend .sw.triangle { clip-path: polygon(50% 0, 100% 100%, 0 100%); border: 0; }
+/* 얀마옌 지질도의 범례 (map.js 의 dataLegend) — 면은 네모, 분기공은 별, 선은 그린 선 */
+.vector-legend .sw.box { width: 14px; height: 10px; border-radius: 2px; }
+.vector-legend .sw.star { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); border: 0; width: 12px; height: 12px; }
+.vector-legend .sw-line { flex: none; display: inline-flex; }

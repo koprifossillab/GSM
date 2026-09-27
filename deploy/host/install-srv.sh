@@ -27,7 +27,7 @@ say() { printf '\n== %s ==\n' "$1"; }
 
 # ── 1. /srv/GSM ───────────────────────────────────────────────────────
 say "/srv/GSM"
-mkdir -p "$SRV"/{db,tiles,geomap}
+mkdir -p "$SRV"/{db,tiles,geomap,npolar}
 cp -n "$REPO/deploy/srv/docker-compose.yml" "$SRV/docker-compose.yml"
 if [[ ! -f "$SRV/.env" ]]; then
     cp "$REPO/deploy/srv/env.template" "$SRV/.env"
@@ -39,9 +39,12 @@ fi
 # 컨테이너가 1000:1000 으로 도니 그 앞으로 맞춘다
 chown -R "$OWNER" "$SRV"
 chmod -R g+ws "$SRV/db" "$SRV/tiles"
-echo "  db/ tiles/ geomap/ 준비됨"
+echo "  db/ tiles/ geomap/ npolar/ 준비됨"
 if ! ls "$SRV"/geomap/ATA_SCAR_GeoMAP_Geology_*.gpkg >/dev/null 2>&1; then
     echo "  geomap/ 이 비어 있다 — 남극 지질도를 보려면 GeoMAP gpkg 를 넣는다 (devlog 018)"
+fi
+if ! ls "$SRV"/npolar/NP_J250_Geologi/NP_J250_Geologi_f.geojson >/dev/null 2>&1; then
+    echo "  npolar/ 이 비어 있다 — 얀마옌 지질도를 보려면 NP_J250_Geologi/ 에 GeoJSON 셋을 넣는다 (devlog 022)"
 fi
 
 # ── 2. nginx 조각 ─────────────────────────────────────────────────────
