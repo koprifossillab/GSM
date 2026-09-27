@@ -43,15 +43,16 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"카탈로그 {len(layers)}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
-        # 다른 지역의 씨앗 (그린란드 — GEUS). 상류를 타지 않고 저장소의 표만 쓴다
-        geus = settings.GEUS_CATALOG_SEED
-        if geus.exists():
-            gseed = json.loads(geus.read_text(encoding="utf-8"))
+        # 다른 지역의 씨앗 (그린란드 — GEUS, 정부 포털). 상류를 타지 않고 저장소의 표만 쓴다
+        for path in (settings.GEUS_CATALOG_SEED, settings.GRPORTAL_CATALOG_SEED):
+            if not path.exists():
+                continue
+            gseed = json.loads(path.read_text(encoding="utf-8"))
             made, touched = self._apply(gseed["레이어"], gseed["레이어군순서"], options["reset_titles"],
                                         region=gseed.get("_지역", "greenland"),
                                         upstream=gseed.get("_상류", "geus"))
             self.stdout.write(self.style.SUCCESS(
-                f"그린란드 {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
+                f"{path.name} {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
 
         unverified = Layer.objects.filter(verified_at__isnull=True, upstream="kigam").count()
         if unverified:

@@ -372,12 +372,15 @@
     if (active.some(function (e) { return e.name === name; })) return;
     var row = byName[name];
     if (!row) return;
+    // 점 레이어(`kind: vector`)는 밑을 가리지 않으므로 처음부터 진하게 둔다
+    var opacity = row.kind === "vector" ? 1 : DEFAULT_OPACITY;
     active.unshift({
       name: name,
       title: row.title,
-      opacity: DEFAULT_OPACITY,
+      opacity: opacity,
       legendOpen: false,
-      layer: new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY }),
+      layer: row.kind === "vector" ? vectorLayerFor(row)
+        : new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY }),
     });
     restack();
   }
@@ -590,7 +593,9 @@
 
       li.append(head, foot);
 
-      if (entry.legendOpen) {
+      if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "vector") {
+        li.appendChild(vectorLegend(entry));
+      } else if (entry.legendOpen) {
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
@@ -1126,6 +1131,177 @@
     updateToolOut();
   }
 
+  // ── 점 레이어 (그린란드 정부 포털) ──────────────────────────────
+  //
+  // 타일이 아니라 **점을 통째로** 받아 여기서 그린다 (devlog 019). 서버의
+  // `./vector/?layer=` 가 한 레이어를 GeoJSON 한 덩이로 준다 — 2 만 점도
+  // 줄여(gzip) 0.4 MB 다. 누르면 받아 둔 속성을 그 자리에서 읽는다.
+  //
+  // 이 덩이 밖에서는 `addLayer`·`renderActive`·`onClick`·비교 칸이 `kind` 를
+  // 보고 한 줄씩 갈라 여기를 부를 뿐이다. 켜기·끄기·투명도·차례는 타일
+  // 레이어와 같은 길을 탄다 — `entry.layer` 가 ol 레이어이기만 하면 된다.
+  // 좌표계는 **지도의 것을 따른다** (`projection` 인자 — 화면이 3857 이 아닐 수 있다).
+
+  //: 연대(Ma)의 갈래. 색은 ICS 국제층서표의 누대·대 색을 바탕으로, 그린란드에
+  //  많은 원생누대·시생누대는 더 잘게 가르고 서로 가려 보이게 짙기를 벌렸다.
+  var AGE_CLASSES = [
+    { upto: 66, color: "#f2f91d", label: "신생대" },
+    { upto: 252, color: "#67c5ca", label: "중생대" },
+    { upto: 541, color: "#99c08d", label: "고생대" },
+    { upto: 1000, color: "#feb342", label: "신원생대" },
+    { upto: 1600, color: "#fd8d3c", label: "중원생대" },
+    { upto: 2500, color: "#f74370", label: "고원생대" },
+    { upto: 2800, color: "#c51b7d", label: "신시생대" },
+    { upto: Infinity, color: "#7a0177", label: "중시생대 이전" },
+  ];
+  var VECTOR_COLORS = { mineral: "#d7301f", intrusion: "#6a3d9a", sample: "#8c8c8c", none: "#9e9e9e" };
+  //: 한 번 누를 때 레이어 하나에서 팝업에 올리는 점의 수. 한 시료에 연대가
+  //  여럿 딸린 자리가 많아 하나로는 모자라고, 다 올리면 팝업이 읽히지 않는다.
+  var VECTOR_POPUP_MAX = 6;
+
+  function vectorLayerFor(row) {
+    var layer;
+    var source = new ol.source.Vector({
+      attributions: vectorAttribution(row),
+      loader: function (extent, resolution, projection, success, failure) {
+        fetch(BASE + "vector/?layer=" + encodeURIComponent(row.name))
+          .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+          .then(function (data) {
+            var features = new ol.format.GeoJSON().readFeatures(data, {
+              dataProjection: "EPSG:4326",
+              featureProjection: projection || map.getView().getProjection(),
+            });
+            layer.set("gsmLabels", data.labels || {});
+            layer.set("gsmCount", features.length);
+            source.addFeatures(features);
+            if (success) success(features);
+            renderActive();
+          })
+          .catch(function () {
+            layer.set("gsmFailed", true);
+            source.removeLoadedExtent(extent);
+            if (failure) failure();
+            renderActive();
+          });
+      },
+    });
+    layer = new ol.layer.Vector({
+      source: source,
+      style: vectorStyle(row.style || "sample"),
+      opacity: 1,
+      // 겹친 점을 하나씩 그린다 — 2 만 점이라 글자처럼 걸러내지(declutter) 않는다
+    });
+    layer.set("gsmVector", row.name);
+    return layer;
+  }
+
+  /** 지도 귀퉁이의 출처. 레이어마다 같은 글로 적어 OL 이 한 줄로 합치게 한다 —
+   *  레이어별 항목 주소는 범례 칸에 둔다(`vectorLegend`). */
+  function vectorAttribution(row) {
+    return '<a href="' + esc(row.portal || "") + '" target="_blank" rel="noopener">' +
+      esc(T("그린란드 정부 광물자원 포털")) + "</a> · GEUS · " + esc(T("이용 조건 표시 없음"));
+  }
+
+  function ageColor(age) {
+    if (typeof age !== "number" || !isFinite(age)) return VECTOR_COLORS.none;
+    for (var i = 0; i < AGE_CLASSES.length; i++) {
+      if (age < AGE_CLASSES[i].upto) return AGE_CLASSES[i].color;
+    }
+    return VECTOR_COLORS.none;
+  }
+
+  /** 점의 모양. 연대는 동그라미(색=연대), 광물 산출지는 마름모, 관입암체는
+   *  세모, 시료는 포털이 시료 갈래마다 매긴 색의 작은 동그라미.
+   *  멀리서는 작게 그린다 — 2 만 점이 그린란드 하나를 덮는다. */
+  function vectorStyle(kind) {
+    var cache = {};
+    return function (feature, resolution) {
+      var zoom = map.getView().getZoomForResolution(resolution) || 0;
+      var far = zoom < 6;
+      var color = kind === "age" ? ageColor(feature.get("age"))
+        : kind === "sample" ? (feature.get("color") || VECTOR_COLORS.sample)
+        : VECTOR_COLORS[kind] || VECTOR_COLORS.none;
+      var key = color + (far ? "f" : "n");
+      if (cache[key]) return cache[key];
+      var fill = new ol.style.Fill({ color: color });
+      var stroke = new ol.style.Stroke({ color: kind === "sample" && far ? "rgba(0,0,0,0)" : "rgba(20,20,20,0.85)",
+                                         width: far ? 0.6 : 1 });
+      var r = kind === "sample" ? (far ? 2 : 3.5) : (far ? 4 : 6);
+      var image = kind === "mineral"
+        ? new ol.style.RegularShape({ points: 4, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
+        : kind === "intrusion"
+        ? new ol.style.RegularShape({ points: 3, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
+        : new ol.style.Circle({ radius: r, fill: fill, stroke: stroke });
+      cache[key] = new ol.style.Style({ image: image });
+      return cache[key];
+    };
+  }
+
+  /** 누른 점 하나 → 팝업 한 칸. 이름은 서버가 준 한국어(`labels`)이고
+   *  영어판이면 팝업이 `T()` 로 옮긴다(`i18n.PROP_EN`). */
+  function vectorPart(feature, layer, seen) {
+    var name = layer.get("gsmVector");
+    seen[name] = (seen[name] || 0) + 1;
+    if (seen[name] > VECTOR_POPUP_MAX) return null;
+    var labels = layer.get("gsmLabels") || {};
+    var props = {};
+    Object.keys(labels).forEach(function (key) {
+      var value = feature.get(key);
+      if (value === undefined || value === null || value === "") return;
+      if (key === "link") {
+        // 서버가 http·https 만 넘긴다(`grportal._clean`). 여기서 한 번 더 본다
+        if (!/^https?:\/\//i.test(String(value))) return;
+        value = { text: "", links: [{ url: String(value), label: T("열기") }] };
+      }
+      props[labels[key]] = value;
+    });
+    return { title: (byName[name] && byName[name].title) || name, props: props };
+  }
+
+  /** 범례 자리. 타일 레이어는 상류의 범례 그림을 받지만, 점 레이어는
+   *  여기서 그린 색이 곧 범례다. */
+  function vectorLegend(entry) {
+    var row = byName[entry.name] || {};
+    var kind = row.style || "sample";
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    function item(color, text, shape) {
+      var line = document.createElement("div");
+      var sw = document.createElement("span");
+      sw.className = "sw " + (shape || "dot");
+      sw.style.background = color;
+      var label = document.createElement("span");
+      label.textContent = text;
+      line.append(sw, label);
+      box.appendChild(line);
+    }
+    if (kind === "age") {
+      AGE_CLASSES.forEach(function (c, i) {
+        var from = i ? AGE_CLASSES[i - 1].upto : 0;
+        var span = isFinite(c.upto) ? from + "–" + c.upto + " Ma" : "≥ " + from + " Ma";
+        item(c.color, T(c.label) + "  " + span);
+      });
+    } else if (kind === "sample") {
+      item(VECTOR_COLORS.sample, T("색은 포털이 시료 갈래마다 매긴 것이다"));
+    } else {
+      item(VECTOR_COLORS[kind], entry.title, kind === "mineral" ? "diamond" : "triangle");
+    }
+    var count = entry.layer.get("gsmCount");
+    var foot = entry.layer.get("gsmFailed") ? T("점을 받지 못했다")
+      : count === undefined ? T("받는 중…") : T("{n}점", { n: count.toLocaleString() });
+    box.appendChild(note(foot));
+    if (row.source) {
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.source;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("포털의 원본 항목 — 이용 조건 표시 없음");
+      box.appendChild(a);
+    }
+    return box;
+  }
+
   // ── 클릭해 속성 읽기 ────────────────────────────────────────────
 
   function onClick(evt) {
@@ -1136,9 +1312,15 @@
     if (mode !== "info") return;      // 재는 중에는 팝업을 띄우지 않는다
 
     var parts = [];
+    var vectorSeen = {};    // 점 레이어마다 몇 개를 올렸나 (vectorPart)
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
-    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+    map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+      if (layer && layer.get("gsmVector")) {
+        var vp = vectorPart(feature, layer, vectorSeen);
+        if (vp) parts.push(vp);
+        return;
+      }
       if (feature.get("no") !== undefined && feature.get("lat") !== undefined) {
         parts.push({
           title: T("찍은 점 {n}", { n: feature.get("no") }),
@@ -1851,6 +2033,7 @@
         var og = document.createElement("optgroup");
         og.label = group.name;
         group.layers.forEach(function (l) {
+          if (l.kind === "vector") return;          // 나란히 보기의 오른쪽은 타일만 그린다
           var o = document.createElement("option");
           o.value = l.name; o.textContent = l.title;
           og.appendChild(o);

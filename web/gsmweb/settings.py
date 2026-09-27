@@ -113,6 +113,9 @@ VWORLD_KEY = env("GSM_VWORLD_KEY") or _one_line("GSM_VWORLD_KEY_FILE", "vworld_k
 GEUS_WMS_URL = env("GSM_GEUS_WMS_URL", "https://data.geus.dk/geusmap/ows/3857.jsp")
 GEUS_MAPNAME = env("GSM_GEUS_MAPNAME", "greenland_portal")
 GEUS_WHOAMI = env("GSM_GEUS_WHOAMI") or _one_line("GSM_GEUS_WHOAMI_FILE", "geus_whoami") or "GSM"
+#: 그린란드 정부 광물자원 포털의 ArcGIS 서비스들 (`viewer/grportal.py`). 열쇠가 없다.
+GRPORTAL_URL = env("GSM_GRPORTAL_URL",
+                   "https://services5.arcgis.com/wbN76kmEQ2ue8VQm/arcgis/rest/services")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -185,6 +188,8 @@ DEV_DIRECT_WMS = _dev_direct_wms()
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
+#: 그린란드 정부 포털의 점 레이어 씨앗. 역시 seed_catalog 가 함께 넣는다
+GRPORTAL_CATALOG_SEED = REPO_DIR / "data" / "grportal_layers.json"
 
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")

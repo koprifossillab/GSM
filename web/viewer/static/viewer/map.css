@@ -1283,3 +1283,11 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 :root[data-labs="on"] .tool.labs[hidden] { display: flex; }
 .tool.labs::after { content: "β"; position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--hi-ink); }
 .tool.labs { position: relative; }
+
+/* ── 점 레이어의 범례 (그린란드 정부 포털, map.js 의 vectorLegend) ── */
+.vector-legend { margin-top: 8px; font-size: 11.5px; color: var(--ink-soft); }
+.vector-legend > div { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+.vector-legend .sw { flex: none; width: 10px; height: 10px; border: 1px solid rgba(20, 20, 20, .85); }
+.vector-legend .sw.dot { border-radius: 50%; }
+.vector-legend .sw.diamond { transform: rotate(45deg) scale(.85); }
+.vector-legend .sw.triangle { clip-path: polygon(50% 0, 100% 100%, 0 100%); border: 0; }

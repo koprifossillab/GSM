@@ -1,0 +1,40 @@
+{
+ "_주석": "그린란드 정부 광물자원 포털(ArcGIS FeatureServer)의 점 레이어 씨앗이다. 2026-09-27 에 각 서비스를 끝까지 받아 본 점들의 범위를 옮겨 적었다. 한글 제목과 레이어군은 사람이 붙였다. 받는 열과 팝업 이름은 web/viewer/grportal.py 의 LAYERS 에 있다.",
+ "_뽑은날": "2026-09-27",
+ "_출처": "https://services5.arcgis.com/wbN76kmEQ2ue8VQm/arcgis/rest/services",
+ "_지역": "greenland",
+ "_상류": "grportal",
+ "레이어군순서": [
+  "시료·연대 (정부 포털)"
+ ],
+ "레이어": [
+  {
+   "name": "grportal:geochron",
+   "title": "연대측정",
+   "group": "시료·연대 (정부 포털)",
+   "abstract": "Greenland geochronology — age (Ma), uncertainty, mineral, technique, reference",
+   "bbox": [-72.34, 59.89, -6.41, 83.58]
+  },
+  {
+   "name": "grportal:mineral_occurrences",
+   "title": "광물 산출지",
+   "group": "시료·연대 (정부 포털)",
+   "abstract": "Greenland mineral occurrences — commodity, economic status, GEUS report",
+   "bbox": [-70.09, 60.12, -17.90, 83.09]
+  },
+  {
+   "name": "grportal:intrusions",
+   "title": "관입암체",
+   "group": "시료·연대 (정부 포털)",
+   "abstract": "Greenland intrusions — name, description, report",
+   "bbox": [-72.10, 59.83, -20.55, 83.25]
+  },
+  {
+   "name": "grportal:samples",
+   "title": "암석·퇴적물 시료",
+   "group": "시료·연대 (정부 포털)",
+   "abstract": "GEUS samples on the portal — 20 000, a cut of the full register",
+   "bbox": [-72.90, 59.82, -13.24, 83.47]
+  }
+ ]
+}

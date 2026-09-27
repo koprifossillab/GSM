@@ -8,17 +8,19 @@ import hashlib
 import json
 import logging
 import re
+import threading
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, geus, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, geus, grportal, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -133,7 +135,9 @@ def map3d_view(request):
     lang = i18n.lang_of(request)
     return render(request, "viewer/map3d.html", {
         "lang": lang,
-        "catalog_groups": _catalog(lang),
+        # 3D 는 타일만 얹는다. 점 레이어(`kind: vector`)는 뺀다
+        "catalog_groups": [dict(g, layers=[l for l in g["layers"] if l.get("kind") != "vector"])
+                           for g in _catalog(lang)],
         "vworld_key": settings.VWORLD_KEY,
         "base": request.path.rsplit("3d", 1)[0],
         "version": VERSION,
@@ -156,11 +160,24 @@ def _catalog(lang="ko"):
             "verified": bool(l.verified_at),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
+            **_vector_fields(l),
         } for l in group.layers.filter(enabled=True)]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
             groups.append({"name": name, "region": group.region, "layers": layers})
     return groups
+
+
+def _vector_fields(layer) -> dict:
+    """점을 통째로 받아 브라우저가 그리는 레이어(`grportal`)에만 붙는 것.
+
+    타일이 아니므로 `/wms/`·`/featureinfo/`·`/legend/` 를 부르지 않는다 —
+    `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019).
+    """
+    if layer.upstream != "grportal" or not grportal.knows(layer.name):
+        return {}
+    return {"kind": "vector", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
+            "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
 
 
 @require_GET
@@ -393,6 +410,67 @@ def legend(request):
                             status=503 if not door.ready else 502)
     tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+# ── 점 레이어 (그린란드 정부 포털) ────────────────────────────────────
+#
+# 타일이 아니라 점을 통째로 받아 브라우저에 한 덩이로 준다 (`grportal.py`).
+# 캐시의 규칙은 타일과 같다 — 들고 있으면 묻지 않고, 3 년이 지나면 다시 묻고,
+# 상류가 못 주면 옛것을 낸다. 담는 것은 feature 목록(JSON)이다.
+
+_vector_locks = {}
+
+
+def _vector_key(name: str) -> str:
+    return tilecache.key_text("grportal", grportal.signature(name))
+
+
+def vector_features(name: str, *, refresh: bool = False) -> bytes:
+    """레이어 하나의 feature 목록(JSON 바이트). 못 받으면 PortalError.
+
+    같은 레이어를 두 사람이 한꺼번에 열어도 **상류에는 한 번만 묻는다** —
+    2 만 점이면 열 장이다. 뒤에 온 사람은 앞사람이 받는 것을 기다린다.
+    """
+    key = _vector_key(name)
+    if not refresh:
+        hit = tilecache.get(key, ".json")
+        if hit is not None:
+            return hit
+    lock = _vector_locks.setdefault(name, threading.Lock())
+    with lock:
+        if not refresh:
+            hit = tilecache.get(key, ".json")         # 기다리는 사이 앞사람이 담았다
+            if hit is not None:
+                return hit
+        try:
+            features = grportal.fetch(name)
+        except grportal.PortalError:
+            old = tilecache.get(key, ".json", stale=True)
+            if old is not None:
+                return old
+            raise
+        data = json.dumps(features, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        tilecache.put(key, data, ".json")
+        return data
+
+
+@gzip_page
+@require_GET
+def vector_layer(request):
+    """점 레이어 하나를 GeoJSON 으로. 2 만 점이 4.5 MB, 줄이면(gzip) 0.4 MB 다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if not grportal.knows(name):
+        return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
+    try:
+        features = vector_features(name)
+    except grportal.PortalError as exc:
+        log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(grportal.body(name, features), content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response

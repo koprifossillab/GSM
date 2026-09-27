@@ -52,7 +52,8 @@ class Layer(models.Model):
     bbox_east = models.FloatField(null=True, blank=True)
     bbox_north = models.FloatField(null=True, blank=True)
 
-    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`
+    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`,
+    #: grportal → `grportal.py` (타일이 아니라 점을 통째로 받는다 — devlog 019)
     upstream = models.CharField("상류", max_length=20, default="kigam")
 
     queryable = models.BooleanField("클릭해 속성을 읽을 수 있다", default=True)

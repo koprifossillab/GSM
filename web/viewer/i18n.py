@@ -380,6 +380,24 @@ EN = {
         "One shape has {n} vertices — too many (limit {max}).",
     "꼭짓점이 모두 {max}개를 넘는다. 파일을 나눠 올린다.":
         "More than {max} vertices in total. Split the file and upload again.",
+    # 점 레이어 — 그린란드 정부 포털 (grportal.py, map.js 의 vectorLayerFor)
+    "그런 점 레이어가 없다": "No such point layer",
+    "그린란드 정부 광물자원 포털": "Government of Greenland mineral portal",
+    "포털의 원본 항목 — 이용 조건 표시 없음": "Source item on the portal — no licence stated",
+    "이용 조건 표시 없음": "no licence stated",
+    "색은 포털이 시료 갈래마다 매긴 것이다": "Colours are the portal's, one per sample type",
+    "점을 받지 못했다": "Could not load the points",
+    "받는 중…": "Loading…",
+    "열기": "open",
+    # 연대 갈래 (map.js 의 AGE_CLASSES) — ICS 국제층서표의 이름
+    "신생대": "Cenozoic",
+    "중생대": "Mesozoic",
+    "고생대": "Paleozoic",
+    "신원생대": "Neoproterozoic",
+    "중원생대": "Mesoproterozoic",
+    "고원생대": "Paleoproterozoic",
+    "신시생대": "Neoarchean",
+    "중시생대 이전": "Mesoarchean and older",
 }
 
 
@@ -439,6 +457,30 @@ PROP_EN = {
     "지질 단위": "Geological unit",
     "최소 연대 (Ma)": "Minimum age (Ma)",
     "최대 연대 (Ma)": "Maximum age (Ma)",
+    # 그린란드 정부 포털의 점 레이어 (grportal.LAYERS 의 label)
+    "시료 번호": "Sample no.",
+    "연대 (Ma)": "Age (Ma)",
+    "오차 (Ma)": "Uncertainty (Ma)",
+    "해석": "Interpretation",
+    "광물": "Mineral",
+    "측정법": "Technique",
+    "계산법": "Approach",
+    "암상": "Lithology",
+    "암석 갈래": "Rock type",
+    "지괴": "Terrane",
+    "단위": "Unit",
+    "문헌": "Reference",
+    "GEUS 상세": "GEUS details",
+    "이름": "Name",
+    "광종": "Commodity",
+    "광종 무리": "Commodity group",
+    "경제성": "Economic status",
+    "보고서": "Report",
+    "시료 갈래": "Sample type",
+    "시료 기재": "Sample description",
+    "채취 지점": "Locality",
+    "채취자": "Collector",
+    "채취일": "Collected",
 }
 
 
@@ -551,6 +593,8 @@ GROUP_EN = {
     "야외 관찰": "Field observations",
     "지화학": "Geochemistry",
     "탄성파 탐사": "Seismic surveys",
+    # 그린란드 정부 포털
+    "시료·연대 (정부 포털)": "Samples & ages (government portal)",
 }
 
 LAYER_EN = {
@@ -626,4 +670,9 @@ LAYER_EN = {
     "seismic_lines_grl": "Seismic lines",
     "seismic_3d_surveys_grl": "3D seismic surveys",
     "seismic_csem_grl": "CSEM lines",
+    # 그린란드 정부 포털 (grportal.py)
+    "grportal:geochron": "Geochronology",
+    "grportal:mineral_occurrences": "Mineral occurrences",
+    "grportal:intrusions": "Intrusions",
+    "grportal:samples": "Rock & sediment samples",
 }
