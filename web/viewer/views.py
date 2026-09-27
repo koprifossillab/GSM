@@ -440,15 +440,29 @@ def pointset_create(request):
 
 @require_GET
 def pointset_geojson(request, pk):
+    """점묶음을 GeoJSON 으로. 지도가 그릴 때도, 사람이 내려받을 때도 쓴다.
+
+    `?download=1` 이면 파일로 내려준다. 한글 이름이 깨지지 않게 파일명을
+    RFC 5987 로도 적는다.
+    """
     pointset = get_object_or_404(PointSet, pk=pk)
-    return JsonResponse({
+    response = JsonResponse({
         "type": "FeatureCollection",
+        "name": pointset.name,
         "features": [{
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [p.lon, p.lat]},
             "properties": dict(p.props, **{"이름표": p.label} if p.label else {}),
         } for p in pointset.points.all()],
-    })
+    }, json_dumps_params={"ensure_ascii": False})
+    if request.GET.get("download"):
+        from urllib.parse import quote
+        stem = re.sub(r'[\\/:*?"<>|]+', "_", pointset.name).strip() or f"pointset-{pk}"
+        response["Content-Type"] = "application/geo+json; charset=utf-8"
+        response["Content-Disposition"] = (
+            f'attachment; filename="pointset-{pk}.geojson"; '
+            f"filename*=UTF-8''{quote(stem + '.geojson')}")
+    return response
 
 
 @require_POST

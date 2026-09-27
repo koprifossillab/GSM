@@ -92,6 +92,19 @@
         });
       },
     };
+    // 백지도·야간지도. `Base` 와 같은 창구에 레이어 이름만 다르다.
+    // **지질도 밑에는 백지도가 낫다** — 도로·지명 색이 죽어 있어 지질도의
+    // 분홍·자홍과 다투지 않는다 (004). 야간은 먹갈색 화면과 어울린다.
+    BASEMAPS.vworld_white = {
+      title: "VWorld 백지도",
+      note: "국토지리정보원. 지질도 밑에 깔기 좋다",
+      make: function () { return vworldPlain("white"); },
+    };
+    BASEMAPS.vworld_midnight = {
+      title: "VWorld 야간",
+      note: "국토지리정보원",
+      make: function () { return vworldPlain("midnight"); },
+    };
     // 위성 사진과 지명은 **따로 오는 레이어다**(`Satellite`·`Hybrid`).
     // 그래서 지명만 끌 수 있다 — 지질 경계를 볼 때 글자가 방해가 된다.
     // 일반 배경지도(`Base`)는 지명이 그림에 박혀 있어 끄지 못한다.
@@ -122,6 +135,20 @@
     };
   }
   var baseLayer = null;
+
+  /** VWorld 의 한 장짜리 배경(`white`·`midnight`). */
+  function vworldPlain(name) {
+    return new ol.layer.Tile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+             + "/" + name + "/{z}/{y}/{x}.png",
+        crossOrigin: "anonymous",
+        maxZoom: 19,
+        attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
+      }),
+    });
+  }
 
   function setBasemap(key) {
     if (baseLayer) {
@@ -206,6 +233,7 @@
     map.addOverlay(popupOverlay);
 
     map.on("moveend", renderEdges);
+    map.on("moveend", saveView);
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
   }
@@ -228,6 +256,63 @@
     tempLayer.setZIndex(700);
     foundLayer.setZIndex(800);
     renderActive();
+    saveLayers();
+  }
+
+  // ── 기억하기 ─────────────────────────────────────────────────────
+  //
+  // 켠 레이어(차례·투명도)와 보던 자리를 브라우저에 둔다. 새로 고치면 다
+  // 풀리던 것이 불편했다. **이 브라우저에만 남는다** — 서버에 올리지 않고,
+  // 사생활 모드처럼 저장이 막혀도 처음 화면으로 돌 뿐 멈추지 않는다.
+
+  var restoring = false;   // 되살리는 동안에는 저장하지 않는다
+
+  function saveLayers() {
+    if (restoring) return;
+    var rows = active.map(function (e) {
+      return { name: e.name, opacity: Math.round(e.opacity * 100) / 100 };
+    });
+    try { localStorage.setItem("gsm.layers", JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
+  }
+
+  function saveView() {
+    var view = map.getView();
+    var center = ol.proj.toLonLat(view.getCenter());
+    var state = { lon: +center[0].toFixed(5), lat: +center[1].toFixed(5),
+                  zoom: +view.getZoom().toFixed(2) };
+    try { localStorage.setItem("gsm.view", JSON.stringify(state)); } catch (e) { /* 사생활 모드 */ }
+  }
+
+  function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "null"); } catch (e) { return null; }
+  }
+
+  /** 기억한 것이 있으면 되살리고 true. 처음 온 사람이면 false. */
+  function restoreState() {
+    var view = readJson("gsm.view");
+    if (view && isFinite(view.lon) && isFinite(view.lat) && isFinite(view.zoom)) {
+      map.getView().setCenter(ol.proj.fromLonLat([view.lon, view.lat]));
+      map.getView().setZoom(view.zoom);
+    }
+    var rows = readJson("gsm.layers");
+    if (!Array.isArray(rows)) return false;
+    restoring = true;
+    // addLayer 는 맨 위에 얹는다. 그래서 맨 아래 것부터 얹는다.
+    rows.slice().reverse().forEach(function (row) {
+      if (!row || !byName[row.name]) return;     // 카탈로그에서 내려간 레이어
+      addLayer(row.name);
+      var entry = active[0];
+      if (entry.name === row.name && isFinite(row.opacity)) {
+        entry.opacity = Math.min(1, Math.max(0, row.opacity));
+        entry.layer.setOpacity(entry.opacity);
+      }
+      var box = document.querySelector('input[data-layer="' + cssEscape(row.name) + '"]');
+      if (box) box.checked = true;
+    });
+    restoring = false;
+    renderActive();
+    saveLayers();
+    return true;
   }
 
   function addLayer(name) {
@@ -380,9 +465,13 @@
         entry.legendOpen = !entry.legendOpen;
         renderActive();
       });
+      var bbox = byName[entry.name] && byName[entry.name].bbox;
+      var fit = iconButton("⊙", "이 레이어가 있는 곳으로 범위를 맞춘다", !bbox, function () {
+        fitLayer(entry.name);
+      });
       var off = iconButton("×", "끈다", false, function () { removeLayer(entry.name); });
 
-      head.append(up, down, title, legendBtn, off);
+      head.append(up, down, title, fit, legendBtn, off);
 
       var foot = document.createElement("div");
       foot.className = "active-foot";
@@ -397,6 +486,7 @@
         entry.layer.setOpacity(entry.opacity);
         num.textContent = range.value + "%";
       });
+      range.addEventListener("change", saveLayers);
       foot.append(range, num);
 
       li.append(head, foot);
@@ -413,6 +503,16 @@
       }
       host.appendChild(li);
     });
+  }
+
+  /** 레이어의 범위(`Layer.bbox`, 위경도)로 지도를 옮긴다.
+   *  해저지질도처럼 바다에만 있는 레이어를 켰는데 화면에 아무것도 안
+   *  보일 때 쓴다. 범위는 상류의 `GetCapabilities` 가 준 것이다. */
+  function fitLayer(name) {
+    var bbox = byName[name] && byName[name].bbox;
+    if (!bbox) return;
+    var extent = ol.proj.transformExtent(bbox, "EPSG:4326", "EPSG:3857");
+    map.getView().fit(extent, { padding: [40, 40, 60, 40], duration: 300 });
   }
 
   function iconButton(text, title, disabled, onClick) {
@@ -1017,14 +1117,34 @@
 
   // ── 점묶음 ──────────────────────────────────────────────────────
 
+  //: 이름표를 보이기 시작하는 줌. 이보다 멀리서 보면 글자가 점을 덮는다.
+  var LABEL_MIN_ZOOM = 11;
+
+  /** 점 하나의 모양. 가까이 보면 **이름표를 곁에 적는다** — 전에는 눌러야
+   *  떴다. 겹치는 글자는 OL 이 걸러낸다(`declutter`). */
   function pointStyle(color) {
-    return new ol.style.Style({
-      image: new ol.style.Circle({
-        radius: 5,
-        fill: new ol.style.Fill({ color: color }),
-        stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }),
-      }),
+    var dot = new ol.style.Circle({
+      radius: 5,
+      fill: new ol.style.Fill({ color: color }),
+      stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }),
     });
+    var plain = new ol.style.Style({ image: dot });
+    return function (feature, resolution) {
+      var label = feature.get("이름표");
+      var zoom = map.getView().getZoomForResolution(resolution);
+      if (!label || zoom < LABEL_MIN_ZOOM) return plain;
+      return new ol.style.Style({
+        image: dot,
+        text: new ol.style.Text({
+          text: String(label),
+          font: "12px sans-serif",
+          offsetX: 8,
+          textAlign: "left",
+          fill: new ol.style.Fill({ color: "#1f1409" }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
+        }),
+      });
+    };
   }
 
   function loadPointSet(ps) {
@@ -1042,6 +1162,7 @@
     var layer = new ol.layer.Vector({
       source: source,
       style: pointStyle(ps.color),
+      declutter: true,
       visible: ps.visible,
     });
     pointLayers[ps.id] = layer;
@@ -1088,6 +1209,12 @@
         }
       });
 
+      // 올린 것을 GeoJSON 으로 돌려받는다. 원래 CSV 였어도 위경도와 속성이
+      // 그대로 나온다 — QGIS 에 곧장 얹을 수 있다
+      var save = iconButton("⤓", "GeoJSON 으로 내려받는다", false, function () {
+        location.href = BASE + "pointsets/" + ps.id + "/geojson/?download=1";
+      });
+
       var del = iconButton("×", "지운다", false, function () {
         if (!confirm("'" + ps.name + "' 을 지운다.")) return;
         post(BASE + "pointsets/" + ps.id + "/delete/").then(function () {
@@ -1100,7 +1227,7 @@
         });
       });
 
-      li.append(box, swatch, name, count, zoom, del);
+      li.append(box, swatch, name, count, zoom, save, del);
       host.appendChild(li);
     });
   }
@@ -1437,8 +1564,9 @@
 
   // 처음 열면 5만 지질도를 켜 둔다. 빈 지도보다 무엇이든 보이는 편이 낫고,
   // **5만이 실제로 가장 많이 보는 축척이다.** 100만·25만은 켜서 보는 것이지
-  // 켜 두고 시작할 것이 아니다.
-  if (byName["L_50K_Geology_Map"]) {
+  // 켜 두고 시작할 것이 아니다. 기억한 것이 있으면 그것을 따른다 — 다 끄고
+  // 떠났으면 다 꺼진 채로 연다.
+  if (!restoreState() && byName["L_50K_Geology_Map"]) {
     var box = document.querySelector('input[data-layer="L_50K_Geology_Map"]');
     if (box) { box.checked = true; }
     addLayer("L_50K_Geology_Map");

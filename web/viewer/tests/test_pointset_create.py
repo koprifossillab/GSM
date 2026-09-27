@@ -136,3 +136,36 @@ class 점묶음_저장(TestCase):
 
     def test_get_으로_부르면_막는다(self):
         self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
+class Download(TestCase):
+    """점묶음을 GeoJSON 으로 돌려받는다. 한글 이름이 파일명에서 깨지지 않는다."""
+
+    def setUp(self):
+        self.ps = PointSet.objects.create(name="갑천 노두/2026")
+        Point.objects.create(pointset=self.ps, lat=36.35, lon=127.38,
+                             label="갑천1", props={"암상": "충적층"})
+
+    def url(self, extra=""):
+        return f"/GSM/pointsets/{self.ps.id}/geojson/{extra}"
+
+    def test_그냥_부르면_지도가_쓰는_JSON_이다(self):
+        response = self.client.get(self.url())
+        self.assertNotIn("Content-Disposition", response)
+        feature = response.json()["features"][0]
+        self.assertEqual(feature["geometry"]["coordinates"], [127.38, 36.35])
+        self.assertEqual(feature["properties"]["이름표"], "갑천1")
+
+    def test_download_면_파일로_내려준다(self):
+        response = self.client.get(self.url("?download=1"))
+        disposition = response["Content-Disposition"]
+        self.assertTrue(disposition.startswith("attachment;"))
+        self.assertIn(f'filename="pointset-{self.ps.id}.geojson"', disposition)
+        # 빗금은 파일명에 못 쓰므로 _ 로 바꾸고, 한글은 RFC 5987 로 적는다
+        from urllib.parse import quote
+        self.assertIn("filename*=UTF-8''" + quote("갑천 노두_2026.geojson"), disposition)
+        self.assertEqual(response.json()["name"], "갑천 노두/2026")
+
+    def test_한글이_이스케이프되지_않는다(self):
+        body = self.client.get(self.url("?download=1")).content.decode("utf-8")
+        self.assertIn("충적층", body)
