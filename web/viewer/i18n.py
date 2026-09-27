@@ -60,6 +60,9 @@ def t(text, lang: str = "ko", **params) -> str:
     else:
         template = str(text)
     out = EN.get(template, template) if lang == "en" else template
+    if lang == "en":
+        # 자리표에 들어가는 값도 표에 있으면 옮긴다 — 좌표계 이름 같은 것
+        params = {k: EN.get(v, v) if isinstance(v, str) else v for k, v in params.items()}
     return out.format(**params) if params else out
 
 
@@ -303,6 +306,40 @@ EN = {
     "GeoJSON 이 깨져 있다: {err}": "The GeoJSON is broken: {err}",
     "GeoJSON 에 features 가 없다.": "The GeoJSON has no features.",
     "점·선·면을 하나도 찾지 못했다.": "No points, lines or polygons found.",
+    "'{n}' 를 북쪽, '{e}' 를 동쪽으로 읽었다 (측량 관례).":
+        "Read '{n}' as northing and '{e}' as easting (surveying convention).",
+    "'{e}' 를 동쪽, '{n}' 를 북쪽으로 읽었다. 측량 관례(X=북)면 열 이름을 X좌표·Y좌표 로 바꿔 다시 올린다.":
+        "Read '{e}' as easting and '{n}' as northing. If the file uses the surveying convention (X = north), rename the columns to X좌표·Y좌표 and upload again.",
+    "{line}째 줄 — {name} 좌표로 읽지 못해 건너뛰었다": "Row {line} — skipped, not a readable {name} coordinate",
+    "{name} 좌표로 읽지 못했다 — 한반도 밖으로 간다": "Not a readable {name} coordinate — it lands outside Korea",
+    "{name} 좌표로 읽히는 줄이 없다. 좌표계를 다시 고른다.":
+        "No rows read as {name} coordinates. Choose the coordinate system again.",
+    "좌표가 위경도 범위를 벗어난다. TM 좌표면 올리기 전에 좌표계를 고른다.":
+        "Coordinates are outside latitude/longitude range. If they are TM, choose the coordinate system before uploading.",
+    "평면 좌표 열을 찾지 못했다. 열 이름을 {east} / {north} 가운데 하나로 두고 다시 올린다. (읽은 열: {cols})":
+        "No planar coordinate columns found. Name them one of {east} / {north} and upload again. (Columns read: {cols})",
+    # 좌표계 이름 (crs.SYSTEMS)
+    "위경도 (WGS84)": "Lat/lon (WGS84)",
+    "중부원점 (GRS80)": "Korea Central Belt (GRS80)",
+    "서부원점 (GRS80)": "Korea West Belt (GRS80)",
+    "동부원점 (GRS80)": "Korea East Belt (GRS80)",
+    "동해원점 (GRS80)": "Korea East Sea Belt (GRS80)",
+    "UTM-K (GRS80)": "UTM-K (GRS80)",
+    "UTM 52N (WGS84)": "UTM 52N (WGS84)",
+    "옛 중부원점 (Bessel, 보정)": "Old Central Belt (Bessel, modified)",
+    "옛 중부원점 (Bessel)": "Old Central Belt (Bessel)",
+    "좌표계": "Coordinates",
+    "좌표 칸이 받는 좌표계. 평면 좌표계면 팝업에도 그 좌표가 뜬다":
+        "Coordinate system for the search box. For planar systems the popup also shows those coordinates",
+    "{name} — 동 북 두 수, 또는 N 420005 E 232509 · 주소·장소도 된다":
+        "{name} — easting northing, or N 420005 E 232509 · addresses and places work too",
+    "동 {e} · 북 {n}": "E {e} · N {n}",
+    "적은 차례": "as typed",
+    "좌표": "Coordinate",
+    "두 차례 모두 한반도 안이다 — 고른다. 이름을 붙여 적으면(N 420005 E 232509) 곧장 간다.":
+        "Both orders land in Korea — pick one. Label them (N 420005 E 232509) to go straight there.",
+    "동": "E",
+    "북": "N",
     "읽지 못한 것 {n}개를 건너뛰었다 (기하가 없거나 깨졌거나 GeometryCollection)":
         "Skipped {n} unreadable features (no geometry, broken, or GeometryCollection)",
     "모양 하나의 꼭짓점이 {n}개로 너무 많다 (한도 {max}개).":

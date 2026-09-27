@@ -47,8 +47,9 @@ class Coverage(SimpleTestCase):
                              sorted(re.findall(r"\{(\w+)\}", en)), ko)
 
     def test_영어에_한글이_새지_않는다(self):
-        """열 이름 안내(`위도`·`경도`)처럼 한글을 일부러 보이는 것만 빼고."""
-        allowed = ("<code>위도</code>", "<code>경도</code>")
+        """열 이름 안내(`위도`·`경도`·`X좌표`)처럼 사람이 한글 그대로 적어야
+        하는 것만 빼고."""
+        allowed = ("<code>위도</code>", "<code>경도</code>", "X좌표·Y좌표")
         for ko, en in i18n.EN.items():
             stripped = en
             for a in allowed:

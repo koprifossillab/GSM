@@ -1189,3 +1189,17 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .ps-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .ps-text .ps-name { flex: none; }
 .ps-text .ps-count { font-size: 11px; }
+
+/* 좌표계 고르개 */
+.crs-pick { height: 34px; max-width: 190px; padding: 0 8px; font: inherit; font-size: 12px;
+            color: var(--ink-soft); background: var(--panel); border: 1px solid var(--line);
+            border-radius: var(--radius); cursor: pointer; }
+.upload-crs { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; color: var(--ink-soft); }
+.upload-crs select { flex: 1; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12.5px; color: var(--ink);
+                     background: var(--panel-tint); border: 1px solid var(--line); border-radius: var(--radius); }
+.popup-tm { display: flex; gap: 8px; align-items: baseline; width: 100%; margin: 6px 0 0; padding: 4px 2px;
+            font: inherit; font-size: 12px; text-align: left; color: var(--ink-soft); background: none;
+            border: 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
+.popup-tm .k { color: var(--ink-faint); white-space: nowrap; }
+.popup-tm .v { font-family: var(--font-mono); color: var(--ink); }
+.popup-tm.copied .v { color: var(--hi-ink); }

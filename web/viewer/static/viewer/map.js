@@ -1208,6 +1208,29 @@
     });
     body.appendChild(head);
 
+    // 고른 좌표계가 평면이면 그 좌표를 한 줄. 눌러서 복사한다
+    if (crsCode() !== "4326") {
+      var tm = document.createElement("button");
+      tm.type = "button";
+      tm.className = "popup-tm";
+      tm.title = T("눌러서 복사한다");
+      body.appendChild(tm);
+      var crsName = document.getElementById("crs-pick").selectedOptions[0].text;
+      projectedFor(ll[0], ll[1]).then(function (d) {
+        if (!d) { tm.remove(); return; }
+        var value = d.east.toFixed(2) + " " + d.north.toFixed(2);
+        tm.innerHTML = '<span class="k">' + esc(crsName) + "</span>" +
+          '<span class="v">' + esc(T("동")) + " " + esc(d.east.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })) +
+          " · " + esc(T("북")) + " " + esc(d.north.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + "</span>";
+        tm.addEventListener("click", function () {
+          copyText(value).then(function () {
+            tm.classList.add("copied");
+            setTimeout(function () { tm.classList.remove("copied"); }, 900);
+          });
+        });
+      });
+    }
+
     // 주소는 VWorld 열쇠가 있을 때만 묻는다. 바다처럼 주소가 없는 자리면 줄을 두지 않는다
     if (vworldKey) {
       var addr = document.createElement("p");
@@ -1942,9 +1965,13 @@
       var picked = document.querySelector("#search-results li.on");
       if (picked) { picked.click(); return; }
       // **좌표가 먼저다.** 좌표로 읽히면 곧장 가고, 아니면 주소·장소로 찾는다
-      fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q))
+      fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q) + "&crs=" + encodeURIComponent(crsCode()))
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-        .then(function (d) { closeResults(); goTo(d.lat, d.lon); })
+        .then(function (d) {
+          if (d.candidates) { renderOrders(d.candidates); return; }
+          closeResults();
+          goTo(d.lat, d.lon);
+        })
         .catch(function () { searchPlaces(q); });
     });
     input.addEventListener("input", closeResults);
@@ -1972,7 +1999,7 @@
   // 곳이 많아(가정동은 대전에도 인천에도 있다) **곧장 가지 않고 목록을
   // 띄운다.** 사람이 고른다.
 
-  var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소" };
+  var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소", order: "좌표" };
 
   function closeResults() {
     var box = document.getElementById("search-results");
@@ -1995,9 +2022,16 @@
       });
   }
 
-  function renderResults(rows) {
+  function renderResults(rows, lead) {
     var box = document.getElementById("search-results");
+    box.hidden = false;
     box.innerHTML = "";
+    if (lead) {
+      var head = document.createElement("li");
+      head.className = "note";
+      head.textContent = lead;
+      box.appendChild(head);
+    }
     if (!rows.length) {
       box.innerHTML = '<li class="note">' + esc(T("찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다")) + "</li>";
       return;
@@ -2010,17 +2044,78 @@
         (row.sub ? '<span class="sub">' + esc(row.sub) + "</span>" : "");
       li.addEventListener("click", function () {
         closeResults();
-        goTo(row.lat, row.lon, row.kind === "place" ? row.title : row.title.replace(/\s*\(.*\)$/, ""));
+        goTo(row.lat, row.lon, row.kind === "order" ? undefined
+          : row.kind === "place" ? row.title : row.title.replace(/\s*\(.*\)$/, ""));
       });
       li.addEventListener("mouseenter", function () {
         box.querySelectorAll("li").forEach(function (x) { x.classList.toggle("on", x === li); });
       });
       box.appendChild(li);
     });
+    if (lead) return;          // 좌표 차례 고르기는 VWorld 를 타지 않았다
     var note = document.createElement("li");
     note.className = "note src";
     note.textContent = T("주소 검색: VWorld (국토지리정보원)");
     box.appendChild(note);
+  }
+
+  // ── 좌표계 ──────────────────────────────────────────────────────
+  //
+  // 좌표 칸 옆의 고르개. 평면 좌표계(TM 등)를 고르면 좌표 칸이 동·북 두
+  // 수를 받고, 팝업에 그 좌표가 한 줄 더 뜬다. 바꾸는 셈은 서버(`crs.py`)가
+  // 한다 — 옛 측지계 옮기기까지 브라우저에 두면 같은 셈이 두 곳에 산다.
+  // 올리기 칸의 좌표계도 처음에는 이것을 따른다.
+
+  function crsCode() {
+    var pick = document.getElementById("crs-pick");
+    return pick ? pick.value : "4326";
+  }
+
+  function wireCrs() {
+    var pick = document.getElementById("crs-pick");
+    var upload = document.getElementById("upload-crs");
+    var input = document.getElementById("goto-input");
+    var plain = input.placeholder;
+    try {
+      var saved = localStorage.getItem("gsm.crs");
+      if (saved && pick.querySelector('option[value="' + saved + '"]')) pick.value = saved;
+    } catch (e) { /* 사생활 모드 */ }
+    function sync() {
+      upload.value = pick.value;
+      input.placeholder = pick.value === "4326" ? plain
+        : T("{name} — 동 북 두 수, 또는 N 420005 E 232509 · 주소·장소도 된다",
+            { name: pick.options[pick.selectedIndex].text });
+      try { localStorage.setItem("gsm.crs", pick.value); } catch (e) { /* 사생활 모드 */ }
+    }
+    pick.addEventListener("change", sync);
+    sync();
+  }
+
+  var projectMemo = {};
+
+  /** 팝업에 고른 평면 좌표계의 좌표를 한 줄 붙인다. */
+  function projectedFor(lon, lat) {
+    var code = crsCode();
+    if (code === "4326") return Promise.resolve(null);
+    var key = code + ":" + lat.toFixed(6) + "," + lon.toFixed(6);
+    if (!projectMemo[key]) {
+      projectMemo[key] = fetch(BASE + "coords/project/?crs=" + code + "&lat=" + lat + "&lon=" + lon)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+    return projectMemo[key];
+  }
+
+  /** 평면 좌표 두 수가 어느 차례로도 말이 될 때 — 둘을 띄워 고르게 한다. */
+  function renderOrders(rows) {
+    renderResults(rows.map(function (r) {
+      return {
+        kind: "order", lat: r.lat, lon: r.lon,
+        title: formatPair(r.lon, r.lat),
+        sub: T("동 {e} · 북 {n}", { e: r.east.toLocaleString(), n: r.north.toLocaleString() })
+             + (r.order === "en" ? " · " + T("적은 차례") : ""),
+      };
+    }), T("두 차례 모두 한반도 안이다 — 고른다. 이름을 붙여 적으면(N 420005 E 232509) 곧장 간다."));
   }
 
   // 팝업 첫 줄 밑의 주소. 같은 자리를 여러 번 누르므로 브라우저에도 들고 있는다.
@@ -2054,6 +2149,7 @@
       data.append("file", file.files[0]);
       data.append("name", document.getElementById("upload-name").value);
       data.append("color", document.getElementById("upload-color").value);
+      data.append("crs", document.getElementById("upload-crs").value);
 
       msg.className = "msg";
       msg.textContent = T("읽는 중…");
@@ -2141,6 +2237,7 @@
   wireSettings();
   wireTabs();
   wireCoordBar();
+  wireCrs();
   wireUpload();
   wirePopup();
 

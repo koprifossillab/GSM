@@ -135,6 +135,12 @@
         <input type="text" id="upload-name" placeholder="{% t "점묶음 이름 (비우면 파일 이름)" %}">
         <input type="color" id="upload-color" value="#e4572e" title="{% t "점 색" %}">
       </div>
+      <label class="upload-crs">
+        <span>{% t "좌표계" %}</span>
+        <select id="upload-crs" name="crs">
+          {% for code, name in crs_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+        </select>
+      </label>
       <button type="submit" class="btn primary wide">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 16V4m0 0L8 8m4-4 4 4"/><path class="stroke" d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         {% t "올린다" %}
@@ -281,6 +287,9 @@
       <button type="submit">{% t "간다" %}</button>
     </form>
     <button id="dms-toggle" type="button" title="{% t "십진도와 도분초를 오간다" %}">{% t "도분초" %}</button>
+    <select id="crs-pick" class="crs-pick" title="{% t "좌표 칸이 받는 좌표계. 평면 좌표계면 팝업에도 그 좌표가 뜬다" %}">
+      {% for code, name in crs_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+    </select>
   </div>
 </main>
 

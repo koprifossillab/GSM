@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, Shape
 
@@ -115,6 +115,7 @@ def map_view(request):
     return render(request, "viewer/map.html", {
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "crs_options": [(code, i18n.t(spec[0], lang)) for code, spec in crs.SYSTEMS.items()],
         "catalog": json.dumps(_catalog(lang), ensure_ascii=False),
         "pointsets": json.dumps(_pointset_list(), ensure_ascii=False),
         "has_key": kigam.has_key(),
@@ -384,7 +385,9 @@ def pointset_upload(request):
         return JsonResponse({"error": i18n.t(msg("올린 파일이 없다"), lang)}, status=400)
 
     try:
-        points, notes = pointsets.parse(upload.name, upload.read())
+        code = request.POST.get("crs") or "4326"
+        points, notes = pointsets.parse(upload.name, upload.read(),
+                                        crs_code=code if code in crs.SYSTEMS else "4326")
     except pointsets.UploadError as exc:
         return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
 
@@ -605,12 +608,55 @@ def coord_parse(request):
     누른 한 번**뿐이고, 도분초·반구 글자까지 받아내는 까다로운 쪽이라
     파이썬에 두고 시험한다.
     """
-    pair = coords.parse(request.GET.get("q", ""))
-    if pair is None:
-        return JsonResponse({"error": i18n.t(msg("좌표로 읽지 못했다"), i18n.lang_of(request))}, status=400)
-    lat, lon = pair
-    return JsonResponse({"lat": lat, "lon": lon,
+    lang = i18n.lang_of(request)
+    code = request.GET.get("crs", "4326")
+    swapped = False
+    if crs.is_planar(code):
+        q = request.GET.get("q", "")
+        not_read = JsonResponse({"error": i18n.t(msg("{name} 좌표로 읽지 못했다 — 한반도 밖으로 간다",
+                                                     name=crs.SYSTEMS[code][0]), lang)}, status=400)
+        labelled = crs.labelled_pair(q)
+        if labelled:
+            # 동·북 이름을 붙여 적었으면 그대로 읽는다
+            lat, lon = crs.to_latlon(code, *labelled)
+            if not crs.in_korea(lat, lon):
+                return not_read
+        else:
+            nums = crs.two_numbers(q)
+            found = crs.candidates(code, *nums) if nums else []
+            if not found:
+                return not_read
+            if len(found) == 2:
+                # **두 차례가 다 말이 되면 고르지 않는다.** 중부원점에서는 동·북을
+                # 뒤바꿔도 둘 다 한반도 안에 떨어지는 일이 있다 — 사람이 고른다
+                return JsonResponse({"candidates": [
+                    {"lat": la, "lon": lo, "order": order,
+                     "east": nums[0] if order == "en" else nums[1],
+                     "north": nums[1] if order == "en" else nums[0]}
+                    for la, lo, order in found]})
+            lat, lon, order = found[0]
+            swapped = order == "ne"
+    else:
+        pair = coords.parse(request.GET.get("q", ""))
+        if pair is None:
+            return JsonResponse({"error": i18n.t(msg("좌표로 읽지 못했다"), lang)}, status=400)
+        lat, lon = pair
+    return JsonResponse({"lat": lat, "lon": lon, "swapped": swapped,
                          "dms": coords.format_pair(lon, lat, dms=True)})
+
+
+@require_GET
+def coord_project(request):
+    """위경도 → 고른 평면 좌표계. 팝업의 한 줄이 부른다."""
+    code = request.GET.get("crs", "")
+    try:
+        lat, lon = float(request.GET["lat"]), float(request.GET["lon"])
+    except (KeyError, TypeError, ValueError):
+        return JsonResponse({"error": "lat·lon"}, status=400)
+    if not crs.is_planar(code):
+        return JsonResponse({"error": "crs"}, status=400)
+    east, north = crs.from_latlon(code, lat, lon)
+    return JsonResponse({"crs": code, "east": round(east, 2), "north": round(north, 2)})
 
 
 def _int(value, default):
