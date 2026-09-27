@@ -37,18 +37,71 @@
   // (devlog 016). 한국이 기본이고, 다른 지역은 "추가 지역" 에서 더한다.
   // 레이어의 상류도 지역을 따라 갈린다 — 한국은 KIGAM, 그린란드는 GEUS.
   // VWorld 배경·주소 찾기·한국 좌표계는 한국에서만 뜻이 있어 한국에서만 보인다.
+  //
+  // **화면의 투영도 지역마다 다르다** (devlog 017). 한국은 웹 메르카토르(3857)
+  // 그대로다. 극지는 메르카토르에서 잘리고 부풀어서 평사도법으로 본다 —
+  // 그린란드는 NSIDC 북극 평사도법(3413), 남극은 남극 평사도법(3031).
+  // `home` 은 처음 여는 범위다(그 투영의 미터). 없으면 `center`·`zoom` 을 쓴다.
+  // `forgetOldView` — 투영이 바뀌기 전에 기억한 자리를 버린다. 남극은 "준비
+  // 중" 이던 때 세종기지 둘레를 기억해 두었는데, 이제는 대륙 전체로 연다.
   var REGIONS = {
-    korea: { title: "한국", center: [127.8, 36.2], zoom: 7, vworld: true,
+    korea: { title: "한국", proj: "EPSG:3857", center: [127.8, 36.2], zoom: 7, vworld: true,
              base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "L_50K_Geology_Map",
                     "l_50k_geology_frame_latest", "G_tectonic"],
              first: "L_50K_Geology_Map" },
-    greenland: { title: "그린란드", center: [-42.0, 72.0], zoom: 4, vworld: false,
+    greenland: { title: "그린란드", proj: "EPSG:3413", center: [-42.0, 72.0], zoom: 3, vworld: false,
+                 home: [-750000, -3450000, 950000, -550000],
+                 basemap: "eox_s2",
                  base: ["grl_g500_lithostr_search", "lithologies"],
                  first: "grl_g500_lithostr_search" },
-    antarctica: { title: "남극", center: [-58.78, -62.22], zoom: 10, vworld: false,
+    antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
+                  home: [-2800000, -2400000, 2900000, 2500000],
+                  basemap: "gibs_bm_s", forgetOldView: true,
                   base: [], first: null, pending: true },
   };
   var region = "korea";
+
+  //: 남극 GeoMAP 타일의 격자. **우리 서버(`geomap/`)가 이 격자로 굽는다** —
+  //  한 글자라도 다르면 타일이 어긋난다. 원점은 왼쪽 위, 256 픽셀, 줌 0 의
+  //  해상도가 폭/256 이고 줌마다 반이다. 남극 화면(3031)의 투영 범위도 이것으로
+  //  잡아, 화면의 줌 단계가 GeoMAP 타일의 줌과 같게 했다.
+  var GEOMAP_GRID = {
+    extent: [-3333134.0276, -3333134.0276, 3333134.0276, 3333134.0276],
+    tileSize: 256,
+    maxZoom: 16,
+  };
+  //: GeoMAP 타일 주소. `{layer}` 는 카탈로그의 레이어명이다. 굽는 쪽과 맞춘다
+  var GEOMAP_TILE_URL = "geomap/{layer}/{z}/{x}/{y}.png";
+
+  // 평사도법 둘을 OpenLayers 에 알린다. proj4 가 없으면(파일을 못 받았으면)
+  // 극지도 메르카토르로 돈다 — 잘려도 빈 화면보다 낫다 (`regionProj`).
+  if (window.proj4 && ol.proj.proj4) {
+    proj4.defs("EPSG:3413", "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
+    proj4.defs("EPSG:3031", "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
+    ol.proj.proj4.register(proj4);
+    // 3413 의 범위는 NASA GIBS 의 극지 격자와 같게 — 배경의 줌이 화면과 맞는다
+    ol.proj.get("EPSG:3413").setExtent([-4194304, -4194304, 4194304, 4194304]);
+    ol.proj.get("EPSG:3031").setExtent(GEOMAP_GRID.extent);
+  }
+
+  //: 남극에 레이어군이 들어오면(GeoMAP) "준비 중" 을 뗀다.
+  REGIONS.antarctica.pending = !catalog.some(function (g) {
+    return g.region === "antarctica" && g.layers.length;
+  });
+
+  /** 지금 지역의 화면 투영. 등록되지 않았으면 메르카토르. */
+  function regionProj(key) {
+    var code = REGIONS[key || region].proj || "EPSG:3857";
+    return ol.proj.get(code) ? code : "EPSG:3857";
+  }
+
+  function viewProj() { return map.getView().getProjection(); }
+  function isMercator() { return viewProj().getCode() === "EPSG:3857"; }
+
+  /** 지도 좌표 <-> 위경도. `ol.proj.toLonLat` 은 투영을 안 주면 3857 로 여긴다 —
+   *  극지 화면에서 그대로 부르면 엉뚱한 곳이 나온다. 그래서 늘 이 둘을 거친다. */
+  function toLL(coordinate) { return ol.proj.toLonLat(coordinate, viewProj()); }
+  function fromLL(lonlat) { return ol.proj.fromLonLat(lonlat, viewProj()); }
   var addedRegions = ["korea"];
 
   function stateKey(name) {
@@ -92,10 +145,60 @@
       url: BASE + "wms",
       params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true },
       transition: 0,
+      // **WMS 는 언제나 3857 로 받는다.** 극지 화면이면 OpenLayers 가 옮겨
+      // 그린다. GEUS 의 50만 지질도가 3413 을 안 주고(2026-09-27), 한 상류의
+      // 타일을 두 격자로 받으면 캐시가 둘로 갈린다 (017)
+      projection: "EPSG:3857",
       // 상류 부하를 줄인다. 타일 하나가 작을수록 요청이 는다.
       tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
     });
   }
+
+  /** WMS 레이어의 속성 주소. 서버의 /featureinfo/ 로 돌린다 — 인증키는 서버가 붙인다.
+   *  화면과 타일의 투영이 달라도 OpenLayers 가 누른 자리를 타일 투영으로 옮겨 준다. */
+  function wmsInfoUrl(source, coordinate, view) {
+    var url = source.getFeatureInfoUrl(
+      coordinate, view.getResolution(), view.getProjection(),
+      { INFO_FORMAT: "application/json", FEATURE_COUNT: 5 });
+    return url ? url.replace(BASE + "wms", BASE + "featureinfo/") : null;
+  }
+
+  /** 남극 GeoMAP — 우리 서버가 미리 구운 3031 타일 (`GEOMAP_GRID`). */
+  function geomapSource(name) {
+    var resolutions = [];
+    var width = GEOMAP_GRID.extent[2] - GEOMAP_GRID.extent[0];
+    for (var z = 0; z <= GEOMAP_GRID.maxZoom; z++) {
+      resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
+    }
+    return new ol.source.XYZ({
+      url: BASE + GEOMAP_TILE_URL.replace("{layer}", encodeURIComponent(name)),
+      projection: "EPSG:3031",
+      tileGrid: new ol.tilegrid.TileGrid({
+        extent: GEOMAP_GRID.extent,
+        origin: [GEOMAP_GRID.extent[0], GEOMAP_GRID.extent[3]],
+        resolutions: resolutions,
+        tileSize: GEOMAP_GRID.tileSize,
+      }),
+      transition: 0,
+      attributions: 'GeoMAP © <a href="https://doi.org/10.1594/PANGAEA.951482" target="_blank" rel="noopener">SCAR / GNS Science</a> (CC BY 4.0)',
+    });
+  }
+
+  //: 레이어를 만드는 손 — **상류마다 하나다.** 상류가 주는 꼴이 달라서다
+  //  (KIGAM·GEUS 는 WMS, GeoMAP 은 우리가 구운 타일). `info` 가 없으면 그
+  //  레이어는 눌러도 속성을 묻지 않는다. 상류가 새로 오면 여기 한 줄을 더한다.
+  var LAYER_KINDS = {
+    kigam: { source: wmsSource, info: wmsInfoUrl },
+    geus: { source: wmsSource, info: wmsInfoUrl },
+    geomap: { source: geomapSource, info: null },
+  };
+
+  function layerKind(name) {
+    var row = byName[name];
+    return LAYER_KINDS[(row && row.upstream) || "kigam"] || LAYER_KINDS.kigam;
+  }
+
+  function layerSource(name) { return layerKind(name).source(name); }
 
   /** 배경지도.
    *
@@ -182,6 +285,110 @@
       },
     };
   }
+  // ── 극지 배경 (017) ──
+  //
+  // VWorld 처럼 **브라우저가 곧장 부른다.** 셋 다 열쇠가 없고 CORS 를 열어
+  // 두었다(2026-09-27). `regions` 에 적은 지역에서만 고르개에 오른다.
+  //
+  // - **제 투영으로 주는 것을 먼저 쓴다.** NASA GIBS 는 3413·3031 WMTS 를,
+  //   PGC 는 REMA·ArcticDEM 을 3031·3413 그대로 준다
+  // - EOX 는 3857 뿐이다(WMS 도 3413·3031 을 400 으로 돌려보낸다). 그린란드는
+  //   OpenLayers 가 옮겨 그리면 되지만, 남극은 3857 이 남위 85° 에서 끊겨
+  //   극이 비므로 남극에는 두지 않는다
+  var EOX_S2 = 'Sentinel-2 cloudless by <a href="https://s2maps.eu" target="_blank" rel="noopener">EOX IT Services GmbH</a> (contains modified Copernicus Sentinel data 2023, CC BY-NC-SA 4.0)';
+  var EOX_TERRAIN = 'Terrain Light © <a href="https://maps.eox.at" target="_blank" rel="noopener">EOX IT Services GmbH</a>, data © OpenStreetMap contributors and others (CC BY-NC-SA 4.0)';
+  var GIBS = 'Blue Marble © <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA EOSDIS GIBS</a>';
+  var PGC_REMA = 'REMA © <a href="https://www.pgc.umn.edu/data/rema/" target="_blank" rel="noopener">Polar Geospatial Center</a>, Byrd Polar (CC BY 4.0)';
+  var PGC_ARCTICDEM = 'ArcticDEM © <a href="https://www.pgc.umn.edu/data/arcticdem/" target="_blank" rel="noopener">Polar Geospatial Center</a> (CC BY 4.0)';
+
+  BASEMAPS.eox_s2 = {
+    title: T("Sentinel-2 위성 (EOX)"),
+    note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
+    regions: ["greenland"],
+    make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
+  };
+  BASEMAPS.eox_terrain = {
+    title: T("지형 음영 (EOX)"),
+    note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
+    regions: ["greenland"],
+    make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
+  };
+  BASEMAPS.arcticdem = {
+    title: T("ArcticDEM 음영"),
+    note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
+    regions: ["greenland"], needs: "EPSG:3413",
+    make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
+  };
+  BASEMAPS.gibs_bm_n = {
+    title: T("Blue Marble 위성 (NASA)"),
+    note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
+    regions: ["greenland"], needs: "EPSG:3413",
+    make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
+  };
+  BASEMAPS.gibs_bm_s = {
+    title: T("Blue Marble 위성 (NASA)"),
+    note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return gibsLayer("3031", "BlueMarble_ShadedRelief_Bathymetry", 4); },
+  };
+  BASEMAPS.rema = {
+    title: T("REMA 음영"),
+    note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA); },
+  };
+
+  /** EOX 의 3857 타일. 극지 화면이면 OpenLayers 가 옮겨 그린다. */
+  function eoxLayer(name, maxZoom, attribution) {
+    return new ol.layer.Tile({
+      opacity: 0.9,
+      source: new ol.source.XYZ({
+        url: "https://tiles.maps.eox.at/wmts/1.0.0/" + name + "/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
+        crossOrigin: "anonymous",
+        maxZoom: maxZoom,
+        attributions: attribution,
+      }),
+    });
+  }
+
+  /** NASA GIBS 극지 WMTS. 격자는 3413·3031 이 같다 — 원점 (-4194304, 4194304),
+   *  512 픽셀, 줌 0 이 8192 m. `500m` 격자는 줌 4 까지다. */
+  function gibsLayer(epsg, name, maxZoom) {
+    var resolutions = [];
+    for (var z = 0; z <= maxZoom; z++) resolutions.push(8192 / Math.pow(2, z));
+    return new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://gibs.earthdata.nasa.gov/wmts/epsg" + epsg + "/best/" + name + "/default/500m/{z}/{y}/{x}.jpeg",
+        projection: "EPSG:" + epsg,
+        tileGrid: new ol.tilegrid.TileGrid({
+          extent: [-4194304, -4194304, 4194304, 4194304],
+          origin: [-4194304, 4194304],
+          resolutions: resolutions,
+          tileSize: 512,
+        }),
+        crossOrigin: "anonymous",
+        attributions: GIBS,
+      }),
+    });
+  }
+
+  /** PGC 의 표고 ImageServer 에서 음영을 그려 받는다 (`Hillshade Gray`).
+   *  미리 구운 타일이 아니라 부를 때마다 PGC 가 그린다 — 한 장에 1~2 초.
+   *  그래서 타일을 512 로 키워 부르는 수를 줄인다. */
+  function pgcHillshade(service, code, attribution) {
+    return new ol.layer.Tile({
+      opacity: 0.85,
+      source: new ol.source.TileArcGISRest({
+        url: "https://di-pgc.img.arcgis.com/arcgis/rest/services/" + service + "/ImageServer",
+        params: { renderingRule: JSON.stringify({ rasterFunction: "Hillshade Gray" }), FORMAT: "jpgpng" },
+        projection: code,
+        tileGrid: ol.tilegrid.createXYZ({ extent: ol.proj.get(code).getExtent(), tileSize: 512, maxZoom: 16 }),
+        crossOrigin: "anonymous",
+        attributions: attribution,
+      }),
+    });
+  }
+
   var baseLayer = null;
 
   /** VWorld 의 한 장짜리 배경(`white`·`midnight`). */
@@ -209,7 +416,8 @@
       baseLayer.setZIndex(0);
       map.getLayers().insertAt(0, baseLayer);
     }
-    try { localStorage.setItem("gsm.basemap", key); } catch (e) { /* 사생활 모드 */ }
+    // 배경도 지역마다 따로 기억한다 — 한국의 VWorld 는 그린란드에 없다
+    try { localStorage.setItem(stateKey("gsm.basemap"), key); } catch (e) { /* 사생활 모드 */ }
   }
 
   function labelsOn() {
@@ -229,12 +437,16 @@
 
   function savedBasemap() {
     try {
-      var key = localStorage.getItem("gsm.basemap");
+      var key = localStorage.getItem(stateKey("gsm.basemap"));
       if (key && BASEMAPS[key]) return key;
     } catch (e) { /* 사생활 모드 */ }
+    // 극지는 지역이 고른 배경으로 시작한다. 상류 지질도가 한국처럼 지명·
+    // 해안선을 그려 주지 않아, 바탕이 없으면 어디를 보는지 모른다
+    var own = REGIONS[region].basemap;
+    if (own && BASEMAPS[own]) return own;
     // 열쇠가 있으면 위성+지명으로 시작한다. 지질을 지형·시설과 견주어
     // 보는 것이 예사라 빈 바탕보다 낫다.
-    if (BASEMAPS.vworld_hybrid) return "vworld_hybrid";
+    if (BASEMAPS.vworld_hybrid && REGIONS[region].vworld) return "vworld_hybrid";
     return "none";
   }
 
@@ -258,13 +470,7 @@
     map = new ol.Map({
       target: "map",
       layers: [pointLayerGroup, rangeLayer, measureLayer, tempLayer, foundLayer],
-      view: new ol.View({
-        // 남한 전체가 들어오는 자리
-        center: ol.proj.fromLonLat([127.8, 36.2]),
-        zoom: 7,
-        minZoom: 5,
-        maxZoom: 19,
-      }),
+      view: makeView(regionProj()),
       // 축척 막대는 제 자리(왼쪽 아래)에 두면 좌표 막대가 덮는다.
       // 그래서 좌표 막대 바로 위의 칸에 붙인다.
       controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } })
@@ -287,6 +493,66 @@
     map.on("moveend", saveView);
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
+  }
+
+  /** 투영 하나의 보기. **OpenLayers 는 보기의 투영을 바꾸지 못한다** — 지역을
+   *  바꿔 투영이 달라지면 보기를 새로 만든다 (`setProjection`). */
+  function makeView(code) {
+    if (code === "EPSG:3857") {
+      return new ol.View({
+        // 남한 전체가 들어오는 자리
+        center: ol.proj.fromLonLat([127.8, 36.2]),
+        zoom: 7,
+        minZoom: 5,
+        maxZoom: 19,
+      });
+    }
+    // 극지. 투영 범위 밖으로 끌려 나가지 않게 가둔다. 줌 0 이 투영 범위
+    // 한 장이라, 남극은 화면의 줌이 GeoMAP 타일의 줌과 같다
+    return new ol.View({
+      projection: code,
+      center: [0, 0],
+      zoom: 2,
+      minZoom: 0,
+      maxZoom: 17,
+      extent: ol.proj.get(code).getExtent(),
+    });
+  }
+
+  /** 처음 여는 자리로 간다 — 극지는 범위(`home`)로, 한국은 가운데·줌으로. */
+  function goHome() {
+    var spec = REGIONS[region];
+    var view = map.getView();
+    if (spec.home && !isMercator()) {
+      // 아래 여백은 좌표 막대가 덮는 만큼이다
+      view.fit(spec.home, { size: map.getSize() || [1200, 800], padding: [8, 8, 56, 8] });
+      return;
+    }
+    view.setCenter(fromLL(spec.center));
+    view.setZoom(spec.zoom);
+  }
+
+  /** 화면의 투영을 바꾼다. 보기를 새로 만들고, 화면에 얹힌 벡터(찍은 점·잰 선
+   *  ·범위·점묶음)를 새 투영으로 옮긴다. 점묶음은 새 투영으로 다시 읽는다 —
+   *  서버의 GeoJSON 은 위경도라 읽을 때 투영을 정한다. */
+  function setProjection(code) {
+    var from = viewProj();
+    if (from.getCode() === code) return;
+    map.setView(makeView(code));
+    // **처음 그린 것의 위경도에서 옮긴다.** 투영에서 투영으로 곧장 옮기면
+    // 남극에서 찍은 점이 한국(3857)을 거쳐 올 때 남위 85° 에서 잘려 돌아온다
+    [tempSource, measureSource, rangeSource, foundSource].forEach(function (source) {
+      source.getFeatures().forEach(function (f) {
+        var ll = f.get("_ll") || f.getGeometry().clone().transform(from, "EPSG:4326");
+        f.set("_ll", ll);
+        f.setGeometry(ll.clone().transform("EPSG:4326", code));
+      });
+    });
+    pointLayerGroup.getLayers().clear();
+    pointLayers = {};
+    renderPointSets();
+    // 나란히 보기의 오른쪽 지도는 같은 보기를 나눠 쓴다
+    if (map2) map2.setView(map.getView());
   }
 
   /** 켠 레이어를 화면 순서에 맞춰 다시 쌓는다.
@@ -328,11 +594,13 @@
     try { localStorage.setItem(stateKey("gsm.layers"), JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
   }
 
+  /** 보던 자리는 **위경도와 줌, 그리고 그 줌을 잰 투영**으로 둔다. 줌은
+   *  투영마다 뜻이 달라서, 투영이 바뀌면 땅 위의 픽셀 크기로 옮긴다 (`restoreState`). */
   function saveView() {
     var view = map.getView();
-    var center = ol.proj.toLonLat(view.getCenter());
+    var center = toLL(view.getCenter());
     var state = { lon: +center[0].toFixed(5), lat: +center[1].toFixed(5),
-                  zoom: +view.getZoom().toFixed(2) };
+                  zoom: +view.getZoom().toFixed(2), proj: view.getProjection().getCode() };
     try { localStorage.setItem(stateKey("gsm.view"), JSON.stringify(state)); } catch (e) { /* 사생활 모드 */ }
   }
 
@@ -343,9 +611,21 @@
   /** 기억한 것이 있으면 되살리고 true. 처음 온 사람이면 false. */
   function restoreState() {
     var view = readJson(stateKey("gsm.view"));
+    var code = viewProj().getCode();
+    // 투영을 적지 않은 것은 이 판(017) 전에 메르카토르로 기억한 것이다
+    var savedProj = view && view.proj || "EPSG:3857";
+    if (view && savedProj !== code && !view.proj && REGIONS[region].forgetOldView) {
+      // 처음 온 것처럼 연다 — 기억을 지워야 대표 레이어도 켜진다
+      try {
+        localStorage.removeItem(stateKey("gsm.view"));
+        localStorage.removeItem(stateKey("gsm.layers"));
+      } catch (e) { /* 사생활 모드 */ }
+      return false;
+    }
     if (view && isFinite(view.lon) && isFinite(view.lat) && isFinite(view.zoom)) {
-      map.getView().setCenter(ol.proj.fromLonLat([view.lon, view.lat]));
-      map.getView().setZoom(view.zoom);
+      map.getView().setCenter(fromLL([view.lon, view.lat]));
+      if (savedProj === code) map.getView().setZoom(view.zoom);
+      else map.getView().setResolution(carryZoom(view, savedProj));
     }
     var rows = readJson(stateKey("gsm.layers"));
     if (!Array.isArray(rows)) return false;
@@ -368,6 +648,17 @@
     return true;
   }
 
+  /** 다른 투영에서 기억한 줌을 지금 투영의 해상도로. 기억한 자리에서 한 픽셀이
+   *  땅 위의 몇 m 였는지를 재고, 지금 투영에서 같은 m 가 되게 한다. */
+  function carryZoom(view, savedProj) {
+    var old = ol.proj.get(savedProj) || ol.proj.get("EPSG:3857");
+    var oldExtent = old.getExtent();
+    var oldRes = ol.extent.getWidth(oldExtent) / 256 / Math.pow(2, view.zoom);
+    var ground = ol.proj.getPointResolution(old, oldRes, ol.proj.fromLonLat([view.lon, view.lat], old));
+    var here = map.getView().getCenter();
+    return ground / ol.proj.getPointResolution(viewProj(), 1, here);
+  }
+
   function addLayer(name) {
     if (active.some(function (e) { return e.name === name; })) return;
     var row = byName[name];
@@ -377,7 +668,7 @@
       title: row.title,
       opacity: DEFAULT_OPACITY,
       legendOpen: false,
-      layer: new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY }),
+      layer: new ol.layer.Tile({ source: layerSource(name), opacity: DEFAULT_OPACITY }),
     });
     restack();
   }
@@ -510,9 +801,13 @@
 
     var BASE_LAYERS = REGIONS[region].base;
     var base = BASE_LAYERS.filter(function (name) { return byName[name]; });
-    var baseBox = folder("group base", T("기본 지질도"), base.length, true);
-    base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
-    host.appendChild(baseBox);
+    // 기본으로 펼쳐 둘 것을 정하지 않은 지역(남극)은 기본 칸을 두지 않고
+    // 아래의 "추가 지질도" 를 펼친다
+    if (base.length) {
+      var baseBox = folder("group base", T("기본 지질도"), base.length, true);
+      base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
+      host.appendChild(baseBox);
+    }
 
     var rest = [];
     var restCount = 0;
@@ -524,7 +819,7 @@
     });
     if (!restCount) return;
 
-    var more = folder("group more", T("추가 지질도"), restCount, false);
+    var more = folder("group more", T("추가 지질도"), restCount, !base.length);
     rest.forEach(function (group) {
       var details = folder("group", group.name, group.layers.length, false);
       group.layers.forEach(function (layer) { details.appendChild(layerRow(layer)); });
@@ -610,7 +905,8 @@
   function fitLayer(name) {
     var bbox = byName[name] && byName[name].bbox;
     if (!bbox) return;
-    var extent = ol.proj.transformExtent(bbox, "EPSG:4326", "EPSG:3857");
+    // 극지 화면에서는 위경도 네모가 부채꼴이 된다. 가장자리를 촘촘히 짚어 옮긴다
+    var extent = ol.proj.transformExtent(bbox, "EPSG:4326", viewProj(), 32);
     map.getView().fit(extent, { padding: [40, 40, 60, 40], duration: 300 });
   }
 
@@ -705,14 +1001,14 @@
 
     foundSource.clear();
     foundSource.addFeature(new ol.Feature({
-      geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+      geometry: new ol.geom.Point(fromLL([lon, lat])),
       label: label || formatPair(lon, lat),
     }));
 
     map.getView().fit(extent, { duration: 450, callback: function () {
       // 화면 한복판에 정확히 놓는다. fit 은 범위를 맞출 뿐이라
       // 가장자리에서 한두 픽셀 어긋나는 일이 있다.
-      map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+      map.getView().setCenter(fromLL([lon, lat]));
     } });
   }
 
@@ -834,10 +1130,15 @@
   }
 
   /** 범위 하나의 수치. 넓이는 구면으로 잰다 — 3857 의 네모 넓이는 위도에
-   *  따라 부풀어서, 우리나라에서는 1.5 배쯤 크게 나온다. */
+   *  따라 부풀어서, 우리나라에서는 1.5 배쯤 크게 나온다.
+   *
+   *  **극지 화면의 네모는 위경도 네모가 아니다.** 위가 북쪽이 아니어서
+   *  꼭짓점을 동서남북으로 부를 수 없다 — 화면의 네 귀(왼쪽 위 …)로 부르고,
+   *  꼭짓점과 가운데를 하나씩 옮긴다. */
   function rangeFacts(extent) {
-    var sw = ol.proj.toLonLat([extent[0], extent[1]]);
-    var ne = ol.proj.toLonLat([extent[2], extent[3]]);
+    if (!isMercator()) return polarRangeFacts(extent);
+    var sw = toLL([extent[0], extent[1]]);
+    var ne = toLL([extent[2], extent[3]]);
     var w = sw[0], s = sw[1], e = ne[0], n = ne[1];
     var polygon = ol.geom.Polygon.fromExtent(extent);
     var opts = { projection: map.getView().getProjection() };
@@ -851,12 +1152,27 @@
     };
   }
 
+  function polarRangeFacts(extent) {
+    var polygon = ol.geom.Polygon.fromExtent(extent);
+    var midY = (extent[1] + extent[3]) / 2;
+    var nw = toLL([extent[0], extent[3]]), ne = toLL([extent[2], extent[3]]);
+    var se = toLL([extent[2], extent[1]]), sw = toLL([extent[0], extent[1]]);
+    return {
+      screen: true,
+      nw: nw, ne: ne, se: se, sw: sw,
+      center: toLL(ol.extent.getCenter(extent)),
+      area: ol.sphere.getArea(polygon, { projection: viewProj() }),
+      width: ol.sphere.getDistance(toLL([extent[0], midY]), toLL([extent[2], midY])),
+      height: ol.sphere.getDistance(sw, nw),
+    };
+  }
+
   function rangeRows(f) {
     var rows = {};
-    rows[T("북서")] = formatPair(f.nw[0], f.nw[1]);
-    rows[T("북동")] = formatPair(f.ne[0], f.ne[1]);
-    rows[T("남동")] = formatPair(f.se[0], f.se[1]);
-    rows[T("남서")] = formatPair(f.sw[0], f.sw[1]);
+    rows[f.screen ? T("왼쪽 위") : T("북서")] = formatPair(f.nw[0], f.nw[1]);
+    rows[f.screen ? T("오른쪽 위") : T("북동")] = formatPair(f.ne[0], f.ne[1]);
+    rows[f.screen ? T("오른쪽 아래") : T("남동")] = formatPair(f.se[0], f.se[1]);
+    rows[f.screen ? T("왼쪽 아래") : T("남서")] = formatPair(f.sw[0], f.sw[1]);
     rows[T("중앙")] = formatPair(f.center[0], f.center[1]);
     rows[T("넓이")] = asArea(f.area);
     rows[T("가로 × 세로")] = asLength(f.width) + " × " + asLength(f.height);
@@ -888,7 +1204,7 @@
     updateToolOut();
     // 팝업은 위경도의 한가운데에 띄운다 — 표의 "중앙" 과 첫 줄 위경도가 같아야 한다.
     // 지도 좌표(3857)의 한가운데는 위도가 몇 백만 분의 1 도 어긋난다
-    showPopup(ol.proj.fromLonLat(facts.center),
+    showPopup(fromLL(facts.center),
               [{ title: T("범위 {n}", { n: feature.get("no") }), props: rangeRows(facts) }], "");
   }
 
@@ -920,7 +1236,7 @@
   }
 
   function addTempPoint(coordinate) {
-    var ll = ol.proj.toLonLat(coordinate);
+    var ll = toLL(coordinate);
     tempSeq += 1;
     var feature = new ol.Feature({
       geometry: new ol.geom.Point(coordinate),
@@ -1017,7 +1333,7 @@
    *  오는데, 그때 파일로 내보냈다 다시 올리게 하면 아무도 안 한다.
    *  있는 그대로 점묶음이 되게 했다.
    */
-  /** 지도 좌표(3857)의 기하를 GeoJSON(4326)으로. */
+  /** 지도 좌표(화면 투영)의 기하를 GeoJSON(4326)으로. */
   function toGeoJson(geometry) {
     var g = geometry.clone().transform(map.getView().getProjection(), "EPSG:4326");
     return { type: g.getType(), coordinates: g.getCoordinates() };
@@ -1176,12 +1492,10 @@
     var results = new Array(queryable.length);
 
     queryable.forEach(function (entry, index) {
-      var url = entry.layer.getSource().getFeatureInfoUrl(
-        evt.coordinate, view.getResolution(), view.getProjection(),
-        { INFO_FORMAT: "application/json", FEATURE_COUNT: 5 });
+      // 속성 주소는 레이어의 상류가 안다 (`LAYER_KINDS`)
+      var info = layerKind(entry.name).info;
+      var url = info && info(entry.layer.getSource(), evt.coordinate, view);
       if (!url) { pending -= 1; return; }
-      // 서버의 /featureinfo/ 로 돌린다 — 인증키는 서버가 붙인다
-      url = url.replace(BASE + "wms", BASE + "featureinfo/");
 
       fetch(url)
         .then(function (r) { return r.json(); })
@@ -1207,7 +1521,7 @@
 
     // **첫 줄은 언제나 누른 자리의 위경도다.** 속성이 무엇이 나오든,
     // 무엇도 안 나오든 "여기가 어디인가" 는 늘 답이 되어야 한다.
-    var ll = ol.proj.toLonLat(coordinate);
+    var ll = toLL(coordinate);
     var head = document.createElement("button");
     head.type = "button";
     head.className = "popup-coord";
@@ -1408,17 +1722,19 @@
     var w = size[0], h = size[1];
     var bar = document.getElementById("coordbar").offsetHeight || 0;
     var bottom = h - bar;
-    function at(px, py) { return ol.proj.toLonLat(map.getCoordinateFromPixel([px, py])); }
-    var n = at(w / 2, 0)[1];
-    var s = at(w / 2, bottom)[1];
-    var west = at(0, bottom / 2)[0];
-    var east = at(w, bottom / 2)[0];
+    function at(px, py) { return toLL(map.getCoordinateFromPixel([px, py])); }
     function lat(v) { return useDms ? dd2dms(v, true) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "N" : "S"); }
     function lon(v) { return useDms ? dd2dms(v, false) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "E" : "W"); }
-    document.getElementById("edge-n").textContent = lat(n);
-    document.getElementById("edge-s").textContent = lat(s);
-    document.getElementById("edge-w").textContent = lon(west);
-    document.getElementById("edge-e").textContent = lon(east);
+    var top = at(w / 2, 0), down = at(w / 2, bottom);
+    var left = at(0, bottom / 2), right = at(w, bottom / 2);
+    // 극지 화면은 위가 북쪽이 아니라 가장자리마다 위경도가 둘 다 바뀐다 —
+    // 네 가장자리 한가운데의 위경도를 통째로 적는다
+    var both = !isMercator();
+    function pair(p) { return lat(p[1]) + " " + lon(p[0]); }
+    document.getElementById("edge-n").textContent = both ? pair(top) : lat(top[1]);
+    document.getElementById("edge-s").textContent = both ? pair(down) : lat(down[1]);
+    document.getElementById("edge-w").textContent = both ? pair(left) : lon(left[0]);
+    document.getElementById("edge-e").textContent = both ? pair(right) : lon(right[0]);
   }
 
   // ── 점묶음 ──────────────────────────────────────────────────────
@@ -1484,7 +1800,9 @@
     }
     var source = new ol.source.Vector({
       url: BASE + "pointsets/" + ps.id + "/geojson/",
-      format: new ol.format.GeoJSON({ featureProjection: "EPSG:3857" }),
+      // 서버는 위경도로 준다. 읽을 때 화면 투영으로 옮긴다 — 투영이 바뀌면
+      // 점묶음을 다시 읽는다 (`setProjection`)
+      format: new ol.format.GeoJSON({ featureProjection: viewProj() }),
     });
     source.on("featuresloadend", function (e) {
       e.features.forEach(function (f) { f.set("_점묶음", ps.name); });
@@ -1659,13 +1977,13 @@
     active.slice().forEach(function (e) { map.removeLayer(e.layer); });
     active = [];
     region = next;
+    setProjection(regionProj());
     applyRegion();
     saveRegions();
     renderRegions();
     renderCatalog();
     if (!restoreState()) {
-      map.getView().setCenter(ol.proj.fromLonLat(REGIONS[region].center));
-      map.getView().setZoom(REGIONS[region].zoom);
+      goHome();
       openFirstLayer();
     }
     restack();
@@ -1678,8 +1996,9 @@
     var spec = REGIONS[region];
     fillBasemaps();
     var select = document.getElementById("basemap");
-    if (!select.querySelector('option[value="' + select.value + '"]') || !select.value) select.value = "none";
-    if (spec.vworld) { var saved = savedBasemap(); if (select.querySelector('option[value="' + saved + '"]')) select.value = saved; }
+    // 배경은 지역마다 기억한다. 고르개에 없는 것이면(열쇠가 빠졌다) 없음으로
+    var saved = savedBasemap();
+    select.value = select.querySelector('option[value="' + saved + '"]') ? saved : "none";
     setBasemap(select.value);
     // 지명 칸은 지명을 끌 수 있는 배경(위성)에서만 보인다
     var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
@@ -1692,7 +2011,9 @@
 
   /** 처음 온 지역이면 대표 레이어 하나를 켜 둔다. */
   function openFirstLayer() {
-    var first = REGIONS[region].first;
+    // 대표를 정해 두지 않은 지역은(남극) 목록의 첫 레이어
+    var here = regionCatalog();
+    var first = REGIONS[region].first || (here[0] && here[0].layers[0] && here[0].layers[0].name);
     if (first && byName[first]) {
       var box = document.querySelector('input[data-layer="' + cssEscape(first) + '"]');
       if (box) box.checked = true;
@@ -1777,6 +2098,7 @@
       map.getViewport().addEventListener("pointerleave", function () { mirror2.setPosition(undefined); });
       map2.getViewport().addEventListener("pointerleave", function () { mirror1.setPosition(undefined); });
     }
+    if (map2.getView() !== map.getView()) map2.setView(map.getView());   // 지역을 바꿨다
     if (map2Base) map2.removeLayer(map2Base);
     var spec = BASEMAPS[document.getElementById("basemap").value];
     map2Base = spec && spec.make ? spec.make() : null;
@@ -1784,7 +2106,7 @@
     if (map2Layer) map2.removeLayer(map2Layer);
     map2Layer = null;
     if (map2Name && byName[map2Name]) {
-      map2Layer = new ol.layer.Tile({ source: wmsSource(map2Name), opacity: DEFAULT_OPACITY, zIndex: 1 });
+      map2Layer = new ol.layer.Tile({ source: layerSource(map2Name), opacity: DEFAULT_OPACITY, zIndex: 1 });
       map2.addLayer(map2Layer);
     }
     document.getElementById("split-right").textContent = rightLayerTitle();
@@ -1843,11 +2165,17 @@
       applySwipe();
     } else if (compareMode === "split") {
       document.getElementById("compare-pick-label").textContent = T("오른쪽");
-      if (!map2Name || !byName[map2Name]) {
+      var here = regionCatalog();
+      var inRegion = function (name) {
+        return here.some(function (g) { return g.layers.some(function (l) { return l.name === name; }); });
+      };
+      if (!map2Name || !inRegion(map2Name)) {
+        // 오른쪽 지도도 지금 지역의 레이어로 — 그린란드에서 한국 지질도를 띄우지 않는다
         map2Name = active.length > 1 ? active[1].name
-          : (byName["L_250K_Geology_Map"] ? "L_250K_Geology_Map" : Object.keys(byName)[0]);
+          : inRegion("L_250K_Geology_Map") ? "L_250K_Geology_Map"
+          : (here[0] && here[0].layers[0] ? here[0].layers[0].name : null);
       }
-      catalog.forEach(function (group) {
+      here.forEach(function (group) {
         var og = document.createElement("optgroup");
         og.label = group.name;
         group.layers.forEach(function (l) {
@@ -1903,6 +2231,9 @@
     select.innerHTML = "";
     Object.keys(BASEMAPS).forEach(function (key) {
       if (/^vworld/.test(key) && !REGIONS[region].vworld) return;
+      var spec = BASEMAPS[key];
+      if (spec.regions && spec.regions.indexOf(region) < 0) return;
+      if (spec.needs && regionProj() !== spec.needs) return;     // proj4 를 못 읽었다
       var option = document.createElement("option");
       option.value = key;
       option.textContent = BASEMAPS[key].title;
@@ -2459,10 +2790,7 @@
 
   renderRegions();
   applyRegion();
-  if (!restoreState()) {
-    map.getView().setCenter(ol.proj.fromLonLat(REGIONS[region].center));
-    map.getView().setZoom(REGIONS[region].zoom);
-  }
+  if (!restoreState()) goHome();
   // 처음 온 지역이면 대표 레이어 하나를 켠다 — 한국은 5만 지질도. 빈 지도보다
   // 무엇이든 보이는 편이 낫고, **5만이 실제로 가장 많이 보는 축척이다.**
   // 기억한 것이 있으면 그것을 따른다 — 다 끄고 떠났으면 다 꺼진 채로 연다.

@@ -27,3 +27,13 @@ b46a588ec4f9db4f824ea15ab2b78bd9d1dfb17172a785c69e23fa8953db437f  ol.css
 https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js
 https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css
 ```
+
+**proj4js 2.22.0** — `proj4.js` (MIT, `proj4.LICENSE.md` 동봉). 극지 화면의
+평사도법(EPSG:3413·3031)을 OpenLayers 에 알린다 (devlog 017). `ol.js` 뒤,
+`map.js` 앞에 싣는다.
+
+```
+https://cdn.jsdelivr.net/npm/proj4@2.22.0/dist/proj4.js
+https://cdn.jsdelivr.net/npm/proj4@2.22.0/LICENSE.md
+```
+af7df653d91ea591f33d26fb958990bbd3071b2db644a4edaba441cc9861a474  proj4.js

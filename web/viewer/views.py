@@ -154,6 +154,8 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             "verified": bool(l.verified_at),
+            # 화면이 레이어를 만드는 꼴을 가른다 — WMS(kigam·geus)·구운 타일(geomap)
+            "upstream": l.upstream,
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
         } for l in group.layers.filter(enabled=True)]
