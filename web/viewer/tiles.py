@@ -24,6 +24,8 @@ _TEXT = (92, 84, 74, 255)
 #: 타일에 적는 말. 한글을 쓰지 않는 까닭은 이 파일 머리에 적었다.
 NO_KEY = "GSM: no API key"
 NO_MAP = "GSM: upstream gave no map"
+#: 남극 지질도(GeoMAP) 파일이 서버에 없다 — geomap.py
+NO_DATA = "GSM: no GeoMAP data file"
 
 
 def notice_tile(width: int, height: int, message: str) -> bytes:

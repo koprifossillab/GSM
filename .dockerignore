@@ -36,3 +36,7 @@ __pycache__/
 venv/
 
 # 문서는 넣어 둔다 — 컨테이너 안에서 CLAUDE.md·HANDOFF.md 를 읽을 일이 있다.
+
+# 남극 지질도(GeoMAP) 파일 — 490 MB. 이미지에 굽지 않고 운영에서 붙인다 (devlog 018)
+geomap/
+*.gpkg

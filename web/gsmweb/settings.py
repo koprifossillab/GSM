@@ -116,6 +116,10 @@ GEUS_WHOAMI = env("GSM_GEUS_WHOAMI") or _one_line("GSM_GEUS_WHOAMI_FILE", "geus_
 #: 그린란드 정부 광물자원 포털의 ArcGIS 서비스들 (`viewer/grportal.py`). 열쇠가 없다.
 GRPORTAL_URL = env("GSM_GRPORTAL_URL",
                    "https://services5.arcgis.com/wbN76kmEQ2ue8VQm/arcgis/rest/services")
+#: 남극 지질도(SCAR GeoMAP) 파일이 있는 곳. 상류가 아니라 **우리 디스크의 파일**이다
+#: (devlog 018). 비어 있거나 파일이 없으면 남극 레이어 자리에 "자료가 없다" 안내가
+#: 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/geomap/` 이다 — 운영은 /srv/GSM/geomap.
+GEOMAP_DIR = env("GSM_GEOMAP_DIR") or str(_data_dir() / "geomap")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -192,6 +196,9 @@ GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
 VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 #: 그린란드 정부 포털의 점 레이어 씨앗. 역시 seed_catalog 가 함께 넣는다
 GRPORTAL_CATALOG_SEED = REPO_DIR / "data" / "grportal_layers.json"
+#: 남극(GeoMAP) 카탈로그 씨앗과, .qml 에서 뽑아 둔 색 (manage.py geomap_styles)
+GEOMAP_CATALOG_SEED = REPO_DIR / "data" / "geomap_layers.json"
+GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")

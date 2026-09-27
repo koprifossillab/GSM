@@ -31,3 +31,8 @@ venv/
 
 # 받아둔 타일. 캐시지 자료가 아니다 — 지워도 다시 받는다.
 /web/.tilecache/
+
+# 남극 지질도(GeoMAP) 파일. 개발에서 GSM_GEOMAP_DIR 을 안 주면 DB 옆(저장소 뿌리)의
+# geomap/ 을 본다. 490 MB 라 커밋하지 않는다 — 자료의 주인은 GNS Science 다.
+/geomap/
+*.gpkg

@@ -400,6 +400,9 @@ EN = {
     "고원생대": "Paleoproterozoic",
     "신시생대": "Neoarchean",
     "중시생대 이전": "Mesoarchean and older",
+    # 남극 지질도 (geomap.py)
+    "남극 지질도 자료(GeoMAP)가 서버에 없다": "The Antarctic geology data (GeoMAP) is not on the server",
+    "그런 타일은 없다": "No such tile",
 }
 
 
@@ -499,6 +502,24 @@ PROP_EN = {
     "채취 지점": "Locality",
     "채취자": "Collector",
     "채취일": "Collected",
+    # 남극 GeoMAP 속성 (geomap.PROPS)
+    "간추린 지질": "Simplified geology",
+    "노두 갈래": "Outcrop type",
+    "층서 단위": "Stratigraphic rank",
+    "지역": "Region",
+    "신뢰도": "Confidence",
+    "관찰 방법": "Observation method",
+    "위치 정확도 (m)": "Positional accuracy (m)",
+    "출처 문헌": "Reference",
+    "단층 갈래": "Fault type",
+    "노출": "Exposure",
+    "위치 정확성": "Location accuracy",
+    "운동 갈래": "Movement type",
+    "경사 (°)": "Dip (°)",
+    "경사 방향 (°)": "Dip direction (°)",
+    "자료 품질 (1–5)": "Data quality (1–5)",
+    "노두": "Outcrop",
+    "자료": "Dataset",
 }
 
 
@@ -614,6 +635,8 @@ GROUP_EN = {
     "탄성파 탐사": "Seismic surveys",
     # 그린란드 정부 포털
     "시료·연대 (정부 포털)": "Samples & ages (government portal)",
+    # 남극 (GeoMAP)
+    "GeoMAP 지질도": "GeoMAP geological maps",
 }
 
 LAYER_EN = {
@@ -706,4 +729,10 @@ LAYER_EN = {
     "grportal:mineral_occurrences": "Mineral occurrences",
     "grportal:intrusions": "Intrusions",
     "grportal:samples": "Rock & sediment samples",
+    # 남극 (SCAR GeoMAP)
+    "geomap_simple_geology": "Geology (simplified)",
+    "geomap_chronostratigraphic": "Chronostratigraphy",
+    "geomap_simple_lithology": "Lithology (simplified)",
+    "geomap_faults": "Faults",
+    "geomap_quality": "Data quality",
 }
