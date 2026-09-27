@@ -421,6 +421,19 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   border: 1px solid var(--line);
   border-radius: 5px;
 }
+/* 켠 레이어의 출처 — "지질 참고"(VWorld) 에만 붙는다 (devlog 020) */
+.active-src { margin: 4px 0 0; font-size: 10.5px; color: var(--ink-faint); }
+/* 벡터 레이어의 범례. 선을 우리가 그리므로 범례도 우리가 적는다 */
+.vector-legend {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: #333;
+  font-size: 11px;
+}
+.vector-legend-row { display: flex; align-items: center; gap: 8px; }
 
 /* ── 카탈로그 ── */
 #layer-catalog { max-height: 42vh; overflow-y: auto; }
@@ -1283,3 +1296,11 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 :root[data-labs="on"] .tool.labs[hidden] { display: flex; }
 .tool.labs::after { content: "β"; position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--hi-ink); }
 .tool.labs { position: relative; }
+
+/* ── 점 레이어의 범례 (그린란드 정부 포털, map.js 의 vectorLegend) ── */
+.vector-legend { margin-top: 8px; font-size: 11.5px; color: var(--ink-soft); }
+.vector-legend > div { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+.vector-legend .sw { flex: none; width: 10px; height: 10px; border: 1px solid rgba(20, 20, 20, .85); }
+.vector-legend .sw.dot { border-radius: 50%; }
+.vector-legend .sw.diamond { transform: rotate(45deg) scale(.85); }
+.vector-legend .sw.triangle { clip-path: polygon(50% 0, 100% 100%, 0 100%); border: 0; }

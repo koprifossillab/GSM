@@ -52,8 +52,14 @@ class Layer(models.Model):
     bbox_east = models.FloatField(null=True, blank=True)
     bbox_north = models.FloatField(null=True, blank=True)
 
-    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`
+    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`, vworld → `vworld.py`,
+    #: grportal → `grportal.py` (타일이 아니라 점을 통째로 받는다 — devlog 019),
+    #: geomap → `geomap.py` (상류가 아니라 우리 디스크의 파일이다 — devlog 018)
     upstream = models.CharField("상류", max_length=20, default="kigam")
+    #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
+    #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
+    kind = models.CharField("그리는 법", max_length=10, default="wms",
+                            choices=(("wms", "타일"), ("vector", "벡터")))
 
     queryable = models.BooleanField("클릭해 속성을 읽을 수 있다", default=True)
     enabled = models.BooleanField("레이어 패널에 보인다", default=True)

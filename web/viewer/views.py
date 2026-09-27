@@ -8,17 +8,19 @@ import hashlib
 import json
 import logging
 import re
+import threading
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, geus, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, geomap, geus, grportal, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -133,7 +135,9 @@ def map3d_view(request):
     lang = i18n.lang_of(request)
     return render(request, "viewer/map3d.html", {
         "lang": lang,
-        "catalog_groups": _catalog(lang),
+        # 3D 는 타일만 얹는다. 점 레이어(`kind: vector`)는 뺀다
+        "catalog_groups": [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")])
+                           for g in _catalog(lang)],
         "vworld_key": settings.VWORLD_KEY,
         "base": request.path.rsplit("3d", 1)[0],
         "version": VERSION,
@@ -153,16 +157,45 @@ def _catalog(lang="ko"):
             "title": i18n.LAYER_EN.get(l.name, l.title) if en else l.title,
             "bbox": l.bbox,
             "queryable": l.queryable,
-            "verified": bool(l.verified_at),
-            # 화면이 레이어를 만드는 꼴을 가른다 — WMS(kigam·geus)·구운 타일(geomap)
-            "upstream": l.upstream,
+            # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
+            "verified": bool(l.verified_at) or l.upstream == "geomap",
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
-        } for l in group.layers.filter(enabled=True)]
+            # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
+            # 타일이 아니라 모양을 받아 그린다 (`map.js` 의 `vectorLayerFor`)
+            "upstream": l.upstream,
+            "kind": l.kind,
+            **({"cell": VECTOR_CELL} if l.kind == "vector" else {}),
+            **_point_fields(l),
+            **_layer_extra(l),
+        } for l in group.layers.filter(enabled=True)
+            # VWorld 열쇠가 없으면 "지질 참고" 는 그릴 길이 없다 — 목록에서 뺀다
+            if l.upstream != "vworld" or vworld.enabled()]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
             groups.append({"name": name, "region": group.region, "layers": layers})
     return groups
+
+
+def _point_fields(layer) -> dict:
+    """점을 통째로 받아 브라우저가 그리는 레이어(`grportal`)에만 붙는 것.
+
+    타일이 아니므로 `/wms/`·`/featureinfo/`·`/legend/` 를 부르지 않는다 —
+    `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019).
+    """
+    if layer.upstream != "grportal" or not grportal.knows(layer.name):
+        return {}
+    return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
+            "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+
+
+def _layer_extra(layer) -> dict:
+    """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처."""
+    if layer.upstream == "geomap":
+        return {"attribution": geomap.ATTRIBUTION,
+                "tiles": f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png",
+                "projection": "EPSG:3031"}
+    return {}
 
 
 @require_GET
@@ -187,10 +220,11 @@ def catalog_json(request):
 
 # ── 상류 프록시 ───────────────────────────────────────────────────────
 #
-# 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`), 그린란드는
-# GEUS(`geus.py`). 캐시·옛것 내주기·안내 타일은 둘이 같이 쓴다.
+# 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`)과 "지질 참고"의
+# VWorld(`vworld.py`), 그린란드는 GEUS(`geus.py`). 캐시·옛것 내주기·안내
+# 타일은 셋이 같이 쓴다.
 
-UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError)
+UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -204,13 +238,33 @@ def _upstream_of(layers: str) -> str:
 
 
 class _Door:
-    """상류 하나의 get_map·get_feature_info·get_legend 와 인증키가 필요한지."""
+    """상류 하나의 get_map·get_feature_info·get_legend 와, 지금 쓸 수 있는지.
+
+    geomap 은 상류가 아니라 **우리 디스크의 파일**이다(`local`). 받아온 것이
+    아니므로 속성·범례를 캐시에 담지 않는다 — 파일에서 읽는 편이 빠르고,
+    판을 갈면 곧바로 새 것이 보인다.
+    """
+
+    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap}
 
     def __init__(self, upstream):
-        self.name = upstream
-        mod = geus if upstream == "geus" else kigam
+        self.name = upstream if upstream in self.MODULES else "kigam"
+        mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
-        self.ready = True if upstream == "geus" else kigam.has_key()
+        self.local = self.name == "geomap"
+        if self.name == "geus":
+            self.ready = True
+        elif self.name == "vworld":
+            self.ready = vworld.enabled()
+        elif self.local:
+            self.ready = geomap.available()
+        else:
+            self.ready = kigam.has_key()
+
+    def not_ready_message(self):
+        if self.local:
+            return msg("남극 지질도 자료(GeoMAP)가 서버에 없다")
+        return msg("인증키가 없다")
 
 
 @require_GET
@@ -227,6 +281,10 @@ def wms(request):
 
     params.setdefault("format", "image/png")
     params.setdefault("transparent", "true")
+
+    # 남극(GeoMAP)은 우리가 그린다. 이름으로 가른다 — 한국 타일마다 DB 를 묻지 않으려고
+    if (params.get("layers") or "").split(",")[0].strip() in geomap.LAYERS:
+        return _geomap_wms(params, width, height)
 
     # 들고 있으면 상류에 묻지 않는다. **인증키가 없어도 캐시는 내준다** —
     # 이미 받아둔 그림이고, 다시 받을 일이 없으니 막을 까닭이 없다.
@@ -263,6 +321,53 @@ def wms(request):
     return response
 
 
+def _geomap_wms(params, width, height):
+    """GeoMAP 을 WMS `GetMap` 꼴로 (3031 만). 화면은 보통 `geomap_tile` 을 부른다."""
+    if not geomap.available():
+        return _tile(tiles.notice_tile(width, height, tiles.NO_DATA), store=False)
+    try:
+        content, _ = geomap.get_map(params)
+    except geomap.GeomapError as exc:
+        log.info("GeoMAP 을 그리지 못했다: %s", exc)
+        return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
+    return _tile(content)
+
+
+@require_GET
+def geomap_tile(request, layer, z, x, y, retina=None):
+    """남극 지질도 타일 — `geomap/<레이어>/<z>/<x>/<y>.png` (`@2x` 면 512 px).
+
+    격자는 EPSG:3031 고정이다 (`geomap.py` 머리글). 그린 것은 캐시에 담고 스스로
+    지우지 않는다 — 다른 타일과 같다. 열쇠에 자료의 판과 `geomap.RENDERER` 가
+    들어 있어, 판을 갈거나 그리는 법을 고치면 새로 그린다.
+    """
+    z, x, y = int(z), int(x), int(y)
+    size = geomap.TILE * (2 if retina else 1)
+    if layer not in geomap.LAYERS or not geomap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    if not geomap.available():
+        return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
+
+    key = tilecache.key_text("geomap", f"{layer}/{geomap.data_version()}/r{geomap.RENDERER}"
+                                       f"/{z}/{x}/{y}/{size}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = geomap.render(layer, geomap.tile_bbox(z, x, y), size, size)
+    except (geomap.GeomapError, OSError, ValueError) as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
 def _tile(png: bytes, *, cached: bool = False, store: bool = True):
     """안내 타일과 캐시에서 꺼낸 타일을 같은 문으로 내보낸다.
 
@@ -294,13 +399,13 @@ def feature_info(request):
     # 속성도 담아 둔다. 같은 자리를 다시 누르면 상류를 타지 않는다 —
     # 지도 범위와 누른 픽셀이 같아야 맞으므로 타일만큼 자주 맞지는 않는다
     cache_key = tilecache.key_for("info", params)
-    data = _cached_json(cache_key)
     door = _Door(_upstream_of(params.get("query_layers") or params.get("layers")))
+    data = None if door.local else _cached_json(cache_key)
     if data is None:
         if not door.ready:
-            data = _cached_json(cache_key, stale=True)
+            data = None if door.local else _cached_json(cache_key, stale=True)
             if data is None:
-                return JsonResponse({"error": i18n.t(msg("인증키가 없다"), lang), "features": []},
+                return JsonResponse({"error": i18n.t(door.not_ready_message(), lang), "features": []},
                                     status=503)
         else:
             try:
@@ -313,7 +418,8 @@ def feature_info(request):
                     return JsonResponse({"error": error, "features": []},
                                         status=502)
             else:
-                _store_json(cache_key, data)
+                if not door.local:
+                    _store_json(cache_key, data)
 
     # 같은 것이 여러 번 온다. 지질도는 폴리곤이 겹쳐 놓인 자리가 많고,
     # 클릭 한 점이 아니라 몇 픽셀 둘레를 물어보기 때문이다. 사람에게는
@@ -333,6 +439,8 @@ def feature_info(request):
         props = {k: _split_links(v) for k, v in props.items()}
         if door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
+        elif door.name == "vworld":
+            props = vworld.friendly(props)        # riv_nm → 하천명 …
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)
@@ -368,6 +476,9 @@ def legend(request):
     if not layer:
         return JsonResponse({"error": i18n.t(msg("layer 가 없다"), i18n.lang_of(request))}, status=400)
 
+    if layer in geomap.LAYERS:
+        return _geomap_legend(request, layer)
+
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
     # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.
     cache_key = tilecache.key_for("legend", {"layer": layer})
@@ -394,6 +505,149 @@ def legend(request):
         return JsonResponse({"error": str(exc)},
                             status=503 if not door.ready else 502)
     tilecache.put(cache_key, content)
+    response = HttpResponse(content, content_type=ctype)
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+# ── 벡터 레이어 — 모양을 받아 우리가 그린다 (단층, devlog 020) ──────────
+#
+# 타일이 아니라 모양(GeoJSON)을 준다. 브라우저가 선 색·굵기를 정하므로 어느
+# 줌에서도 또렷하고, 누르면 그 선의 속성이 곧장 뜬다(상류를 다시 안 탄다).
+#
+# **위경도 1° 칸으로 나눠 받는다.** 화면 범위를 그대로 상류에 넘기면 지도를
+# 조금만 움직여도 열쇠가 달라져 캐시가 맞지 않는다. 칸으로 자르면 같은 칸은
+# 한 번만 받고, 칸 이름이 좌표계와 상관없어 극지 투영에서도 같은 것을 쓴다.
+# 남한은 1° 칸 50 개 남짓이고, 한 칸에 단층이 많아야 수백 개(수십 KB)다.
+
+#: 칸의 크기(도). 화면(`map.js`)은 카탈로그의 `cell` 로 이 값을 받는다
+VECTOR_CELL = 1
+
+
+@require_GET
+def vector(request):
+    """`?layer=lt_l_gimsfault&lon=127&lat=36` — 칸 하나의 모양. 서남 모서리가 칸 이름이다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    try:
+        lon, lat = int(request.GET.get("lon", "")), int(request.GET.get("lat", ""))
+    except ValueError:
+        return JsonResponse({"error": "lon·lat"}, status=400)
+    if not (-180 <= lon < 180 and -90 <= lat < 90) or lon % VECTOR_CELL or lat % VECTOR_CELL:
+        return JsonResponse({"error": "lon·lat"}, status=400)
+    layer = Layer.objects.filter(name=name, kind="vector", enabled=True).first()
+    if layer is None or layer.upstream != "vworld":
+        return JsonResponse({"error": "layer"}, status=404)
+
+    empty = {"type": "FeatureCollection", "features": []}
+    box = layer.bbox
+    if box and (lon + VECTOR_CELL <= box[0] or lon >= box[2]
+                or lat + VECTOR_CELL <= box[1] or lat >= box[3]):
+        return _vector_response(empty)             # 레이어 범위 밖이다. 상류에 묻지 않는다
+
+    key = tilecache.key_text("vector", f"{name}|{lon}|{lat}|{VECTOR_CELL}")
+    data = _cache_get(key)
+    if data is None:
+        try:
+            if not vworld.enabled():
+                raise vworld.VWorldError("VWorld 열쇠가 없다")
+            data = vworld.get_features(name, lon, lat, lon + VECTOR_CELL, lat + VECTOR_CELL)
+        except vworld.VWorldError as exc:
+            data = _cache_get(key, stale=True)     # 빈 자리보다 옛것이 낫다
+            if data is None:
+                log.warning("모양을 받지 못했다 (%s %s,%s): %s", name, lon, lat, exc)
+                return JsonResponse({"error": i18n.t(msg("VWorld 가 답하지 않는다"), lang),
+                                     "features": []}, status=502)
+        else:
+            _cache_put(key, data)
+
+    # 팝업에 보일 이름을 곁들인다. 캐시에는 받은 그대로 두고 내보낼 때만 붙인다
+    out = []
+    for f in data.get("features") or []:
+        props = dict(f.get("properties") or {})
+        popup = vworld.friendly(props)
+        props["_popup"] = i18n.props_en(popup) if lang == "en" else popup
+        out.append(dict(f, properties=props))
+    return _vector_response({"type": "FeatureCollection", "features": out})
+
+
+def _vector_response(data):
+    response = JsonResponse(data)
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+# ── 점 레이어 (그린란드 정부 포털) ────────────────────────────────────
+#
+# 타일이 아니라 점을 통째로 받아 브라우저에 한 덩이로 준다 (`grportal.py`).
+# 캐시의 규칙은 타일과 같다 — 들고 있으면 묻지 않고, 3 년이 지나면 다시 묻고,
+# 상류가 못 주면 옛것을 낸다. 담는 것은 feature 목록(JSON)이다.
+
+_point_locks = {}
+
+
+def _point_key(name: str) -> str:
+    return tilecache.key_text("grportal", grportal.signature(name))
+
+
+def point_features(name: str, *, refresh: bool = False) -> bytes:
+    """레이어 하나의 feature 목록(JSON 바이트). 못 받으면 PortalError.
+
+    같은 레이어를 두 사람이 한꺼번에 열어도 **상류에는 한 번만 묻는다** —
+    2 만 점이면 열 장이다. 뒤에 온 사람은 앞사람이 받는 것을 기다린다.
+    """
+    key = _point_key(name)
+    if not refresh:
+        hit = tilecache.get(key, ".json")
+        if hit is not None:
+            return hit
+    lock = _point_locks.setdefault(name, threading.Lock())
+    with lock:
+        if not refresh:
+            hit = tilecache.get(key, ".json")         # 기다리는 사이 앞사람이 담았다
+            if hit is not None:
+                return hit
+        try:
+            features = grportal.fetch(name)
+        except grportal.PortalError:
+            old = tilecache.get(key, ".json", stale=True)
+            if old is not None:
+                return old
+            raise
+        data = json.dumps(features, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        tilecache.put(key, data, ".json")
+        return data
+
+
+@gzip_page
+@require_GET
+def point_layer(request):
+    """점 레이어 하나를 GeoJSON 으로. 2 만 점이 4.5 MB, 줄이면(gzip) 0.4 MB 다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if not grportal.knows(name):
+        return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
+    try:
+        features = point_features(name)
+    except grportal.PortalError as exc:
+        log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(grportal.body(name, features), content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _geomap_legend(request, layer):
+    """GeoMAP 범례는 스타일 표에서 그때그때 그린다 — 파일도 상류도 타지 않는다."""
+    try:
+        content, ctype = geomap.get_legend(layer)
+    except (geomap.GeomapError, OSError, ValueError) as exc:
+        log.info("GeoMAP 범례를 그리지 못했다 (%s): %s", layer, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), i18n.lang_of(request))},
+                            status=500)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

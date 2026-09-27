@@ -171,6 +171,8 @@ EN = {
     "VWorld 야간": "VWorld night",
     "VWorld 위성": "VWorld satellite",
     "국토지리정보원": "National Geographic Information Institute",
+    "국토지리정보원 · VWorld": "NGII · VWorld",
+    "구분 {value}": "Class {value}",
     "국토지리정보원. 지질도 밑에 깔기 좋다":
         "National Geographic Information Institute. Good under geological maps",
     "국토지리정보원. 지명을 끄고 켤 수 있다":
@@ -396,6 +398,27 @@ EN = {
         "One shape has {n} vertices — too many (limit {max}).",
     "꼭짓점이 모두 {max}개를 넘는다. 파일을 나눠 올린다.":
         "More than {max} vertices in total. Split the file and upload again.",
+    # 점 레이어 — 그린란드 정부 포털 (grportal.py, map.js 의 vectorLayerFor)
+    "그런 점 레이어가 없다": "No such point layer",
+    "그린란드 정부 광물자원 포털": "Government of Greenland mineral portal",
+    "포털의 원본 항목 — 이용 조건 표시 없음": "Source item on the portal — no licence stated",
+    "이용 조건 표시 없음": "no licence stated",
+    "색은 포털이 시료 갈래마다 매긴 것이다": "Colours are the portal's, one per sample type",
+    "점을 받지 못했다": "Could not load the points",
+    "받는 중…": "Loading…",
+    "열기": "open",
+    # 연대 갈래 (map.js 의 AGE_CLASSES) — ICS 국제층서표의 이름
+    "신생대": "Cenozoic",
+    "중생대": "Mesozoic",
+    "고생대": "Paleozoic",
+    "신원생대": "Neoproterozoic",
+    "중원생대": "Mesoproterozoic",
+    "고원생대": "Paleoproterozoic",
+    "신시생대": "Neoarchean",
+    "중시생대 이전": "Mesoarchean and older",
+    # 남극 지질도 (geomap.py)
+    "남극 지질도 자료(GeoMAP)가 서버에 없다": "The Antarctic geology data (GeoMAP) is not on the server",
+    "그런 타일은 없다": "No such tile",
 }
 
 
@@ -455,6 +478,64 @@ PROP_EN = {
     "지질 단위": "Geological unit",
     "최소 연대 (Ma)": "Minimum age (Ma)",
     "최대 연대 (Ma)": "Maximum age (Ma)",
+    # VWorld 속성 (vworld.FRIENDLY) — "지질 참고" 레이어군, devlog 020
+    "구분": "Class",
+    "길이 (m)": "Length (m)",
+    "수문지질단위": "Hydrogeologic unit",
+    "시도": "Province",
+    "시군구": "City / county",
+    "읍면동": "Town / township",
+    "리": "Village (ri)",
+    "행정구역": "Administrative area",
+    "지구": "Zone",
+    "산": "Mountain",
+    "구간": "Section",
+    "난이도": "Difficulty",
+    "지명": "Place name",
+    "하천명": "River",
+    "하천 등급": "River class",
+    # 그린란드 정부 포털의 점 레이어 (grportal.LAYERS 의 label)
+    "시료 번호": "Sample no.",
+    "연대 (Ma)": "Age (Ma)",
+    "오차 (Ma)": "Uncertainty (Ma)",
+    "해석": "Interpretation",
+    "광물": "Mineral",
+    "측정법": "Technique",
+    "계산법": "Approach",
+    "암상": "Lithology",
+    "암석 갈래": "Rock type",
+    "지괴": "Terrane",
+    "단위": "Unit",
+    "문헌": "Reference",
+    "GEUS 상세": "GEUS details",
+    "이름": "Name",
+    "광종": "Commodity",
+    "광종 무리": "Commodity group",
+    "경제성": "Economic status",
+    "보고서": "Report",
+    "시료 갈래": "Sample type",
+    "시료 기재": "Sample description",
+    "채취 지점": "Locality",
+    "채취자": "Collector",
+    "채취일": "Collected",
+    # 남극 GeoMAP 속성 (geomap.PROPS)
+    "간추린 지질": "Simplified geology",
+    "노두 갈래": "Outcrop type",
+    "층서 단위": "Stratigraphic rank",
+    "지역": "Region",
+    "신뢰도": "Confidence",
+    "관찰 방법": "Observation method",
+    "위치 정확도 (m)": "Positional accuracy (m)",
+    "출처 문헌": "Reference",
+    "단층 갈래": "Fault type",
+    "노출": "Exposure",
+    "위치 정확성": "Location accuracy",
+    "운동 갈래": "Movement type",
+    "경사 (°)": "Dip (°)",
+    "경사 방향 (°)": "Dip direction (°)",
+    "자료 품질 (1–5)": "Data quality (1–5)",
+    "노두": "Outcrop",
+    "자료": "Dataset",
 }
 
 
@@ -563,10 +644,15 @@ GROUP_EN = {
     "해저지질도": "Marine geological maps",
     "동위원소 연대지도": "Isotope age maps",
     "그 밖": "Other",
+    "지질 참고": "Geological reference",
     # 그린란드 (GEUS)
     "야외 관찰": "Field observations",
     "지화학": "Geochemistry",
     "탄성파 탐사": "Seismic surveys",
+    # 그린란드 정부 포털
+    "시료·연대 (정부 포털)": "Samples & ages (government portal)",
+    # 남극 (GeoMAP)
+    "GeoMAP 지질도": "GeoMAP geological maps",
 }
 
 LAYER_EN = {
@@ -631,6 +717,18 @@ LAYER_EN = {
     "medical_clay": "Medical clay",
     "G_tectonic": "Tectonic map",
     "outcrop_korea": "Geological outcrops of Korea",
+    # 지질 참고 (VWorld)
+    "lt_l_gimsfault": "Faults",
+    "lt_l_gimslinea": "Geological lineaments",
+    "lt_c_gimshydro": "Hydrogeologic units",
+    "lt_c_uj401": "Hot spring zones",
+    "lt_l_frstclimb": "Hiking trails",
+    "lt_p_nsnmssitenm": "National place names",
+    "lt_c_wkmstrm": "Stream network",
+    "lt_c_adsido": "Boundaries — provinces",
+    "lt_c_adsigg": "Boundaries — cities & counties",
+    "lt_c_ademd": "Boundaries — towns & townships",
+    "lt_c_adri": "Boundaries — villages (ri)",
     # 그린란드 (GEUS)
     "grl_g500_lithostr_search": "1:500K geology (lithostratigraphy)",
     "lithologies": "Field lithology observations",
@@ -642,4 +740,15 @@ LAYER_EN = {
     "seismic_lines_grl": "Seismic lines",
     "seismic_3d_surveys_grl": "3D seismic surveys",
     "seismic_csem_grl": "CSEM lines",
+    # 그린란드 정부 포털 (grportal.py)
+    "grportal:geochron": "Geochronology",
+    "grportal:mineral_occurrences": "Mineral occurrences",
+    "grportal:intrusions": "Intrusions",
+    "grportal:samples": "Rock & sediment samples",
+    # 남극 (SCAR GeoMAP)
+    "geomap_simple_geology": "Geology (simplified)",
+    "geomap_chronostratigraphic": "Chronostratigraphy",
+    "geomap_simple_lithology": "Lithology (simplified)",
+    "geomap_faults": "Faults",
+    "geomap_quality": "Data quality",
 }

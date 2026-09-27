@@ -1,5 +1,5 @@
 """앱의 URL. 서브패스 접두사는 여기가 모른다 — `gsmweb/urls.py` 가 붙인다."""
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -14,6 +14,14 @@ urlpatterns = [
     path("featureinfo/", views.feature_info, name="featureinfo"),
 
     path("legend/", views.legend, name="legend"),
+    # 벡터 레이어(단층)의 모양. 1° 칸 하나씩 (devlog 020)
+    path("vector/", views.vector, name="vector"),
+    # 점 레이어(그린란드 정부 포털). 타일이 아니라 GeoJSON 한 덩이다 (devlog 019)
+    path("points/", views.point_layer, name="points"),
+
+    # 남극 지질도 — 우리가 그리는 EPSG:3031 타일 (geomap.py). `@2x` 는 512 px
+    re_path(r"^geomap/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,7})/(?P<y>\d{1,7})(?P<retina>@2x)?\.png$",
+            views.geomap_tile, name="geomap-tile"),
 
     path("catalog/", views.catalog_json, name="catalog"),
     path("patchnotes/", views.patch_notes, name="patchnotes"),

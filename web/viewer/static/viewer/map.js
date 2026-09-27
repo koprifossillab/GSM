@@ -57,7 +57,9 @@
     antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
                   home: [-2800000, -2400000, 2900000, 2500000],
                   basemap: "gibs_bm_s", forgetOldView: true,
-                  base: [], first: null, pending: true },
+                  base: ["geomap_simple_geology", "geomap_chronostratigraphic",
+                         "geomap_simple_lithology", "geomap_faults"],
+                  first: "geomap_simple_geology" },
   };
   var region = "korea";
 
@@ -68,7 +70,7 @@
   var GEOMAP_GRID = {
     extent: [-3333134.0276, -3333134.0276, 3333134.0276, 3333134.0276],
     tileSize: 256,
-    maxZoom: 16,
+    maxZoom: 18,
   };
   //: GeoMAP 타일 주소. `{layer}` 는 카탈로그의 레이어명이다. 굽는 쪽과 맞춘다
   var GEOMAP_TILE_URL = "geomap/{layer}/{z}/{x}/{y}.png";
@@ -84,7 +86,8 @@
     ol.proj.get("EPSG:3031").setExtent(GEOMAP_GRID.extent);
   }
 
-  //: 남극에 레이어군이 들어오면(GeoMAP) "준비 중" 을 뗀다.
+  //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
+  //  파일이 없는 자리에 띄운 서버가 그렇다.
   REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
   });
@@ -151,6 +154,7 @@
       projection: "EPSG:3857",
       // 상류 부하를 줄인다. 타일 하나가 작을수록 요청이 는다.
       tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
+      attributions: sourceNote(name) || undefined,
     });
   }
 
@@ -163,15 +167,17 @@
     return url ? url.replace(BASE + "wms", BASE + "featureinfo/") : null;
   }
 
-  /** 남극 GeoMAP — 우리 서버가 미리 구운 3031 타일 (`GEOMAP_GRID`). */
+  /** 남극 GeoMAP — 우리 서버가 미리 구운 3031 타일 (`GEOMAP_GRID`, devlog 018).
+   *  주소·출처는 카탈로그 행(`tiles`·`attribution`)이 준다. */
   function geomapSource(name) {
+    var row = byName[name] || {};
     var resolutions = [];
     var width = GEOMAP_GRID.extent[2] - GEOMAP_GRID.extent[0];
     for (var z = 0; z <= GEOMAP_GRID.maxZoom; z++) {
       resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
     }
     return new ol.source.XYZ({
-      url: BASE + GEOMAP_TILE_URL.replace("{layer}", encodeURIComponent(name)),
+      url: BASE + (row.tiles || GEOMAP_TILE_URL.replace("{layer}", encodeURIComponent(name))),
       projection: "EPSG:3031",
       tileGrid: new ol.tilegrid.TileGrid({
         extent: GEOMAP_GRID.extent,
@@ -180,17 +186,43 @@
         tileSize: GEOMAP_GRID.tileSize,
       }),
       transition: 0,
-      attributions: 'GeoMAP © <a href="https://doi.org/10.1594/PANGAEA.951482" target="_blank" rel="noopener">SCAR / GNS Science</a> (CC BY 4.0)',
+      attributions: row.attribution || undefined,
     });
   }
 
-  //: 레이어를 만드는 손 — **상류마다 하나다.** 상류가 주는 꼴이 달라서다
-  //  (KIGAM·GEUS 는 WMS, GeoMAP 은 우리가 구운 타일). `info` 가 없으면 그
-  //  레이어는 눌러도 속성을 묻지 않는다. 상류가 새로 오면 여기 한 줄을 더한다.
+  /** GeoMAP 의 속성 주소. 구운 타일이라 OpenLayers 가 WMS 주소를 지어 주지 않는다 —
+   *  누른 자리를 가운데 둔 101 픽셀 네모를 WMS 꼴로 적어 `/featureinfo/` 에 묻는다.
+   *  서버(`geomap.click_point`)가 BBOX·I·J 에서 3031 의 한 점과 둘레를 셈한다. */
+  function geomapInfoUrl(source, coordinate, view) {
+    var name = source.get("gsmName");
+    var proj = view.getProjection();
+    var p = ol.proj.transform(coordinate, proj, "EPSG:3031");
+    var res = view.getResolution();
+    if (proj.getCode() !== "EPSG:3031") {
+      res = ol.proj.getPointResolution(proj, res, coordinate) /
+            ol.proj.getPointResolution("EPSG:3031", 1, p);
+    }
+    var half = 50.5 * res;
+    var q = new URLSearchParams({
+      SERVICE: "WMS", VERSION: "1.3.0", REQUEST: "GetFeatureInfo",
+      LAYERS: name, QUERY_LAYERS: name, CRS: "EPSG:3031",
+      BBOX: [p[0] - half, p[1] - half, p[0] + half, p[1] + half].join(","),
+      WIDTH: 101, HEIGHT: 101, I: 50, J: 50,
+      INFO_FORMAT: "application/json", FEATURE_COUNT: 5,
+    });
+    return BASE + "featureinfo/?" + q.toString();
+  }
+
+  //: 타일 레이어를 짓는 손 — **상류마다 하나다.** 상류가 주는 꼴이 달라서다
+  //  (KIGAM·GEUS·VWorld 는 WMS, GeoMAP 은 우리가 구운 타일). `info` 가 없으면 그
+  //  레이어는 눌러도 속성을 묻지 않는다. 벡터·점(`kind`)은 `makeLayer` 가 따로 짓는다
+  //  — 그린란드 포털(grportal)이 그렇다. 상류가 새로 오면 여기 한 줄을 더한다.
   var LAYER_KINDS = {
     kigam: { source: wmsSource, info: wmsInfoUrl },
     geus: { source: wmsSource, info: wmsInfoUrl },
-    geomap: { source: geomapSource, info: null },
+    vworld: { source: wmsSource, info: wmsInfoUrl },
+    geomap: { source: geomapSource, info: geomapInfoUrl },
+    grportal: { source: null, info: null },
   };
 
   function layerKind(name) {
@@ -198,7 +230,150 @@
     return LAYER_KINDS[(row && row.upstream) || "kigam"] || LAYER_KINDS.kigam;
   }
 
-  function layerSource(name) { return layerKind(name).source(name); }
+  function layerSource(name) {
+    var source = (layerKind(name).source || wmsSource)(name);
+    source.set("gsmName", name);
+    return source;
+  }
+
+  /** 레이어의 출처 표기. KIGAM·GEUS 는 비워 둔다 — 레이어 이름이 곧 출처다.
+   *  "지질 참고" 는 VWorld(국토지리정보원)에서 오므로 밝힌다 (devlog 020). */
+  function sourceNote(name) {
+    var row = byName[name];
+    return row && row.upstream === "vworld" ? T("국토지리정보원 · VWorld") : "";
+  }
+
+  /** 켤 레이어 하나를 만든다. 타일(WMS)이 거의 전부이고, 벡터는 따로 짓는다. */
+  function makeLayer(name) {
+    var row = byName[name];
+    if (row && row.kind === "vector") return vectorLayerFor(row);
+    if (row && row.kind === "points") return pointLayerFor(row);
+    return new ol.layer.Tile({ source: layerSource(name), opacity: DEFAULT_OPACITY });
+  }
+
+  // ── 벡터 레이어 — 모양을 받아 우리가 그린다 ─────────────────────
+  //
+  // 타일이 아니라 모양(GeoJSON)을 서버(`./vector/`)에서 받는다. 선 색·굵기를
+  // 우리가 정하므로 어느 줌에서도 또렷하고, 누르면 그 선의 속성이 곧장 뜬다
+  // (상류를 다시 안 탄다). 지금은 단층 하나다 (devlog 020).
+  //
+  // **위경도 칸(`row.cell`, 1°)으로 나눠 받는다.** 칸 이름은 좌표계와 상관이
+  // 없어서 지역마다 투영이 달라도 같은 칸을 같은 주소로 부른다 — 브라우저·서버
+  // 캐시가 그대로 맞는다. 받은 칸은 다시 받지 않는다. 칸 경계를 넘는 선은 양쪽
+  // 칸에 다 오는데, 모양의 `id` 가 같아 소스가 하나만 둔다.
+
+  //: 레이어마다 선을 어떻게 그리나. `by` 열의 값으로 가른다.
+  //  단층의 `legend` 는 VWorld 가 뜻을 밝히지 않았다 — 1 이 거의 전부(2259)이고
+  //  2(155)는 경상분지에 몰린 짧은 선이다. 뜻을 모르니 이름을 지어 붙이지 않고
+  //  값 그대로 적되, 눈으로 갈리게 2 를 끊은 선으로 그린다.
+  var VECTOR_STYLES = {
+    lt_l_gimsfault: {
+      by: "legend",
+      classes: {
+        "1": { color: "#8a0a1e", width: 2, dash: null },
+        "2": { color: "#8a0a1e", width: 2, dash: [7, 5] },
+      },
+      other: { color: "#6b3a2a", width: 1.4, dash: null },
+    },
+  };
+  var DEFAULT_VECTOR_STYLE = { color: "#b3202a", width: 1.6, dash: null };
+  var vectorStyleCache = {};
+
+  function vectorStyleOf(spec) {
+    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "");
+    if (!vectorStyleCache[key]) {
+      vectorStyleCache[key] = [
+        // 밑에 흰 테두리 — 지질도 색 위에서도 선이 묻히지 않게
+        new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.75)", width: spec.width + 2.4 }) }),
+        new ol.style.Style({ stroke: new ol.style.Stroke({ color: spec.color, width: spec.width, lineDash: spec.dash || undefined }) }),
+      ];
+    }
+    return vectorStyleCache[key];
+  }
+
+  function vectorSpec(name, feature) {
+    var table = VECTOR_STYLES[name];
+    if (!table) return DEFAULT_VECTOR_STYLE;
+    var value = feature ? String(feature.get(table.by)) : "";
+    return table.classes[value] || table.other || DEFAULT_VECTOR_STYLE;
+  }
+
+  /** 켤 벡터 레이어 하나. `row` 는 카탈로그 행 (`kind: "vector"`). */
+  function vectorLayerFor(row) {
+    var cell = row.cell || 1;
+    var loaded = {};                 // 받은(또는 받는 중인) 칸
+    var format = new ol.format.GeoJSON();
+    var source = new ol.source.Vector({
+      attributions: sourceNote(row.name) || undefined,
+      strategy: ol.loadingstrategy.bbox,
+      loader: function (extent, resolution, projection, success, failure) {
+        var ll = ol.proj.transformExtent(extent, projection, "EPSG:4326");
+        var box = row.bbox || [-180, -90, 180, 90];
+        var west = Math.max(ll[0], box[0]), south = Math.max(ll[1], box[1]);
+        var east = Math.min(ll[2], box[2]), north = Math.min(ll[3], box[3]);
+        var cells = [];
+        if (west < east && south < north) {
+          for (var x = Math.floor(west / cell) * cell; x < east; x += cell) {
+            for (var y = Math.floor(south / cell) * cell; y < north; y += cell) {
+              var id = x + "," + y;
+              if (!loaded[id]) cells.push([x, y]);
+            }
+          }
+        }
+        // 세계가 다 들어오는 줌에서 한꺼번에 부르지 않는다. 레이어 범위가
+        // 있으면 이 한계에 닿을 일이 없다 (남한은 50 칸 남짓)
+        if (cells.length > 80) { success([]); return; }
+        if (!cells.length) { success([]); return; }
+        var pending = cells.length, got = [], failed = false;
+        cells.forEach(function (c) {
+          var id = c[0] + "," + c[1];
+          loaded[id] = true;
+          var url = BASE + "vector/?layer=" + encodeURIComponent(row.name) +
+            "&lon=" + c[0] + "&lat=" + c[1] + "&lang=" + LANG;
+          fetch(url)
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+              got = got.concat(format.readFeatures(data, { dataProjection: "EPSG:4326", featureProjection: projection }));
+            })
+            .catch(function () { delete loaded[id]; failed = true; })   // 다음에 다시 묻는다
+            .then(function () {
+              pending -= 1;
+              if (pending) return;
+              source.addFeatures(got);
+              if (failed && !got.length) failure(); else success(got);
+            });
+        });
+      },
+    });
+    var layer = new ol.layer.Vector({
+      source: source,
+      opacity: DEFAULT_OPACITY,
+      style: function (feature) { return vectorStyleOf(vectorSpec(row.name, feature)); },
+    });
+    // 누른 자리의 속성을 팝업에 올릴 때 이 표식으로 가려낸다 (`onClick`)
+    layer.set("gsmVector", row.name);
+    return layer;
+  }
+
+  /** 벡터 레이어의 범례 — 우리가 그리니 우리가 적는다. 상류 범례는 우리 색과 다르다. */
+  function vectorLegend(name) {
+    var table = VECTOR_STYLES[name];
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    var rows = table ? Object.keys(table.classes).map(function (value) {
+      return { spec: table.classes[value], label: T("구분 {value}", { value: value }) };
+    }) : [{ spec: DEFAULT_VECTOR_STYLE, label: byName[name] ? byName[name].title : name }];
+    rows.forEach(function (r) {
+      var line = document.createElement("div");
+      line.className = "vector-legend-row";
+      var svg = '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
+        r.spec.color + '" stroke-width="' + r.spec.width + '"' +
+        (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
+      line.innerHTML = svg + "<span>" + esc(r.label) + "</span>";
+      box.appendChild(line);
+    });
+    return box;
+  }
 
   /** 배경지도.
    *
@@ -663,12 +838,14 @@
     if (active.some(function (e) { return e.name === name; })) return;
     var row = byName[name];
     if (!row) return;
+    // 점 레이어(`kind: points`)는 밑을 가리지 않으므로 처음부터 진하게 둔다
+    var opacity = row.kind === "points" ? 1 : DEFAULT_OPACITY;
     active.unshift({
       name: name,
       title: row.title,
-      opacity: DEFAULT_OPACITY,
+      opacity: opacity,
       legendOpen: false,
-      layer: new ol.layer.Tile({ source: layerSource(name), opacity: DEFAULT_OPACITY }),
+      layer: makeLayer(name),
     });
     restack();
   }
@@ -885,7 +1062,19 @@
 
       li.append(head, foot);
 
-      if (entry.legendOpen) {
+      var src = sourceNote(entry.name);
+      if (src) {
+        var srcLine = document.createElement("p");
+        srcLine.className = "active-src";
+        srcLine.textContent = src;
+        li.appendChild(srcLine);
+      }
+
+      if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "vector") {
+        li.appendChild(vectorLegend(entry.name));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "points") {
+        li.appendChild(pointLegend(entry));
+      } else if (entry.legendOpen) {
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
@@ -1442,6 +1631,180 @@
     updateToolOut();
   }
 
+  // ── 점 레이어 (그린란드 정부 포털) ──────────────────────────────
+  //
+  // 타일이 아니라 **점을 통째로** 받아 여기서 그린다 (devlog 019). 서버의
+  // `./points/?layer=` 가 한 레이어를 GeoJSON 한 덩이로 준다 — 2 만 점도
+  // 줄여(gzip) 0.4 MB 다. 누르면 받아 둔 속성을 그 자리에서 읽는다.
+  //
+  // 이 덩이 밖에서는 `addLayer`·`renderActive`·`onClick`·비교 칸이 `kind` 를
+  // 보고 한 줄씩 갈라 여기를 부를 뿐이다. 켜기·끄기·투명도·차례는 타일
+  // 레이어와 같은 길을 탄다 — `entry.layer` 가 ol 레이어이기만 하면 된다.
+  // 좌표계는 **지도의 것을 따른다** (`projection` 인자 — 화면이 3857 이 아닐 수 있다).
+
+  //: 연대(Ma)의 갈래. 색은 ICS 국제층서표의 누대·대 색을 바탕으로, 그린란드에
+  //  많은 원생누대·시생누대는 더 잘게 가르고 서로 가려 보이게 짙기를 벌렸다.
+  var AGE_CLASSES = [
+    { upto: 66, color: "#f2f91d", label: "신생대" },
+    { upto: 252, color: "#67c5ca", label: "중생대" },
+    { upto: 541, color: "#99c08d", label: "고생대" },
+    { upto: 1000, color: "#feb342", label: "신원생대" },
+    { upto: 1600, color: "#fd8d3c", label: "중원생대" },
+    { upto: 2500, color: "#f74370", label: "고원생대" },
+    { upto: 2800, color: "#c51b7d", label: "신시생대" },
+    { upto: Infinity, color: "#7a0177", label: "중시생대 이전" },
+  ];
+  var POINT_COLORS = { mineral: "#d7301f", intrusion: "#6a3d9a", sample: "#8c8c8c", none: "#9e9e9e" };
+  //: 한 번 누를 때 레이어 하나에서 팝업에 올리는 점의 수. 한 시료에 연대가
+  //  여럿 딸린 자리가 많아 하나로는 모자라고, 다 올리면 팝업이 읽히지 않는다.
+  var POINT_POPUP_MAX = 6;
+
+  function pointLayerFor(row) {
+    var layer;
+    var source = new ol.source.Vector({
+      attributions: pointAttribution(row),
+      loader: function (extent, resolution, projection, success, failure) {
+        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name))
+          .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+          .then(function (data) {
+            var features = new ol.format.GeoJSON().readFeatures(data, {
+              dataProjection: "EPSG:4326",
+              featureProjection: projection || map.getView().getProjection(),
+            });
+            layer.set("gsmLabels", data.labels || {});
+            layer.set("gsmCount", features.length);
+            source.addFeatures(features);
+            if (success) success(features);
+            renderActive();
+          })
+          .catch(function () {
+            layer.set("gsmFailed", true);
+            source.removeLoadedExtent(extent);
+            if (failure) failure();
+            renderActive();
+          });
+      },
+    });
+    layer = new ol.layer.Vector({
+      source: source,
+      style: portalPointStyle(row.style || "sample"),
+      opacity: 1,
+      // 겹친 점을 하나씩 그린다 — 2 만 점이라 글자처럼 걸러내지(declutter) 않는다
+    });
+    layer.set("gsmPoints", row.name);
+    return layer;
+  }
+
+  /** 지도 귀퉁이의 출처. 레이어마다 같은 글로 적어 OL 이 한 줄로 합치게 한다 —
+   *  레이어별 항목 주소는 범례 칸에 둔다(`pointLegend`). */
+  function pointAttribution(row) {
+    return '<a href="' + esc(row.portal || "") + '" target="_blank" rel="noopener">' +
+      esc(T("그린란드 정부 광물자원 포털")) + "</a> · GEUS · " + esc(T("이용 조건 표시 없음"));
+  }
+
+  function ageColor(age) {
+    if (typeof age !== "number" || !isFinite(age)) return POINT_COLORS.none;
+    for (var i = 0; i < AGE_CLASSES.length; i++) {
+      if (age < AGE_CLASSES[i].upto) return AGE_CLASSES[i].color;
+    }
+    return POINT_COLORS.none;
+  }
+
+  /** 점의 모양. 연대는 동그라미(색=연대), 광물 산출지는 마름모, 관입암체는
+   *  세모, 시료는 포털이 시료 갈래마다 매긴 색의 작은 동그라미.
+   *  멀리서는 작게 그린다 — 2 만 점이 그린란드 하나를 덮는다.
+   *
+   *  이름을 점묶음의 `pointStyle(color)` 와 갈랐다. 같은 이름이면 뒤의 것이
+   *  이겨서 포털 점이 "age" 를 색으로 읽고 하나도 안 그려진다 (합칠 때 보았다). */
+  function portalPointStyle(kind) {
+    var cache = {};
+    return function (feature, resolution) {
+      var zoom = map.getView().getZoomForResolution(resolution) || 0;
+      var far = zoom < 6;
+      var color = kind === "age" ? ageColor(feature.get("age"))
+        : kind === "sample" ? (feature.get("color") || POINT_COLORS.sample)
+        : POINT_COLORS[kind] || POINT_COLORS.none;
+      var key = color + (far ? "f" : "n");
+      if (cache[key]) return cache[key];
+      var fill = new ol.style.Fill({ color: color });
+      var stroke = new ol.style.Stroke({ color: kind === "sample" && far ? "rgba(0,0,0,0)" : "rgba(20,20,20,0.85)",
+                                         width: far ? 0.6 : 1 });
+      var r = kind === "sample" ? (far ? 2 : 3.5) : (far ? 4 : 6);
+      var image = kind === "mineral"
+        ? new ol.style.RegularShape({ points: 4, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
+        : kind === "intrusion"
+        ? new ol.style.RegularShape({ points: 3, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
+        : new ol.style.Circle({ radius: r, fill: fill, stroke: stroke });
+      cache[key] = new ol.style.Style({ image: image });
+      return cache[key];
+    };
+  }
+
+  /** 누른 점 하나 → 팝업 한 칸. 이름은 서버가 준 한국어(`labels`)이고
+   *  영어판이면 팝업이 `T()` 로 옮긴다(`i18n.PROP_EN`). */
+  function pointPart(feature, layer, seen) {
+    var name = layer.get("gsmPoints");
+    seen[name] = (seen[name] || 0) + 1;
+    if (seen[name] > POINT_POPUP_MAX) return null;
+    var labels = layer.get("gsmLabels") || {};
+    var props = {};
+    Object.keys(labels).forEach(function (key) {
+      var value = feature.get(key);
+      if (value === undefined || value === null || value === "") return;
+      if (key === "link") {
+        // 서버가 http·https 만 넘긴다(`grportal._clean`). 여기서 한 번 더 본다
+        if (!/^https?:\/\//i.test(String(value))) return;
+        value = { text: "", links: [{ url: String(value), label: T("열기") }] };
+      }
+      props[labels[key]] = value;
+    });
+    return { title: (byName[name] && byName[name].title) || name, props: props };
+  }
+
+  /** 범례 자리. 타일 레이어는 상류의 범례 그림을 받지만, 점 레이어는
+   *  여기서 그린 색이 곧 범례다. */
+  function pointLegend(entry) {
+    var row = byName[entry.name] || {};
+    var kind = row.style || "sample";
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    function item(color, text, shape) {
+      var line = document.createElement("div");
+      var sw = document.createElement("span");
+      sw.className = "sw " + (shape || "dot");
+      sw.style.background = color;
+      var label = document.createElement("span");
+      label.textContent = text;
+      line.append(sw, label);
+      box.appendChild(line);
+    }
+    if (kind === "age") {
+      AGE_CLASSES.forEach(function (c, i) {
+        var from = i ? AGE_CLASSES[i - 1].upto : 0;
+        var span = isFinite(c.upto) ? from + "–" + c.upto + " Ma" : "≥ " + from + " Ma";
+        item(c.color, T(c.label) + "  " + span);
+      });
+    } else if (kind === "sample") {
+      item(POINT_COLORS.sample, T("색은 포털이 시료 갈래마다 매긴 것이다"));
+    } else {
+      item(POINT_COLORS[kind], entry.title, kind === "mineral" ? "diamond" : "triangle");
+    }
+    var count = entry.layer.get("gsmCount");
+    var foot = entry.layer.get("gsmFailed") ? T("점을 받지 못했다")
+      : count === undefined ? T("받는 중…") : T("{n}점", { n: count.toLocaleString() });
+    box.appendChild(note(foot));
+    if (row.source) {
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.source;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("포털의 원본 항목 — 이용 조건 표시 없음");
+      box.appendChild(a);
+    }
+    return box;
+  }
+
   // ── 클릭해 속성 읽기 ────────────────────────────────────────────
 
   function onClick(evt) {
@@ -1452,9 +1815,24 @@
     if (mode !== "info") return;      // 재는 중에는 팝업을 띄우지 않는다
 
     var parts = [];
+    var pointSeen = {};     // 점 레이어마다 몇 개를 올렸나 (pointPart)
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
-    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+    map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+      // 벡터 레이어(단층)의 선. 속성은 서버가 팝업에 맞춰 곁들여 보냈다
+      var vectorName = layer && layer.get("gsmVector");
+      if (vectorName) {
+        var row = byName[vectorName];
+        parts.push({ title: row ? row.title : vectorName,
+                     props: feature.get("_popup") || plain(feature.getProperties()) });
+        return;
+      }
+      // 점 레이어(그린란드 정부 포털)의 점. 받아 둔 속성을 그 자리에서 읽는다
+      if (layer && layer.get("gsmPoints")) {
+        var pp = pointPart(feature, layer, pointSeen);
+        if (pp) parts.push(pp);
+        return;
+      }
       if (feature.get("no") !== undefined && feature.get("lat") !== undefined) {
         parts.push({
           title: T("찍은 점 {n}", { n: feature.get("no") }),
@@ -1475,13 +1853,16 @@
       },
     });
 
+    // 벡터 레이어는 위에서 이미 읽었다 — 서버에 속성을 다시 묻지 않는다
     var queryable = active.filter(function (e) {
       var row = byName[e.name];
-      return row && row.queryable;
+      return row && row.queryable && row.kind !== "vector" && row.kind !== "points";
     });
 
     if (!queryable.length) {
-      showPopup(evt.coordinate, parts, parts.length ? "" : T("켠 레이어가 없다"));
+      // 벡터 레이어만 켜 두고 선을 비껴 누른 것이면 "켠 것이 없다" 가 아니다
+      showPopup(evt.coordinate, parts, parts.length ? ""
+        : active.length ? T("이 자리에는 아무것도 없다") : T("켠 레이어가 없다"));
       return;
     }
 
@@ -1568,8 +1949,9 @@
       });
     }
 
-    // 주소는 VWorld 열쇠가 있을 때만 묻는다. 바다처럼 주소가 없는 자리면 줄을 두지 않는다
-    if (vworldKey) {
+    // 주소는 VWorld 열쇠가 있을 때만 묻는다. 바다처럼 주소가 없는 자리면 줄을 두지 않는다.
+    // 극지는 묻지 않는다 — VWorld 는 우리나라 주소만 안다
+    if (vworldKey && REGIONS[region].vworld) {
       var addr = document.createElement("p");
       addr.className = "popup-addr";
       body.appendChild(addr);
@@ -2106,7 +2488,8 @@
     if (map2Layer) map2.removeLayer(map2Layer);
     map2Layer = null;
     if (map2Name && byName[map2Name]) {
-      map2Layer = new ol.layer.Tile({ source: layerSource(map2Name), opacity: DEFAULT_OPACITY, zIndex: 1 });
+      map2Layer = makeLayer(map2Name);
+      map2Layer.setZIndex(1);
       map2.addLayer(map2Layer);
     }
     document.getElementById("split-right").textContent = rightLayerTitle();
@@ -2179,6 +2562,7 @@
         var og = document.createElement("optgroup");
         og.label = group.name;
         group.layers.forEach(function (l) {
+          if (l.kind === "vector" || l.kind === "points") return;   // 나란히 보기의 오른쪽은 타일만 그린다
           var o = document.createElement("option");
           o.value = l.name; o.textContent = l.title;
           og.appendChild(o);
