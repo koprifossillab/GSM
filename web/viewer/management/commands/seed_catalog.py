@@ -43,11 +43,12 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"카탈로그 {len(layers)}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
-        # 다른 상류의 씨앗 — 그린란드(GEUS), 한국의 "지질 참고"(VWorld, 020).
+        # 다른 상류의 씨앗 — 그린란드(GEUS·정부 포털, 019), 한국의 "지질 참고"(VWorld, 020).
         # 상류를 타지 않고 저장소의 표만 쓴다
         for path, label, region, upstream in (
                 (settings.GEUS_CATALOG_SEED, "그린란드", "greenland", "geus"),
-                (settings.VWORLD_CATALOG_SEED, "지질 참고 (VWorld)", "korea", "vworld")):
+                (settings.VWORLD_CATALOG_SEED, "지질 참고 (VWorld)", "korea", "vworld"),
+                (settings.GRPORTAL_CATALOG_SEED, "그린란드 정부 포털", "greenland", "grportal")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

@@ -52,7 +52,8 @@ class Layer(models.Model):
     bbox_east = models.FloatField(null=True, blank=True)
     bbox_north = models.FloatField(null=True, blank=True)
 
-    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`, vworld → `vworld.py`
+    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`, vworld → `vworld.py`,
+    #: grportal → `grportal.py` (타일이 아니라 점을 통째로 받는다 — devlog 019)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

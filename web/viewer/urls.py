@@ -16,6 +16,8 @@ urlpatterns = [
     path("legend/", views.legend, name="legend"),
     # 벡터 레이어(단층)의 모양. 1° 칸 하나씩 (devlog 020)
     path("vector/", views.vector, name="vector"),
+    # 점 레이어(그린란드 정부 포털). 타일이 아니라 GeoJSON 한 덩이다 (devlog 019)
+    path("points/", views.point_layer, name="points"),
 
     path("catalog/", views.catalog_json, name="catalog"),
     path("patchnotes/", views.patch_notes, name="patchnotes"),
