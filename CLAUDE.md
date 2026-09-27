@@ -206,7 +206,8 @@ GeoServer 는 그것을 요구하고 `/openapi/wms` 는 접두사 없는 이름�
 ```
 web/gsmweb/       Django 설정
 web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
-  kigam.py        상류를 타는 곳 — 여기 말고 어디서도 requests 를 쓰지 않는다
+  kigam.py        KIGAM 으로 나가는 문 (지질도 타일·속성·범례)
+  vworld.py       VWorld 로 나가는 문 (주소·장소 검색, 좌표→주소)
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
@@ -219,8 +220,13 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/t
 devlog/           왜 그렇게 했는지
 ```
 
-**`kigam.py` 가 상류로 나가는 유일한 문이다.** 뷰가 직접 `requests` 를 부르지
-않는다. 상류가 바뀌거나 주소가 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다.
+**상류마다 문이 하나다 — `kigam.py` 와 `vworld.py`.** 이 둘 말고는 어디서도
+`requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. 두 문은 서로를 타지 않는다 —
+주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
+
+VWorld 배경지도(WMTS)만은 문을 거치지 않고 브라우저가 곧장 부른다 — 타일이
+너무 많고, VWorld 가 그렇게 쓰라고 열쇠에 도메인 제한을 건다 (003).
 
 ## devlog
 

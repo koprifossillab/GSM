@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, i18n, kigam, patchnotes, pointsets, tilecache, tiles
+from . import coords, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet
 
@@ -488,6 +488,75 @@ def pointset_delete(request, pk):
     pointset.delete()
     log.info("점묶음 '%s' 지웠다", name)
     return JsonResponse({"ok": True})
+
+
+# ── 주소 (VWorld) ─────────────────────────────────────────────────────
+#
+# KIGAM 을 타지 않는다. 문은 `vworld.py` 다. 받은 것은 타일처럼 캐시에
+# 담는다 — 주소는 지질도보다도 드물게 바뀐다.
+
+def _cache_get(key, *, stale=False):
+    raw = tilecache.get(key, ".json", stale=stale)
+    try:
+        return json.loads(raw) if raw is not None else None
+    except ValueError:
+        return None
+
+
+def _cache_put(key, data):
+    tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+
+
+def _vworld_cached(key, fetch, lang):
+    """캐시 → VWorld → (실패하면) 늙은 캐시. 셋 다 없으면 오류 응답."""
+    data = _cache_get(key)
+    if data is not None:
+        return data, None
+    if not vworld.enabled():
+        return None, JsonResponse(
+            {"error": i18n.t(msg("주소 검색이 꺼져 있다 — VWorld 열쇠가 없다"), lang)}, status=503)
+    try:
+        data = fetch()
+    except vworld.VWorldError as exc:
+        old = _cache_get(key, stale=True)
+        if old is not None:
+            return old, None
+        log.warning("VWorld 에서 받지 못했다: %s", exc)
+        return None, JsonResponse(
+            {"error": i18n.t(msg("VWorld 가 답하지 않는다"), lang)}, status=502)
+    _cache_put(key, data)
+    return data, None
+
+
+@require_GET
+def place_search(request):
+    """주소·장소·행정구역 검색. 화면 아래 검색 칸이 부른다.
+
+    좌표는 여기 오지 않는다 — 브라우저가 먼저 `coords/parse/` 로 물어보고,
+    좌표가 아닐 때만 여기로 온다.
+    """
+    lang = i18n.lang_of(request)
+    query = (request.GET.get("q") or "").strip()[:100]
+    if not query:
+        return JsonResponse({"results": []})
+    data, error = _vworld_cached(tilecache.key_text("search", query),
+                                 lambda: {"results": vworld.search(query)}, lang)
+    return error or JsonResponse(data)
+
+
+@require_GET
+def whereis(request):
+    """좌표 → 지번·도로명. 속성 팝업의 위경도 밑에 붙는다."""
+    lang = i18n.lang_of(request)
+    try:
+        # 다섯째 자리(약 1 m)에서 자른다. 같은 자리를 두 번 묻지 않으려는 것이다
+        lat = round(float(request.GET["lat"]), 5)
+        lon = round(float(request.GET["lon"]), 5)
+    except (KeyError, TypeError, ValueError):
+        return JsonResponse({"error": i18n.t(msg("좌표로 읽지 못했다"), lang)}, status=400)
+    data, error = _vworld_cached(tilecache.key_text("whereis", f"{lat},{lon}"),
+                                 lambda: vworld.reverse(lat, lon), lang)
+    return error or JsonResponse(data)
 
 
 # ── 좌표 ──────────────────────────────────────────────────────────────

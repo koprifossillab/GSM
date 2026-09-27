@@ -667,7 +667,7 @@
    *  줌 단계를 숫자로 박으면 화면 크기에 따라 보이는 범위가 달라지는데,
    *  범위를 주고 맞추면 어느 화면에서나 같은 만큼이 보인다.
    */
-  function goTo(lat, lon) {
+  function goTo(lat, lon, label) {
     var extent = ol.proj.transformExtent(
       [lon - SHEET_LON / 2, lat - SHEET_LAT / 2,
        lon + SHEET_LON / 2, lat + SHEET_LAT / 2],
@@ -676,7 +676,7 @@
     foundSource.clear();
     foundSource.addFeature(new ol.Feature({
       geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
-      label: formatPair(lon, lat),
+      label: label || formatPair(lon, lat),
     }));
 
     map.getView().fit(extent, { duration: 450, callback: function () {
@@ -956,7 +956,11 @@
         return;
       }
       parts.push({ title: feature.get("_점묶음") || T("내 자료"), props: plain(feature.getProperties()) });
-    }, { hitTolerance: 5 });
+    }, {
+      hitTolerance: 5,
+      // 찾아간 자리의 표식은 자료가 아니다. 거리·넓이 선도 그렇다
+      layerFilter: function (layer) { return layer !== foundLayer && layer !== measureLayer; },
+    });
 
     var queryable = active.filter(function (e) {
       var row = byName[e.name];
@@ -1029,6 +1033,18 @@
       });
     });
     body.appendChild(head);
+
+    // 주소는 VWorld 열쇠가 있을 때만 묻는다. 바다처럼 주소가 없는 자리면 줄을 두지 않는다
+    if (vworldKey) {
+      var addr = document.createElement("p");
+      addr.className = "popup-addr";
+      body.appendChild(addr);
+      addressFor(ll[0], ll[1]).then(function (d) {
+        var lines = [d.road, d.parcel && d.parcel !== d.road ? d.parcel : ""].filter(Boolean);
+        if (lines.length) addr.textContent = lines.join(" · ");
+        else addr.remove();
+      });
+    }
 
     if (!parts.length) {
       var none = document.createElement("p");
@@ -1520,23 +1536,107 @@
       renderEdges();
     });
 
+    var input = document.getElementById("goto-input");
     document.getElementById("goto-form").addEventListener("submit", function (e) {
       e.preventDefault();
-      var input = document.getElementById("goto-input");
       var q = input.value.trim();
       if (!q) return;
+      // 목록이 떠 있고 하나를 골라 두었으면 그리로 간다
+      var picked = document.querySelector("#search-results li.on");
+      if (picked) { picked.click(); return; }
+      // **좌표가 먼저다.** 좌표로 읽히면 곧장 가고, 아니면 주소·장소로 찾는다
       fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q))
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-        .then(function (d) {
-          goTo(d.lat, d.lon);
-          input.setCustomValidity("");
-        })
-        .catch(function () {
-          input.setCustomValidity(T("좌표로 읽지 못했다"));
-          input.reportValidity();
-          setTimeout(function () { input.setCustomValidity(""); }, 1500);
-        });
+        .then(function (d) { closeResults(); goTo(d.lat, d.lon); })
+        .catch(function () { searchPlaces(q); });
     });
+    input.addEventListener("input", closeResults);
+    input.addEventListener("keydown", function (e) {
+      var items = Array.prototype.slice.call(document.querySelectorAll("#search-results li[data-i]"));
+      if (!items.length) return;
+      var at = items.findIndex(function (li) { return li.classList.contains("on"); });
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        at = e.key === "ArrowDown" ? Math.min(items.length - 1, at + 1) : Math.max(0, at - 1);
+        items.forEach(function (li, i) { li.classList.toggle("on", i === at); });
+        items[at].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Escape") {
+        closeResults();
+      }
+    });
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest("#coordbar")) closeResults();
+    });
+  }
+
+  // ── 주소·장소 찾기 (VWorld) ──────────────────────────────────────
+  //
+  // 서버의 `search/` 가 VWorld 에 묻는다. KIGAM 은 타지 않는다. 이름이 같은
+  // 곳이 많아(가정동은 대전에도 인천에도 있다) **곧장 가지 않고 목록을
+  // 띄운다.** 사람이 고른다.
+
+  var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소" };
+
+  function closeResults() {
+    var box = document.getElementById("search-results");
+    box.hidden = true;
+    box.innerHTML = "";
+  }
+
+  function searchPlaces(q) {
+    var box = document.getElementById("search-results");
+    box.hidden = false;
+    box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
+    fetch(BASE + "search/?q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || "");
+        renderResults(res.d.results || []);
+      })
+      .catch(function (err) {
+        box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
+      });
+  }
+
+  function renderResults(rows) {
+    var box = document.getElementById("search-results");
+    box.innerHTML = "";
+    if (!rows.length) {
+      box.innerHTML = '<li class="note">' + esc(T("찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다")) + "</li>";
+      return;
+    }
+    rows.forEach(function (row, i) {
+      var li = document.createElement("li");
+      li.dataset.i = i;
+      li.innerHTML = '<span class="kind">' + esc(T(KIND[row.kind] || row.kind)) + "</span>" +
+        '<span class="title">' + esc(row.title) + "</span>" +
+        (row.sub ? '<span class="sub">' + esc(row.sub) + "</span>" : "");
+      li.addEventListener("click", function () {
+        closeResults();
+        goTo(row.lat, row.lon, row.kind === "place" ? row.title : row.title.replace(/\s*\(.*\)$/, ""));
+      });
+      li.addEventListener("mouseenter", function () {
+        box.querySelectorAll("li").forEach(function (x) { x.classList.toggle("on", x === li); });
+      });
+      box.appendChild(li);
+    });
+    var note = document.createElement("li");
+    note.className = "note src";
+    note.textContent = T("주소 검색: VWorld (국토지리정보원)");
+    box.appendChild(note);
+  }
+
+  // 팝업 첫 줄 밑의 주소. 같은 자리를 여러 번 누르므로 브라우저에도 들고 있는다.
+  var addressMemo = {};
+
+  function addressFor(lon, lat) {
+    var key = lat.toFixed(5) + "," + lon.toFixed(5);
+    if (!addressMemo[key]) {
+      addressMemo[key] = fetch(BASE + "whereis/?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5))
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .catch(function () { return {}; });
+    }
+    return addressMemo[key];
   }
 
   function wireUpload() {

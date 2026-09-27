@@ -24,4 +24,6 @@ urlpatterns = [
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
 
     path("coords/parse/", views.coord_parse, name="coord-parse"),
+    path("search/", views.place_search, name="place-search"),
+    path("whereis/", views.whereis, name="whereis"),
 ]

@@ -196,8 +196,16 @@ EN = {
     "올리지 못했다": "Upload failed",
 
     # 좌표 막대
-    "좌표를 찍어 이동 — 37.5665, 126.978 또는 37°30&#39;N 127°E":
-        "Go to coordinates — 37.5665, 126.978 or 37°30&#39;N 127°E",
+    "좌표·주소·장소로 이동 — 36.378, 127.362 · 과학로 124 · 가정동":
+        "Go to coordinates, address or place — 36.378, 127.362 · a Korean address or place name",
+    "행정구역": "District",
+    "도로명": "Road address",
+    "지번": "Parcel",
+    "장소": "Place",
+    "찾는 중…": "Searching…",
+    "찾지 못했다": "Search failed",
+    "찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다": "Nothing found — try an address, place or district",
+    "주소 검색: VWorld (국토지리정보원)": "Address search: VWorld (National Geographic Information Institute)",
     "간다": "Go",
     "십진도와 도분초를 오간다": "Switch between decimal degrees and DMS",
     "좌표로 읽지 못했다": "Not a coordinate I can read",
@@ -253,6 +261,8 @@ EN = {
     "한 번에 {n}점까지 저장한다": "Up to {n} points can be saved at once",
     "쓸 만한 좌표가 없다": "No usable coordinates",
     "상류에서 받지 못했다": "Could not get it from the source",
+    "주소 검색이 꺼져 있다 — VWorld 열쇠가 없다": "Address search is off — no VWorld key",
+    "VWorld 가 답하지 않는다": "VWorld is not responding",
 
     # 업로드 알림 (pointsets.py)
     "글자를 읽지 못했다. UTF-8 이나 CP949 로 저장해 다시 올린다.":

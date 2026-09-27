@@ -252,8 +252,9 @@
   <div id="scalebar"></div>
 
   <div id="coordbar">
+    <ul id="search-results" class="search-results" hidden></ul>
     <form id="goto-form">
-      <input id="goto-input" type="text" placeholder="{% t "좌표를 찍어 이동 — 37.5665, 126.978 또는 37°30&#39;N 127°E" %}">
+      <input id="goto-input" type="text" placeholder="{% t "좌표·주소·장소로 이동 — 36.378, 127.362 · 과학로 124 · 가정동" %}" autocomplete="off">
       <button type="submit">{% t "간다" %}</button>
     </form>
     <button id="dms-toggle" type="button" title="{% t "십진도와 도분초를 오간다" %}">{% t "도분초" %}</button>

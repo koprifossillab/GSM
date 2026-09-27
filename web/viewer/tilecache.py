@@ -61,6 +61,11 @@ def key_for(kind: str, params: dict) -> str:
     return hashlib.sha256("&".join(parts).encode("utf-8")).hexdigest()
 
 
+def key_text(kind: str, text: str) -> str:
+    """검색어처럼 WMS 변수가 아닌 것의 열쇠. `kind` 로 갈래를 가른다."""
+    return hashlib.sha256(f"{kind}&{text.strip().lower()}".encode("utf-8")).hexdigest()
+
+
 def _path(key: str, suffix: str = ".png") -> Path:
     # 두 자씩 두 번 갈라 담는다. 한 디렉토리에 수십만 개가 쌓이면
     # 디렉토리 읽기 자체가 느려진다.
