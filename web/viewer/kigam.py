@@ -42,14 +42,25 @@ def has_key() -> bool:
     return bool(settings.KIGAM_KEY) or settings.DEV_DIRECT_WMS
 
 
-def _endpoint():
+#: `/openapi/wms` 가 막아둔 요청. 이것만은 인증키가 있어도 GeoServer 로 간다.
+#: 2026-09-27 에 키를 받아 대조해 보니 `GetMap`·`GetLegendGraphic` 은 되고
+#: `GetFeatureInfo` 는 형식·판을 바꿔도 500 이었다 — 문서의 "`REQUEST=GetMap`
+#: 고정" 이 그 뜻이다. 속성을 못 읽는 뷰어는 반쪽이라 이것만 갈라 보낸다.
+#: devlog 006 을 볼 것. `/openapi/wms` 가 열어주면 여기서 지운다.
+DIRECT_REQUESTS = {"getfeatureinfo"}
+
+
+def _endpoint(request: str = ""):
     """이번 요청이 나갈 주소와, 레이어명에 붙일 워크스페이스 접두사.
 
     문서화된 `/openapi/wms` 는 접두사 없는 이름(`L_250K_Geology_Map`)을 받고,
     GeoServer 로 곧장 갈 때는 워크스페이스가 필요하다
     (`geoOpen:L_250K_Geology_Map`). 갈리는 자리를 여기 하나로 모은다.
+
+    GeoServer 로 가는 것은 둘이다 — 개발 스위치가 켜졌을 때, 그리고
+    `/openapi/wms` 가 막아둔 요청(`DIRECT_REQUESTS`)일 때.
     """
-    if settings.DEV_DIRECT_WMS:
+    if settings.DEV_DIRECT_WMS or request.lower() in DIRECT_REQUESTS:
         return settings.CAPABILITIES_URL, f"{OPEN_WORKSPACE}:"
     return settings.WMS_URL, ""
 
@@ -98,10 +109,15 @@ def _qualify(params: dict, prefix: str) -> dict:
 
 
 def _get(params: dict, *, stream=False):
-    url, prefix = _endpoint()
+    request = str(params.get("request", ""))
+    url, prefix = _endpoint(request)
     sent = _qualify(params, prefix)
     if settings.DEV_DIRECT_WMS:
         log.debug("개발 스위치로 GeoServer 에 곧장 간다")
+    elif request.lower() in DIRECT_REQUESTS:
+        # 키를 붙이지 않는다 — GeoServer 는 묻지 않고, 묻지 않는 곳에
+        # 키를 흘릴 까닭이 없다
+        log.debug("%s 은 /openapi/wms 가 막아 GeoServer 로 간다", request)
     elif settings.KIGAM_KEY:
         sent = dict(sent, key=settings.KIGAM_KEY)
     else:
@@ -134,8 +150,9 @@ def get_map(params: dict):
 def get_feature_info(params: dict) -> dict:
     """`GetFeatureInfo`. GeoJSON FeatureCollection 을 돌려준다.
 
-    문서의 요청변수 표에는 `REQUEST=GetMap` 고정이라고 적혀 있지만 이것도
-    된다 — 상류가 GeoServer 이기 때문이다. devlog 001 을 볼 것.
+    **인증키가 있어도 GeoServer 로 간다** (`DIRECT_REQUESTS`). 문서의 요청변수
+    표가 `REQUEST=GetMap` 고정이라 적은 대로 `/openapi/wms` 가 이것을 막는다.
+    devlog 001·006 을 볼 것.
     """
     r = _get(dict(params, service="WMS", request="GetFeatureInfo",
                   info_format="application/json"))

@@ -3,14 +3,15 @@
 지금 무엇을 할 수 있는지 고르는 자리다. 왜 그렇게 했는지는 `devlog/`,
 지금 어디까지 왔는지는 `HANDOFF.md`.
 
-## 인증키가 나오면 — 이것부터
+## 인증키 뒤에 남은 것
 
-- [ ] `/srv/GSM/db/kigam_key` 에 키를 적고 `/srv/GSM/db/dev_direct_wms` 를 지운다.
-      `.env` 는 root 의 것이라 못 고친다 — 명령은 HANDOFF 맨 위 "한 줄" 에 있다
-- [ ] `manage.py verify_layers` — 61 개가 `/openapi/wms` 로도 그려지는지 대조
-- [ ] `GetLegendGraphic` 이 `/openapi/wms` 로도 되는지 본다. 안 되면 범례 단추를 내린다
-- [ ] 결과를 devlog 002 에 적는다 — **몇 개가 실제로 열려 있었는지**가 요점이다
+2026-09-27 에 키가 들어와 스위치를 껐다. 61 개 전부 그려지고 범례도 되고,
+속성만 막혀 GeoServer 로 갈라 보낸다 (006).
+
 - [ ] 호출 제한에 걸리는 지점을 찾아둔다. 걸리면 `GSM_TILE_CACHE_SECONDS` 를 올린다
+- [ ] 운영 DB 에도 `verify_layers` 를 돌린다 (컨테이너 안에서)
+- [ ] 가끔 `/openapi/wms` 의 `GetFeatureInfo` 를 다시 찔러본다. 열리면
+      `kigam.DIRECT_REQUESTS` 에서 지운다
 
 ## VWorld 로 더 할 것 — 값 대비 쓸모 차례 (004)
 

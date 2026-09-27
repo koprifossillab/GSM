@@ -96,6 +96,39 @@ class Endpoint(SimpleTestCase):
         self.assertEqual(url, "https://x/mgeo/geoserver/wms")
         self.assertEqual(prefix, "geoOpen:")
 
+    @override_settings(DEV_DIRECT_WMS=False, WMS_URL="https://x/openapi/wms",
+                       CAPABILITIES_URL="https://x/mgeo/geoserver/wms")
+    def test_속성은_키가_있어도_GeoServer_로_간다(self):
+        url, prefix = kigam._endpoint("GetFeatureInfo")
+        self.assertEqual(url, "https://x/mgeo/geoserver/wms")
+        self.assertEqual(prefix, "geoOpen:")
+
+    @override_settings(DEV_DIRECT_WMS=False, WMS_URL="https://x/openapi/wms")
+    def test_타일과_범례는_문서화된_주소로_간다(self):
+        for req in ("GetMap", "GetLegendGraphic"):
+            self.assertEqual(kigam._endpoint(req), ("https://x/openapi/wms", ""))
+
+
+class KeyGoesOnlyToOpenapi(SimpleTestCase):
+    """키는 `/openapi/wms` 로만 나간다. GeoServer 로 흘리지 않는다."""
+
+    def _sent(self, request):
+        from unittest import mock
+        with mock.patch.object(kigam.requests, "get") as get:
+            get.return_value = mock.Mock(url="u", status_code=200)
+            kigam._get({"request": request, "layers": "a"})
+        return get.call_args
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False)
+    def test_타일에는_키가_붙는다(self):
+        self.assertEqual(self._sent("GetMap").kwargs["params"]["key"], "abc")
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False)
+    def test_속성에는_키가_안_붙는다(self):
+        call = self._sent("GetFeatureInfo")
+        self.assertNotIn("key", call.kwargs["params"])
+        self.assertEqual(call.kwargs["params"]["layers"], "geoOpen:a")
+
 
 class HasKey(SimpleTestCase):
     @override_settings(KIGAM_KEY="", DEV_DIRECT_WMS=False)

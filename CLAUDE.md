@@ -94,8 +94,8 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 
 | 주소 | 쓰는 자리 | 키 |
 |---|---|---|
-| `/openapi/wms` | **제품이 도는 길** (`GetMap`·`GetFeatureInfo`·`GetLegendGraphic`) | 필요 |
-| `/mgeo/geoserver/wms` | 씨앗 뽑기, 그리고 **개발 스위치를 켰을 때** | 없어도 된다 |
+| `/openapi/wms` | **제품이 도는 길** (`GetMap`·`GetLegendGraphic`) | 필요 |
+| `/mgeo/geoserver/wms` | **속성**(`GetFeatureInfo`), 씨앗 뽑기, 개발 스위치를 켰을 때 | 없어도 된다 |
 
 아래쪽은 **문서에 없는 주소다.** 오픈API 예제 소스에 주석으로 남아 있던 것을
 보고 알았다. 키를 묻지 않고 `GetMap`·`GetFeatureInfo`·`GetLegendGraphic`
@@ -110,37 +110,35 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 그래서 이렇게 갈랐다.
 
 - **제자리는 `/openapi/wms` + 인증키다.** 식별되는 쪽으로 나가는 것이 옳고,
-  문서에 없는 주소는 예고 없이 닫혀도 할 말이 없다
-- `GSM_DEV_DIRECT_WMS=1` 은 **인증키를 기다리는 동안의 임시 조치다.** 켜면
-  상류 요청이 GeoServer 로 곧장 간다. 기본값은 꺼짐이다
+  문서에 없는 주소는 예고 없이 닫혀도 할 말이 없다. 요청의 대부분인 타일이
+  이 길로 간다
+- **속성만은 GeoServer 로 간다.** 2026-09-27 에 키를 받아 대조하니
+  `/openapi/wms` 가 `GetFeatureInfo` 를 막아 두었다(500, devlog 006). 문서의
+  "`REQUEST=GetMap` 고정" 이 그 뜻이었다. 속성을 못 읽는 뷰어는 반쪽이라
+  이것만 갈랐다. 이 길에는 **키를 붙이지 않는다** — 묻지 않는 곳에 흘릴 까닭이
+  없다. 갈림은 `kigam.DIRECT_REQUESTS` 한 줄이고, `/openapi/wms` 가 열어주면
+  거기서 지운다
+- `GSM_DEV_DIRECT_WMS=1` 은 **인증키가 없을 때의 임시 조치다.** 켜면 모든
+  상류 요청이 GeoServer 로 곧장 가고 화면 맨 위에 띠가 뜬다
+  (`map.html` 의 `.warn.direct`). 기본값은 꺼짐이다. 2026-09-23~27 에는
+  배포본에서 켜 두었고, 키가 들어와 껐다
 - 씨앗 뽑기(`seed_catalog --from-upstream`)는 사람이 직접 부를 때만 간다.
   평소의 씨앗은 저장소에 든 `data/kigam_layers.json` 이다
 
-**2026-09-23 현재 배포본은 이 스위치가 켜져 있다.** 키 심사가 끝나기를
-기다리며 일을 멈출 수는 없어서다. 처음에는 "운영에서 켜지 않는다" 로 적었는데
-지키지 못했으므로 규칙을 고쳐 적는다 — **지키지 않는 규칙을 적어 두는 것이
-더 나쁘다.**
+받아둔 타일은 길이 바뀌어도 **버리지 않아도 된다** — 캐시 열쇠에 상류 주소가
+안 들어가고, 두 길이 같은 GeoServer 를 보므로 같은 그림이다 (`tilecache.py`).
 
-대신 켜져 있다는 사실이 **숨지 않게** 했다.
-
-- 화면 맨 위에 띠가 뜬다 (`map.html` 의 `.warn.direct`). 인증키가 없을 때의
-  노란 띠와 색을 달리해 "설정을 안 했다" 와 "다른 길로 받고 있다" 를 가른다
-- 로그에 `개발 스위치로 GeoServer 에 곧장 간다` 가 남는다 (`kigam._get()`)
-- 스위치 자리가 파일이라 눈에 보인다 — `/srv/GSM/db/dev_direct_wms`
-
-**키가 들어오면 할 일**은 둘뿐이다. `<DB 옆>/kigam_key` 에 키를 적고,
-`dev_direct_wms` 를 지우고 다시 띄운다. 그러면 띠가 사라진다.
-
-받아둔 타일은 **버리지 않아도 된다** — 캐시 열쇠에 상류 주소가 안 들어가고,
-두 길이 같은 GeoServer 를 보므로 같은 그림이다 (`tilecache.py`).
-
-스위치가 켜지면 레이어명에 워크스페이스 접두사(`geoOpen:`)가 붙는다 —
+GeoServer 로 갈 때는 레이어명에 워크스페이스 접두사(`geoOpen:`)가 붙는다 —
 GeoServer 는 그것을 요구하고 `/openapi/wms` 는 접두사 없는 이름을 받는다.
 그 갈림은 `kigam._endpoint()` 와 `kigam._qualify()` 둘이 맡는다.
 
 문서화된 `/openapi/wms` 는 `GetCapabilities` 를 막아놨다(400). 그래서 카탈로그를
-제품 스스로 새로 고칠 길이 지금은 없다. 키가 나오면 `/openapi/wms` 로 레이어가
-실제로 그려지는지 한 장씩 대조하고, 그 결과를 `Layer.verified_at` 에 남긴다.
+제품 스스로 새로 고칠 길이 지금은 없다. 대신 `manage.py verify_layers` 가
+레이어를 한 장씩 받아보고 `Layer.verified_at` 에 남긴다 — 2026-09-27 에 61 개
+전부 그려졌다.
+
+**상류 방화벽은 curl 의 User-Agent 를 막는다**(400 `Request Blocked`). 손으로
+찔러볼 때는 `curl -A 'GSM/0.1'` 을 붙인다. 코드는 늘 `GSM/0.1` 을 보낸다.
 
 ## 받아온 것의 순위 — 새 것이 이긴다
 

@@ -3,25 +3,18 @@
 이 문서는 **지금 어디까지 왔고 다음이 무엇인지** 한 곳에서 답한다.
 왜 그렇게 했는지는 `devlog/`, 무엇이 언제 붙었는지는 `CHANGELOG.md`.
 
-마지막으로 손본 날: **2026-09-23**
+마지막으로 손본 날: **2026-09-27**
 
 ## 한 줄
 
-**배포했다.** `http://paleolab/GSM/` 에 서 있다 (짧은 주소 `/geomap/`).
-다만 아직 **인증키 없이** — 임시 스위치를 켜고 GeoServer 로 곧장 가서
-지도를 받는다. 화면 맨 위에 그 사실이 띠로 떠 있다.
+**배포했고, 인증키로 돈다.** `http://paleolab/GSM/` 에 서 있다 (짧은 주소 `/geomap/`).
+2026-09-27 에 키가 들어와 임시 스위치를 껐다. 타일·범례는 `/openapi/wms` +
+키로, **속성만 GeoServer 로** 받는다 — `/openapi/wms` 가 `GetFeatureInfo` 를
+막아 두었기 때문이다 (devlog 006).
 
-**키가 들어오면 할 일**
-
-```bash
-echo '<받은 키>' > /srv/GSM/db/kigam_key
-rm /srv/GSM/db/dev_direct_wms
-cd /srv/GSM && GSM_TAG=v0.3.1 docker compose up -d --force-recreate web
-cd /home/sclee/projects/GSM/web && python manage.py verify_layers
-```
-
-`/srv/GSM/.env` 는 root 의 것이라 못 고친다. 그래서 설정을 **DB 옆 파일**로도
-읽게 해 두었다 — `kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
+키는 `/srv/GSM/db/kigam_key` 에 있다. `/srv/GSM/.env` 는 root 의 것이라 못
+고쳐서 설정을 **DB 옆 파일**로도 읽게 해 두었다 —
+`kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
 
 ## 돌려보는 법
 
@@ -37,18 +30,19 @@ python manage.py runserver
 
 ### 지금의 .env
 
-인증키가 없으므로 임시 스위치를 켜 두었다.
+로컬에서도 키를 채우고 스위치를 끈다. 키가 없으면 `GSM_DEV_DIRECT_WMS=1` 로
+돌려볼 수 있다 (화면 맨 위에 띠가 뜬다).
 
 ```
-GSM_KIGAM_KEY=
-GSM_DEV_DIRECT_WMS=1
+GSM_KIGAM_KEY=<받은 키>
+GSM_DEV_DIRECT_WMS=0
 ```
 
 둘의 갈래는 CLAUDE.md 의 "두 개의 상류 주소".
 
 ## 무엇이 확인됐나
 
-2026-09-23 에 직접 받아본 것들이다. 임시 스위치를 켠 상태였다.
+2026-09-23 에 임시 스위치로, 2026-09-27 에 인증키로 직접 받아본 것들이다.
 
 | | |
 |---|---|
@@ -58,33 +52,20 @@ GSM_DEV_DIRECT_WMS=1
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 83 개 다 돈다 (`manage.py test viewer`) |
+| 시험 | 117 개 다 돈다 (`manage.py test viewer`) |
+| 오픈API | 키로 61 개 전부 그려진다. 범례도 된다. **속성은 막혀 있다** (006) |
 | 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 | 배경지도 | VWorld `Base`·`Satellite`·`Hybrid` 200. 자리 차례는 `z/y/x` (003) |
 
 ## 무엇이 아직 아닌가
 
-- **`/openapi/wms` 로는 한 번도 못 받아봤다.** 키가 없어서다. 카탈로그의 61 개가
-  거기서도 그려지는지는 **모른다** — `GetCapabilities` 에 있다고 오픈API 로
-  열려 있다는 보장이 없다. `Layer.verified_at` 이 전부 비어 있는 것이 그 뜻이다
-- **`GetLegendGraphic` 이 `/openapi/wms` 로도 되는지 모른다.** 문서에 없는
-  기능이라 프록시 쪽에서 막아둘 수도 있다. 안 되면 범례 단추를 내려야 한다
+- **속성이 문서에 없는 주소에 기대고 있다.** `/mgeo/geoserver/wms` 가 닫히면
+  클릭 속성이 멈춘다 (타일은 그대로 돈다). 그때는 `kigam.DIRECT_REQUESTS` 를
+  보고, `/openapi/wms` 가 열렸는지 다시 찔러본다
 - 호출 제한의 실제 수치를 모른다. 문서는 "지나치게 잦은 호출" 이라고만 적었다.
   타일 캐시를 둔 것이 이 때문이다 (브라우저 쪽 하루, 디스크 쪽 30 일·2 GB)
-- 판은 `v0.3.1` 까지 붙었다. 태그는 GitHub 에 밀었고, 이미지는
-  `koprifossillab/gsm:v0.3.1` 로 Docker Hub 에 있다. 판 이력은 `CHANGELOG.md`
-
-## 키가 나오면 — 차례대로
-
-1. `/srv/GSM/db/kigam_key` 에 키를 적고 `dev_direct_wms` 를 지운 뒤 다시 띄운다
-   (`.env` 는 root 의 것이라 못 고친다. 맨 위 "한 줄" 의 명령 묶음을 볼 것)
-2. `cd web && python manage.py verify_layers`
-   레이어 61 개를 한 장씩 받아보고 `verified_at` 에 날짜를 남긴다.
-   안 그려지는 것은 `enabled=False` 로 내려가고 까닭이 `verify_note` 에 남는다.
-   **한 장 사이에 0.5 초를 쉰다** — 이용제한을 생각한 것이다
-3. 범례가 되는지 본다. 화면에서 아무 레이어나 켜고 `범` 단추를 누른다
-4. 결과를 devlog 002 에 적는다. 특히 **몇 개가 실제로 열려 있었는지**
-5. `CHANGELOG.md` 에 다음 판(v0.3.2)을 적고 판을 붙인다
+- 운영 DB 의 `Layer.verified_at` 은 아직 비어 있다. 대조는 로컬 DB 에 대고
+  했다 — 운영에서 돌리려면 컨테이너 안에서 `python manage.py verify_layers`
 
 ## 알아두면 좋은 것
 
@@ -147,4 +128,4 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 
 ## 걸린 것 — 없음
 
-지금 막힌 것은 없다. 인증키만 기다린다.
+지금 막힌 것은 없다.
