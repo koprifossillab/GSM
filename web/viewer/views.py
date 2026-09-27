@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, geus, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, geomap, geus, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -153,14 +153,28 @@ def _catalog(lang="ko"):
             "title": i18n.LAYER_EN.get(l.name, l.title) if en else l.title,
             "bbox": l.bbox,
             "queryable": l.queryable,
-            "verified": bool(l.verified_at),
+            # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
+            "verified": bool(l.verified_at) or l.upstream == "geomap",
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
+            # 어느 문으로 그리나. 화면이 이것을 보고 타일 소스를 고른다 —
+            # geomap 은 WMS 가 아니라 우리 3031 타일 격자다 (geomap.py)
+            "upstream": l.upstream,
+            **_layer_extra(l),
         } for l in group.layers.filter(enabled=True)]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
             groups.append({"name": name, "region": group.region, "layers": layers})
     return groups
+
+
+def _layer_extra(layer) -> dict:
+    """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처."""
+    if layer.upstream == "geomap":
+        return {"attribution": geomap.ATTRIBUTION,
+                "tiles": f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png",
+                "projection": "EPSG:3031"}
+    return {}
 
 
 @require_GET
@@ -188,7 +202,7 @@ def catalog_json(request):
 # 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`), 그린란드는
 # GEUS(`geus.py`). 캐시·옛것 내주기·안내 타일은 둘이 같이 쓴다.
 
-UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError)
+UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, geomap.GeomapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -202,13 +216,31 @@ def _upstream_of(layers: str) -> str:
 
 
 class _Door:
-    """상류 하나의 get_map·get_feature_info·get_legend 와 인증키가 필요한지."""
+    """상류 하나의 get_map·get_feature_info·get_legend 와, 지금 쓸 수 있는지.
+
+    geomap 은 상류가 아니라 **우리 디스크의 파일**이다(`local`). 받아온 것이
+    아니므로 속성·범례를 캐시에 담지 않는다 — 파일에서 읽는 편이 빠르고,
+    판을 갈면 곧바로 새 것이 보인다.
+    """
+
+    MODULES = {"kigam": kigam, "geus": geus, "geomap": geomap}
 
     def __init__(self, upstream):
-        self.name = upstream
-        mod = geus if upstream == "geus" else kigam
+        self.name = upstream if upstream in self.MODULES else "kigam"
+        mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
-        self.ready = True if upstream == "geus" else kigam.has_key()
+        self.local = self.name == "geomap"
+        if self.name == "geus":
+            self.ready = True
+        elif self.local:
+            self.ready = geomap.available()
+        else:
+            self.ready = kigam.has_key()
+
+    def not_ready_message(self):
+        if self.local:
+            return msg("남극 지질도 자료(GeoMAP)가 서버에 없다")
+        return msg("인증키가 없다")
 
 
 @require_GET
@@ -225,6 +257,10 @@ def wms(request):
 
     params.setdefault("format", "image/png")
     params.setdefault("transparent", "true")
+
+    # 남극(GeoMAP)은 우리가 그린다. 이름으로 가른다 — 한국 타일마다 DB 를 묻지 않으려고
+    if (params.get("layers") or "").split(",")[0].strip() in geomap.LAYERS:
+        return _geomap_wms(params, width, height)
 
     # 들고 있으면 상류에 묻지 않는다. **인증키가 없어도 캐시는 내준다** —
     # 이미 받아둔 그림이고, 다시 받을 일이 없으니 막을 까닭이 없다.
@@ -261,6 +297,53 @@ def wms(request):
     return response
 
 
+def _geomap_wms(params, width, height):
+    """GeoMAP 을 WMS `GetMap` 꼴로 (3031 만). 화면은 보통 `geomap_tile` 을 부른다."""
+    if not geomap.available():
+        return _tile(tiles.notice_tile(width, height, tiles.NO_DATA), store=False)
+    try:
+        content, _ = geomap.get_map(params)
+    except geomap.GeomapError as exc:
+        log.info("GeoMAP 을 그리지 못했다: %s", exc)
+        return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
+    return _tile(content)
+
+
+@require_GET
+def geomap_tile(request, layer, z, x, y, retina=None):
+    """남극 지질도 타일 — `geomap/<레이어>/<z>/<x>/<y>.png` (`@2x` 면 512 px).
+
+    격자는 EPSG:3031 고정이다 (`geomap.py` 머리글). 그린 것은 캐시에 담고 스스로
+    지우지 않는다 — 다른 타일과 같다. 열쇠에 자료의 판과 `geomap.RENDERER` 가
+    들어 있어, 판을 갈거나 그리는 법을 고치면 새로 그린다.
+    """
+    z, x, y = int(z), int(x), int(y)
+    size = geomap.TILE * (2 if retina else 1)
+    if layer not in geomap.LAYERS or not geomap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    if not geomap.available():
+        return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
+
+    key = tilecache.key_text("geomap", f"{layer}/{geomap.data_version()}/r{geomap.RENDERER}"
+                                       f"/{z}/{x}/{y}/{size}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = geomap.render(layer, geomap.tile_bbox(z, x, y), size, size)
+    except (geomap.GeomapError, OSError, ValueError) as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
 def _tile(png: bytes, *, cached: bool = False, store: bool = True):
     """안내 타일과 캐시에서 꺼낸 타일을 같은 문으로 내보낸다.
 
@@ -292,13 +375,13 @@ def feature_info(request):
     # 속성도 담아 둔다. 같은 자리를 다시 누르면 상류를 타지 않는다 —
     # 지도 범위와 누른 픽셀이 같아야 맞으므로 타일만큼 자주 맞지는 않는다
     cache_key = tilecache.key_for("info", params)
-    data = _cached_json(cache_key)
     door = _Door(_upstream_of(params.get("query_layers") or params.get("layers")))
+    data = None if door.local else _cached_json(cache_key)
     if data is None:
         if not door.ready:
-            data = _cached_json(cache_key, stale=True)
+            data = None if door.local else _cached_json(cache_key, stale=True)
             if data is None:
-                return JsonResponse({"error": i18n.t(msg("인증키가 없다"), lang), "features": []},
+                return JsonResponse({"error": i18n.t(door.not_ready_message(), lang), "features": []},
                                     status=503)
         else:
             try:
@@ -311,7 +394,8 @@ def feature_info(request):
                     return JsonResponse({"error": error, "features": []},
                                         status=502)
             else:
-                _store_json(cache_key, data)
+                if not door.local:
+                    _store_json(cache_key, data)
 
     # 같은 것이 여러 번 온다. 지질도는 폴리곤이 겹쳐 놓인 자리가 많고,
     # 클릭 한 점이 아니라 몇 픽셀 둘레를 물어보기 때문이다. 사람에게는
@@ -366,6 +450,9 @@ def legend(request):
     if not layer:
         return JsonResponse({"error": i18n.t(msg("layer 가 없다"), i18n.lang_of(request))}, status=400)
 
+    if layer in geomap.LAYERS:
+        return _geomap_legend(request, layer)
+
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
     # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.
     cache_key = tilecache.key_for("legend", {"layer": layer})
@@ -392,6 +479,20 @@ def legend(request):
         return JsonResponse({"error": str(exc)},
                             status=503 if not door.ready else 502)
     tilecache.put(cache_key, content)
+    response = HttpResponse(content, content_type=ctype)
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _geomap_legend(request, layer):
+    """GeoMAP 범례는 스타일 표에서 그때그때 그린다 — 파일도 상류도 타지 않는다."""
+    try:
+        content, ctype = geomap.get_legend(layer)
+    except (geomap.GeomapError, OSError, ValueError) as exc:
+        log.info("GeoMAP 범례를 그리지 못했다 (%s): %s", layer, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), i18n.lang_of(request))},
+                            status=500)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

@@ -43,15 +43,19 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"카탈로그 {len(layers)}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
-        # 다른 지역의 씨앗 (그린란드 — GEUS). 상류를 타지 않고 저장소의 표만 쓴다
-        geus = settings.GEUS_CATALOG_SEED
-        if geus.exists():
-            gseed = json.loads(geus.read_text(encoding="utf-8"))
+        # 다른 지역의 씨앗 (그린란드 — GEUS, 남극 — GeoMAP). 상류를 타지 않고
+        # 저장소의 표만 쓴다
+        for label, path, region, upstream in (
+                ("그린란드", settings.GEUS_CATALOG_SEED, "greenland", "geus"),
+                ("남극", settings.GEOMAP_CATALOG_SEED, "antarctica", "geomap")):
+            if not path.exists():
+                continue
+            gseed = json.loads(path.read_text(encoding="utf-8"))
             made, touched = self._apply(gseed["레이어"], gseed["레이어군순서"], options["reset_titles"],
-                                        region=gseed.get("_지역", "greenland"),
-                                        upstream=gseed.get("_상류", "geus"))
+                                        region=gseed.get("_지역", region),
+                                        upstream=gseed.get("_상류", upstream))
             self.stdout.write(self.style.SUCCESS(
-                f"그린란드 {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
+                f"{label} {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
 
         unverified = Layer.objects.filter(verified_at__isnull=True, upstream="kigam").count()
         if unverified:

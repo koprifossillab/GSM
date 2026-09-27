@@ -380,6 +380,9 @@ EN = {
         "One shape has {n} vertices — too many (limit {max}).",
     "꼭짓점이 모두 {max}개를 넘는다. 파일을 나눠 올린다.":
         "More than {max} vertices in total. Split the file and upload again.",
+    # 남극 지질도 (geomap.py)
+    "남극 지질도 자료(GeoMAP)가 서버에 없다": "The Antarctic geology data (GeoMAP) is not on the server",
+    "그런 타일은 없다": "No such tile",
 }
 
 
@@ -439,6 +442,27 @@ PROP_EN = {
     "지질 단위": "Geological unit",
     "최소 연대 (Ma)": "Minimum age (Ma)",
     "최대 연대 (Ma)": "Maximum age (Ma)",
+    # 남극 GeoMAP 속성 (geomap.PROPS)
+    "암상": "Lithology",
+    "간추린 지질": "Simplified geology",
+    "연대 (Ma)": "Age (Ma)",
+    "노두 갈래": "Outcrop type",
+    "층서 단위": "Stratigraphic rank",
+    "지역": "Region",
+    "신뢰도": "Confidence",
+    "관찰 방법": "Observation method",
+    "위치 정확도 (m)": "Positional accuracy (m)",
+    "출처 문헌": "Reference",
+    "이름": "Name",
+    "단층 갈래": "Fault type",
+    "노출": "Exposure",
+    "위치 정확성": "Location accuracy",
+    "운동 갈래": "Movement type",
+    "경사 (°)": "Dip (°)",
+    "경사 방향 (°)": "Dip direction (°)",
+    "자료 품질 (1–5)": "Data quality (1–5)",
+    "노두": "Outcrop",
+    "자료": "Dataset",
 }
 
 
@@ -551,6 +575,8 @@ GROUP_EN = {
     "야외 관찰": "Field observations",
     "지화학": "Geochemistry",
     "탄성파 탐사": "Seismic surveys",
+    # 남극 (GeoMAP)
+    "GeoMAP 지질도": "GeoMAP geological maps",
 }
 
 LAYER_EN = {
@@ -626,4 +652,10 @@ LAYER_EN = {
     "seismic_lines_grl": "Seismic lines",
     "seismic_3d_surveys_grl": "3D seismic surveys",
     "seismic_csem_grl": "CSEM lines",
+    # 남극 (SCAR GeoMAP)
+    "geomap_simple_geology": "Geology (simplified)",
+    "geomap_chronostratigraphic": "Chronostratigraphy",
+    "geomap_simple_lithology": "Lithology (simplified)",
+    "geomap_faults": "Faults",
+    "geomap_quality": "Data quality",
 }
