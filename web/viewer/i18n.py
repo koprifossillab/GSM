@@ -155,6 +155,8 @@ EN = {
     "VWorld 야간": "VWorld night",
     "VWorld 위성": "VWorld satellite",
     "국토지리정보원": "National Geographic Information Institute",
+    "국토지리정보원 · VWorld": "NGII · VWorld",
+    "구분 {value}": "Class {value}",
     "국토지리정보원. 지질도 밑에 깔기 좋다":
         "National Geographic Information Institute. Good under geological maps",
     "국토지리정보원. 지명을 끄고 켤 수 있다":
@@ -439,6 +441,22 @@ PROP_EN = {
     "지질 단위": "Geological unit",
     "최소 연대 (Ma)": "Minimum age (Ma)",
     "최대 연대 (Ma)": "Maximum age (Ma)",
+    # VWorld 속성 (vworld.FRIENDLY) — "지질 참고" 레이어군, devlog 020
+    "구분": "Class",
+    "길이 (m)": "Length (m)",
+    "수문지질단위": "Hydrogeologic unit",
+    "시도": "Province",
+    "시군구": "City / county",
+    "읍면동": "Town / township",
+    "리": "Village (ri)",
+    "행정구역": "Administrative area",
+    "지구": "Zone",
+    "산": "Mountain",
+    "구간": "Section",
+    "난이도": "Difficulty",
+    "지명": "Place name",
+    "하천명": "River",
+    "하천 등급": "River class",
 }
 
 
@@ -547,6 +565,7 @@ GROUP_EN = {
     "해저지질도": "Marine geological maps",
     "동위원소 연대지도": "Isotope age maps",
     "그 밖": "Other",
+    "지질 참고": "Geological reference",
     # 그린란드 (GEUS)
     "야외 관찰": "Field observations",
     "지화학": "Geochemistry",
@@ -615,6 +634,18 @@ LAYER_EN = {
     "medical_clay": "Medical clay",
     "G_tectonic": "Tectonic map",
     "outcrop_korea": "Geological outcrops of Korea",
+    # 지질 참고 (VWorld)
+    "lt_l_gimsfault": "Faults",
+    "lt_l_gimslinea": "Geological lineaments",
+    "lt_c_gimshydro": "Hydrogeologic units",
+    "lt_c_uj401": "Hot spring zones",
+    "lt_l_frstclimb": "Hiking trails",
+    "lt_p_nsnmssitenm": "National place names",
+    "lt_c_wkmstrm": "Stream network",
+    "lt_c_adsido": "Boundaries — provinces",
+    "lt_c_adsigg": "Boundaries — cities & counties",
+    "lt_c_ademd": "Boundaries — towns & townships",
+    "lt_c_adri": "Boundaries — villages (ri)",
     # 그린란드 (GEUS)
     "grl_g500_lithostr_search": "1:500K geology (lithostratigraphy)",
     "lithologies": "Field lithology observations",

@@ -14,6 +14,8 @@ urlpatterns = [
     path("featureinfo/", views.feature_info, name="featureinfo"),
 
     path("legend/", views.legend, name="legend"),
+    # 벡터 레이어(단층)의 모양. 1° 칸 하나씩 (devlog 020)
+    path("vector/", views.vector, name="vector"),
 
     path("catalog/", views.catalog_json, name="catalog"),
     path("patchnotes/", views.patch_notes, name="patchnotes"),

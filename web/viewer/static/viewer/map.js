@@ -94,7 +94,146 @@
       transition: 0,
       // 상류 부하를 줄인다. 타일 하나가 작을수록 요청이 는다.
       tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
+      attributions: sourceNote(name) || undefined,
     });
+  }
+
+  /** 레이어의 출처 표기. KIGAM·GEUS 는 비워 둔다 — 레이어 이름이 곧 출처다.
+   *  "지질 참고" 는 VWorld(국토지리정보원)에서 오므로 밝힌다 (devlog 020). */
+  function sourceNote(name) {
+    var row = byName[name];
+    return row && row.upstream === "vworld" ? T("국토지리정보원 · VWorld") : "";
+  }
+
+  /** 켤 레이어 하나를 만든다. 타일(WMS)이 거의 전부이고, 벡터는 따로 짓는다. */
+  function makeLayer(name) {
+    var row = byName[name];
+    if (row && row.kind === "vector") return vectorLayerFor(row);
+    return new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY });
+  }
+
+  // ── 벡터 레이어 — 모양을 받아 우리가 그린다 ─────────────────────
+  //
+  // 타일이 아니라 모양(GeoJSON)을 서버(`./vector/`)에서 받는다. 선 색·굵기를
+  // 우리가 정하므로 어느 줌에서도 또렷하고, 누르면 그 선의 속성이 곧장 뜬다
+  // (상류를 다시 안 탄다). 지금은 단층 하나다 (devlog 020).
+  //
+  // **위경도 칸(`row.cell`, 1°)으로 나눠 받는다.** 칸 이름은 좌표계와 상관이
+  // 없어서 지역마다 투영이 달라도 같은 칸을 같은 주소로 부른다 — 브라우저·서버
+  // 캐시가 그대로 맞는다. 받은 칸은 다시 받지 않는다. 칸 경계를 넘는 선은 양쪽
+  // 칸에 다 오는데, 모양의 `id` 가 같아 소스가 하나만 둔다.
+
+  //: 레이어마다 선을 어떻게 그리나. `by` 열의 값으로 가른다.
+  //  단층의 `legend` 는 VWorld 가 뜻을 밝히지 않았다 — 1 이 거의 전부(2259)이고
+  //  2(155)는 경상분지에 몰린 짧은 선이다. 뜻을 모르니 이름을 지어 붙이지 않고
+  //  값 그대로 적되, 눈으로 갈리게 2 를 끊은 선으로 그린다.
+  var VECTOR_STYLES = {
+    lt_l_gimsfault: {
+      by: "legend",
+      classes: {
+        "1": { color: "#8a0a1e", width: 2, dash: null },
+        "2": { color: "#8a0a1e", width: 2, dash: [7, 5] },
+      },
+      other: { color: "#6b3a2a", width: 1.4, dash: null },
+    },
+  };
+  var DEFAULT_VECTOR_STYLE = { color: "#b3202a", width: 1.6, dash: null };
+  var vectorStyleCache = {};
+
+  function vectorStyleOf(spec) {
+    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "");
+    if (!vectorStyleCache[key]) {
+      vectorStyleCache[key] = [
+        // 밑에 흰 테두리 — 지질도 색 위에서도 선이 묻히지 않게
+        new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.75)", width: spec.width + 2.4 }) }),
+        new ol.style.Style({ stroke: new ol.style.Stroke({ color: spec.color, width: spec.width, lineDash: spec.dash || undefined }) }),
+      ];
+    }
+    return vectorStyleCache[key];
+  }
+
+  function vectorSpec(name, feature) {
+    var table = VECTOR_STYLES[name];
+    if (!table) return DEFAULT_VECTOR_STYLE;
+    var value = feature ? String(feature.get(table.by)) : "";
+    return table.classes[value] || table.other || DEFAULT_VECTOR_STYLE;
+  }
+
+  /** 켤 벡터 레이어 하나. `row` 는 카탈로그 행 (`kind: "vector"`). */
+  function vectorLayerFor(row) {
+    var cell = row.cell || 1;
+    var loaded = {};                 // 받은(또는 받는 중인) 칸
+    var format = new ol.format.GeoJSON();
+    var source = new ol.source.Vector({
+      attributions: sourceNote(row.name) || undefined,
+      strategy: ol.loadingstrategy.bbox,
+      loader: function (extent, resolution, projection, success, failure) {
+        var ll = ol.proj.transformExtent(extent, projection, "EPSG:4326");
+        var box = row.bbox || [-180, -90, 180, 90];
+        var west = Math.max(ll[0], box[0]), south = Math.max(ll[1], box[1]);
+        var east = Math.min(ll[2], box[2]), north = Math.min(ll[3], box[3]);
+        var cells = [];
+        if (west < east && south < north) {
+          for (var x = Math.floor(west / cell) * cell; x < east; x += cell) {
+            for (var y = Math.floor(south / cell) * cell; y < north; y += cell) {
+              var id = x + "," + y;
+              if (!loaded[id]) cells.push([x, y]);
+            }
+          }
+        }
+        // 세계가 다 들어오는 줌에서 한꺼번에 부르지 않는다. 레이어 범위가
+        // 있으면 이 한계에 닿을 일이 없다 (남한은 50 칸 남짓)
+        if (cells.length > 80) { success([]); return; }
+        if (!cells.length) { success([]); return; }
+        var pending = cells.length, got = [], failed = false;
+        cells.forEach(function (c) {
+          var id = c[0] + "," + c[1];
+          loaded[id] = true;
+          var url = BASE + "vector/?layer=" + encodeURIComponent(row.name) +
+            "&lon=" + c[0] + "&lat=" + c[1] + "&lang=" + LANG;
+          fetch(url)
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+              got = got.concat(format.readFeatures(data, { dataProjection: "EPSG:4326", featureProjection: projection }));
+            })
+            .catch(function () { delete loaded[id]; failed = true; })   // 다음에 다시 묻는다
+            .then(function () {
+              pending -= 1;
+              if (pending) return;
+              source.addFeatures(got);
+              if (failed && !got.length) failure(); else success(got);
+            });
+        });
+      },
+    });
+    var layer = new ol.layer.Vector({
+      source: source,
+      opacity: DEFAULT_OPACITY,
+      style: function (feature) { return vectorStyleOf(vectorSpec(row.name, feature)); },
+    });
+    // 누른 자리의 속성을 팝업에 올릴 때 이 표식으로 가려낸다 (`onClick`)
+    layer.set("gsmVector", row.name);
+    return layer;
+  }
+
+  /** 벡터 레이어의 범례 — 우리가 그리니 우리가 적는다. 상류 범례는 우리 색과 다르다. */
+  function vectorLegend(name) {
+    var table = VECTOR_STYLES[name];
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    var rows = table ? Object.keys(table.classes).map(function (value) {
+      return { spec: table.classes[value], label: T("구분 {value}", { value: value }) };
+    }) : [{ spec: DEFAULT_VECTOR_STYLE, label: byName[name] ? byName[name].title : name }];
+    rows.forEach(function (r) {
+      var line = document.createElement("div");
+      line.className = "vector-legend-row";
+      var svg = '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
+        r.spec.color + '" stroke-width="' + r.spec.width + '"' +
+        (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
+      line.innerHTML = svg + "<span>" + esc(r.label) + "</span>";
+      box.appendChild(line);
+    });
+    return box;
   }
 
   /** 배경지도.
@@ -377,7 +516,7 @@
       title: row.title,
       opacity: DEFAULT_OPACITY,
       legendOpen: false,
-      layer: new ol.layer.Tile({ source: wmsSource(name), opacity: DEFAULT_OPACITY }),
+      layer: makeLayer(name),
     });
     restack();
   }
@@ -590,7 +729,17 @@
 
       li.append(head, foot);
 
-      if (entry.legendOpen) {
+      var src = sourceNote(entry.name);
+      if (src) {
+        var srcLine = document.createElement("p");
+        srcLine.className = "active-src";
+        srcLine.textContent = src;
+        li.appendChild(srcLine);
+      }
+
+      if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "vector") {
+        li.appendChild(vectorLegend(entry.name));
+      } else if (entry.legendOpen) {
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
@@ -1138,7 +1287,15 @@
     var parts = [];
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
-    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+    map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+      // 벡터 레이어(단층)의 선. 속성은 서버가 팝업에 맞춰 곁들여 보냈다
+      var vectorName = layer && layer.get("gsmVector");
+      if (vectorName) {
+        var row = byName[vectorName];
+        parts.push({ title: row ? row.title : vectorName,
+                     props: feature.get("_popup") || plain(feature.getProperties()) });
+        return;
+      }
       if (feature.get("no") !== undefined && feature.get("lat") !== undefined) {
         parts.push({
           title: T("찍은 점 {n}", { n: feature.get("no") }),
@@ -1159,13 +1316,16 @@
       },
     });
 
+    // 벡터 레이어는 위에서 이미 읽었다 — 서버에 속성을 다시 묻지 않는다
     var queryable = active.filter(function (e) {
       var row = byName[e.name];
-      return row && row.queryable;
+      return row && row.queryable && row.kind !== "vector";
     });
 
     if (!queryable.length) {
-      showPopup(evt.coordinate, parts, parts.length ? "" : T("켠 레이어가 없다"));
+      // 벡터 레이어만 켜 두고 선을 비껴 누른 것이면 "켠 것이 없다" 가 아니다
+      showPopup(evt.coordinate, parts, parts.length ? ""
+        : active.length ? T("이 자리에는 아무것도 없다") : T("켠 레이어가 없다"));
       return;
     }
 
@@ -1784,7 +1944,8 @@
     if (map2Layer) map2.removeLayer(map2Layer);
     map2Layer = null;
     if (map2Name && byName[map2Name]) {
-      map2Layer = new ol.layer.Tile({ source: wmsSource(map2Name), opacity: DEFAULT_OPACITY, zIndex: 1 });
+      map2Layer = makeLayer(map2Name);
+      map2Layer.setZIndex(1);
       map2.addLayer(map2Layer);
     }
     document.getElementById("split-right").textContent = rightLayerTitle();
