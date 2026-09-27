@@ -151,6 +151,18 @@ EN = {
 
     # 도구
     "그리기 도구": "Drawing tools",
+    "범위": "Extent",
+    "범위 {n}": "Extent {n}",
+    "범위잡기 — 누른 채 끌어 네모를 그리면 꼭짓점·중앙·넓이가 뜬다":
+        "Extent — press and drag a rectangle to get its corners, centre and area",
+    "누른 채 끌어 네모를 그린다. 손을 떼면 꼭짓점·중앙·넓이가 뜬다.":
+        "Press and drag to draw a rectangle. Release to see its corners, centre and area.",
+    "누른 채 끌어 네모를 그린다": "Press and drag a rectangle",
+    "북서": "NW", "북동": "NE", "남동": "SE", "남서": "SW",
+    "중앙": "Centre",
+    "가로 × 세로": "Width × height",
+    "눌러서 꼭짓점·중앙·넓이를 복사한다": "Click to copy corners, centre and area",
+    "이 범위로 가서 수치를 본다": "Go to this extent and show its figures",
     "점": "Point",
     "거리": "Distance",
     "넓이": "Area",

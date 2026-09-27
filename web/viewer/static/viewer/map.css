@@ -1140,3 +1140,10 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   .edge.w, .edge.e { display: none; }
   .tool { width: 44px; height: 44px; }
 }
+
+/* 범위잡기 — 끄는 동안의 네모. 다 그리면 지도 위의 금색 네모(rangeStyle)로 바뀐다 */
+.range-box {
+  border: 2px solid #c9a24b;
+  background: rgba(201, 162, 75, .16);
+}
+.temp-no.range { border-radius: 3px; outline: 1.5px dashed currentColor; outline-offset: 1px; }

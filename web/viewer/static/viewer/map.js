@@ -45,6 +45,7 @@
 
   var map, popupOverlay, pointLayerGroup;
   var tempSource, tempLayer, measureSource, measureLayer, foundSource, foundLayer;
+  var rangeSource, rangeLayer, rangeSeq = 0;
   var mode = "info", drawInteraction = null, tempSeq = 0, lastMeasure = "";
   var active = [];        // 켠 레이어. 앞이 위다 (화면에서 앞에 그려진다)
   var byName = {};        // 레이어명 -> 카탈로그 행
@@ -218,13 +219,16 @@
     measureLayer = new ol.layer.Vector({ source: measureSource, style: measureStyle });
     tempSource = new ol.source.Vector();
     tempLayer = new ol.layer.Vector({ source: tempSource, style: tempStyle });
+    // 잡은 범위. 재는 것(`measureSource`)과 달리 여럿을 두고 목록에 남긴다
+    rangeSource = new ol.source.Vector();
+    rangeLayer = new ol.layer.Vector({ source: rangeSource, style: rangeStyle });
     // 좌표를 찍어 찾아간 자리. 한 번에 하나만 둔다.
     foundSource = new ol.source.Vector();
     foundLayer = new ol.layer.Vector({ source: foundSource, style: foundStyle });
 
     map = new ol.Map({
       target: "map",
-      layers: [pointLayerGroup, measureLayer, tempLayer, foundLayer],
+      layers: [pointLayerGroup, rangeLayer, measureLayer, tempLayer, foundLayer],
       view: new ol.View({
         // 남한 전체가 들어오는 자리
         center: ol.proj.fromLonLat([127.8, 36.2]),
@@ -270,6 +274,7 @@
       map.getLayers().insertAt(baseCount + index, entry.layer);
     });
     pointLayerGroup.setZIndex(500);
+    rangeLayer.setZIndex(550);
     measureLayer.setZIndex(600);
     tempLayer.setZIndex(700);
     foundLayer.setZIndex(800);
@@ -614,6 +619,7 @@
     point: T("지도를 누르면 점이 찍히고 위경도가 적힌다. 점을 눌러 지운다."),
     line: T("눌러 가며 선을 잇는다. 두 번 누르면 끝난다."),
     area: T("눌러 가며 둘레를 두른다. 두 번 누르면 끝난다."),
+    box: T("누른 채 끌어 네모를 그린다. 손을 떼면 꼭짓점·중앙·넓이가 뜬다."),
   };
 
   function tempStyle(feature) {
@@ -740,6 +746,11 @@
       next === "info" ? "" : "crosshair";
     updateToolOut();
 
+    if (next === "box") {
+      drawInteraction = rangeInteraction();
+      map.addInteraction(drawInteraction);
+      return;
+    }
     if (next !== "line" && next !== "area") return;
 
     drawInteraction = new ol.interaction.Draw({
@@ -766,6 +777,97 @@
     map.addInteraction(drawInteraction);
   }
 
+  // ── 범위잡기 ─────────────────────────────────────────────────────
+  //
+  // 누른 채 끌어 네모를 그리고, 손을 떼면 네 꼭짓점·중앙·넓이를 보인다.
+  // 시료 채취 권역이나 도폭 밖 조사 범위를 적어 두는 자리다. **여럿을 잡아
+  // 두고 "찍고 잰 것" 에 남긴다** — 재는 선은 하나만 두는 것과 다르다.
+  // 저장하지 않는다. 남길 것은 "점묶음으로 저장" 으로 꼭짓점과 중앙을 올린다.
+
+  function rangeStyle(feature) {
+    return new ol.style.Style({
+      fill: new ol.style.Fill({ color: "rgba(201, 162, 75, .14)" }),
+      stroke: new ol.style.Stroke({ color: "#c9a24b", width: 2 }),
+      text: new ol.style.Text({
+        text: T("범위 {n}", { n: feature.get("no") }),
+        font: "600 12px ui-monospace, Menlo, monospace",
+        fill: new ol.style.Fill({ color: "#3f2712" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 4 }),
+        overflow: true,
+      }),
+    });
+  }
+
+  function rangeInteraction() {
+    // 누르고 끄는 동안은 지도가 끌리지 않는다 (DragBox 가 먼저 받는다)
+    var box = new ol.interaction.DragBox({ condition: ol.events.condition.always, className: "range-box" });
+    box.on("boxend", function () {
+      var extent = box.getGeometry().getExtent();
+      if (ol.extent.getWidth(extent) === 0 || ol.extent.getHeight(extent) === 0) return;
+      addRange(extent);
+    });
+    return box;
+  }
+
+  /** 범위 하나의 수치. 넓이는 구면으로 잰다 — 3857 의 네모 넓이는 위도에
+   *  따라 부풀어서, 우리나라에서는 1.5 배쯤 크게 나온다. */
+  function rangeFacts(extent) {
+    var sw = ol.proj.toLonLat([extent[0], extent[1]]);
+    var ne = ol.proj.toLonLat([extent[2], extent[3]]);
+    var w = sw[0], s = sw[1], e = ne[0], n = ne[1];
+    var polygon = ol.geom.Polygon.fromExtent(extent);
+    var opts = { projection: map.getView().getProjection() };
+    return {
+      nw: [w, n], ne: [e, n], se: [e, s], sw: [w, s],
+      center: [(w + e) / 2, (s + n) / 2],
+      area: ol.sphere.getArea(polygon, opts),
+      // 가로는 가운데 위도에서 잰다. 위아래 변은 위도가 달라 길이가 다르다
+      width: ol.sphere.getDistance([w, (s + n) / 2], [e, (s + n) / 2]),
+      height: ol.sphere.getDistance([w, s], [w, n]),
+    };
+  }
+
+  function rangeRows(f) {
+    var rows = {};
+    rows[T("북서")] = formatPair(f.nw[0], f.nw[1]);
+    rows[T("북동")] = formatPair(f.ne[0], f.ne[1]);
+    rows[T("남동")] = formatPair(f.se[0], f.se[1]);
+    rows[T("남서")] = formatPair(f.sw[0], f.sw[1]);
+    rows[T("중앙")] = formatPair(f.center[0], f.center[1]);
+    rows[T("넓이")] = asArea(f.area);
+    rows[T("가로 × 세로")] = asLength(f.width) + " × " + asLength(f.height);
+    return rows;
+  }
+
+  function rangeText(feature) {
+    var rows = rangeRows(rangeFacts(feature.getGeometry().getExtent()));
+    return [T("범위 {n}", { n: feature.get("no") })].concat(Object.keys(rows).map(function (k) {
+      return k + "\t" + rows[k];
+    })).join("\n");
+  }
+
+  function addRange(extent) {
+    rangeSeq += 1;
+    var feature = new ol.Feature({ geometry: ol.geom.Polygon.fromExtent(extent), no: rangeSeq });
+    rangeSource.addFeature(feature);
+    renderTemp();
+    showRange(feature);
+  }
+
+  function showRange(feature) {
+    var extent = feature.getGeometry().getExtent();
+    var facts = rangeFacts(extent);
+    lastMeasure = T("범위 {n}", { n: feature.get("no") }) + " " + asArea(facts.area);
+    var out = document.getElementById("measure-out");
+    out.textContent = lastMeasure;
+    out.classList.add("done");
+    updateToolOut();
+    // 팝업은 위경도의 한가운데에 띄운다 — 표의 "중앙" 과 첫 줄 위경도가 같아야 한다.
+    // 지도 좌표(3857)의 한가운데는 위도가 몇 백만 분의 1 도 어긋난다
+    showPopup(ol.proj.fromLonLat(facts.center),
+              [{ title: T("범위 {n}", { n: feature.get("no") }), props: rangeRows(facts) }], "");
+  }
+
   function showMeasure(got, done) {
     var out = document.getElementById("measure-out");
     out.textContent = got.kind + " " + got.text;
@@ -788,6 +890,7 @@
     if (mode === "point" && !points) bits.push(T("지도를 눌러 점을 찍는다"));
     if (mode === "line" && !lastMeasure) bits.push(T("눌러 가며 잇는다 · 두 번 누르면 끝"));
     if (mode === "area" && !lastMeasure) bits.push(T("눌러 가며 두른다 · 두 번 누르면 끝"));
+    if (mode === "box" && !rangeSource.getFeatures().length) bits.push(T("누른 채 끌어 네모를 그린다"));
     out.textContent = bits.join("  ·  ");
     out.hidden = !bits.length;
   }
@@ -808,9 +911,12 @@
   function renderTemp() {
     var host = document.getElementById("temp-list");
     var features = tempSource.getFeatures();
-    setCount("count-temp", features.length);
+    var ranges = rangeSource.getFeatures();
+    setCount("count-temp", features.length + ranges.length);
     updateToolOut();
     host.innerHTML = "";
+    ranges.forEach(function (feature) { host.appendChild(rangeItem(feature)); });
+    if (!features.length && ranges.length) return;
     if (!features.length) {
       host.innerHTML = '<li class="empty">' + T("지도 오른쪽 위 <b>점</b> 도구로 찍는다") + "</li>";
       return;
@@ -850,16 +956,62 @@
     });
   }
 
+  function rangeItem(feature) {
+    var li = document.createElement("li");
+    li.className = "range-item";
+    var no = document.createElement("span");
+    no.className = "temp-no range";
+    no.textContent = feature.get("no");
+    var facts = rangeFacts(feature.getGeometry().getExtent());
+    var text = document.createElement("button");
+    text.type = "button";
+    text.className = "temp-coord";
+    text.title = T("눌러서 꼭짓점·중앙·넓이를 복사한다");
+    text.textContent = asArea(facts.area) + " · " + formatPair(facts.center[0], facts.center[1]);
+    text.addEventListener("click", function () {
+      var value = text.textContent;
+      copyText(rangeText(feature)).then(function () {
+        text.textContent = T("복사했다");
+        setTimeout(function () { text.textContent = value; }, 700);
+      });
+    });
+    var go = iconButton("⊙", T("이 범위로 가서 수치를 본다"), false, function () {
+      map.getView().fit(feature.getGeometry().getExtent(), { padding: [60, 60, 80, 60], duration: 300 });
+      showRange(feature);
+    });
+    var del = iconButton("×", T("지운다"), false, function () {
+      rangeSource.removeFeature(feature);
+      renderTemp();
+    });
+    li.append(no, text, go, del);
+    return li;
+  }
+
   /** 찍어 둔 점을 **목록으로 저장한다.** 구글 지도의 "장소 저장" 과 같은 자리다.
    *
    *  임시 표시는 새로 고치면 사라진다. 그러다 "이건 남겨야겠다" 싶은 때가
    *  오는데, 그때 파일로 내보냈다 다시 올리게 하면 아무도 안 한다.
    *  있는 그대로 점묶음이 되게 했다.
    */
+  /** 범위를 점묶음에 담을 때는 꼭짓점 넷과 중앙을 점으로 올린다.
+   *  점묶음은 점만 받는다 — 면을 받게 되면 네모 그대로 올린다. */
+  function rangePoints(ranges) {
+    var out = [];
+    ranges.forEach(function (feature) {
+      var f = rangeFacts(feature.getGeometry().getExtent());
+      var name = T("범위 {n}", { n: feature.get("no") });
+      [["북서", f.nw], ["북동", f.ne], ["남동", f.se], ["남서", f.sw], ["중앙", f.center]].forEach(function (c) {
+        out.push({ lat: c[1][1], lon: c[1][0], label: name + " " + T(c[0]) });
+      });
+    });
+    return out;
+  }
+
   function saveTemp() {
     var features = tempSource.getFeatures();
+    var ranges = rangeSource.getFeatures();
     var msg = document.getElementById("save-msg");
-    if (!features.length) {
+    if (!features.length && !ranges.length) {
       msg.className = "msg bad";
       msg.textContent = T("저장할 점이 없다.");
       return;
@@ -878,7 +1030,7 @@
         color: "#5c3a1e",
         points: features.map(function (f) {
           return { lat: f.get("lat"), lon: f.get("lon"), label: T("점 {n}", { n: f.get("no") }) };
-        }),
+        }).concat(rangePoints(ranges)),
       }),
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -893,6 +1045,8 @@
         // 저장했으니 임시 표시는 치운다. 같은 점이 두 겹으로 남으면 헷갈린다.
         tempSource.clear();
         tempSeq = 0;
+        rangeSource.clear();
+        rangeSeq = 0;
         renderTemp();
         msg.className = "msg good";
         msg.textContent = T("'{name}' 으로 저장했다.", { name: res.d.pointset.name });
@@ -922,6 +1076,8 @@
     tempSource.clear();
     measureSource.clear();
     foundSource.clear();
+    rangeSource.clear();
+    rangeSeq = 0;
     tempSeq = 0;
     lastMeasure = "";
     renderTemp();
@@ -959,7 +1115,9 @@
     }, {
       hitTolerance: 5,
       // 찾아간 자리의 표식은 자료가 아니다. 거리·넓이 선도 그렇다
-      layerFilter: function (layer) { return layer !== foundLayer && layer !== measureLayer; },
+      layerFilter: function (layer) {
+        return layer !== foundLayer && layer !== measureLayer && layer !== rangeLayer;
+      },
     });
 
     var queryable = active.filter(function (e) {
