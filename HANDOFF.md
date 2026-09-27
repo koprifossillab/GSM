@@ -16,6 +16,10 @@
 고쳐서 설정을 **DB 옆 파일**로도 읽게 해 두었다 —
 `kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
 
+**v0.5.x 에서 늘어난 것** — 주제도 비교(밀어 보기·나란히, 011), 선·면 GeoJSON 과
+잡은 범위를 네모 그대로 저장(모양 `Shape`, 012), 좌표계 고르기(TM·UTM-K·옛 Bessel,
+013). 판마다 무엇이 붙었는지는 `CHANGELOG.md`.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
