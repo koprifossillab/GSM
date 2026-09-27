@@ -120,8 +120,8 @@ UPSTREAM_TIMEOUT = env_int("GSM_UPSTREAM_TIMEOUT", 20)
 #: 위의 TILE_CACHE_SECONDS 와 **다른 것이다** — 저쪽은 브라우저,
 #: 이쪽은 서버다. 까닭은 `viewer/tilecache.py`.
 TILE_CACHE_DIR = env("GSM_TILE_CACHE_DIR", str(REPO_DIR / "web" / ".tilecache"))
-#: 이 나이가 지나면 상류에 다시 묻는다. 지우지는 않는다.
-TILE_CACHE_MAX_AGE_DAYS = env_int("GSM_TILE_CACHE_MAX_AGE_DAYS", 30)
+#: 이 나이가 지나면 상류에 다시 묻는다. 지우지는 않는다. 기본 3 년.
+TILE_CACHE_MAX_AGE_DAYS = env_int("GSM_TILE_CACHE_MAX_AGE_DAYS", 3 * 365)
 #: `prune_tiles` 를 사람이 부를 때만 쓴다. 저절로 줄지 않는다.
 TILE_CACHE_MAX_BYTES = env_int("GSM_TILE_CACHE_MAX_BYTES", 2 * 1024 * 1024 * 1024)
 #: 디스크 여유가 이만큼 밑이면 캐시에 더 담지 않는다. 0 이면 보지 않는다.

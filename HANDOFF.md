@@ -63,7 +63,7 @@ GSM_DEV_DIRECT_WMS=0
   클릭 속성이 멈춘다 (타일은 그대로 돈다). 그때는 `kigam.DIRECT_REQUESTS` 를
   보고, `/openapi/wms` 가 열렸는지 다시 찔러본다
 - 호출 제한의 실제 수치를 모른다. 문서는 "지나치게 잦은 호출" 이라고만 적었다.
-  타일 캐시를 둔 것이 이 때문이다 (브라우저 쪽 하루, 디스크 쪽 30 일·2 GB)
+  타일 캐시를 둔 것이 이 때문이다 (브라우저 쪽 하루, 디스크 쪽은 지우지 않고 3 년마다 다시 묻는다)
 - 운영 DB 의 대조는 2026-09-27 에 끝났다 (61/61). 다시 돌릴 때는
   `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --redo`
 

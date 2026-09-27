@@ -108,7 +108,7 @@ class Cached(SimpleTestCase):
         from viewer import kigam
         self._ask(return_value=self.ANSWER)
         path = next(Path(self.dir).rglob("*.json"))
-        old = time.time() - 400 * 86400
+        old = time.time() - 4 * 365 * 86400
         os.utime(path, (old, old))
         response, up = self._ask(side_effect=kigam.UpstreamError("막혔다"))
         self.assertEqual(up.call_count, 1)          # 늙었으니 다시 물었다

@@ -174,6 +174,13 @@ class Prune(CacheCase):
         self.assertEqual(result["count"], 1)
 
 
+class DefaultAge(SimpleTestCase):
+    def test_다시_묻는_나이는_3년이다(self):
+        """한 달마다 다시 물으면 "계속 보탠다" 가 절반만 된다 (devlog 007)."""
+        from django.conf import settings
+        self.assertEqual(settings.TILE_CACHE_MAX_AGE_DAYS, 3 * 365)
+
+
 class Stats(CacheCase):
     def test_수와_크기를_센다(self):
         tilecache.put("4" * 64, PNG)
