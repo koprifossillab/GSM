@@ -131,8 +131,24 @@ EN = {
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
-    "<b>남극 자료는 준비 중이다.</b> 극지연구소 세종기지 둘레를 먼저 띄워 둔다. 레이어는 곧 붙인다.":
-        "<b>Antarctic data is coming soon.</b> The map opens around King Sejong Station (KOPRI) for now. Layers will follow.",
+    "<b>남극 지질도는 준비 중이다.</b> 남극점을 가운데 둔 평사도법 화면과 배경지도를 먼저 띄워 둔다. GeoMAP 레이어는 곧 붙인다.":
+        "<b>Antarctic geology is coming soon.</b> For now the map opens in a South-Pole-centred polar stereographic view with basemaps. GeoMAP layers will follow.",
+    # 극지 투영·배경 (017)
+    "Sentinel-2 위성 (EOX)": "Sentinel-2 satellite (EOX)",
+    "EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다":
+        "EOX · Copernicus Sentinel-2 (2023). Non-commercial use only",
+    "지형 음영 (EOX)": "Terrain shading (EOX)",
+    "EOX · OpenStreetMap. 비상업 이용만 된다": "EOX · OpenStreetMap. Non-commercial use only",
+    "ArcticDEM 음영": "ArcticDEM hillshade",
+    "REMA 음영": "REMA hillshade",
+    "Polar Geospatial Center. 2 m 표고에서 그린 음영":
+        "Polar Geospatial Center. Hillshade drawn from 2 m elevation",
+    "Blue Marble 위성 (NASA)": "Blue Marble satellite (NASA)",
+    "NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다": "NASA GIBS. 500 m resolution, for wide views",
+    "왼쪽 위": "Top left",
+    "오른쪽 위": "Top right",
+    "오른쪽 아래": "Bottom right",
+    "왼쪽 아래": "Bottom left",
     "주소·장소 찾기는 한국 지역에서만 된다. 좌표는 넣으면 간다.":
         "Address and place search works in the Korea region only. Coordinates still work.",
     "주제도 비교": "Compare maps",
