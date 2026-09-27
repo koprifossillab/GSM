@@ -156,7 +156,14 @@ def _catalog(lang="ko"):
             "verified": bool(l.verified_at),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
-        } for l in group.layers.filter(enabled=True)]
+            # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
+            # 타일이 아니라 모양을 받아 그린다 (`map.js` 의 `vectorLayerFor`)
+            "upstream": l.upstream,
+            "kind": l.kind,
+            **({"cell": VECTOR_CELL} if l.kind == "vector" else {}),
+        } for l in group.layers.filter(enabled=True)
+            # VWorld 열쇠가 없으면 "지질 참고" 는 그릴 길이 없다 — 목록에서 뺀다
+            if l.upstream != "vworld" or vworld.enabled()]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
             groups.append({"name": name, "region": group.region, "layers": layers})
@@ -185,10 +192,11 @@ def catalog_json(request):
 
 # ── 상류 프록시 ───────────────────────────────────────────────────────
 #
-# 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`), 그린란드는
-# GEUS(`geus.py`). 캐시·옛것 내주기·안내 타일은 둘이 같이 쓴다.
+# 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`)과 "지질 참고"의
+# VWorld(`vworld.py`), 그린란드는 GEUS(`geus.py`). 캐시·옛것 내주기·안내
+# 타일은 셋이 같이 쓴다.
 
-UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError)
+UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -206,9 +214,14 @@ class _Door:
 
     def __init__(self, upstream):
         self.name = upstream
-        mod = geus if upstream == "geus" else kigam
+        mod = {"geus": geus, "vworld": vworld}.get(upstream, kigam)
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
-        self.ready = True if upstream == "geus" else kigam.has_key()
+        if upstream == "geus":
+            self.ready = True
+        elif upstream == "vworld":
+            self.ready = vworld.enabled()
+        else:
+            self.ready = kigam.has_key()
 
 
 @require_GET
@@ -331,6 +344,8 @@ def feature_info(request):
         props = {k: _split_links(v) for k, v in props.items()}
         if door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
+        elif door.name == "vworld":
+            props = vworld.friendly(props)        # riv_nm → 하천명 …
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)
@@ -393,6 +408,74 @@ def legend(request):
                             status=503 if not door.ready else 502)
     tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+# ── 벡터 레이어 — 모양을 받아 우리가 그린다 (단층, devlog 020) ──────────
+#
+# 타일이 아니라 모양(GeoJSON)을 준다. 브라우저가 선 색·굵기를 정하므로 어느
+# 줌에서도 또렷하고, 누르면 그 선의 속성이 곧장 뜬다(상류를 다시 안 탄다).
+#
+# **위경도 1° 칸으로 나눠 받는다.** 화면 범위를 그대로 상류에 넘기면 지도를
+# 조금만 움직여도 열쇠가 달라져 캐시가 맞지 않는다. 칸으로 자르면 같은 칸은
+# 한 번만 받고, 칸 이름이 좌표계와 상관없어 극지 투영에서도 같은 것을 쓴다.
+# 남한은 1° 칸 50 개 남짓이고, 한 칸에 단층이 많아야 수백 개(수십 KB)다.
+
+#: 칸의 크기(도). 화면(`map.js`)은 카탈로그의 `cell` 로 이 값을 받는다
+VECTOR_CELL = 1
+
+
+@require_GET
+def vector(request):
+    """`?layer=lt_l_gimsfault&lon=127&lat=36` — 칸 하나의 모양. 서남 모서리가 칸 이름이다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    try:
+        lon, lat = int(request.GET.get("lon", "")), int(request.GET.get("lat", ""))
+    except ValueError:
+        return JsonResponse({"error": "lon·lat"}, status=400)
+    if not (-180 <= lon < 180 and -90 <= lat < 90) or lon % VECTOR_CELL or lat % VECTOR_CELL:
+        return JsonResponse({"error": "lon·lat"}, status=400)
+    layer = Layer.objects.filter(name=name, kind="vector", enabled=True).first()
+    if layer is None or layer.upstream != "vworld":
+        return JsonResponse({"error": "layer"}, status=404)
+
+    empty = {"type": "FeatureCollection", "features": []}
+    box = layer.bbox
+    if box and (lon + VECTOR_CELL <= box[0] or lon >= box[2]
+                or lat + VECTOR_CELL <= box[1] or lat >= box[3]):
+        return _vector_response(empty)             # 레이어 범위 밖이다. 상류에 묻지 않는다
+
+    key = tilecache.key_text("vector", f"{name}|{lon}|{lat}|{VECTOR_CELL}")
+    data = _cache_get(key)
+    if data is None:
+        try:
+            if not vworld.enabled():
+                raise vworld.VWorldError("VWorld 열쇠가 없다")
+            data = vworld.get_features(name, lon, lat, lon + VECTOR_CELL, lat + VECTOR_CELL)
+        except vworld.VWorldError as exc:
+            data = _cache_get(key, stale=True)     # 빈 자리보다 옛것이 낫다
+            if data is None:
+                log.warning("모양을 받지 못했다 (%s %s,%s): %s", name, lon, lat, exc)
+                return JsonResponse({"error": i18n.t(msg("VWorld 가 답하지 않는다"), lang),
+                                     "features": []}, status=502)
+        else:
+            _cache_put(key, data)
+
+    # 팝업에 보일 이름을 곁들인다. 캐시에는 받은 그대로 두고 내보낼 때만 붙인다
+    out = []
+    for f in data.get("features") or []:
+        props = dict(f.get("properties") or {})
+        popup = vworld.friendly(props)
+        props["_popup"] = i18n.props_en(popup) if lang == "en" else popup
+        out.append(dict(f, properties=props))
+    return _vector_response({"type": "FeatureCollection", "features": out})
+
+
+def _vector_response(data):
+    response = JsonResponse(data)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response

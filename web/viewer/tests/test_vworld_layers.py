@@ -1,0 +1,194 @@
+""""지질 참고" 레이어군 — VWorld WMS 중계와 단층 벡터 (devlog 020).
+
+VWorld 를 실제로 부르지 않는다. 응답의 꼴은 2026-09-27 에 받아 본 그대로다.
+"""
+import json
+import tempfile
+from io import StringIO
+from unittest import mock
+
+from django.core.management import call_command
+from django.test import SimpleTestCase, TestCase, override_settings
+
+from viewer import vworld
+from viewer.models import Layer, LayerGroup
+
+PNG = b"\x89PNG\r\n\x1a\n"
+
+#: WFS 가 준 꼴 그대로 (대전 둘레 1° 칸의 첫 모양)
+FAULT = {
+    "type": "Feature", "id": "lt_l_gimsfault.156",
+    "geometry": {"type": "MultiLineString",
+                 "coordinates": [[[127.74783212, 36.12606255], [127.74581312, 36.12121181]]]},
+    "geometry_name": "ag_geom",
+    "properties": {"legend": "1", "leng": "730.793851084"},
+    "bbox": [127.74581312, 36.12121181, 127.74783212, 36.12606255],
+}
+
+
+def resp(content=b"", ctype="image/png", status=200, body=None):
+    r = mock.Mock(status_code=status, headers={"content-type": ctype}, content=content,
+                  url="https://api.vworld.kr/req/wms?key=SECRET&layers=a")
+    r.json = mock.Mock(return_value=body)
+    return r
+
+
+@override_settings(VWORLD_KEY="SECRET")
+class Door(SimpleTestCase):
+    def test_타일_열쇠는_서버가_붙이고_로그에는_적지_않는다(self):
+        with mock.patch.object(vworld.requests, "get", return_value=resp(PNG)) as get, \
+                self.assertLogs("viewer.vworld", "INFO") as logs:
+            content, ctype = vworld.get_map({"layers": "LT_C_WKMSTRM", "crs": "EPSG:3857"})
+        sent = get.call_args.kwargs["params"]
+        self.assertEqual(sent["key"], "SECRET")
+        self.assertEqual(sent["layers"], "lt_c_wkmstrm")     # 대문자면 VWorld 가 예외를 준다
+        self.assertEqual(sent["styles"], "")
+        self.assertEqual(sent["version"], "1.3.0")
+        self.assertNotIn("domain", sent)
+        self.assertEqual(content, PNG)
+        self.assertNotIn("SECRET", "\n".join(logs.output))
+
+    def test_그림이_아니면_오류(self):
+        with mock.patch.object(vworld.requests, "get",
+                               return_value=resp(b"<ServiceExceptionReport/>", "text/xml")):
+            with self.assertRaises(vworld.VWorldError):
+                vworld.get_map({"layers": "lt_c_wkmstrm"})
+
+    def test_WFS_는_위도가_먼저이고_곁가지를_뗀다(self):
+        body = {"type": "FeatureCollection", "features": [FAULT, dict(FAULT, geometry=None)]}
+        with mock.patch.object(vworld.requests, "get",
+                               return_value=resp(ctype="application/json", body=body)) as get:
+            got = vworld.get_features("lt_l_gimsfault", 127, 36, 128, 37)
+        sent = get.call_args.kwargs["params"]
+        self.assertEqual(sent["bbox"], "36,127,37,128,EPSG:4326")
+        self.assertEqual(sent["srsname"], "EPSG:4326")
+        self.assertEqual(len(got["features"]), 1)             # 기하 없는 것은 버린다
+        f = got["features"][0]
+        self.assertEqual(f["id"], "lt_l_gimsfault.156")
+        self.assertNotIn("bbox", f)
+        self.assertNotIn("geometry_name", f)
+        self.assertEqual(f["geometry"]["type"], "MultiLineString")
+
+    @override_settings(VWORLD_KEY="")
+    def test_열쇠가_없으면_묻지_않는다(self):
+        with mock.patch.object(vworld.requests, "get") as get:
+            with self.assertRaises(vworld.VWorldError):
+                vworld.get_map({"layers": "lt_c_wkmstrm"})
+        get.assert_not_called()
+
+
+class Friendly(SimpleTestCase):
+    def test_읽을_것만_한국어_이름으로(self):
+        got = vworld.friendly({"riv_cd": "3001490", "riv_nm": "갑천", "riv_level": "국가하천",
+                               "cat_cde": "CAT000", "inadm": 1})
+        self.assertEqual(got, {"하천명": "갑천", "하천 등급": "국가하천"})
+
+    def test_단층의_길이는_반올림한다(self):
+        self.assertEqual(vworld.friendly(FAULT["properties"]), {"구분": "1", "길이 (m)": "731"})
+
+    def test_표에_없는_열뿐이면_그대로_둔다(self):
+        self.assertEqual(vworld.friendly({"park_name": "계룡산"}), {"park_name": "계룡산"})
+
+
+class Views(TestCase):
+    def setUp(self):
+        patch = override_settings(VWORLD_KEY="SECRET", TILE_CACHE_MIN_FREE_BYTES=0,
+                                  TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-vwl-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+        g = LayerGroup.objects.create(name="지질 참고", region="korea", order=100)
+        box = dict(bbox_west=124.5, bbox_south=33.0, bbox_east=131.0, bbox_north=38.7)
+        Layer.objects.create(name="lt_c_wkmstrm", title="하천망", group=g, upstream="vworld", **box)
+        Layer.objects.create(name="lt_l_gimsfault", title="단층", group=g, upstream="vworld",
+                             kind="vector", **box)
+
+    def test_타일은_VWorld_문으로_가고_캐시에_담긴다(self):
+        q = {"LAYERS": "lt_c_wkmstrm", "BBOX": "0,0,1,1", "WIDTH": "512", "HEIGHT": "512"}
+        with mock.patch.object(vworld, "get_map", return_value=(PNG, "image/png")) as up:
+            first = self.client.get("/GSM/wms/", q)
+            second = self.client.get("/GSM/wms/", q)
+        self.assertEqual(up.call_count, 1)
+        self.assertEqual(first["X-GSM-Cache"], "miss")
+        self.assertEqual(second["X-GSM-Cache"], "hit")
+
+    def test_속성은_한국어_이름으로(self):
+        data = {"features": [{"id": "lt_c_wkmstrm.1",
+                              "properties": {"riv_nm": "갑천", "riv_cd": "3001490"}}]}
+        with mock.patch.object(vworld, "get_feature_info", return_value=data):
+            got = self.client.get("/GSM/featureinfo/", {"QUERY_LAYERS": "lt_c_wkmstrm",
+                                                        "BBOX": "0,0,1,1", "I": "1", "J": "1"}).json()
+        self.assertEqual(got["features"][0]["props"], {"하천명": "갑천"})
+
+    def test_칸_하나를_받아_두_번째는_상류를_타지_않는다(self):
+        fc = {"type": "FeatureCollection", "features": [
+            {k: v for k, v in FAULT.items() if k not in ("bbox", "geometry_name")}]}
+        with mock.patch.object(vworld, "get_features", return_value=fc) as up:
+            first = self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127", "lat": "36"})
+            second = self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127", "lat": "36"})
+        self.assertEqual(up.call_count, 1)
+        up.assert_called_with("lt_l_gimsfault", 127, 36, 128, 37)
+        self.assertEqual(first.json(), second.json())
+        f = first.json()["features"][0]
+        self.assertEqual(f["properties"]["legend"], "1")             # 선 모양은 이것으로 가른다
+        self.assertEqual(f["properties"]["_popup"], {"구분": "1", "길이 (m)": "731"})
+        self.assertIn("max-age", first["Cache-Control"])
+
+    def test_영어판은_팝업_이름을_옮긴다(self):
+        fc = {"type": "FeatureCollection", "features": [FAULT]}
+        self.client.cookies["gsm_lang"] = "en"
+        with mock.patch.object(vworld, "get_features", return_value=fc):
+            got = self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127", "lat": "36"}).json()
+        self.assertEqual(got["features"][0]["properties"]["_popup"], {"Class": "1", "Length (m)": "731"})
+
+    def test_레이어_범위_밖의_칸은_묻지_않는다(self):
+        with mock.patch.object(vworld, "get_features") as up:
+            got = self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "10", "lat": "50"}).json()
+        up.assert_not_called()
+        self.assertEqual(got["features"], [])
+
+    def test_엉뚱한_요청은_거절한다(self):
+        self.assertEqual(self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "x", "lat": "36"}).status_code, 400)
+        self.assertEqual(self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "200", "lat": "36"}).status_code, 400)
+        # 타일 레이어는 벡터 문으로 받지 않는다
+        self.assertEqual(self.client.get("/GSM/vector/", {"layer": "lt_c_wkmstrm", "lon": "127", "lat": "36"}).status_code, 404)
+
+    def test_상류가_못_주면_502(self):
+        with mock.patch.object(vworld, "get_features", side_effect=vworld.VWorldError("x")):
+            r = self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127", "lat": "36"})
+        self.assertEqual(r.status_code, 502)
+
+    def test_카탈로그에_상류와_그리는_법이_실린다(self):
+        rows = {l["name"]: l for g in self.client.get("/GSM/catalog/").json()["groups"] for l in g["layers"]}
+        self.assertEqual(rows["lt_l_gimsfault"]["kind"], "vector")
+        self.assertEqual(rows["lt_l_gimsfault"]["cell"], 1)
+        self.assertEqual(rows["lt_c_wkmstrm"]["upstream"], "vworld")
+        self.assertNotIn("cell", rows["lt_c_wkmstrm"])
+
+    @override_settings(VWORLD_KEY="")
+    def test_열쇠가_없으면_목록에서_뺀다(self):
+        groups = self.client.get("/GSM/catalog/").json()["groups"]
+        self.assertFalse(any(l["upstream"] == "vworld" for g in groups for l in g["layers"]))
+
+
+class Seed(TestCase):
+    def test_씨앗이_지질_참고를_넣는다(self):
+        call_command("seed_catalog", stdout=StringIO())
+        fault = Layer.objects.get(name="lt_l_gimsfault")
+        self.assertEqual(fault.upstream, "vworld")
+        self.assertEqual(fault.kind, "vector")
+        self.assertIsNotNone(fault.verified_at)                     # 씨앗을 만들 때 쏴 봤다
+        self.assertEqual(fault.group.region, "korea")
+        # KIGAM 의 레이어군과 차례가 겹치지 않는다 — 한국 목록의 맨 뒤
+        korea = list(LayerGroup.objects.filter(region="korea"))
+        self.assertEqual(korea[-1].name, "지질 참고")
+        self.assertEqual(Layer.objects.get(name="L_50K_Geology_Map").kind, "wms")
+
+    def test_씨앗의_레이어는_모두_영어_제목이_있다(self):
+        from django.conf import settings
+
+        from viewer import i18n
+        seed = json.loads(settings.VWORLD_CATALOG_SEED.read_text(encoding="utf-8"))
+        for row in seed["레이어"]:
+            self.assertIn(row["name"], i18n.LAYER_EN)
+        for name in seed["레이어군순서"]:
+            self.assertIn(name, i18n.GROUP_EN)

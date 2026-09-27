@@ -43,15 +43,20 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"카탈로그 {len(layers)}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
-        # 다른 지역의 씨앗 (그린란드 — GEUS). 상류를 타지 않고 저장소의 표만 쓴다
-        geus = settings.GEUS_CATALOG_SEED
-        if geus.exists():
-            gseed = json.loads(geus.read_text(encoding="utf-8"))
-            made, touched = self._apply(gseed["레이어"], gseed["레이어군순서"], options["reset_titles"],
-                                        region=gseed.get("_지역", "greenland"),
-                                        upstream=gseed.get("_상류", "geus"))
+        # 다른 상류의 씨앗 — 그린란드(GEUS), 한국의 "지질 참고"(VWorld, 020).
+        # 상류를 타지 않고 저장소의 표만 쓴다
+        for path, label, region, upstream in (
+                (settings.GEUS_CATALOG_SEED, "그린란드", "greenland", "geus"),
+                (settings.VWORLD_CATALOG_SEED, "지질 참고 (VWorld)", "korea", "vworld")):
+            if not path.exists():
+                continue
+            extra = json.loads(path.read_text(encoding="utf-8"))
+            made, touched = self._apply(extra["레이어"], extra["레이어군순서"], options["reset_titles"],
+                                        region=extra.get("_지역", region),
+                                        upstream=extra.get("_상류", upstream),
+                                        first=extra.get("_레이어군차례", 0))
             self.stdout.write(self.style.SUCCESS(
-                f"그린란드 {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
+                f"{label} {len(extra['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
 
         unverified = Layer.objects.filter(verified_at__isnull=True, upstream="kigam").count()
         if unverified:
@@ -90,9 +95,11 @@ class Command(BaseCommand):
         return seed
 
     @transaction.atomic
-    def _apply(self, layers, order, reset_titles, region="korea", upstream="kigam"):
+    def _apply(self, layers, order, reset_titles, region="korea", upstream="kigam", first=0):
+        """`first` 는 레이어군 차례의 시작. 한 지역에 씨앗이 둘이면(한국의 KIGAM
+        과 VWorld) 뒤의 것이 앞의 것과 차례가 겹치지 않게 띄운다."""
         groups = {}
-        for index, name in enumerate(order):
+        for index, name in enumerate(order, start=first):
             group, _ = LayerGroup.objects.get_or_create(
                 name=name, region=region, defaults={"order": index})
             if group.order != index:
@@ -111,13 +118,20 @@ class Command(BaseCommand):
                 "abstract": row.get("abstract") or "",
                 "bbox_west": bbox[0], "bbox_south": bbox[1],
                 "bbox_east": bbox[2], "bbox_north": bbox[3],
+                # 그리는 법은 사람이 손질하는 것이 아니라 상류가 무엇을 주느냐다
+                "kind": row.get("kind") or "wms",
             }
             layer = Layer.objects.filter(name=row["name"]).first()
             if layer is None:
+                extra = {}
+                # 씨앗을 만들 때 한 장씩 쏴 본 것(VWorld)은 그날을 확인한 때로 둔다
+                if row.get("확인한날"):
+                    extra = {"verified_at": _day(row["확인한날"]),
+                             "verify_note": "씨앗을 만들 때 타일·속성을 받아 봤다"}
                 Layer.objects.create(
                     name=row["name"],
                     title=row.get("title") or row["name"],
-                    group=group, order=index, upstream=upstream, **fields)
+                    group=group, order=index, upstream=upstream, **fields, **extra)
                 made += 1
                 continue
 
@@ -129,6 +143,15 @@ class Command(BaseCommand):
             layer.save()
             touched += 1
         return made, touched
+
+
+def _day(text: str):
+    """씨앗의 `2026-09-27` → 그날 정오(지역 시각)."""
+    import datetime
+
+    from django.utils import timezone
+    day = datetime.date.fromisoformat(text)
+    return timezone.make_aware(datetime.datetime.combine(day, datetime.time(12)))
 
 
 def _today() -> str:

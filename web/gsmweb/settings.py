@@ -185,6 +185,8 @@ DEV_DIRECT_WMS = _dev_direct_wms()
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
+#: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)
+VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")
