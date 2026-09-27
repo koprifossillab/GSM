@@ -126,7 +126,11 @@ class View(TestCase):
         self.assertEqual(data["style"], "age")
 
     def test_줄여서_보낸다(self):
-        with mock.patch.object(grportal, "fetch", return_value=[]):
+        # 점이 넉넉해야 한다. Django 는 줄인 것에 무작위 바이트를 덧대어(BREACH 막이)
+        # 짧은 본문은 줄인 쪽이 더 길어지는 때가 있고, 그러면 줄이지 않고 보낸다
+        rows = [grportal.compact(feature(i), grportal.LAYERS["grportal:geochron"]["fields"])
+                for i in range(50)]
+        with mock.patch.object(grportal, "fetch", return_value=rows):
             r = self.client.get("/GSM/points/", {"layer": "grportal:geochron"},
                                 HTTP_ACCEPT_ENCODING="gzip")
         self.assertEqual(r["Content-Encoding"], "gzip")
