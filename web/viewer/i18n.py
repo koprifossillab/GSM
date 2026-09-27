@@ -106,6 +106,18 @@ EN = {
     "이 레이어가 있는 곳으로 범위를 맞춘다": "Zoom to this layer's extent",
     "끈다": "Turn off",
     "끌어서 차례를 바꾼다": "Drag to reorder",
+    "주제도 비교": "Compare maps",
+    "끔": "Off",
+    "밀어 보기": "Swipe",
+    "나란히": "Side by side",
+    "끌어서 견준다": "Drag to compare",
+    "막대 왼쪽": "Left of bar",
+    "오른쪽": "Right",
+    "고른 레이어가 막대 왼쪽에만 보인다. 막대를 끌어 견준다.":
+        "The chosen layer shows only left of the bar. Drag the bar to compare.",
+    "왼쪽은 켠 레이어, 오른쪽은 고른 레이어. 두 지도가 함께 움직인다.":
+        "Left: your active layers. Right: the chosen layer. Both maps move together.",
+    "먼저 레이어를 둘 이상 켠다.": "Turn on two or more layers first.",
 
     # 배경지도
     "없음 (바탕만)": "None (plain)",

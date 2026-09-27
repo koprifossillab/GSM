@@ -280,6 +280,7 @@
     foundLayer.setZIndex(800);
     renderActive();
     saveLayers();
+    if (typeof refreshCompare === "function") refreshCompare();
   }
 
   // ── 기억하기 ─────────────────────────────────────────────────────
@@ -1489,6 +1490,201 @@
     });
   }
 
+  // ── 주제도 비교 ──────────────────────────────────────────────────
+  //
+  // 두 가지다. **밀어 보기**는 고른 레이어를 세로 막대의 왼쪽에만 그려,
+  // 막대를 끌며 밑의 것과 견준다. 같은 자리를 두 주제도로 번갈아 보는 데
+  // 좋다. **나란히**는 지도를 둘로 가른다 — 두 지도가 같은 보기(`ol.View`)를
+  // 나눠 써서 함께 움직이고, 한쪽의 마우스 자리를 다른 쪽에 점으로 비춘다.
+  // 투명도를 내려 겹치는 것만으로는 5만과 25만처럼 색이 비슷한 것을 가르기
+  // 어렵다.
+
+  var compareMode = "off";
+  var swipePos = 0.5;                 // 막대의 자리. 지도 폭에 대한 비
+  var swipeName = null;               // 막대 왼쪽에만 그리는 레이어
+  var swipeKeys = [];
+  var map2 = null, map2Layer = null, map2Base = null, map2Name = null;
+  var mirror1 = null, mirror2 = null;
+
+  function clipBefore(e) {
+    var ctx = e.context;
+    var size = map.getSize();
+    var x = size[0] * swipePos;
+    var tl = ol.render.getRenderPixel(e, [0, 0]);
+    var tr = ol.render.getRenderPixel(e, [x, 0]);
+    var bl = ol.render.getRenderPixel(e, [0, size[1]]);
+    var br = ol.render.getRenderPixel(e, [x, size[1]]);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(tl[0], tl[1]);
+    ctx.lineTo(bl[0], bl[1]);
+    ctx.lineTo(br[0], br[1]);
+    ctx.lineTo(tr[0], tr[1]);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  function clipAfter(e) { e.context.restore(); }
+
+  function unclip() {
+    swipeKeys.forEach(function (k) { ol.Observable.unByKey(k); });
+    swipeKeys = [];
+  }
+
+  function applySwipe() {
+    unclip();
+    var entry = active.find(function (e) { return e.name === swipeName; });
+    if (entry) {
+      swipeKeys = [entry.layer.on("prerender", clipBefore), entry.layer.on("postrender", clipAfter)];
+    }
+    placeSwipeBar();
+    map.render();
+  }
+
+  function placeSwipeBar() {
+    var bar = document.getElementById("swipe");
+    bar.hidden = compareMode !== "swipe";
+    bar.style.left = (swipePos * 100) + "%";
+  }
+
+  function rightLayerTitle() {
+    var row = byName[map2Name];
+    return row ? row.title : "";
+  }
+
+  function buildMap2() {
+    if (!map2) {
+      map2 = new ol.Map({
+        target: "map2",
+        view: map.getView(),            // 같은 보기를 나눠 쓴다 — 함께 움직인다
+        controls: [],
+        layers: [],
+      });
+      mirror1 = mirrorOverlay(map);
+      mirror2 = mirrorOverlay(map2);
+      map.on("pointermove", function (e) { if (compareMode === "split") mirror2.setPosition(e.coordinate); });
+      map2.on("pointermove", function (e) { if (compareMode === "split") mirror1.setPosition(e.coordinate); });
+      map.getViewport().addEventListener("pointerleave", function () { mirror2.setPosition(undefined); });
+      map2.getViewport().addEventListener("pointerleave", function () { mirror1.setPosition(undefined); });
+    }
+    if (map2Base) map2.removeLayer(map2Base);
+    var spec = BASEMAPS[document.getElementById("basemap").value];
+    map2Base = spec && spec.make ? spec.make() : null;
+    if (map2Base) { map2Base.setZIndex(0); map2.addLayer(map2Base); }
+    if (map2Layer) map2.removeLayer(map2Layer);
+    map2Layer = null;
+    if (map2Name && byName[map2Name]) {
+      map2Layer = new ol.layer.Tile({ source: wmsSource(map2Name), opacity: DEFAULT_OPACITY, zIndex: 1 });
+      map2.addLayer(map2Layer);
+    }
+    document.getElementById("split-right").textContent = rightLayerTitle();
+    document.getElementById("split-left").textContent =
+      active.length ? active.map(function (e) { return e.title; }).join(" · ") : T("켠 레이어가 없다");
+  }
+
+  /** 다른 쪽 지도의 마우스 자리를 비추는 작은 점. */
+  function mirrorOverlay(target) {
+    var el = document.createElement("div");
+    el.className = "mirror-dot";
+    var overlay = new ol.Overlay({ element: el, positioning: "center-center", stopEvent: false });
+    target.addOverlay(overlay);
+    return overlay;
+  }
+
+  function setCompare(mode) {
+    compareMode = mode;
+    document.querySelectorAll("#compare-mode button").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.cmp === mode);
+    });
+    var wrap = document.getElementById("map-wrap");
+    wrap.classList.toggle("split", mode === "split");
+    document.getElementById("map2").hidden = mode !== "split";
+    if (mode !== "swipe") unclip();
+    if (mode === "split") buildMap2();
+    if (mode !== "split" && mirror1) { mirror1.setPosition(undefined); mirror2.setPosition(undefined); }
+    refreshCompare();
+    // 지도 칸의 폭이 바뀌었으니 다시 잰다
+    setTimeout(function () { map.updateSize(); if (map2) map2.updateSize(); }, 0);
+  }
+
+  /** 비교 칸의 고르개를 지금 켠 레이어에 맞춘다. restack 이 부른다. */
+  function refreshCompare() {
+    var pick = document.getElementById("compare-pick");
+    var wrap = document.getElementById("compare-pick-wrap");
+    var hint = document.getElementById("compare-hint");
+    if (!pick) return;
+    wrap.hidden = compareMode === "off";
+    hint.textContent = compareMode === "swipe" ? T("고른 레이어가 막대 왼쪽에만 보인다. 막대를 끌어 견준다.")
+      : compareMode === "split" ? T("왼쪽은 켠 레이어, 오른쪽은 고른 레이어. 두 지도가 함께 움직인다.")
+      : "";
+    pick.innerHTML = "";
+    if (compareMode === "swipe") {
+      document.getElementById("compare-pick-label").textContent = T("막대 왼쪽");
+      if (!active.some(function (e) { return e.name === swipeName; })) {
+        swipeName = active.length ? active[0].name : null;
+      }
+      active.forEach(function (e) {
+        var o = document.createElement("option");
+        o.value = e.name; o.textContent = e.title;
+        pick.appendChild(o);
+      });
+      if (active.length < 2) hint.textContent = T("먼저 레이어를 둘 이상 켠다.");
+      pick.value = swipeName || "";
+      applySwipe();
+    } else if (compareMode === "split") {
+      document.getElementById("compare-pick-label").textContent = T("오른쪽");
+      if (!map2Name || !byName[map2Name]) {
+        map2Name = active.length > 1 ? active[1].name
+          : (byName["L_250K_Geology_Map"] ? "L_250K_Geology_Map" : Object.keys(byName)[0]);
+      }
+      catalog.forEach(function (group) {
+        var og = document.createElement("optgroup");
+        og.label = group.name;
+        group.layers.forEach(function (l) {
+          var o = document.createElement("option");
+          o.value = l.name; o.textContent = l.title;
+          og.appendChild(o);
+        });
+        pick.appendChild(og);
+      });
+      pick.value = map2Name;
+      buildMap2();
+      placeSwipeBar();
+    } else {
+      placeSwipeBar();
+    }
+  }
+
+  function wireCompare() {
+    document.querySelectorAll("#compare-mode button").forEach(function (b) {
+      b.addEventListener("click", function () { setCompare(b.dataset.cmp); });
+    });
+    document.getElementById("compare-pick").addEventListener("change", function () {
+      if (compareMode === "swipe") { swipeName = this.value; applySwipe(); }
+      if (compareMode === "split") { map2Name = this.value; buildMap2(); }
+    });
+    document.getElementById("basemap").addEventListener("change", function () {
+      if (compareMode === "split") buildMap2();
+    });
+    // 막대 끌기. 손잡이만이 아니라 막대 어디를 잡아도 된다
+    var bar = document.getElementById("swipe");
+    var dragging = false;
+    bar.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      bar.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    bar.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var box = document.getElementById("map").getBoundingClientRect();
+      swipePos = Math.min(0.98, Math.max(0.02, (e.clientX - box.left) / box.width));
+      placeSwipeBar();
+      map.render();
+    });
+    bar.addEventListener("pointerup", function () { dragging = false; });
+    setCompare("off");
+  }
+
   // ── 붙이기 ──────────────────────────────────────────────────────
 
   function wireBasemap() {
@@ -1894,6 +2090,7 @@
   initLooks();
   initMap();
   wireBasemap();
+  wireCompare();
   renderCatalog();
   renderActive();
   renderPointSets();

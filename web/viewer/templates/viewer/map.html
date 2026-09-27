@@ -66,6 +66,20 @@
         <span class="hint">{% t "위가 앞이다" %}</span></h3>
       <ul id="active-list"><li class="empty">{% t "아직 켠 레이어가 없다" %}</li></ul>
 
+      <div class="compare" id="compare">
+        <h3 class="sub-head">{% t "주제도 비교" %}</h3>
+        <div class="seg" id="compare-mode">
+          <button type="button" data-cmp="off">{% t "끔" %}</button>
+          <button type="button" data-cmp="swipe">{% t "밀어 보기" %}</button>
+          <button type="button" data-cmp="split">{% t "나란히" %}</button>
+        </div>
+        <label class="compare-pick" id="compare-pick-wrap" hidden>
+          <span id="compare-pick-label"></span>
+          <select id="compare-pick"></select>
+        </label>
+        <p class="hint" id="compare-hint"></p>
+      </div>
+
       <div id="layer-catalog"></div>
       </div>
     </div>
@@ -215,6 +229,10 @@
 
 <main id="map-wrap">
   <div id="map"></div>
+  <div id="map2" hidden></div>
+  <div id="swipe" class="swipe" hidden title="{% t "끌어서 견준다" %}"><span class="swipe-grip"></span></div>
+  <div class="split-tag left"><span id="split-left"></span></div>
+  <div class="split-tag right"><span id="split-right"></span></div>
 
   <div id="popup" class="popup">
     <button id="popup-close" class="popup-close" title="{% t "닫는다" %}">&times;</button>
