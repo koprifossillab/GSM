@@ -13,7 +13,7 @@ from unittest.mock import patch
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from viewer.models import Point, PointSet
+from viewer.models import Point, PointSet, Shape
 
 
 class 점묶음_저장(TestCase):
@@ -169,3 +169,45 @@ class Download(TestCase):
     def test_한글이_이스케이프되지_않는다(self):
         body = self.client.get(self.url("?download=1")).content.decode("utf-8")
         self.assertIn("충적층", body)
+
+
+class Shapes(TestCase):
+    """선·면 — 올린 GeoJSON 과 찍고 잰 것에서 온다. 내려받을 때 그대로 나온다."""
+
+    LINE = {"type": "LineString", "coordinates": [[127.3, 36.3], [127.4, 36.4]]}
+    BOX = {"type": "Polygon", "coordinates": [[[127.3, 36.3], [127.4, 36.3], [127.4, 36.4],
+                                               [127.3, 36.4], [127.3, 36.3]]]}
+
+    def test_올린_파일의_선_면이_모양으로_담긴다(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        body = json.dumps({"type": "FeatureCollection", "features": [
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [127.3, 36.3]}, "properties": {}},
+            {"type": "Feature", "geometry": self.LINE, "properties": {"name": "경로"}},
+            {"type": "Feature", "geometry": self.BOX, "properties": {}}]})
+        got = self.client.post("/GSM/pointsets/upload/",
+                               {"file": SimpleUploadedFile("a.geojson", body.encode())}).json()
+        ps = got["pointset"]
+        self.assertEqual((ps["count"], ps["lines"], ps["polygons"]), (1, 1, 1))
+        feats = self.client.get(f"/GSM/pointsets/{ps['id']}/geojson/").json()["features"]
+        self.assertEqual(sorted(f["geometry"]["type"] for f in feats), ["LineString", "Point", "Polygon"])
+        line = next(f for f in feats if f["geometry"]["type"] == "LineString")
+        self.assertEqual(line["properties"]["이름표"], "경로")
+
+    def test_잡은_범위를_네모_그대로_저장한다(self):
+        payload = {"name": "범위", "points": [],
+                   "shapes": [{"geometry": self.BOX, "label": "범위 1", "props": {"넓이": "1 km²"}}]}
+        got = self.client.post("/GSM/pointsets/create/", json.dumps(payload),
+                               content_type="application/json").json()
+        self.assertEqual(got["pointset"]["polygons"], 1)
+        shape = Shape.objects.get()
+        self.assertEqual(shape.label, "범위 1")
+        self.assertEqual(shape.props, {"넓이": "1 km²"})
+        self.assertAlmostEqual(shape.lat, 36.35)
+
+    def test_이상한_모양은_버린다(self):
+        payload = {"points": [{"lat": 36.3, "lon": 127.3}],
+                   "shapes": [{"geometry": {"type": "Circle", "coordinates": [1, 2]}},
+                              {"geometry": {"type": "LineString", "coordinates": [[999, 1], [2, 3]]}}]}
+        got = self.client.post("/GSM/pointsets/create/", json.dumps(payload),
+                               content_type="application/json").json()
+        self.assertEqual((got["pointset"]["count"], got["pointset"]["lines"]), (1, 0))

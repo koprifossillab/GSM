@@ -42,6 +42,7 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 | 겹쳐 그리는 한 겹 | **레이어** | 계층, 층 |
 | 레이어를 묶은 것 | **레이어군** | 그룹, 카테고리 |
 | 사용자가 올린 좌표 묶음 | **점묶음**(`PointSet`) | 마커, 포인트셋 |
+| 점묶음에 든 선·면 하나 | **모양**(`Shape`) | 도형, 피처 |
 | 클릭해 읽은 속성 | **속성** | 정보, 피처 |
 | 지도의 보이는 범위 | **범위**(bbox) | 영역, 뷰포트 |
 
@@ -54,8 +55,13 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 레이어군   지질도 / 지화학도 / 해저지질도 …        LayerGroup
  └ 레이어    25만 지질도 (L_250K_Geology_Map)      Layer     ← 상류가 주는 것
 점묶음     내가 올린 CSV·GeoJSON 하나              PointSet  ← 내가 만드는 것
- └ 점        위경도 하나 + 딸린 속성                Point
+ ├ 점        위경도 하나 + 딸린 속성                Point
+ └ 모양      선·면 하나 (GeoJSON 그대로)            Shape
 ```
+
+점과 모양을 가른 것은 **점은 위경도 하나**라는 뜻을 지키려는 것이다. 모양은
+올린 GeoJSON 의 선·면, 잡아 둔 범위, 잰 선·면에서 온다. 이름은 여전히
+점묶음이다 — 올린 것 대부분이 점이다.
 
 **둘은 섞이지 않는다.** 레이어는 상류에서 카탈로그로 받아 채우는 것이라
 사람이 손으로 만들지 않고(한글 제목 손질만 한다), 점묶음은 전부 내 것이라
@@ -217,7 +223,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   coords.py       십진도 <-> 도분초. import 가 없다
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
-  models.py       Layer·LayerGroup·PointSet·Point
+  models.py       Layer·LayerGroup·PointSet·Point·Shape·UpstreamDay
   views.py        화면 하나 + 프록시 둘 + 업로드
 deploy/           Docker·nginx·배포 스크립트
 data/             카탈로그 씨앗

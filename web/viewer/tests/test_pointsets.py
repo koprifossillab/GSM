@@ -89,19 +89,57 @@ class GeoJson(SimpleTestCase):
         points, _ = pointsets.parse("a.txt", utf8(self.FEATURE))
         self.assertEqual(len(points), 1)
 
-    def test_선_면은_건너뛰고_까닭을_남긴다(self):
+    def test_선과_면도_읽는다(self):
         raw = """
         {"type":"FeatureCollection","features":[
           {"type":"Feature","geometry":{"type":"Point","coordinates":[127.0,36.0]},"properties":{}},
-          {"type":"Feature","geometry":{"type":"LineString","coordinates":[[127,36],[128,37]]},"properties":{}}]}
+          {"type":"Feature","geometry":{"type":"LineString","coordinates":[[127,36],[128,37]]},
+           "properties":{"name":"조사 경로"}},
+          {"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[127,36],[128,36],[128,37],[127,36]]]},
+           "properties":{"암상":"화강암"}}]}
         """
-        points, notes = pointsets.parse("a.geojson", utf8(raw))
-        self.assertEqual(len(points), 1)
-        self.assertTrue(any("선·면" in n for n in notes))
+        items, notes = pointsets.parse("a.geojson", utf8(raw))
+        shapes = [i for i in items if "geometry" in i]
+        self.assertEqual(len(items), 3)
+        self.assertEqual([s["kind"] for s in shapes], ["line", "polygon"])
+        self.assertEqual(shapes[0]["label"], "조사 경로")
+        self.assertEqual((shapes[0]["lat"], shapes[0]["lon"]), (36.5, 127.5))   # 범위의 한가운데
+        self.assertEqual(shapes[1]["props"], {"암상": "화강암"})
+        self.assertEqual(notes, [])
 
-    def test_점이_하나도_없으면_막는다(self):
+    def test_여러_겹도_한_모양이다(self):
+        raw = """{"type":"Feature","geometry":{"type":"MultiPolygon","coordinates":
+          [[[[127,36],[127.1,36],[127.1,36.1],[127,36]]],[[[128,37],[128.1,37],[128.1,37.1],[128,37]]]]},
+          "properties":{}}"""
+        items, _ = pointsets.parse("a.geojson", utf8(raw))
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["geometry"]["type"], "MultiPolygon")
+
+    def test_좌표는_1cm_에서_자른다(self):
+        raw = """{"type":"Feature","geometry":{"type":"LineString","coordinates":
+          [[127.123456789,36.987654321],[127.2,36.1]]},"properties":{}}"""
+        items, _ = pointsets.parse("a.geojson", utf8(raw))
+        self.assertEqual(items[0]["geometry"]["coordinates"][0], [127.1234568, 36.9876543])
+
+    def test_범위를_벗어난_좌표가_섞인_모양은_건너뛴다(self):
         raw = """{"type":"FeatureCollection","features":[
-          {"type":"Feature","geometry":{"type":"LineString","coordinates":[[127,36],[128,37]]},"properties":{}}]}"""
+          {"type":"Feature","geometry":{"type":"LineString","coordinates":[[127,36],[500,37]]},"properties":{}},
+          {"type":"Feature","geometry":{"type":"Point","coordinates":[127,36]},"properties":{}}]}"""
+        items, notes = pointsets.parse("a.geojson", utf8(raw))
+        self.assertEqual(len(items), 1)
+        self.assertEqual(len(notes), 1)
+
+    def test_꼭짓점이_너무_많으면_막는다(self):
+        from unittest import mock
+        coords = ",".join(f"[{127 + i * 1e-5},{36}]" for i in range(30))
+        raw = '{"type":"Feature","geometry":{"type":"LineString","coordinates":[%s]},"properties":{}}' % coords
+        with mock.patch.object(pointsets, "MAX_VERTICES_PER_SHAPE", 10):
+            with self.assertRaises(pointsets.UploadError):
+                pointsets.parse("a.geojson", utf8(raw))
+
+    def test_아무것도_없으면_막는다(self):
+        raw = """{"type":"FeatureCollection","features":[
+          {"type":"Feature","geometry":{"type":"GeometryCollection","geometries":[]},"properties":{}}]}"""
         with self.assertRaises(pointsets.UploadError):
             pointsets.parse("a.geojson", utf8(raw))
 

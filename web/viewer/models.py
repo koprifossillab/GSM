@@ -101,6 +101,34 @@ class Point(models.Model):
         return self.label or f"({self.lat:.5f}, {self.lon:.5f})"
 
 
+class Shape(models.Model):
+    """점묶음에 딸린 선·면 하나. 조사 경로·권역·잡아 둔 범위 같은 것이다.
+
+    점(`Point`)과 가른 까닭 — **점은 위경도 하나**라는 뜻을 흐리지 않으려는
+    것이다(CLAUDE.md "자료의 층"). 기하는 GeoJSON 그대로(EPSG:4326) 둔다.
+    공간 연산을 하지 않으므로(TODOs "하지 않기로 한 것") 그릴 수만 있으면 된다.
+    `lat`·`lon` 은 범위의 한가운데 — 목록·이름표·범위 맞추기가 쓴다. devlog 012.
+    """
+
+    KINDS = (("line", "선"), ("polygon", "면"))
+
+    pointset = models.ForeignKey(PointSet, on_delete=models.CASCADE,
+                                 related_name="shapes", verbose_name="점묶음")
+    kind = models.CharField("갈래", max_length=10, choices=KINDS)
+    geometry = models.JSONField("기하 (GeoJSON)")
+    label = models.CharField("이름표", max_length=200, blank=True)
+    lat = models.FloatField("가운데 위도")
+    lon = models.FloatField("가운데 경도")
+    props = models.JSONField("딸린 속성", default=dict, blank=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "모양"
+
+    def __str__(self):
+        return self.label or f"{self.get_kind_display()} ({self.lat:.5f}, {self.lon:.5f})"
+
+
 class UpstreamDay(models.Model):
     """상류에 하루 몇 번 물었나. **한계를 재지 않고 지켜보려고** 둔다.
 

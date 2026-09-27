@@ -216,7 +216,10 @@ EN = {
     "올린다": "Upload",
     "위경도 열은 이름으로 알아낸다 — <code>lat</code>·<code>위도</code>·<code>y</code>, <code>lon</code>·<code>경도</code>·<code>x</code>. 나머지 열은 점을 누르면 뜬다.":
         "Coordinate columns are found by name — <code>lat</code>·<code>위도</code>·<code>y</code>, <code>lon</code>·<code>경도</code>·<code>x</code>. Other columns appear when you click a point.",
-    "{n}점을 올렸다.": "Uploaded {n} points.",
+    "올렸다 — {what}.": "Uploaded — {what}.",
+    "GeoJSON 은 점·선·면을 다 받는다.": "GeoJSON may hold points, lines and polygons.",
+    "선 {n}": "{n} lines",
+    "면 {n}": "{n} polygons",
     "올리지 못했다": "Upload failed",
 
     # 좌표 막대
@@ -299,10 +302,13 @@ EN = {
     "…모두 {n}줄을 건너뛰었다": "…{n} rows skipped in all",
     "GeoJSON 이 깨져 있다: {err}": "The GeoJSON is broken: {err}",
     "GeoJSON 에 features 가 없다.": "The GeoJSON has no features.",
-    "Point 를 하나도 찾지 못했다. 선·면은 아직 받지 않는다.":
-        "No Point features found. Lines and polygons are not supported yet.",
-    "Point 가 아닌 것 {n}개를 건너뛰었다 — 선·면은 아직 받지 않는다":
-        "Skipped {n} non-Point features — lines and polygons are not supported yet",
+    "점·선·면을 하나도 찾지 못했다.": "No points, lines or polygons found.",
+    "읽지 못한 것 {n}개를 건너뛰었다 (기하가 없거나 깨졌거나 GeometryCollection)":
+        "Skipped {n} unreadable features (no geometry, broken, or GeometryCollection)",
+    "모양 하나의 꼭짓점이 {n}개로 너무 많다 (한도 {max}개).":
+        "One shape has {n} vertices — too many (limit {max}).",
+    "꼭짓점이 모두 {max}개를 넘는다. 파일을 나눠 올린다.":
+        "More than {max} vertices in total. Split the file and upload again.",
 }
 
 

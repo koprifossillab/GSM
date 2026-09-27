@@ -994,25 +994,37 @@
    *  오는데, 그때 파일로 내보냈다 다시 올리게 하면 아무도 안 한다.
    *  있는 그대로 점묶음이 되게 했다.
    */
-  /** 범위를 점묶음에 담을 때는 꼭짓점 넷과 중앙을 점으로 올린다.
-   *  점묶음은 점만 받는다 — 면을 받게 되면 네모 그대로 올린다. */
-  function rangePoints(ranges) {
-    var out = [];
-    ranges.forEach(function (feature) {
-      var f = rangeFacts(feature.getGeometry().getExtent());
-      var name = T("범위 {n}", { n: feature.get("no") });
-      [["북서", f.nw], ["북동", f.ne], ["남동", f.se], ["남서", f.sw], ["중앙", f.center]].forEach(function (c) {
-        out.push({ lat: c[1][1], lon: c[1][0], label: name + " " + T(c[0]) });
-      });
+  /** 지도 좌표(3857)의 기하를 GeoJSON(4326)으로. */
+  function toGeoJson(geometry) {
+    var g = geometry.clone().transform(map.getView().getProjection(), "EPSG:4326");
+    return { type: g.getType(), coordinates: g.getCoordinates() };
+  }
+
+  /** 잡은 범위는 **네모 그대로** 올린다. 꼭짓점·중앙·넓이는 딸린 속성으로
+   *  붙여, 점묶음에서 네모를 누르면 범위잡기 때와 같은 표가 뜬다. */
+  function rangeShapes(ranges) {
+    return ranges.map(function (feature) {
+      var rows = rangeRows(rangeFacts(feature.getGeometry().getExtent()));
+      return { geometry: toGeoJson(feature.getGeometry()),
+               label: T("범위 {n}", { n: feature.get("no") }), props: rows };
     });
-    return out;
+  }
+
+  /** 거리·넓이로 잰 선·면도 함께 올린다. 잰 값이 이름표가 된다. */
+  function measureShapes(measured) {
+    return measured.map(function (feature) {
+      var got = measureOf(feature.getGeometry());
+      return { geometry: toGeoJson(feature.getGeometry()),
+               label: got.kind + " " + got.text, props: {} };
+    });
   }
 
   function saveTemp() {
     var features = tempSource.getFeatures();
     var ranges = rangeSource.getFeatures();
+    var measured = measureSource.getFeatures();
     var msg = document.getElementById("save-msg");
-    if (!features.length && !ranges.length) {
+    if (!features.length && !ranges.length && !measured.length) {
       msg.className = "msg bad";
       msg.textContent = T("저장할 점이 없다.");
       return;
@@ -1031,7 +1043,8 @@
         color: "#5c3a1e",
         points: features.map(function (f) {
           return { lat: f.get("lat"), lon: f.get("lon"), label: T("점 {n}", { n: f.get("no") }) };
-        }).concat(rangePoints(ranges)),
+        }),
+        shapes: rangeShapes(ranges).concat(measureShapes(measured)),
       }),
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -1048,6 +1061,8 @@
         tempSeq = 0;
         rangeSource.clear();
         rangeSeq = 0;
+        measureSource.clear();
+        lastMeasure = "";
         renderTemp();
         msg.className = "msg good";
         msg.textContent = T("'{name}' 으로 저장했다.", { name: res.d.pointset.name });
@@ -1365,31 +1380,55 @@
   //: 이름표를 보이기 시작하는 줌. 이보다 멀리서 보면 글자가 점을 덮는다.
   var LABEL_MIN_ZOOM = 11;
 
-  /** 점 하나의 모양. 가까이 보면 **이름표를 곁에 적는다** — 전에는 눌러야
-   *  떴다. 겹치는 글자는 OL 이 걸러낸다(`declutter`). */
+  /** 점묶음의 모양. 점은 동그라미, 선·면은 점묶음의 색으로 그린다.
+   *  가까이 보면 **이름표를 곁에 적는다** — 전에는 눌러야 떴다. 겹치는
+   *  글자는 OL 이 걸러낸다(`declutter`). */
   function pointStyle(color) {
     var dot = new ol.style.Circle({
       radius: 5,
       fill: new ol.style.Fill({ color: color }),
       stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }),
     });
-    var plain = new ol.style.Style({ image: dot });
+    var line = new ol.style.Stroke({ color: color, width: 2.5 });
+    var area = new ol.style.Fill({ color: hexAlpha(color, 0.18) });
     return function (feature, resolution) {
+      var kind = feature.getGeometry().getType();
+      var isPoint = kind === "Point";
       var label = feature.get("이름표");
       var zoom = map.getView().getZoomForResolution(resolution);
-      if (!label || zoom < LABEL_MIN_ZOOM) return plain;
+      var text = label && zoom >= LABEL_MIN_ZOOM ? new ol.style.Text({
+        text: String(label),
+        font: "12px sans-serif",
+        offsetX: isPoint ? 8 : 0,
+        textAlign: isPoint ? "left" : "center",
+        placement: /LineString/.test(kind) ? "line" : "point",
+        overflow: !isPoint,
+        fill: new ol.style.Fill({ color: "#1f1409" }),
+        stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
+      }) : undefined;
+      if (isPoint) return new ol.style.Style({ image: dot, text: text });
       return new ol.style.Style({
-        image: dot,
-        text: new ol.style.Text({
-          text: String(label),
-          font: "12px sans-serif",
-          offsetX: 8,
-          textAlign: "left",
-          fill: new ol.style.Fill({ color: "#1f1409" }),
-          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
-        }),
+        stroke: line,
+        fill: /Polygon/.test(kind) ? area : undefined,
+        text: text,
       });
     };
+  }
+
+  /** "#rrggbb" 에 투명도를 준다. 면을 칠할 때 밑의 지질도가 비쳐야 한다. */
+  function hexAlpha(hex, alpha) {
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
+    if (!m) return "rgba(228, 87, 46, " + alpha + ")";
+    return "rgba(" + parseInt(m[1], 16) + ", " + parseInt(m[2], 16) + ", " + parseInt(m[3], 16) + ", " + alpha + ")";
+  }
+
+  /** 목록에 적는 수 — "12점", 선·면이 있으면 "12점 · 선 1 · 면 2". */
+  function countText(ps) {
+    var bits = [T("{n}점", { n: ps.count || 0 })];
+    if (ps.lines) bits.push(T("선 {n}", { n: ps.lines }));
+    if (ps.polygons) bits.push(T("면 {n}", { n: ps.polygons }));
+    if (!ps.count && (ps.lines || ps.polygons)) bits.shift();
+    return bits.join(" · ");
   }
 
   function loadPointSet(ps) {
@@ -1444,7 +1483,7 @@
 
       var count = document.createElement("span");
       count.className = "ps-count";
-      count.textContent = T("{n}점", { n: ps.count });
+      count.textContent = countText(ps);
 
       var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () {
         var source = pointLayers[ps.id] && pointLayers[ps.id].getSource();
@@ -1472,7 +1511,11 @@
         });
       });
 
-      li.append(box, swatch, name, count, zoom, save, del);
+      // 이름과 수를 두 줄로 쌓는다. 한 줄이면 "3점 · 선 1 · 면 2" 가 이름을 밀어낸다
+      var label = document.createElement("span");
+      label.className = "ps-text";
+      label.append(name, count);
+      li.append(box, swatch, label, zoom, save, del);
       host.appendChild(li);
     });
   }
@@ -2026,7 +2069,7 @@
           pointsets.unshift(res.d.pointset);
           renderPointSets();
           msg.className = "msg good";
-          msg.textContent = T("{n}점을 올렸다.", { n: res.d.pointset.count }) +
+          msg.textContent = T("올렸다 — {what}.", { what: countText(res.d.pointset) }) +
             (res.d.notes && res.d.notes.length ? " " + res.d.notes.join(" / ") : "");
           form.reset();
           var box = file.closest(".filebox");

@@ -20,7 +20,7 @@ from gsmweb.version import VERSION
 
 from . import coords, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
-from .models import Layer, LayerGroup, Point, PointSet
+from .models import Layer, LayerGroup, Point, PointSet, Shape
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,8 @@ MAX_FEATURES = 3
 #: 찍어 둔 점을 한 번에 목록으로 저장할 수 있는 수. 손으로 찍는 것이라
 #: 이보다 많을 일이 드물고, 한계가 없으면 한 번의 요청이 얼마든 커진다.
 MAX_SAVED_POINTS = 2000
+#: 찍고 잰 것에서 한 번에 저장하는 모양(잡은 범위·잰 선) 수
+MAX_SAVED_SHAPES = 200
 
 _ANCHOR = re.compile(r"""<a\s[^>]*href=["']([^"']+)["'][^>]*>(.*?)</a>""", re.I | re.S)
 _TAG = re.compile(r"<[^>]+>")
@@ -352,14 +354,21 @@ def legend(request):
 
 # ── 점묶음 ────────────────────────────────────────────────────────────
 
-def _pointset_list():
-    return [{
+def _pointset_summary(ps):
+    shapes = list(ps.shapes.values_list("kind", flat=True))
+    return {
         "id": ps.id,
         "name": ps.name,
         "color": ps.color,
         "visible": ps.visible,
         "count": ps.points.count(),
-    } for ps in PointSet.objects.all()]
+        "lines": shapes.count("line"),
+        "polygons": shapes.count("polygon"),
+    }
+
+
+def _pointset_list():
+    return [_pointset_summary(ps) for ps in PointSet.objects.all()]
 
 
 @require_GET
@@ -388,14 +397,19 @@ def pointset_upload(request):
         Point.objects.bulk_create([
             Point(pointset=pointset, lat=p["lat"], lon=p["lon"],
                   label=p["label"][:200], props=p["props"])
-            for p in points
+            for p in points if "geometry" not in p
+        ])
+        Shape.objects.bulk_create([
+            Shape(pointset=pointset, kind=p["kind"], geometry=p["geometry"],
+                  lat=p["lat"], lon=p["lon"], label=p["label"][:200], props=p["props"])
+            for p in points if "geometry" in p
         ])
 
-    log.info("점묶음 '%s' 생겼다 — %d점", pointset.name, len(points))
+    summary = _pointset_summary(pointset)
+    log.info("점묶음 '%s' 생겼다 — 점 %d, 선 %d, 면 %d", pointset.name,
+             summary["count"], summary["lines"], summary["polygons"])
     return JsonResponse({
-        "pointset": {"id": pointset.id, "name": pointset.name,
-                     "color": pointset.color, "visible": True,
-                     "count": len(points)},
+        "pointset": summary,
         "notes": [i18n.t(note, lang) for note in notes],
     })
 
@@ -417,7 +431,8 @@ def pointset_create(request):
         return JsonResponse({"error": i18n.t(msg("읽지 못했다"), lang)}, status=400)
 
     rows = payload.get("points") or []
-    if not rows:
+    shape_rows = payload.get("shapes") or []
+    if not rows and not shape_rows:
         return JsonResponse({"error": i18n.t(msg("저장할 점이 없다"), lang)}, status=400)
     if len(rows) > MAX_SAVED_POINTS:
         return JsonResponse(
@@ -433,7 +448,21 @@ def pointset_create(request):
         if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             continue
         points.append((lat, lon, str(row.get("label") or "")[:200]))
-    if not points:
+    # 잡은 범위·잰 선·면. 올린 GeoJSON 과 같은 거름을 탄다
+    shapes = []
+    for row in shape_rows[:MAX_SAVED_SHAPES]:
+        geom = (row or {}).get("geometry") or {}
+        if geom.get("type") not in pointsets.SHAPE_KINDS:
+            continue
+        try:
+            shape = pointsets._shape_from(geom)
+        except pointsets.UploadError as exc:
+            return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
+        if shape:
+            shape.pop("vertices")
+            props = row.get("props") if isinstance(row.get("props"), dict) else {}
+            shapes.append(dict(shape, label=str(row.get("label") or "")[:200], props=props))
+    if not points and not shapes:
         return JsonResponse({"error": i18n.t(msg("쓸 만한 좌표가 없다"), lang)}, status=400)
 
     name = (payload.get("name") or "").strip() or "찍은 점"
@@ -446,12 +475,14 @@ def pointset_create(request):
             Point(pointset=pointset, lat=lat, lon=lon, label=label)
             for lat, lon, label in points
         ])
+        Shape.objects.bulk_create([
+            Shape(pointset=pointset, kind=s["kind"], geometry=s["geometry"],
+                  lat=s["lat"], lon=s["lon"], label=s["label"], props=s["props"])
+            for s in shapes
+        ])
 
-    log.info("찍은 점 %d개를 '%s' 로 저장했다", len(points), pointset.name)
-    return JsonResponse({"pointset": {
-        "id": pointset.id, "name": pointset.name, "color": pointset.color,
-        "visible": True, "count": len(points),
-    }})
+    log.info("찍은 점 %d개·모양 %d개를 '%s' 로 저장했다", len(points), len(shapes), pointset.name)
+    return JsonResponse({"pointset": _pointset_summary(pointset)})
 
 
 @require_GET
@@ -469,7 +500,11 @@ def pointset_geojson(request, pk):
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [p.lon, p.lat]},
             "properties": dict(p.props, **{"이름표": p.label} if p.label else {}),
-        } for p in pointset.points.all()],
+        } for p in pointset.points.all()] + [{
+            "type": "Feature",
+            "geometry": s.geometry,
+            "properties": dict(s.props, **{"이름표": s.label} if s.label else {}),
+        } for s in pointset.shapes.all()],
     }, json_dumps_params={"ensure_ascii": False})
     if request.GET.get("download"):
         from urllib.parse import quote
