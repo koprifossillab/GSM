@@ -5,13 +5,19 @@
 수십 개씩 나간다. 상류에 그만큼 다시 묻는 것은 느리고, 이용제한("지나치게
 잦은 호출")에도 가깝다. 한 번 받은 것은 우리가 들고 있으면 된다.
 
-**캐시지 보관소가 아니다.** 자료의 주인은 한국지질자원연구원이고 우리는
-그리려고 잠깐 들고 있을 뿐이다. 그래서 셋을 지킨다.
+**받은 것은 계속 보탠다.** 2026-09-27 부터 캐시를 스스로 버리지 않는다 —
+다음에 같은 자리를 볼 때 상류를 타지 않게 하려는 것이다 (devlog 007).
+그래도 **새 것이 이긴다**(CLAUDE.md "받아온 것의 순위") 는 지킨다.
 
-1. 나이 제한(`GSM_TILE_CACHE_MAX_AGE_DAYS`, 기본 30 일). 지나면 다시 받는다
-2. 크기 제한(`GSM_TILE_CACHE_MAX_BYTES`, 기본 2 GB). `prune_tiles` 가 오래된
-   것부터 버린다
-3. 받은 그대로만 둔다. 고쳐 쓰거나 다시 내주지 않는다
+1. 나이(`GSM_TILE_CACHE_MAX_AGE_DAYS`, 기본 30 일)가 지나면 **상류에 다시
+   묻고 새 것으로 덮는다.** 상류가 못 주면 그때만 옛것을 낸다 — 빈 타일보다
+   한 달 묵은 지질도가 낫다
+2. 지우지 않는다. 대신 디스크 여유가 `GSM_TILE_CACHE_MIN_FREE_BYTES`
+   (기본 5 GB) 밑이면 **더 담지 않는다.** 캐시 때문에 장비가 멈추면 안 된다
+3. 받은 그대로만 둔다. 고쳐 쓰거나 다시 내주지 않는다. 속성(`info`)만은
+   기하를 떼고 둔다 — 팝업이 쓰지 않는 폴리곤 좌표가 한 응답에 수천 개다
+
+줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 저절로 돌지 않는다.
 
 **열쇠에 상류 주소를 넣지 않는다.** 개발 스위치를 켜고 받은 타일과 인증키로
 받은 타일은 같은 그림이다(뒤에 선 GeoServer 가 하나다). 열쇠를 갈라 두면
@@ -20,6 +26,7 @@
 import hashlib
 import logging
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -30,7 +37,14 @@ log = logging.getLogger(__name__)
 #: 열쇠에 넣는 변수. 여기 없는 것은 그림을 바꾸지 않는다고 본다.
 #: `key`(인증키)가 빠져 있는 것이 요점이다 — 누가 받았든 같은 그림이다.
 KEY_PARAMS = ("layers", "styles", "srs", "crs", "bbox", "width", "height",
-              "format", "transparent", "bgcolor", "version", "layer")
+              "format", "transparent", "bgcolor", "version", "layer",
+              # 속성(`info`) 요청에만 있는 것. 타일 요청에는 없으므로 타일의
+              # 열쇠는 바뀌지 않는다 — 받아둔 타일을 버리지 않는다
+              "query_layers", "x", "y", "i", "j", "feature_count", "buffer",
+              "info_format")
+
+#: 담는 것의 갈래와 파일 끝. 지도·범례는 PNG, 속성은 JSON 이다.
+SUFFIXES = (".png", ".json")
 
 
 def enabled() -> bool:
@@ -38,7 +52,7 @@ def enabled() -> bool:
 
 
 def key_for(kind: str, params: dict) -> str:
-    """`kind` 는 `map` 이나 `legend`. 둘을 섞지 않으려고 둔다."""
+    """`kind` 는 `map`·`legend`·`info`. 섞지 않으려고 둔다."""
     parts = [kind]
     for name in KEY_PARAMS:
         value = params.get(name)
@@ -47,26 +61,35 @@ def key_for(kind: str, params: dict) -> str:
     return hashlib.sha256("&".join(parts).encode("utf-8")).hexdigest()
 
 
-def _path(key: str) -> Path:
+def _path(key: str, suffix: str = ".png") -> Path:
     # 두 자씩 두 번 갈라 담는다. 한 디렉토리에 수십만 개가 쌓이면
     # 디렉토리 읽기 자체가 느려진다.
     root = Path(settings.TILE_CACHE_DIR)
-    return root / key[:2] / key[2:4] / f"{key}.png"
+    return root / key[:2] / key[2:4] / f"{key}{suffix}"
 
 
-def get(key: str):
-    """들고 있으면 바이트를, 없거나 늙었으면 None."""
+def _files():
+    for suffix in SUFFIXES:
+        yield from Path(settings.TILE_CACHE_DIR).rglob(f"*{suffix}")
+
+
+def get(key: str, suffix: str = ".png", *, stale: bool = False):
+    """들고 있으면 바이트를, 없으면 None.
+
+    늙은 것은 평소에 None 이다 — 상류에 다시 물으라는 뜻이다. 상류가 못 줄
+    때 `stale=True` 로 다시 부르면 늙은 것도 내준다.
+    """
     if not enabled():
         return None
-    path = _path(key)
+    path = _path(key, suffix)
     try:
         stat = path.stat()
     except OSError:
         return None
 
     max_age = settings.TILE_CACHE_MAX_AGE_DAYS * 86400
-    if max_age > 0 and (time.time() - stat.st_mtime) > max_age:
-        return None                     # 늙었다. 지우지는 않는다 — prune 의 몫이다
+    if not stale and max_age > 0 and (time.time() - stat.st_mtime) > max_age:
+        return None                     # 늙었다. 지우지 않는다 — 새 것이 덮는다
 
     try:
         data = path.read_bytes()
@@ -83,11 +106,36 @@ def get(key: str):
     return data
 
 
-def put(key: str, content: bytes) -> None:
+_warned_full = False
+
+
+def _room_left(root: Path) -> bool:
+    """디스크에 더 담아도 되는가. 여유가 한계 밑이면 한 번만 로그를 남긴다."""
+    global _warned_full
+    floor = settings.TILE_CACHE_MIN_FREE_BYTES
+    if floor <= 0:
+        return True
+    try:
+        free = shutil.disk_usage(root if root.exists() else root.parent).free
+    except OSError:
+        return True
+    if free >= floor:
+        _warned_full = False
+        return True
+    if not _warned_full:
+        log.warning("디스크 여유가 %d MB 라 캐시에 더 담지 않는다",
+                    free // (1024 * 1024))
+        _warned_full = True
+    return False
+
+
+def put(key: str, content: bytes, suffix: str = ".png") -> None:
     """디스크가 꽉 차거나 권한이 없어도 **멈추지 않는다** — 캐시는 덤이다."""
     if not enabled() or not content:
         return
-    path = _path(key)
+    path = _path(key, suffix)
+    if not _room_left(Path(settings.TILE_CACHE_DIR)):
+        return
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         # 반쯤 쓰다 만 파일을 읽는 일이 없도록 옆에 쓰고 옮긴다
@@ -103,7 +151,7 @@ def stats() -> dict:
     if not enabled():
         return {"enabled": False, "count": 0, "bytes": 0}
     count = total = 0
-    for path in Path(settings.TILE_CACHE_DIR).rglob("*.png"):
+    for path in _files():
         try:
             total += path.stat().st_size
             count += 1
@@ -125,7 +173,7 @@ def prune(max_bytes: int = None, max_age_days: int = None) -> dict:
                     if max_age_days is None else max_age_days)
 
     entries, now = [], time.time()
-    for path in Path(settings.TILE_CACHE_DIR).rglob("*.png"):
+    for path in _files():
         try:
             stat = path.stat()
         except OSError:

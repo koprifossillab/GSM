@@ -1,13 +1,14 @@
 """타일 캐시를 줄인다.
 
-    manage.py prune_tiles              지금 얼마나 들고 있는지 보고 줄인다
+    manage.py prune_tiles              지금 얼마나 들고 있는지 보고 줄인다 (나이·크기 한계로)
     manage.py prune_tiles --dry-run    줄이지 않고 보기만
     manage.py prune_tiles --all        통째로 비운다
 
 늙은 것(`GSM_TILE_CACHE_MAX_AGE_DAYS`)을 먼저 버리고, 그래도 크면
 (`GSM_TILE_CACHE_MAX_BYTES`) **오래 안 쓰인 것부터** 버린다.
 
-날마다 돌릴 만하다. 그렇게 걸어 두면 캐시가 조용히 디스크를 먹는 일이 없다.
+**저절로 돌지 않는다.** 2026-09-27 부터 캐시는 받은 것을 계속 보탠다
+(devlog 007). 디스크를 비워야 할 때 사람이 부른다. 속성(`.json`)도 함께 센다.
 """
 import shutil
 from pathlib import Path

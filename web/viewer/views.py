@@ -183,11 +183,19 @@ def wms(request):
         return _tile(hit, cached=True)
 
     if not kigam.has_key():
+        old = tilecache.get(cache_key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
         return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
     try:
         content, ctype = kigam.get_map(params)
     except kigam.UpstreamError as exc:
+        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
+        old = tilecache.get(cache_key, stale=True)
+        if old is not None:
+            log.info("타일을 못 받아 옛것을 낸다: %s", exc)
+            return _tile(old, cached=True)
         log.warning("타일을 받지 못했다: %s", exc)
         return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
 
@@ -225,16 +233,30 @@ def feature_info(request):
     더하면 팝업에도 저절로 는다. 기하는 버린다. 팝업에 쓰지 않는데
     폴리곤 좌표가 한 응답에 수천 개씩 실려 오기 때문이다.
     """
-    if not kigam.has_key():
-        return JsonResponse({"error": "인증키가 없다", "features": []}, status=503)
-
     params = kigam.clean_params(request.GET)
     params.setdefault("feature_count", "5")
-    try:
-        data = kigam.get_feature_info(params)
-    except kigam.UpstreamError as exc:
-        log.warning("속성을 읽지 못했다: %s", exc)
-        return JsonResponse({"error": str(exc), "features": []}, status=502)
+
+    # 속성도 담아 둔다. 같은 자리를 다시 누르면 상류를 타지 않는다 —
+    # 지도 범위와 누른 픽셀이 같아야 맞으므로 타일만큼 자주 맞지는 않는다
+    cache_key = tilecache.key_for("info", params)
+    data = _cached_json(cache_key)
+    if data is None:
+        if not kigam.has_key():
+            data = _cached_json(cache_key, stale=True)
+            if data is None:
+                return JsonResponse({"error": "인증키가 없다", "features": []},
+                                    status=503)
+        else:
+            try:
+                data = kigam.get_feature_info(params)
+            except kigam.UpstreamError as exc:
+                data = _cached_json(cache_key, stale=True)
+                if data is None:
+                    log.warning("속성을 읽지 못했다: %s", exc)
+                    return JsonResponse({"error": str(exc), "features": []},
+                                        status=502)
+            else:
+                _store_json(cache_key, data)
 
     # 같은 것이 여러 번 온다. 지질도는 폴리곤이 겹쳐 놓인 자리가 많고,
     # 클릭 한 점이 아니라 몇 픽셀 둘레를 물어보기 때문이다. 사람에게는
@@ -258,6 +280,25 @@ def feature_info(request):
     return JsonResponse({"features": features})
 
 
+def _cached_json(key: str, *, stale: bool = False):
+    raw = tilecache.get(key, ".json", stale=stale)
+    if raw is None:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
+
+
+def _store_json(key: str, data: dict) -> None:
+    """기하를 떼고 담는다. 팝업이 쓰지 않는 폴리곤 좌표가 대부분이다."""
+    slim = dict(data)
+    slim["features"] = [{k: v for k, v in f.items() if k != "geometry"}
+                        for f in (data.get("features") or [])]
+    tilecache.put(key, json.dumps(slim, ensure_ascii=False).encode("utf-8"),
+                  ".json")
+
+
 @require_GET
 def legend(request):
     """레이어 범례 이미지. 레이어 패널에서 펼쳐 볼 때 부른다."""
@@ -276,13 +317,19 @@ def legend(request):
             response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
         return response
 
-    if not kigam.has_key():
-        return JsonResponse({"error": "인증키가 없다"}, status=503)
     try:
+        if not kigam.has_key():
+            raise kigam.UpstreamError("인증키가 없다", status=503)
         content, ctype = kigam.get_legend(layer)
     except kigam.UpstreamError as exc:
+        old = tilecache.get(cache_key, stale=True)
+        if old is not None:
+            response = HttpResponse(old, content_type="image/png")
+            response["X-GSM-Cache"] = "stale"
+            return response
         log.info("범례를 받지 못했다 (%s): %s", layer, exc)
-        return JsonResponse({"error": str(exc)}, status=502)
+        return JsonResponse({"error": str(exc)},
+                            status=503 if not kigam.has_key() else 502)
     tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:

@@ -1,8 +1,9 @@
 """받아온 타일을 디스크에 두는 자리.
 
-여기서 지키는 것은 셋이다 — **인증키가 열쇠에 섞이지 않는 것**(섞이면 키가
+여기서 지키는 것은 넷이다 — **인증키가 열쇠에 섞이지 않는 것**(섞이면 키가
 나온 날 받아둔 것을 전부 버린다), **캐시가 깨져도 뷰어가 멈추지 않는 것**,
-그리고 **자리가 모자라면 스스로 줄어드는 것**.
+**늙은 것은 다시 묻되 상류가 못 주면 옛것을 내는 것**, 그리고 **디스크가
+모자라면 더 담지 않는 것**. 사람이 부르면 줄이기도 한다(`prune`).
 """
 import os
 import tempfile
@@ -23,12 +24,13 @@ class CacheCase(SimpleTestCase):
             TILE_CACHE_DIR=self.dir,
             TILE_CACHE_MAX_AGE_DAYS=30,
             TILE_CACHE_MAX_BYTES=10 * 1024 * 1024,
+            TILE_CACHE_MIN_FREE_BYTES=0,
         )
         patch.enable()
         self.addCleanup(patch.disable)
 
     def files(self):
-        return list(Path(self.dir).rglob("*.png"))
+        return [p for p in Path(self.dir).rglob("*") if p.is_file()]
 
 
 class Key(CacheCase):
@@ -60,6 +62,19 @@ class Key(CacheCase):
         self.assertEqual(tilecache.key_for("map", self.MAP),
                          tilecache.key_for("map", other))
 
+    def test_속성의_변수가_타일_열쇠를_바꾸지_않는다(self):
+        """KEY_PARAMS 에 속성 변수를 더해도 받아둔 타일의 열쇠는 그대로다."""
+        import hashlib
+        parts = ["map", "layers=l_50k_geology_map", "srs=epsg:3857",
+                 "bbox=1,2,3,4", "width=256", "height=256"]
+        old = hashlib.sha256("&".join(parts).encode()).hexdigest()
+        self.assertEqual(tilecache.key_for("map", self.MAP), old)
+
+    def test_누른_픽셀이_다르면_속성_열쇠도_다르다(self):
+        a = dict(self.MAP, query_layers="L_50K_Geology_Map", x="10", y="10")
+        self.assertNotEqual(tilecache.key_for("info", a),
+                            tilecache.key_for("info", dict(a, x="11")))
+
     def test_지도와_범례는_섞이지_않는다(self):
         self.assertNotEqual(tilecache.key_for("map", {"layer": "a"}),
                             tilecache.key_for("legend", {"layer": "a"}))
@@ -88,6 +103,26 @@ class PutGet(CacheCase):
         old = time.time() - 31 * 86400
         os.utime(tilecache._path(key), (old, old))
         self.assertIsNone(tilecache.get(key))
+
+    def test_늙은_것도_달라면_내준다(self):
+        """상류가 못 줄 때를 위한 것이다. 늙었다고 지우지 않는다."""
+        key = "d" * 64
+        tilecache.put(key, PNG)
+        old = time.time() - 400 * 86400
+        os.utime(tilecache._path(key), (old, old))
+        self.assertEqual(tilecache.get(key, stale=True), PNG)
+
+    def test_JSON_은_PNG_와_따로_담긴다(self):
+        key = "9" * 64
+        tilecache.put(key, b'{"a":1}', ".json")
+        self.assertIsNone(tilecache.get(key))
+        self.assertEqual(tilecache.get(key, ".json"), b'{"a":1}')
+        self.assertEqual(tilecache.stats()["count"], 1)
+
+    def test_디스크_여유가_모자라면_더_담지_않는다(self):
+        with override_settings(TILE_CACHE_MIN_FREE_BYTES=1 << 62):
+            tilecache.put("8" * 64, PNG)
+        self.assertEqual(self.files(), [])
 
     def test_반쯤_쓰다_만_파일을_남기지_않는다(self):
         tilecache.put("e" * 64, PNG)
