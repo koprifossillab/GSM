@@ -51,7 +51,10 @@ class Command(BaseCommand):
                 (settings.GRPORTAL_CATALOG_SEED, "그린란드 정부 포털", "greenland", "grportal"),
                 (settings.GEOMAP_CATALOG_SEED, "남극", "antarctica", "geomap"),
                 # 얀마옌(NPI 지질도, 022) — GeoMAP 처럼 우리 디스크의 파일을 읽는다
-                (settings.JANMAYEN_CATALOG_SEED, "얀마옌", "jan_mayen", "janmayen")):
+                (settings.JANMAYEN_CATALOG_SEED, "얀마옌", "jan_mayen", "janmayen"),
+                # 노르웨이 극지연구소(NPI, 021) — 스발바르, 그리고 남극의 드로닝모드랜드
+                (settings.NPOLAR_CATALOG_SEED, "스발바르 (NPI)", "svalbard", "npolar"),
+                (settings.NPOLAR_DML_CATALOG_SEED, "드로닝모드랜드 (NPI)", "antarctica", "npolar")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

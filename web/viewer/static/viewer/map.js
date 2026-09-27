@@ -57,6 +57,8 @@
     antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
                   home: [-2800000, -2400000, 2900000, 2500000],
                   basemap: "gibs_bm_s", forgetOldView: true,
+                  // 좌표 칸의 예 — 남극점(가운데)은 예로 쓸모가 없어 세종기지를 든다 (021)
+                  example: "-62.223, -58.787",
                   base: ["geomap_simple_geology", "geomap_chronostratigraphic",
                          "geomap_simple_lithology", "geomap_faults"],
                   first: "geomap_simple_geology" },
@@ -69,6 +71,23 @@
                  basemap: "eox_s2",
                  base: ["janmayen:units", "janmayen:lines", "janmayen:vents"],
                  first: ["janmayen:units", "janmayen:lines", "janmayen:vents"] },
+    // ── 스발바르·북극 (devlog 021) ──
+    // 스발바르는 노르웨이 극지연구소(NPI)의 지도 서버를 중계한다 — 타일은 3413 으로
+    // 곧장 받는다(`npolarSource`). `places` 면 찾기 칸이 NPI 지명을 뒤진다.
+    // **북극은 지역이 아니라 묶음이다.** `includes` 에 적은 지역의 레이어군을 한
+    // 화면에 모은다 — 셋 다 3413 이라 섞어 켤 수 있다. 카탈로그에 없는 지역은
+    // 저절로 빠진다. 보던 자리·켠 레이어·배경은 북극 탭이 따로 기억한다.
+    svalbard: { title: "스발바르", proj: "EPSG:3413", center: [17.0, 78.5], zoom: 6, vworld: false,
+                home: [890000, -739000, 1380000, -212000],
+                basemap: "npi_sat", places: true,
+                base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
+                first: "npolar:svalbard_units" },
+    arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
+              includes: ["greenland", "svalbard", "jan_mayen"],
+              home: [-612000, -3344000, 1380000, -212000],
+              basemap: "eox_s2", places: true,
+              base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
+              first: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"] },
   };
   var region = "korea";
 
@@ -93,12 +112,23 @@
     // 3413 의 범위는 NASA GIBS 의 극지 격자와 같게 — 배경의 줌이 화면과 맞는다
     ol.proj.get("EPSG:3413").setExtent([-4194304, -4194304, 4194304, 4194304]);
     ol.proj.get("EPSG:3031").setExtent(GEOMAP_GRID.extent);
+    // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
+    // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
+    proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    ol.proj.proj4.register(proj4);
   }
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
   //  파일이 없는 자리에 띄운 서버가 그렇다.
   REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
+  });
+  //: 스발바르·북극도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
+  ["svalbard", "arctic"].forEach(function (key) {
+    var keys = REGIONS[key].includes || [key];
+    REGIONS[key].pending = !catalog.some(function (g) {
+      return keys.indexOf(g.region) >= 0 && g.layers.length;
+    });
   });
 
   /** 지금 지역의 화면 투영. 등록되지 않았으면 메르카토르. */
@@ -121,8 +151,16 @@
     return region === "korea" ? name : name + "." + region;
   }
 
+  /** 지금 지역이 품는 지역들. 북극(`includes`)이면 그린란드·스발바르·얀마옌이다. */
+  function regionKeys(key) {
+    return REGIONS[key || region].includes || [key || region];
+  }
+
+  /** 지금 지역의 레이어군. 묶음 지역이면 `includes` 차례로 모은다. */
   function regionCatalog() {
-    return catalog.filter(function (g) { return (g.region || "korea") === region; });
+    var keys = regionKeys();
+    return catalog.filter(function (g) { return keys.indexOf(g.region || "korea") >= 0; })
+      .sort(function (a, b) { return keys.indexOf(a.region || "korea") - keys.indexOf(b.region || "korea"); });
   }
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
@@ -146,9 +184,25 @@
   var pointLayers = {};   // 점묶음 id -> ol 레이어
   var useDms = false;
 
+  var regionOfLayer = {};  // 레이어명 -> 지역 (북극 탭이 레이어 앞에 지역을 적는다)
   catalog.forEach(function (group) {
-    group.layers.forEach(function (layer) { byName[layer.name] = layer; });
+    group.layers.forEach(function (layer) {
+      byName[layer.name] = layer;
+      regionOfLayer[layer.name] = group.region || "korea";
+    });
   });
+
+  /** 묶음 지역(북극)에서는 레이어 이름 앞에 지역을 적는다 — 그린란드에도 스발바르에도
+   *  "지질 단위" 가 있다. 제 지역 탭에서는 이름만. */
+  function regionPrefix(name) {
+    var where = regionOfLayer[name];
+    return REGIONS[region].includes && where && REGIONS[where] ? T(REGIONS[where].title) + " · " : "";
+  }
+
+  function layerTitle(name) {
+    var row = byName[name];
+    return regionPrefix(name) + (row ? row.title : name);
+  }
 
   // ── 지도 ────────────────────────────────────────────────────────
 
@@ -222,6 +276,25 @@
     return BASE + "featureinfo/?" + q.toString();
   }
 
+  /** 노르웨이 극지연구소(NPI) — 서버의 `/wms/` 가 NPI 지도 서버의 `export` 로 옮겨
+   *  받는다(`npolar.py`). **다른 WMS 와 달리 3857 이 아니라 지역의 투영(3413·3031)으로
+   *  받는다** — NPI 지도는 축척에 따라 1:25만과 1:75만을 갈아 끼우는데, 3857 로 물으면
+   *  북위 78° 에서 축척이 다섯 배 부풀어 1:25만이 한참 늦게 뜬다 (devlog 021).
+   *  투영은 카탈로그 행(`projection`)이 준다. proj4 를 못 읽었으면 3857 로 받는다. */
+  function npolarSource(name) {
+    var row = byName[name] || {};
+    var code = row.projection && ol.proj.get(row.projection) ? row.projection : "EPSG:3857";
+    return new ol.source.TileWMS({
+      url: BASE + "wms",
+      params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true },
+      transition: 0,
+      projection: code,
+      // NPI 는 한 장을 그 자리에서 그린다(1~2 초). 512 로 키워 부르는 수를 줄인다
+      tileGrid: ol.tilegrid.createXYZ({ extent: ol.proj.get(code).getExtent(), tileSize: 512 }),
+      attributions: row.attribution || undefined,
+    });
+  }
+
   //: 타일 레이어를 짓는 손 — **상류마다 하나다.** 상류가 주는 꼴이 달라서다
   //  (KIGAM·GEUS·VWorld 는 WMS, GeoMAP 은 우리가 구운 타일). `info` 가 없으면 그
   //  레이어는 눌러도 속성을 묻지 않는다. 벡터·점(`kind`)은 `makeLayer` 가 따로 짓는다
@@ -233,6 +306,7 @@
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
     janmayen: { source: null, info: null },
+    npolar: { source: npolarSource, info: wmsInfoUrl },
   };
 
   function layerKind(name) {
@@ -489,25 +563,25 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen"],
+    regions: ["greenland", "jan_mayen", "svalbard"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen"],
+    regions: ["greenland", "jan_mayen", "svalbard"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland", "jan_mayen"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland", "jan_mayen"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -522,6 +596,50 @@
     regions: ["antarctica"], needs: "EPSG:3031",
     make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA); },
   };
+
+  // ── 스발바르 배경 — 노르웨이 극지연구소 (devlog 021) ──
+  //
+  // NPI 가 UTM 33N(25833)으로 구워 둔 타일을 브라우저가 곧장 받고 OpenLayers 가
+  // 3413 화면에 옮겨 그린다. `export` 로 3413 을 그려 달라고 할 수도 있지만(된다)
+  // 한 장에 2~3 초·0.3 MB 이고, 구워 둔 타일은 1 초·15 KB 다. 두 투영 모두 등각이라
+  // 옮겨 그려도 흐려지는 것이 적다. `Basisdata/` 의 것만 쓴다 — `Basisdata_Intern/`
+  // 은 "Svalbardkartet 안에서만" 이라 적혀 있다. 둘 다 CC BY 4.0 이다
+  var NPI_SAT = 'Satellite mosaic © <a href="https://data.npolar.no/" target="_blank" rel="noopener">Norsk Polarinstitutt</a>, contains modified Copernicus Sentinel data (CC BY 4.0)';
+  var NPI_TOPO = 'Topographic map © <a href="https://data.npolar.no/" target="_blank" rel="noopener">Norsk Polarinstitutt</a> (CC BY 4.0)';
+  BASEMAPS.npi_sat = {
+    title: T("Sentinel-2 위성 (NPI)"),
+    note: T("노르웨이 극지연구소 · Copernicus Sentinel-2. CC BY 4.0"),
+    regions: ["svalbard"], needs: "EPSG:3413",
+    make: function () { return npiTiles("NP_Satellitt_Svalbard_WMTS_25833", NPI_SAT); },
+  };
+  BASEMAPS.npi_topo = {
+    title: T("스발바르 지형도 (NPI)"),
+    note: T("노르웨이 극지연구소. CC BY 4.0"),
+    regions: ["svalbard"], needs: "EPSG:3413",
+    make: function () { return npiTiles("NP_Basiskart_Svalbard_WMTS_25833", NPI_TOPO); },
+  };
+
+  /** NPI 가 25833 으로 구워 둔 타일. 격자는 서비스의 `tileInfo` 그대로다 —
+   *  원점 (-5120900, 9998100), 256 픽셀, 줌 0 이 21674.71 m, 18 단계. */
+  function npiTiles(service, attribution) {
+    var resolutions = [];
+    for (var z = 0; z < 18; z++) resolutions.push(21674.7100160867 / Math.pow(2, z));
+    return new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://geodata.npolar.no/arcgis/rest/services/Basisdata/" + service + "/MapServer/tile/{z}/{y}/{x}",
+        projection: "EPSG:25833",
+        tileGrid: new ol.tilegrid.TileGrid({
+          origin: [-5120900, 9998100],
+          extent: [369976, 8221306, 878241, 9010719],
+          resolutions: resolutions,
+          tileSize: 256,
+        }),
+        crossOrigin: "anonymous",
+        transition: 0,
+        attributions: attribution,
+      }),
+    });
+  }
 
   /** EOX 의 3857 타일. 극지 화면이면 OpenLayers 가 옮겨 그린다. */
   function eoxLayer(name, maxZoom, attribution) {
@@ -853,7 +971,7 @@
     var opacity = row.opacity || (row.kind === "points" ? 1 : DEFAULT_OPACITY);
     active.unshift({
       name: name,
-      title: row.title,
+      title: layerTitle(name),
       opacity: opacity,
       legendOpen: false,
       layer: makeLayer(name),
@@ -962,7 +1080,7 @@
 
       var label = document.createElement("label");
       label.htmlFor = box.id;
-      label.textContent = layer.title;
+      label.textContent = layerTitle(layer.name);
       if (layer.abstract) label.title = layer.abstract;
       if (!layer.verified) {
         var mark = document.createElement("span");
@@ -1003,7 +1121,9 @@
       var layers = group.layers.filter(function (l) { return BASE_LAYERS.indexOf(l.name) < 0; });
       if (!layers.length) return;
       restCount += layers.length;
-      rest.push({ name: group.name, layers: layers });
+      // 북극 탭에서는 레이어군 앞에 지역을 적는다 — 그린란드의 "지질도" 가 어디 것인지
+      var where = REGIONS[region].includes && REGIONS[group.region] ? T(REGIONS[group.region].title) + " · " : "";
+      rest.push({ name: where + group.name, layers: layers });
     });
     if (!restCount) return;
 
@@ -1669,7 +1789,9 @@
     { upto: 2800, color: "#c51b7d", label: "신시생대" },
     { upto: Infinity, color: "#7a0177", label: "중시생대 이전" },
   ];
-  var POINT_COLORS = { mineral: "#d7301f", intrusion: "#6a3d9a", sample: "#8c8c8c", none: "#9e9e9e" };
+  //  NPI(021)의 시료 보관소(`rock`)는 노르웨이 국기의 빨강, 야외 조사 지점(`site`)은 짙은 청.
+  var POINT_COLORS = { mineral: "#d7301f", intrusion: "#6a3d9a", sample: "#8c8c8c", none: "#9e9e9e",
+                       rock: "#ba0c2f", site: "#3f6d9e" };
   //: 한 번 누를 때 레이어 하나에서 팝업에 올리는 점의 수. 한 시료에 연대가
   //  여럿 딸린 자리가 많아 하나로는 모자라고, 다 올리면 팝업이 읽히지 않는다.
   var POINT_POPUP_MAX = 6;
@@ -1694,6 +1816,8 @@
               featureProjection: projection || map.getView().getProjection(),
             });
             layer.set("gsmLabels", data.labels || {});
+            // 링크로 그릴 열. 서버(`arcpoints.links`)가 적어 준다 — 옛 서버면 `link` 하나
+            layer.set("gsmLinks", data.links || ["link"]);
             layer.set("gsmLegend", data.legend || null);
             layer.set("gsmCount", features.length);
             source.addFeatures(features);
@@ -1754,7 +1878,7 @@
       var fill = new ol.style.Fill({ color: color });
       var stroke = new ol.style.Stroke({ color: kind === "sample" && far ? "rgba(0,0,0,0)" : "rgba(20,20,20,0.85)",
                                          width: far ? 0.6 : 1 });
-      var r = kind === "sample" ? (far ? 2 : 3.5) : (far ? 4 : 6);
+      var r = kind === "sample" || kind === "site" ? (far ? 2 : 3.5) : (far ? 4 : 6);
       var image = kind === "mineral"
         ? new ol.style.RegularShape({ points: 4, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
         : kind === "intrusion"
@@ -1776,14 +1900,14 @@
     Object.keys(labels).forEach(function (key) {
       var value = feature.get(key);
       if (value === undefined || value === null || value === "") return;
-      if (key === "link") {
-        // 서버가 http·https 만 넘긴다(`grportal._clean`). 여기서 한 번 더 본다
+      if ((layer.get("gsmLinks") || ["link"]).indexOf(key) >= 0) {
+        // 서버가 http·https 만 넘긴다(`arcpoints.clean`). 여기서 한 번 더 본다
         if (!/^https?:\/\//i.test(String(value))) return;
         value = { text: "", links: [{ url: String(value), label: T("열기") }] };
       }
       props[labels[key]] = value;
     });
-    return { title: (byName[name] && byName[name].title) || name, props: props };
+    return { title: layerTitle(name), props: props };
   }
 
   /** 범례 자리. 타일 레이어는 상류의 범례 그림을 받지만, 점 레이어는
@@ -1813,7 +1937,8 @@
     } else if (kind === "sample") {
       item(POINT_COLORS.sample, T("색은 포털이 시료 갈래마다 매긴 것이다"));
     } else {
-      item(POINT_COLORS[kind], entry.title, kind === "mineral" ? "diamond" : "triangle");
+      item(POINT_COLORS[kind], entry.title, kind === "mineral" ? "diamond"
+        : kind === "intrusion" ? "triangle" : "dot");
     }
     var count = entry.layer.get("gsmCount");
     var foot = entry.layer.get("gsmFailed") ? T("점을 받지 못했다")
@@ -1825,7 +1950,9 @@
       a.href = row.source;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.textContent = T("포털의 원본 항목 — 이용 조건 표시 없음");
+      // NPI(021)는 CC BY 4.0 이라 적혀 있다. 그린란드 포털은 적혀 있지 않다(019)
+      a.textContent = row.license ? T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0")
+        : T("포털의 원본 항목 — 이용 조건 표시 없음");
       box.appendChild(a);
     }
     return box;
@@ -2492,6 +2619,7 @@
     var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
     document.getElementById("basemap-labels-wrap").style.display = labelled ? "" : "none";
     document.getElementById("crs-pick").hidden = !spec.vworld;
+    if (syncGotoHint) syncGotoHint();
     var note = document.getElementById("region-note");
     note.hidden = !spec.pending;
     document.getElementById("layer-catalog").hidden = !!spec.pending;
@@ -2724,7 +2852,8 @@
     Object.keys(BASEMAPS).forEach(function (key) {
       if (/^vworld/.test(key) && !REGIONS[region].vworld) return;
       var spec = BASEMAPS[key];
-      if (spec.regions && spec.regions.indexOf(region) < 0) return;
+      // 묶음 지역(북극)은 품은 지역의 배경을 다 고를 수 있다
+      if (spec.regions && !spec.regions.some(function (r) { return r === region || regionKeys().indexOf(r) >= 0; })) return;
       if (spec.needs && regionProj() !== spec.needs) return;     // proj4 를 못 읽었다
       var option = document.createElement("option");
       option.value = key;
@@ -3029,7 +3158,8 @@
   // 곳이 많아(가정동은 대전에도 인천에도 있다) **곧장 가지 않고 목록을
   // 띄운다.** 사람이 고른다.
 
-  var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소", order: "좌표" };
+  var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소", order: "좌표",
+               name: "지명" };
 
   function closeResults() {
     var box = document.getElementById("search-results");
@@ -3041,7 +3171,9 @@
     var box = document.getElementById("search-results");
     box.hidden = false;
     if (!REGIONS[region].vworld) {
-      box.innerHTML = '<li class="note">' + esc(T("주소·장소 찾기는 한국 지역에서만 된다. 좌표는 넣으면 간다.")) + "</li>";
+      // 스발바르·북극은 NPI 지명을 뒤진다 (devlog 021). 나머지 극지는 좌표로만 간다
+      if (REGIONS[region].places) { searchNames(q); return; }
+      box.innerHTML = '<li class="note">' + esc(T("이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·북극 탭에서 찾는다")) + "</li>";
       return;
     }
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
@@ -3056,7 +3188,22 @@
       });
   }
 
-  function renderResults(rows, lead) {
+  /** 스발바르 지명 8 393 에서 찾는다 — 서버가 한 번 받아 둔 것을 뒤진다(`placenames/`). */
+  function searchNames(q) {
+    var box = document.getElementById("search-results");
+    box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
+    fetch(BASE + "placenames/?q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || "");
+        renderResults(res.d.results || [], "", T("지명 검색: 노르웨이 극지연구소 (스발바르)"));
+      })
+      .catch(function (err) {
+        box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
+      });
+  }
+
+  function renderResults(rows, lead, src) {
     var box = document.getElementById("search-results");
     box.hidden = false;
     box.innerHTML = "";
@@ -3067,7 +3214,8 @@
       box.appendChild(head);
     }
     if (!rows.length) {
-      box.innerHTML = '<li class="note">' + esc(T("찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다")) + "</li>";
+      box.innerHTML = '<li class="note">' + esc(src ? T("찾은 것이 없다 — 스발바르 지명을 넣어 본다")
+        : T("찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다")) + "</li>";
       return;
     }
     rows.forEach(function (row, i) {
@@ -3089,7 +3237,7 @@
     if (lead) return;          // 좌표 차례 고르기는 VWorld 를 타지 않았다
     var note = document.createElement("li");
     note.className = "note src";
-    note.textContent = T("주소 검색: VWorld (국토지리정보원)");
+    note.textContent = src || T("주소 검색: VWorld (국토지리정보원)");
     box.appendChild(note);
   }
 
@@ -3110,20 +3258,33 @@
     var pick = document.getElementById("crs-pick");
     var upload = document.getElementById("upload-crs");
     var input = document.getElementById("goto-input");
-    var plain = input.placeholder;
+    gotoPlain = input.placeholder;
     try {
       var saved = localStorage.getItem("gsm.crs");
       if (saved && pick.querySelector('option[value="' + saved + '"]')) pick.value = saved;
     } catch (e) { /* 사생활 모드 */ }
     function sync() {
       upload.value = pick.value;
-      input.placeholder = pick.value === "4326" ? plain
+      input.placeholder = crsCode() === "4326" ? gotoPlaceholder()
         : T("{name} — 동 북 두 수, 또는 N 420005 E 232509 · 주소·장소도 된다",
             { name: pick.options[pick.selectedIndex].text });
       try { localStorage.setItem("gsm.crs", pick.value); } catch (e) { /* 사생활 모드 */ }
     }
     pick.addEventListener("change", sync);
+    syncGotoHint = sync;
     sync();
+  }
+
+  //: 좌표 칸의 안내. 한국은 템플릿이 적은 것(주소 예시), 스발바르·북극은 지명,
+  //  나머지 극지는 좌표만 (devlog 021). 지역을 바꾸면 `applyRegion` 이 다시 적는다
+  var gotoPlain = "", syncGotoHint = null;
+
+  function gotoPlaceholder() {
+    var spec = REGIONS[region];
+    if (spec.vworld) return gotoPlain;
+    if (spec.places) return T("좌표·지명으로 이동 — 78.223, 15.647 · Longyearbyen");
+    var example = spec.example || (spec.center[1].toFixed(1) + ", " + spec.center[0].toFixed(1));
+    return T("좌표로 이동 — 위도, 경도 (예: {example})", { example: example });
   }
 
   var projectMemo = {};

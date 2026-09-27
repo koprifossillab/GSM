@@ -15,14 +15,12 @@
 - 이용 조건은 항목에 적혀 있지 않다(`licenseInfo` 가 비어 있다). 웹지도의
   한 줄 소개가 "Free Geological Data for Greenland" 다. devlog 019
 """
-import json
 import logging
-import time
 
 import requests
 from django.conf import settings
 
-from . import usage
+from . import arcpoints, usage
 
 log = logging.getLogger(__name__)
 
@@ -33,16 +31,15 @@ MAX_PAGES = 40
 #: 장과 장 사이에 쉬는 초. 한 레이어를 받는 동안 브라우저가 기다리므로
 #: 너무 길게는 못 둔다 — 2 만 점이면 열 장, 쉬는 것만 5 초다.
 PAUSE = 0.5
-#: 좌표를 이 자리까지만 둔다. 소수 다섯째 자리가 1 m 남짓이다.
-DIGITS = 5
+#: 좌표를 이 자리까지만 둔다 (`arcpoints.DIGITS`).
+DIGITS = arcpoints.DIGITS
 
 
 class PortalError(RuntimeError):
     pass
 
 
-def _field(upstream, label, kind="text"):
-    return {"from": upstream, "label": label, "kind": kind}
+_field = arcpoints.field
 
 
 #: 레이어명 → 상류 서비스와 받는 열. **열쇠가 짧은 까닭** — 2 만 점마다 되풀이되는
@@ -125,15 +122,14 @@ def source_url(name: str) -> str:
 
 
 def signature(name: str) -> str:
-    """캐시 열쇠에 넣는 것 — 받는 열이 바뀌면 받아 둔 것을 쓰지 않는다.
-    팝업 이름(`label`)은 넣지 않는다. 이름을 고쳤다고 상류에 다시 물을 까닭이 없다."""
+    """캐시 열쇠에 넣는 것 (`arcpoints.signature`). 019 의 열쇠 그대로다 —
+    틀을 떼어 냈다고 받아 둔 점을 다시 받지 않는다."""
     spec = LAYERS[name]
-    cols = ",".join(f"{k}={f['from']}:{f['kind']}" for k, f in sorted(spec["fields"].items()))
-    return f"{spec['service']}|FID|{cols}"
+    return arcpoints.signature(spec, f"{spec['service']}|FID")
 
 
 def labels(name: str) -> dict:
-    return {k: f["label"] for k, f in LAYERS[name]["fields"].items() if f["label"]}
+    return arcpoints.labels(LAYERS[name])
 
 
 def _query_url(service: str) -> str:
@@ -180,79 +176,16 @@ def fetch(name: str, pause: float = None) -> list:
     fields = spec["fields"]
     # FID 를 늘 함께 받는다 — 열을 골라 받으면 상류가 feature 의 `id` 를 비워 보낸다
     wanted = sorted({f["from"] for f in fields.values()} | {"FID"})
-    pause = PAUSE if pause is None else pause
-    out, offset = [], 0
-    for page in range(MAX_PAGES):
-        if page:
-            time.sleep(pause)
-        data = _get_page(spec["service"], wanted, offset)
-        got = data.get("features") or []
-        for feature in got:
-            row = compact(feature, fields)
-            if row is not None:
-                out.append(row)
-        more = (data.get("exceededTransferLimit")
-                or (data.get("properties") or {}).get("exceededTransferLimit"))
-        if not got or (len(got) < PAGE and not more):
-            break
-        offset += len(got)
-    else:
-        log.warning("grportal %s: %d 장을 넘겨도 끝나지 않아 멈췄다", name, MAX_PAGES)
-    return out
+    return arcpoints.collect(lambda offset: _get_page(spec["service"], wanted, offset), fields,
+                             page=PAGE, max_pages=MAX_PAGES, pause=PAUSE if pause is None else pause,
+                             name=name)
 
 
-def compact(feature: dict, fields: dict):
-    """상류 feature 하나 → 우리 것. 점이 아니면(기하가 없으면) None."""
-    geom = feature.get("geometry") or {}
-    coords = geom.get("coordinates")
-    if geom.get("type") != "Point" or not coords or len(coords) < 2:
-        return None
-    try:
-        lon, lat = round(float(coords[0]), DIGITS), round(float(coords[1]), DIGITS)
-    except (TypeError, ValueError):
-        return None
-    src = feature.get("properties") or {}
-    props = {}
-    for key, spec in fields.items():
-        value = _clean(src.get(spec["from"]), spec["kind"])
-        if value is not None:
-            props[key] = value
-    fid = feature.get("id")
-    if fid is None:
-        fid = src.get("FID")
-    return {"type": "Feature", "id": fid,
-            "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
-
-
-def _clean(value, kind):
-    if value is None:
-        return None
-    if kind == "number":
-        try:
-            return round(float(value), 3)
-        except (TypeError, ValueError):
-            return None
-    text = " ".join(str(value).split())       # 앞뒤 빈칸·줄바꿈("\r\n")을 한 칸으로
-    if not text:
-        return None
-    if kind == "link":
-        # 주소는 http·https 만 받는다 — `javascript:` 를 팝업에 들이지 않는다
-        return text if text.lower().startswith(("http://", "https://")) else None
-    if kind == "rgb":
-        try:
-            r, g, b = (int(p) for p in text.split()[:3])
-        except ValueError:
-            return None
-        return "#%02x%02x%02x" % (r, g, b)
-    return text
+#: 받은 feature 를 우리 꼴로 줄이는 틀은 `arcpoints` 에 있다 (NPI 와 함께 쓴다, 021)
+compact = arcpoints.compact
+_clean = arcpoints.clean
 
 
 def body(name: str, features_json: bytes) -> bytes:
-    """브라우저에 보내는 한 덩이. 캐시에 든 feature 목록(바이트)을 다시 풀지 않고 감싼다.
-
-    `labels` 는 팝업 이름(한국어 — 영어는 브라우저가 `PROP_EN` 으로 옮긴다),
-    `style` 은 그리는 갈래다.
-    """
-    head = json.dumps({"type": "FeatureCollection", "labels": labels(name),
-                       "style": LAYERS[name]["style"]}, ensure_ascii=False)
-    return head[:-1].encode("utf-8") + b', "features": ' + features_json + b"}"
+    """브라우저에 보내는 한 덩이 (`arcpoints.body`)."""
+    return arcpoints.body(LAYERS[name], features_json)

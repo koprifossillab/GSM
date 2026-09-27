@@ -20,7 +20,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, geomap, geus, grportal, i18n, janmayen, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import (coords, crs, geomap, geus, grportal, i18n, janmayen, kigam, npolar, patchnotes, pointsets,
+               tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -178,28 +179,37 @@ def _catalog(lang="ko"):
 
 
 def _point_fields(layer) -> dict:
-    """점을 통째로 받아 브라우저가 그리는 레이어(`grportal`)에만 붙는 것.
+    """점을 통째로 받아 브라우저가 그리는 레이어(`grportal`·`npolar` 의 점)에만 붙는 것.
 
     타일이 아니므로 `/wms/`·`/featureinfo/`·`/legend/` 를 부르지 않는다 —
-    `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019).
+    `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019·021).
     """
     if layer.upstream == "janmayen" and janmayen.knows(layer.name):
         # 얀마옌 지질도(022) — 점 말고 선·면도 이 길로 간다. 색은 자료가 준다
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
-    if layer.upstream != "grportal" or not grportal.knows(layer.name):
-        return {}
-    return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
-            "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+    if layer.upstream == "grportal" and grportal.knows(layer.name):
+        return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
+                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+    if layer.upstream == "npolar" and npolar.knows_points(layer.name):
+        return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
+                "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
+                "attribution": npolar.ATTRIBUTION, "license": "CC BY 4.0"}
+    return {}
 
 
 def _layer_extra(layer) -> dict:
-    """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처."""
+    """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
+    NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geomap":
         return {"attribution": geomap.ATTRIBUTION,
                 "tiles": f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png",
                 "projection": "EPSG:3031"}
+    if layer.upstream == "npolar" and npolar.knows(layer.name):
+        spec = npolar.TILES[layer.name]
+        return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
+                **({} if spec["info"] else {"queryable": False})}
     return {}
 
 
@@ -229,7 +239,8 @@ def catalog_json(request):
 # VWorld(`vworld.py`), 그린란드는 GEUS(`geus.py`). 캐시·옛것 내주기·안내
 # 타일은 셋이 같이 쓴다.
 
-UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError)
+UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
+                   npolar.NpolarError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -250,14 +261,14 @@ class _Door:
     판을 갈면 곧바로 새 것이 보인다.
     """
 
-    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap}
+    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name == "geus":
+        if self.name in ("geus", "npolar"):             # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -446,6 +457,9 @@ def feature_info(request):
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
             props = vworld.friendly(props)        # riv_nm → 하천명 …
+        elif door.name == "npolar":
+            # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
+            props = npolar.friendly(props, lang)
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)
@@ -584,25 +598,42 @@ def _vector_response(data):
     return response
 
 
-# ── 점 레이어 (그린란드 정부 포털) ────────────────────────────────────
+# ── 점 레이어 (그린란드 정부 포털·NPI) ─────────────────────────────────
 #
-# 타일이 아니라 점을 통째로 받아 브라우저에 한 덩이로 준다 (`grportal.py`).
+# 타일이 아니라 점을 통째로 받아 브라우저에 한 덩이로 준다 (`grportal.py` 019,
+# `npolar.py` 021 — 받은 것을 줄이는 틀은 `arcpoints.py` 하나다).
 # 캐시의 규칙은 타일과 같다 — 들고 있으면 묻지 않고, 3 년이 지나면 다시 묻고,
 # 상류가 못 주면 옛것을 낸다. 담는 것은 feature 목록(JSON)이다.
 
 _point_locks = {}
 
+#: 점 레이어의 문. (알아보기, 받기, 싸기, 캐시 열쇠, 오류)
+_POINT_DOORS = (
+    ("grportal", grportal.knows, grportal, grportal.PortalError),
+    ("npolar", npolar.knows_points, npolar, npolar.NpolarError),
+)
+POINT_ERRORS = tuple(door[3] for door in _POINT_DOORS)
+
+
+def _point_door(name: str):
+    for key, knows, module, _ in _POINT_DOORS:
+        if knows(name):
+            return key, module
+    return None, None
+
 
 def _point_key(name: str) -> str:
-    return tilecache.key_text("grportal", grportal.signature(name))
+    key, module = _point_door(name)
+    return tilecache.key_text(key, module.signature(name))
 
 
 def point_features(name: str, *, refresh: bool = False) -> bytes:
-    """레이어 하나의 feature 목록(JSON 바이트). 못 받으면 PortalError.
+    """레이어 하나의 feature 목록(JSON 바이트). 못 받으면 그 문의 오류(`POINT_ERRORS`).
 
     같은 레이어를 두 사람이 한꺼번에 열어도 **상류에는 한 번만 묻는다** —
     2 만 점이면 열 장이다. 뒤에 온 사람은 앞사람이 받는 것을 기다린다.
     """
+    _, module = _point_door(name)
     key = _point_key(name)
     if not refresh:
         hit = tilecache.get(key, ".json")
@@ -615,8 +646,8 @@ def point_features(name: str, *, refresh: bool = False) -> bytes:
             if hit is not None:
                 return hit
         try:
-            features = grportal.fetch(name)
-        except grportal.PortalError:
+            features = module.fetch(name)
+        except POINT_ERRORS:
             old = tilecache.get(key, ".json", stale=True)
             if old is not None:
                 return old
@@ -634,17 +665,39 @@ def point_layer(request):
     name = request.GET.get("layer", "")
     if janmayen.knows(name):
         return _janmayen_layer(name, lang)
-    if not grportal.knows(name):
+    _, module = _point_door(name)
+    # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
+    if module is None or name == PLACE_NAMES:
         return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
     try:
         features = point_features(name)
-    except grportal.PortalError as exc:
+    except POINT_ERRORS as exc:
         log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
-    response = HttpResponse(grportal.body(name, features), content_type="application/geo+json")
+    response = HttpResponse(module.body(name, features), content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
+
+
+#: 스발바르 지명 8 393 — 찾기 칸이 뒤진다 (npolar.py, devlog 021)
+PLACE_NAMES = "npolar:place_names"
+
+
+@require_GET
+def place_names(request):
+    """스발바르 지명 찾기. 한국의 `search/`(VWorld) 자리다. 지명을 한 번 통째로
+    받아 두고(아홉 장) 그 안에서 찾는다 — 찾을 때마다 상류에 묻지 않는다."""
+    lang = i18n.lang_of(request)
+    query = (request.GET.get("q") or "").strip()[:100]
+    if not query:
+        return JsonResponse({"results": []})
+    try:
+        features = json.loads(point_features(PLACE_NAMES))
+    except (npolar.NpolarError, ValueError) as exc:
+        log.warning("스발바르 지명을 받지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
+    return JsonResponse({"results": npolar.match_places(features, query)})
 
 
 def _janmayen_layer(name, lang):
