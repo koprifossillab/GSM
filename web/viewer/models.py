@@ -8,15 +8,25 @@
 from django.db import models
 
 
-class LayerGroup(models.Model):
-    """레이어를 묶는 것. 씨앗의 `group` 문자열이 여기 행이 된다."""
+#: 지역. 화면 위의 지역 탭이 이것으로 레이어 목록을 가른다 (devlog 016).
+REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "남극"))
 
-    name = models.CharField("이름", max_length=60, unique=True)
+
+class LayerGroup(models.Model):
+    """레이어를 묶는 것. 씨앗의 `group` 문자열이 여기 행이 된다.
+
+    이름은 **지역 안에서만** 겹치지 않는다 — 그린란드에도 "지질도" 가 있다.
+    """
+
+    name = models.CharField("이름", max_length=60)
+    region = models.CharField("지역", max_length=20, choices=REGIONS, default="korea")
     order = models.IntegerField("차례", default=0)
 
     class Meta:
-        ordering = ["order", "name"]
+        ordering = ["region", "order", "name"]
         verbose_name = "레이어군"
+        constraints = [models.UniqueConstraint(fields=["region", "name"],
+                                               name="layergroup_name_per_region")]
 
     def __str__(self):
         return self.name
@@ -41,6 +51,9 @@ class Layer(models.Model):
     bbox_south = models.FloatField(null=True, blank=True)
     bbox_east = models.FloatField(null=True, blank=True)
     bbox_north = models.FloatField(null=True, blank=True)
+
+    #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`
+    upstream = models.CharField("상류", max_length=20, default="kigam")
 
     queryable = models.BooleanField("클릭해 속성을 읽을 수 있다", default=True)
     enabled = models.BooleanField("레이어 패널에 보인다", default=True)

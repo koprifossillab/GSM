@@ -1,0 +1,53 @@
+{% load static gsm_i18n %}<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "대돌여지도" %} 3D</title>
+<link rel="icon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
+<link rel="stylesheet" href="{% static 'viewer/vendor/maplibre/maplibre-gl.css' %}">
+<link rel="stylesheet" href="{% static 'viewer/map.css' %}?v={{ stamp|default:version }}">
+<style>
+  body { margin: 0; }
+  #map3d { position: fixed; inset: 0; background: #e8e0d2; }
+  .panel3d { position: fixed; top: 12px; left: 12px; z-index: 5; width: 280px; padding: 12px 14px;
+             color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+             border-radius: var(--radius); box-shadow: var(--shadow); font-size: 12.5px; }
+  .panel3d h1 { margin: 0 0 2px; font-size: 16px; color: var(--hi-ink); }
+  .panel3d .tag { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 10.5px;
+                  color: var(--on-hi); background: var(--hi); border-radius: 999px; vertical-align: 2px; }
+  .panel3d label { display: block; margin-top: 10px; color: var(--ink-soft); }
+  .panel3d select, .panel3d input[type=range] { width: 100%; margin-top: 4px; }
+  .panel3d select { padding: 5px 6px; font: inherit; color: var(--ink); background: var(--panel-tint);
+                    border: 1px solid var(--line); border-radius: var(--radius); }
+  .panel3d .hint { margin: 10px 0 0; }
+  .panel3d a { color: var(--hi-ink); }
+</style>
+</head>
+<body>
+<div id="map3d"></div>
+<aside class="panel3d">
+  <h1>{% t "대돌여지도" %} 3D <span class="tag">{% t "실험" %}</span></h1>
+  <label>{% t "지질 레이어" %}
+    <select id="layer3d">
+      {% for group in catalog_groups %}<optgroup label="{{ group.name }}">
+        {% for l in group.layers %}<option value="{{ l.name }}">{{ l.title }}</option>{% endfor %}
+      </optgroup>{% endfor %}
+    </select>
+  </label>
+  <label>{% t "투명도" %} <span id="op-num">70%</span>
+    <input type="range" id="opacity3d" min="0" max="100" value="70">
+  </label>
+  <label>{% t "지형 과장" %} <span id="ex-num">×1.5</span>
+    <input type="range" id="exag3d" min="10" max="40" value="15">
+  </label>
+  <label><input type="checkbox" id="shade3d" checked> {% t "음영 보이기" %}</label>
+  <p class="hint">{% t "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다." %}</p>
+  <p class="hint">{% t "표고: AWS Terrain Tiles (SRTM 등, 약 30 m). 지질도: 한국지질자원연구원." %}</p>
+  <p class="hint"><a id="back2d" href="{{ base }}">{% t "2D 로 돌아간다" %}</a></p>
+</aside>
+<script id="vworld-key" type="application/json">"{{ vworld_key|escapejs }}"</script>
+<script src="{% static 'viewer/vendor/maplibre/maplibre-gl.js' %}"></script>
+<script src="{% static 'viewer/map3d.js' %}?v={{ stamp|default:version }}"></script>
+</body>
+</html>

@@ -107,6 +107,13 @@ KIGAM_KEY = env("GSM_KIGAM_KEY") or _key_from_file()
 #:
 #: `<DB 옆>/vworld_key` 에 적어도 된다 — 배포한 자리의 .env 를 못 고치기 때문.
 VWORLD_KEY = env("GSM_VWORLD_KEY") or _one_line("GSM_VWORLD_KEY_FILE", "vworld_key")
+#: GEUS(그린란드) 지도 서비스. 이름 없이 부르면 바쁜 시간에 거절될 수 있어,
+#: 부르는 이를 `whoami` 로 밝힌다 — GEUS 가 그렇게 해 달라고 적어 두었다.
+#: 이메일은 저장소에 적지 않는다(공개된다). 환경변수나 `<DB 옆>/geus_whoami`.
+GEUS_WMS_URL = env("GSM_GEUS_WMS_URL", "https://data.geus.dk/geusmap/ows/3857.jsp")
+GEUS_MAPNAME = env("GSM_GEUS_MAPNAME", "greenland_portal")
+GEUS_WHOAMI = env("GSM_GEUS_WHOAMI") or _one_line("GSM_GEUS_WHOAMI_FILE", "geus_whoami") or "GSM"
+
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
 # 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.
@@ -176,6 +183,8 @@ def _dev_direct_wms() -> bool:
 DEV_DIRECT_WMS = _dev_direct_wms()
 
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
+#: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
+GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
 
 # ── Django ────────────────────────────────────────────────────────────
 SECRET_KEY = env("GSM_SECRET_KEY", "개발용-바꿔야-한다")

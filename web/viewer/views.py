@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, geus, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -87,7 +87,7 @@ def _split_links(value):
 # ── 화면 ──────────────────────────────────────────────────────────────
 
 #: 주소 끝에 붙여 캐시를 끊는 파일들.
-STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg")
+STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js")
 
 
 @functools.lru_cache(maxsize=1)
@@ -127,6 +127,20 @@ def map_view(request):
     })
 
 
+@require_GET
+def map3d_view(request):
+    """3D — 실험 (devlog 015). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/map3d.html", {
+        "lang": lang,
+        "catalog_groups": _catalog(lang),
+        "vworld_key": settings.VWORLD_KEY,
+        "base": request.path.rsplit("3d", 1)[0],
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
 # ── 카탈로그 ──────────────────────────────────────────────────────────
 
 def _catalog(lang="ko"):
@@ -145,7 +159,7 @@ def _catalog(lang="ko"):
         } for l in group.layers.filter(enabled=True)]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
-            groups.append({"name": name, "layers": layers})
+            groups.append({"name": name, "region": group.region, "layers": layers})
     return groups
 
 
@@ -170,6 +184,32 @@ def catalog_json(request):
 
 
 # ── 상류 프록시 ───────────────────────────────────────────────────────
+#
+# 레이어마다 나가는 문이 다르다 — 한국은 KIGAM(`kigam.py`), 그린란드는
+# GEUS(`geus.py`). 캐시·옛것 내주기·안내 타일은 둘이 같이 쓴다.
+
+UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError)
+
+
+def _upstream_of(layers: str) -> str:
+    """레이어명(여럿이면 첫째)의 상류. 카탈로그에 없으면 kigam 이다."""
+    name = (layers or "").split(",")[0].strip()
+    try:
+        row = Layer.objects.filter(name=name).values_list("upstream", flat=True).first()
+    except Exception:                  # 카탈로그를 못 읽어도 한국 지도는 돌아야 한다
+        row = None
+    return row or "kigam"
+
+
+class _Door:
+    """상류 하나의 get_map·get_feature_info·get_legend 와 인증키가 필요한지."""
+
+    def __init__(self, upstream):
+        self.name = upstream
+        mod = geus if upstream == "geus" else kigam
+        self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
+        self.ready = True if upstream == "geus" else kigam.has_key()
+
 
 @require_GET
 def wms(request):
@@ -193,15 +233,16 @@ def wms(request):
     if hit is not None:
         return _tile(hit, cached=True)
 
-    if not kigam.has_key():
+    door = _Door(_upstream_of(params.get("layers")))
+    if not door.ready:
         old = tilecache.get(cache_key, stale=True)
         if old is not None:
             return _tile(old, cached=True)
         return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
     try:
-        content, ctype = kigam.get_map(params)
-    except kigam.UpstreamError as exc:
+        content, ctype = door.get_map(params)
+    except UPSTREAM_ERRORS as exc:
         # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
         old = tilecache.get(cache_key, stale=True)
         if old is not None:
@@ -252,16 +293,17 @@ def feature_info(request):
     # 지도 범위와 누른 픽셀이 같아야 맞으므로 타일만큼 자주 맞지는 않는다
     cache_key = tilecache.key_for("info", params)
     data = _cached_json(cache_key)
+    door = _Door(_upstream_of(params.get("query_layers") or params.get("layers")))
     if data is None:
-        if not kigam.has_key():
+        if not door.ready:
             data = _cached_json(cache_key, stale=True)
             if data is None:
                 return JsonResponse({"error": i18n.t(msg("인증키가 없다"), lang), "features": []},
                                     status=503)
         else:
             try:
-                data = kigam.get_feature_info(params)
-            except kigam.UpstreamError as exc:
+                data = door.get_feature_info(params)
+            except UPSTREAM_ERRORS as exc:
                 data = _cached_json(cache_key, stale=True)
                 if data is None:
                     log.warning("속성을 읽지 못했다: %s", exc)
@@ -287,6 +329,8 @@ def feature_info(request):
             continue
         seen.add(mark)
         props = {k: _split_links(v) for k, v in props.items()}
+        if door.name == "geus":
+            props = geus.friendly(props)          # gu_name → 지질 단위 …
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)
@@ -333,11 +377,12 @@ def legend(request):
             response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
         return response
 
+    door = _Door(_upstream_of(layer))
     try:
-        if not kigam.has_key():
+        if not door.ready:
             raise kigam.UpstreamError("인증키가 없다", status=503)
-        content, ctype = kigam.get_legend(layer)
-    except kigam.UpstreamError as exc:
+        content, ctype = door.get_legend(layer)
+    except UPSTREAM_ERRORS as exc:
         old = tilecache.get(cache_key, stale=True)
         if old is not None:
             response = HttpResponse(old, content_type="image/png")
@@ -345,7 +390,7 @@ def legend(request):
             return response
         log.info("범례를 받지 못했다 (%s): %s", layer, exc)
         return JsonResponse({"error": str(exc)},
-                            status=503 if not kigam.has_key() else 502)
+                            status=503 if not door.ready else 502)
     tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:

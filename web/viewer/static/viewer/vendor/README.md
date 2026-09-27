@@ -19,3 +19,11 @@ https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css
 판을 올릴 때는 두 파일을 같이 받고 이 문서의 판 번호를 고친다.
 118c329cf58d41122a4097f9a8abe5f52b56eb80cfc7df83c5ccef8d7b976fbe  ol.js
 b46a588ec4f9db4f824ea15ab2b78bd9d1dfb17172a785c69e23fa8953db437f  ol.css
+
+**MapLibre GL JS 4.7.1** — `maplibre/` (BSD-3, `LICENSE.txt` 동봉). 3D 실험
+화면(`/GSM/3d/`)만 쓴다 (devlog 015).
+
+```
+https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js
+https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css
+```

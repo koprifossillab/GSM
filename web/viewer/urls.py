@@ -7,6 +7,7 @@ app_name = "viewer"
 
 urlpatterns = [
     path("", views.map_view, name="map"),
+    path("3d/", views.map3d_view, name="map3d"),
 
     # 상류 프록시. 브라우저는 인증키를 모르고 이 둘만 부른다.
     path("wms/", views.wms, name="wms"),

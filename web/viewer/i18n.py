@@ -109,6 +109,32 @@ EN = {
     "이 레이어가 있는 곳으로 범위를 맞춘다": "Zoom to this layer's extent",
     "끈다": "Turn off",
     "끌어서 차례를 바꾼다": "Drag to reorder",
+    "실험": "experimental",
+    "실험 기능": "Experimental features",
+    "켬": "On",
+    "다 여물지 않은 기능을 먼저 써 본다. 지금은 3D 보기(지도 오른쪽 도구 막대).":
+        "Try features that are not finished yet. For now: 3D view (map toolbar on the right).",
+    "3D 로 본다 (실험) — 지금 보던 자리를 연다": "View in 3D (experimental) — opens where you are",
+    "지질 레이어": "Geology layer",
+    "투명도": "Opacity",
+    "지형 과장": "Terrain exaggeration",
+    "음영 보이기": "Show hillshade",
+    "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
+        "Drag with the right button (or Ctrl+drag) to tilt and rotate.",
+    "표고: AWS Terrain Tiles (SRTM 등, 약 30 m). 지질도: 한국지질자원연구원.":
+        "Elevation: AWS Terrain Tiles (SRTM etc., about 30 m). Geology: KIGAM.",
+    "2D 로 돌아간다": "Back to 2D",
+    "지역": "Regions",
+    "한국": "Korea",
+    "그린란드": "Greenland",
+    "남극": "Antarctica",
+    "추가 지역": "Add region",
+    "준비 중": "coming soon",
+    "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
+    "<b>남극 자료는 준비 중이다.</b> 극지연구소 세종기지 둘레를 먼저 띄워 둔다. 레이어는 곧 붙인다.":
+        "<b>Antarctic data is coming soon.</b> The map opens around King Sejong Station (KOPRI) for now. Layers will follow.",
+    "주소·장소 찾기는 한국 지역에서만 된다. 좌표는 넣으면 간다.":
+        "Address and place search works in the Korea region only. Coordinates still work.",
     "주제도 비교": "Compare maps",
     "끔": "Off",
     "밀어 보기": "Swipe",
@@ -409,6 +435,10 @@ PROP_EN = {
     "해안선유형": "Coastline type",
     "물탐측선명": "Survey line",
     "이름표": "Label",
+    # GEUS 속성 (geus.FRIENDLY)
+    "지질 단위": "Geological unit",
+    "최소 연대 (Ma)": "Minimum age (Ma)",
+    "최대 연대 (Ma)": "Maximum age (Ma)",
 }
 
 
@@ -517,6 +547,10 @@ GROUP_EN = {
     "해저지질도": "Marine geological maps",
     "동위원소 연대지도": "Isotope age maps",
     "그 밖": "Other",
+    # 그린란드 (GEUS)
+    "야외 관찰": "Field observations",
+    "지화학": "Geochemistry",
+    "탄성파 탐사": "Seismic surveys",
 }
 
 LAYER_EN = {
@@ -581,4 +615,15 @@ LAYER_EN = {
     "medical_clay": "Medical clay",
     "G_tectonic": "Tectonic map",
     "outcrop_korea": "Geological outcrops of Korea",
+    # 그린란드 (GEUS)
+    "grl_g500_lithostr_search": "1:500K geology (lithostratigraphy)",
+    "lithologies": "Field lithology observations",
+    "geochemistry_greenland_v2_external": "Stream sediment geochemistry",
+    "geochemistry_greenland_ss_sw": "Stream sediment atlas — South & West",
+    "geochemistry_greenland_ss_n": "Stream sediment atlas — North",
+    "geochemistry_greenland_soil": "Soil geochemistry",
+    "seismic_surveys_grl": "Seismic survey areas",
+    "seismic_lines_grl": "Seismic lines",
+    "seismic_3d_surveys_grl": "3D seismic surveys",
+    "seismic_csem_grl": "CSEM lines",
 }

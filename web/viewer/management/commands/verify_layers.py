@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 "인증키가 없다. .env 의 GSM_KIGAM_KEY 를 채운다."))
             return
 
-        layers = Layer.objects.all()
+        layers = Layer.objects.filter(upstream="kigam")      # 그린란드(GEUS)는 따로다
         if options["only"]:
             layers = layers.filter(name__icontains=options["only"])
         if not options["redo"]:

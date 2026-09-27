@@ -1212,3 +1212,74 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .del-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .del-meta { color: var(--ink-faint); font-size: 11.5px; }
 .del-done { font-size: 11.5px; color: var(--ink-faint); }
+
+/* ── 지역 탭 ── */
+.regions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 16px 10px; }
+.region-tab { position: relative; padding: 5px 12px; font: inherit; font-size: 12.5px; color: var(--ink-soft);
+              background: var(--panel-tint); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.region-tab.on { color: var(--on-hi); background: var(--hi); border-color: var(--hi); font-weight: 600; }
+.region-x { margin-left: 6px; opacity: .6; }
+.region-x:hover { opacity: 1; }
+.region-more { position: relative; }
+.region-add { padding: 5px 10px; font: inherit; font-size: 12px; color: var(--ink-faint); background: none;
+              border: 1px dashed var(--line); border-radius: 999px; cursor: pointer; }
+.region-add:hover { color: var(--hi-ink); border-color: var(--gold-edge); }
+.region-menu { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 170px; margin: 0; padding: 4px;
+               list-style: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+               box-shadow: var(--shadow); }
+.region-menu[hidden] { display: none; }
+.region-menu li { padding: 7px 10px; font-size: 12.5px; border-radius: calc(var(--radius) - 2px); cursor: pointer; }
+.region-menu li:hover { color: var(--on-hi); background: var(--hi); }
+.region-note { margin-left: 16px; margin-right: 16px; }
+.region-note[hidden] { display: none; }
+
+/* ── 지역 테마 ──
+   한국은 먹갈색·금(로고의 색). 극지는 다른 색으로 지금 어느 땅을 보는지 한눈에
+   가른다. 화면(먹갈색·한지)의 밝기는 그대로 따르고 바탕·칸·강조의 색만 바꾼다. */
+
+/* 그린란드 — 빙하: 깊은 청회색 바탕에 얼음빛 하늘색 */
+:root[data-region="greenland"] {
+  --bg: #0f1c26; --panel: #15252f; --panel-tint: #0e1a22; --raise: #1c3140;
+  --ink: #e3eef3; --ink-soft: #a9c3cf; --ink-faint: #6f8e9c;
+  --line: #264252; --line-soft: #1b3240;
+  --gold: #7cc4dc; --gold-bright: #b3e2f0; --gold-muted: #6ea9bd;
+  --gold-wash: rgba(124, 196, 220, .13); --gold-edge: rgba(124, 196, 220, .42);
+  --hi: #7cc4dc; --hi-deep: #b3e2f0; --on-hi: #0e1a22; --hi-ink: #b3e2f0;
+  --glass: rgba(14, 26, 34, .93); --glass-line: rgba(124, 196, 220, .35);
+}
+:root[data-region="greenland"][data-theme="light"] {
+  --bg: #e7f0f4; --panel: #f8fcfd; --panel-tint: #eef5f8; --raise: #dde9ee;
+  --ink: #102430; --ink-soft: #3e5c6b; --ink-faint: #7b95a1;
+  --line: #c6d9e1; --line-soft: #dde9ee;
+  --gold: #3b8fb0; --gold-bright: #1f6f8f; --gold-muted: #4f8ea6;
+  --gold-wash: #e3f1f7; --gold-edge: #a9d2e2;
+  --hi: #1f5f7a; --hi-deep: #123f52; --on-hi: #f2fafd; --hi-ink: #1f5f7a;
+  --glass: rgba(248, 252, 253, .95); --glass-line: #c6d9e1;
+}
+
+/* 남극 — 오로라: 짙은 남색 바탕에 청록 */
+:root[data-region="antarctica"] {
+  --bg: #0d1224; --panel: #141a33; --panel-tint: #0c1122; --raise: #1d2545;
+  --ink: #e6ecfa; --ink-soft: #a8b5d8; --ink-faint: #6b789e;
+  --line: #28325a; --line-soft: #1c2548;
+  --gold: #5fe0b4; --gold-bright: #9ff2d4; --gold-muted: #5bbf9d;
+  --gold-wash: rgba(95, 224, 180, .12); --gold-edge: rgba(95, 224, 180, .4);
+  --hi: #5fe0b4; --hi-deep: #9ff2d4; --on-hi: #0c1122; --hi-ink: #9ff2d4;
+  --glass: rgba(12, 17, 34, .93); --glass-line: rgba(95, 224, 180, .33);
+}
+:root[data-region="antarctica"][data-theme="light"] {
+  --bg: #eceffa; --panel: #fbfcff; --panel-tint: #f1f3fb; --raise: #e1e5f4;
+  --ink: #141a33; --ink-soft: #46507a; --ink-faint: #8089ab;
+  --line: #cfd5ec; --line-soft: #e1e5f4;
+  --gold: #1f9e76; --gold-bright: #137a5a; --gold-muted: #3b9c7d;
+  --gold-wash: #e3f6ef; --gold-edge: #a6dfcb;
+  --hi: #1f4f8a; --hi-deep: #14335c; --on-hi: #f5f8ff; --hi-ink: #1f4f8a;
+  --glass: rgba(251, 252, 255, .95); --glass-line: #cfd5ec;
+}
+
+/* 실험 기능 — 설정에서 켠 사람에게만 보인다 */
+.tool.labs { text-decoration: none; }
+.tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */
+:root[data-labs="on"] .tool.labs[hidden] { display: flex; }
+.tool.labs::after { content: "β"; position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--hi-ink); }
+.tool.labs { position: relative; }

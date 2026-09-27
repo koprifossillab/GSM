@@ -43,7 +43,17 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"카탈로그 {len(layers)}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
-        unverified = Layer.objects.filter(verified_at__isnull=True).count()
+        # 다른 지역의 씨앗 (그린란드 — GEUS). 상류를 타지 않고 저장소의 표만 쓴다
+        geus = settings.GEUS_CATALOG_SEED
+        if geus.exists():
+            gseed = json.loads(geus.read_text(encoding="utf-8"))
+            made, touched = self._apply(gseed["레이어"], gseed["레이어군순서"], options["reset_titles"],
+                                        region=gseed.get("_지역", "greenland"),
+                                        upstream=gseed.get("_상류", "geus"))
+            self.stdout.write(self.style.SUCCESS(
+                f"그린란드 {len(gseed['레이어'])}개 — 새로 생긴 것 {made}, 손본 것 {touched}"))
+
+        unverified = Layer.objects.filter(verified_at__isnull=True, upstream="kigam").count()
         if unverified:
             self.stdout.write(
                 f"아직 /openapi/wms 로 확인하지 않은 레이어 {unverified}개. "
@@ -80,11 +90,11 @@ class Command(BaseCommand):
         return seed
 
     @transaction.atomic
-    def _apply(self, layers, order, reset_titles):
+    def _apply(self, layers, order, reset_titles, region="korea", upstream="kigam"):
         groups = {}
         for index, name in enumerate(order):
             group, _ = LayerGroup.objects.get_or_create(
-                name=name, defaults={"order": index})
+                name=name, region=region, defaults={"order": index})
             if group.order != index:
                 group.order = index
                 group.save(update_fields=["order"])
@@ -93,7 +103,7 @@ class Command(BaseCommand):
         made = touched = 0
         for index, row in enumerate(layers):
             group = groups.get(row["group"]) or LayerGroup.objects.get_or_create(
-                name=row["group"], defaults={"order": len(groups)})[0]
+                name=row["group"], region=region, defaults={"order": len(groups)})[0]
             groups.setdefault(row["group"], group)
 
             bbox = row.get("bbox") or [None] * 4
@@ -107,7 +117,7 @@ class Command(BaseCommand):
                 Layer.objects.create(
                     name=row["name"],
                     title=row.get("title") or row["name"],
-                    group=group, order=index, **fields)
+                    group=group, order=index, upstream=upstream, **fields)
                 made += 1
                 continue
 

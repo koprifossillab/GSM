@@ -30,6 +30,35 @@
   }
   var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
+
+  // ── 지역 ─────────────────────────────────────────────────────────
+  //
+  // 한국·그린란드·남극. **지역마다 레이어 목록·켠 레이어·보던 자리·색이 따로다**
+  // (devlog 016). 한국이 기본이고, 다른 지역은 "추가 지역" 에서 더한다.
+  // 레이어의 상류도 지역을 따라 갈린다 — 한국은 KIGAM, 그린란드는 GEUS.
+  // VWorld 배경·주소 찾기·한국 좌표계는 한국에서만 뜻이 있어 한국에서만 보인다.
+  var REGIONS = {
+    korea: { title: "한국", center: [127.8, 36.2], zoom: 7, vworld: true,
+             base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "L_50K_Geology_Map",
+                    "l_50k_geology_frame_latest", "G_tectonic"],
+             first: "L_50K_Geology_Map" },
+    greenland: { title: "그린란드", center: [-42.0, 72.0], zoom: 4, vworld: false,
+                 base: ["grl_g500_lithostr_search", "lithologies"],
+                 first: "grl_g500_lithostr_search" },
+    antarctica: { title: "남극", center: [-58.78, -62.22], zoom: 10, vworld: false,
+                  base: [], first: null, pending: true },
+  };
+  var region = "korea";
+  var addedRegions = ["korea"];
+
+  function stateKey(name) {
+    // 한국은 예전 열쇠 그대로 — 이 판 전에 기억해 둔 것을 잃지 않는다
+    return region === "korea" ? name : name + "." + region;
+  }
+
+  function regionCatalog() {
+    return catalog.filter(function (g) { return (g.region || "korea") === region; });
+  }
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
   //: 레이어를 켤 때의 투명도. 배경지도를 깔고 보는 것이 예사이므로
@@ -296,7 +325,7 @@
     var rows = active.map(function (e) {
       return { name: e.name, opacity: Math.round(e.opacity * 100) / 100 };
     });
-    try { localStorage.setItem("gsm.layers", JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
+    try { localStorage.setItem(stateKey("gsm.layers"), JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
   }
 
   function saveView() {
@@ -304,7 +333,7 @@
     var center = ol.proj.toLonLat(view.getCenter());
     var state = { lon: +center[0].toFixed(5), lat: +center[1].toFixed(5),
                   zoom: +view.getZoom().toFixed(2) };
-    try { localStorage.setItem("gsm.view", JSON.stringify(state)); } catch (e) { /* 사생활 모드 */ }
+    try { localStorage.setItem(stateKey("gsm.view"), JSON.stringify(state)); } catch (e) { /* 사생활 모드 */ }
   }
 
   function readJson(key) {
@@ -313,12 +342,12 @@
 
   /** 기억한 것이 있으면 되살리고 true. 처음 온 사람이면 false. */
   function restoreState() {
-    var view = readJson("gsm.view");
+    var view = readJson(stateKey("gsm.view"));
     if (view && isFinite(view.lon) && isFinite(view.lat) && isFinite(view.zoom)) {
       map.getView().setCenter(ol.proj.fromLonLat([view.lon, view.lat]));
       map.getView().setZoom(view.zoom);
     }
-    var rows = readJson("gsm.layers");
+    var rows = readJson(stateKey("gsm.layers"));
     if (!Array.isArray(rows)) return false;
     restoring = true;
     // addLayer 는 맨 위에 얹는다. 그래서 맨 아래 것부터 얹는다.
@@ -424,16 +453,9 @@
 
   // ── 레이어 패널 ─────────────────────────────────────────────────
 
-  /** 늘 펼쳐 두는 기본 지질도 다섯 장. 차례가 화면의 차례다.
-   *  지체구조도는 상류가 "그 밖" 에 넣어 두었지만 지질도로 늘 보는 것이라
-   *  여기로 끌어온다. */
-  var BASE_LAYERS = [
-    "L_1M_Geology_Map",
-    "L_250K_Geology_Map",
-    "L_50K_Geology_Map",
-    "l_50k_geology_frame_latest",
-    "G_tectonic",
-  ];
+  // 늘 펼쳐 두는 기본 지질도는 지역마다 다르다 — `REGIONS[지역].base`.
+  // 한국의 지체구조도는 상류가 "그 밖" 에 넣어 두었지만 지질도로 늘 보는
+  // 것이라 기본으로 끌어온다.
 
   /** 카탈로그.
    *
@@ -486,6 +508,7 @@
       return details;
     }
 
+    var BASE_LAYERS = REGIONS[region].base;
     var base = BASE_LAYERS.filter(function (name) { return byName[name]; });
     var baseBox = folder("group base", T("기본 지질도"), base.length, true);
     base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
@@ -493,7 +516,7 @@
 
     var rest = [];
     var restCount = 0;
-    catalog.forEach(function (group) {
+    regionCatalog().forEach(function (group) {
       var layers = group.layers.filter(function (l) { return BASE_LAYERS.indexOf(l.name) < 0; });
       if (!layers.length) return;
       restCount += layers.length;
@@ -1556,6 +1579,127 @@
     });
   }
 
+  // ── 지역 바꾸기 ──────────────────────────────────────────────────
+
+  function readRegions() {
+    try {
+      var added = JSON.parse(localStorage.getItem("gsm.regions") || "null");
+      if (Array.isArray(added)) {
+        addedRegions = ["korea"].concat(added.filter(function (r) { return REGIONS[r] && r !== "korea"; }));
+      }
+      var saved = localStorage.getItem("gsm.region");
+      if (saved && addedRegions.indexOf(saved) >= 0) region = saved;
+    } catch (e) { /* 사생활 모드 */ }
+  }
+
+  function saveRegions() {
+    try {
+      localStorage.setItem("gsm.regions", JSON.stringify(addedRegions.slice(1)));
+      localStorage.setItem("gsm.region", region);
+    } catch (e) { /* 사생활 모드 */ }
+  }
+
+  /** 지역 탭 — 더한 지역들과 "+ 추가 지역". */
+  function renderRegions() {
+    var host = document.getElementById("regions");
+    host.innerHTML = "";
+    addedRegions.forEach(function (key) {
+      var tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "region-tab" + (key === region ? " on" : "");
+      tab.dataset.region = key;
+      tab.textContent = T(REGIONS[key].title);
+      tab.addEventListener("click", function () { switchRegion(key); });
+      if (key !== "korea") {
+        var x = document.createElement("span");
+        x.className = "region-x";
+        x.textContent = "×";
+        x.title = T("이 지역을 탭에서 뺀다");
+        x.addEventListener("click", function (e) {
+          e.stopPropagation();
+          addedRegions = addedRegions.filter(function (r) { return r !== key; });
+          if (region === key) switchRegion("korea"); else { saveRegions(); renderRegions(); }
+        });
+        tab.appendChild(x);
+      }
+      host.appendChild(tab);
+    });
+    var more = Object.keys(REGIONS).filter(function (k) { return addedRegions.indexOf(k) < 0; });
+    if (!more.length) return;
+    var wrap = document.createElement("div");
+    wrap.className = "region-more";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "region-add";
+    btn.textContent = "+ " + T("추가 지역");
+    var menu = document.createElement("ul");
+    menu.className = "region-menu";
+    menu.hidden = true;
+    more.forEach(function (key) {
+      var li = document.createElement("li");
+      li.textContent = T(REGIONS[key].title) + (REGIONS[key].pending ? " — " + T("준비 중") : "");
+      li.addEventListener("click", function () {
+        addedRegions.push(key);
+        switchRegion(key);
+      });
+      menu.appendChild(li);
+    });
+    btn.addEventListener("click", function (e) { e.stopPropagation(); menu.hidden = !menu.hidden; });
+    document.addEventListener("click", function () { menu.hidden = true; });
+    wrap.append(btn, menu);
+    host.appendChild(wrap);
+  }
+
+  /** 지역을 바꾼다. 지금 지역의 것을 기억해 두고, 새 지역의 것을 되살린다. */
+  function switchRegion(next) {
+    if (!REGIONS[next]) return;
+    saveView();
+    if (compareMode !== "off") setCompare("off");
+    // 켠 레이어를 모두 내린다 (기억은 이미 해 두었다)
+    active.slice().forEach(function (e) { map.removeLayer(e.layer); });
+    active = [];
+    region = next;
+    applyRegion();
+    saveRegions();
+    renderRegions();
+    renderCatalog();
+    if (!restoreState()) {
+      map.getView().setCenter(ol.proj.fromLonLat(REGIONS[region].center));
+      map.getView().setZoom(REGIONS[region].zoom);
+      openFirstLayer();
+    }
+    restack();
+    closePopup();
+  }
+
+  /** 지역에 딸린 겉모습 — 색 테마, 배경 고르개, 한국 전용 칸, 준비 중 알림. */
+  function applyRegion() {
+    document.documentElement.setAttribute("data-region", region);
+    var spec = REGIONS[region];
+    fillBasemaps();
+    var select = document.getElementById("basemap");
+    if (!select.querySelector('option[value="' + select.value + '"]') || !select.value) select.value = "none";
+    if (spec.vworld) { var saved = savedBasemap(); if (select.querySelector('option[value="' + saved + '"]')) select.value = saved; }
+    setBasemap(select.value);
+    // 지명 칸은 지명을 끌 수 있는 배경(위성)에서만 보인다
+    var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
+    document.getElementById("basemap-labels-wrap").style.display = labelled ? "" : "none";
+    document.getElementById("crs-pick").hidden = !spec.vworld;
+    var note = document.getElementById("region-note");
+    note.hidden = !spec.pending;
+    document.getElementById("layer-catalog").hidden = !!spec.pending;
+  }
+
+  /** 처음 온 지역이면 대표 레이어 하나를 켜 둔다. */
+  function openFirstLayer() {
+    var first = REGIONS[region].first;
+    if (first && byName[first]) {
+      var box = document.querySelector('input[data-layer="' + cssEscape(first) + '"]');
+      if (box) box.checked = true;
+      addLayer(first);
+    }
+  }
+
   // ── 주제도 비교 ──────────────────────────────────────────────────
   //
   // 두 가지다. **밀어 보기**는 고른 레이어를 세로 막대의 왼쪽에만 그려,
@@ -1753,15 +1897,23 @@
 
   // ── 붙이기 ──────────────────────────────────────────────────────
 
-  function wireBasemap() {
+  /** 배경 고르개를 지금 지역에 맞춘다. VWorld 는 우리나라만 그린다. */
+  function fillBasemaps() {
     var select = document.getElementById("basemap");
+    select.innerHTML = "";
     Object.keys(BASEMAPS).forEach(function (key) {
+      if (/^vworld/.test(key) && !REGIONS[region].vworld) return;
       var option = document.createElement("option");
       option.value = key;
       option.textContent = BASEMAPS[key].title;
       if (BASEMAPS[key].note) option.title = BASEMAPS[key].note;
       select.appendChild(option);
     });
+  }
+
+  function wireBasemap() {
+    var select = document.getElementById("basemap");
+    fillBasemaps();
     var labelBox = document.getElementById("basemap-labels");
     var labelWrap = document.getElementById("basemap-labels-wrap");
 
@@ -1773,6 +1925,7 @@
     }
 
     select.value = savedBasemap();
+    if (!select.value) select.value = "none";
     select.addEventListener("change", function () {
       setBasemap(select.value);
       syncLabelBox();
@@ -1792,6 +1945,8 @@
   // 계정이 있어야 하는데 이 뷰어에는 계정이 없다.
 
   var LOOKS = [
+    // 실험 기능 — 켜면 <html data-labs="on"> 이 되고 `.labs` 붙은 것이 보인다
+    { key: "labs", attr: "data-labs", store: "gsm.labs", fallback: "off", sel: "#opt-labs" },
     { key: "theme", attr: "data-theme", store: "gsm.theme", fallback: "brown", sel: "#opt-theme" },
     { key: "font", attr: "data-font", store: "gsm.font", fallback: "sans", sel: "#opt-font" },
     { key: "size", attr: "data-size", store: "gsm.size", fallback: "m", sel: "#opt-size" },
@@ -2062,6 +2217,10 @@
   function searchPlaces(q) {
     var box = document.getElementById("search-results");
     box.hidden = false;
+    if (!REGIONS[region].vworld) {
+      box.innerHTML = '<li class="note">' + esc(T("주소·장소 찾기는 한국 지역에서만 된다. 좌표는 넣으면 간다.")) + "</li>";
+      return;
+    }
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
     fetch(BASE + "search/?q=" + encodeURIComponent(q))
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -2120,7 +2279,8 @@
 
   function crsCode() {
     var pick = document.getElementById("crs-pick");
-    return pick ? pick.value : "4326";
+    if (!pick || !REGIONS[region].vworld) return "4326";     // 한국 좌표계는 한국에서만
+    return pick.value;
   }
 
   function wireCrs() {
@@ -2231,12 +2391,14 @@
     });
   }
 
+  function closePopup() {
+    document.getElementById("popup").classList.remove("on");
+    document.getElementById("map-wrap").classList.remove("popup-open");
+    popupOverlay.setPosition(undefined);
+  }
+
   function wirePopup() {
-    document.getElementById("popup-close").addEventListener("click", function () {
-      document.getElementById("popup").classList.remove("on");
-      document.getElementById("map-wrap").classList.remove("popup-open");
-      popupOverlay.setPosition(undefined);
-    });
+    document.getElementById("popup-close").addEventListener("click", closePopup);
   }
 
   function esc(text) {
@@ -2279,6 +2441,8 @@
   }
 
   initLooks();
+  readRegions();
+  document.documentElement.setAttribute("data-region", region);
   initMap();
   wireBasemap();
   wireCompare();
@@ -2293,15 +2457,16 @@
   wireUpload();
   wirePopup();
 
-  // 처음 열면 5만 지질도를 켜 둔다. 빈 지도보다 무엇이든 보이는 편이 낫고,
-  // **5만이 실제로 가장 많이 보는 축척이다.** 100만·25만은 켜서 보는 것이지
-  // 켜 두고 시작할 것이 아니다. 기억한 것이 있으면 그것을 따른다 — 다 끄고
-  // 떠났으면 다 꺼진 채로 연다.
-  if (!restoreState() && byName["L_50K_Geology_Map"]) {
-    var box = document.querySelector('input[data-layer="L_50K_Geology_Map"]');
-    if (box) { box.checked = true; }
-    addLayer("L_50K_Geology_Map");
+  renderRegions();
+  applyRegion();
+  if (!restoreState()) {
+    map.getView().setCenter(ol.proj.fromLonLat(REGIONS[region].center));
+    map.getView().setZoom(REGIONS[region].zoom);
   }
+  // 처음 온 지역이면 대표 레이어 하나를 켠다 — 한국은 5만 지질도. 빈 지도보다
+  // 무엇이든 보이는 편이 낫고, **5만이 실제로 가장 많이 보는 축척이다.**
+  // 기억한 것이 있으면 그것을 따른다 — 다 끄고 떠났으면 다 꺼진 채로 연다.
+  if (!active.length && !readJson(stateKey("gsm.layers"))) openFirstLayer();
 
   // ── 대기 화면 ────────────────────────────────────────────────────
   //
