@@ -376,6 +376,11 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 }
 #active-list li.empty { background: none; border: 0; padding: 6px 2px; }
 .active-head { display: flex; align-items: center; gap: 5px; }
+.active-head.grab { cursor: grab; }
+.active-head.grab:active { cursor: grabbing; }
+#active-list li.dragging { opacity: .45; }
+#active-list li.drop-before { box-shadow: 0 -3px 0 0 var(--hi); }
+#active-list li.drop-after { box-shadow: 0 3px 0 0 var(--hi); }
 .active-title {
   flex: 1;
   font-size: 13px;

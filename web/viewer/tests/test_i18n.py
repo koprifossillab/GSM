@@ -96,6 +96,10 @@ class Age(SimpleTestCase):
         "미분류": "Unclassified",
         "시대 미상": "Age unknown",
         "중생대 시대미상": "Mesozoic Age unknown",
+        # 지체구조도
+        "시생대-원생대": "Archean – Proterozoic",
+        "고생대화성활동": "Paleozoic igneous activity",
+        "Nodata": "Nodata",
     }
 
     def test_상류의_값을_옮긴다(self):

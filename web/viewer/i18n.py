@@ -105,6 +105,7 @@ EN = {
     "범례를 받지 못했다": "Could not load the legend",
     "이 레이어가 있는 곳으로 범위를 맞춘다": "Zoom to this layer's extent",
     "끈다": "Turn off",
+    "끌어서 차례를 바꾼다": "Drag to reorder",
 
     # 배경지도
     "없음 (바탕만)": "None (plain)",
@@ -363,7 +364,9 @@ AGE_WORDS = {
 #: 앞 낱말을 꾸미는 말. 영어는 앞에 둔다 — `트라이아스기 후기` → `Late Triassic`.
 AGE_MODIFIERS = {"전기": "Early", "중기": "Middle", "후기": "Late"}
 #: 통째로 옮기는 값.
-AGE_WHOLE = {"미분류": "Unclassified", "시대 미상": "Age unknown", "시대미상": "Age unknown"}
+AGE_WHOLE = {"미분류": "Unclassified", "시대 미상": "Age unknown", "시대미상": "Age unknown",
+             # 지체구조도(`L_1M_tectonic_litho`)
+             "고생대화성활동": "Paleozoic igneous activity"}
 
 
 def age_en(value: str) -> str:

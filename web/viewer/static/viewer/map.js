@@ -366,6 +366,56 @@
     restack();
   }
 
+  /** `name` 을 `target` 자리(0 이 맨 위)로 옮긴다. 끌어 놓을 때 쓴다. */
+  function moveTo(name, target) {
+    var index = active.findIndex(function (e) { return e.name === name; });
+    if (index < 0) return;
+    var moved = active.splice(index, 1)[0];
+    if (index < target) target -= 1;          // 빼낸 만큼 뒤쪽 자리가 당겨진다
+    active.splice(Math.max(0, Math.min(target, active.length)), 0, moved);
+    restack();
+  }
+
+  // 끌고 있는 레이어. 끌기는 줄의 머리에서만 시작한다 — 줄 전체를 끌 수
+  // 있게 하면 투명도 막대를 움직이다 줄이 끌려간다.
+  var dragName = null;
+
+  function wireDrag(li, head, entry, index) {
+    head.draggable = true;
+    head.classList.add("grab");
+    head.addEventListener("dragstart", function (e) {
+      dragName = entry.name;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", entry.name);
+      li.classList.add("dragging");
+    });
+    head.addEventListener("dragend", function () {
+      dragName = null;
+      document.querySelectorAll("#active-list li").forEach(function (x) {
+        x.classList.remove("dragging", "drop-before", "drop-after");
+      });
+    });
+    function after(e) {
+      var box = li.getBoundingClientRect();
+      return e.clientY > box.top + box.height / 2;
+    }
+    li.addEventListener("dragover", function (e) {
+      if (!dragName) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      li.classList.toggle("drop-after", after(e));
+      li.classList.toggle("drop-before", !after(e));
+    });
+    li.addEventListener("dragleave", function () {
+      li.classList.remove("drop-before", "drop-after");
+    });
+    li.addEventListener("drop", function (e) {
+      if (!dragName) return;
+      e.preventDefault();
+      moveTo(dragName, index + (after(e) ? 1 : 0));
+    });
+  }
+
   // ── 레이어 패널 ─────────────────────────────────────────────────
 
   /** 늘 펼쳐 두는 기본 지질도 다섯 장. 차례가 화면의 차례다.
@@ -490,6 +540,8 @@
       var off = iconButton("×", T("끈다"), false, function () { removeLayer(entry.name); });
 
       head.append(up, down, title, fit, legendBtn, off);
+      head.title = T("끌어서 차례를 바꾼다");
+      wireDrag(li, head, entry, index);
 
       var foot = document.createElement("div");
       foot.className = "active-foot";
