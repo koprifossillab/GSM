@@ -16,6 +16,9 @@
 고쳐서 설정을 **DB 옆 파일**로도 읽게 해 두었다 —
 `kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
 
+**영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
+고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
+
 ## 돌려보는 법
 
 ```bash

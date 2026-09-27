@@ -10,6 +10,24 @@
   "use strict";
 
   var BASE = location.pathname.replace(/\/+$/, "") + "/";
+
+  // ── 말 ───────────────────────────────────────────────────────────
+  //
+  // 화면의 글은 한국어로 적고 `T()` 로 감싼다. 영어판이면 서버가 번역표
+  // (`viewer/i18n.py` 의 `EN`)를 실어 보내고, 표에 없는 문장은 한국어로
+  // 남는다. **문장을 새로 적으면 번역표에도 적는다** — 시험
+  // (`test_i18n`)이 빠진 것을 잡는다. 숫자·이름이 끼는 자리는 `{n}` 처럼
+  // 자리표로 두고 넘긴다 — 영어는 말 차례가 달라 이어 붙이면 어색하다.
+  var LANG = document.documentElement.lang === "en" ? "en" : "ko";
+  var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+
+  function T(text, vars) {
+    var out = (LANG === "en" && I18N[text]) || text;
+    if (vars) {
+      out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
+    }
+    return out;
+  }
   var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
@@ -65,7 +83,7 @@
   // 막혀 있어(devlog 003) 고를 수 있게 두면 `403 Access blocked` 타일만
   // 깔린다. 고쳐지지 않는 것을 목록에 두는 것은 고르개가 아니라 함정이다.
   var BASEMAPS = {
-    none: { title: "없음 (바탕만)", make: null },
+    none: { title: T("없음 (바탕만)"), make: null },
   };
 
   // VWorld 는 열쇠가 있을 때만 고르개에 오른다.
@@ -77,8 +95,8 @@
   // WMTS 의 자리 차례가 **z/y/x** 다. z/x/y 로 적으면 엉뚱한 곳이 그려진다.
   if (vworldKey) {
     BASEMAPS.vworld = {
-      title: "VWorld 배경지도",
-      note: "국토지리정보원",
+      title: T("VWorld 배경지도"),
+      note: T("국토지리정보원"),
       make: function () {
         return new ol.layer.Tile({
           opacity: 0.85,
@@ -96,21 +114,21 @@
     // **지질도 밑에는 백지도가 낫다** — 도로·지명 색이 죽어 있어 지질도의
     // 분홍·자홍과 다투지 않는다 (004). 야간은 먹갈색 화면과 어울린다.
     BASEMAPS.vworld_white = {
-      title: "VWorld 백지도",
-      note: "국토지리정보원. 지질도 밑에 깔기 좋다",
+      title: T("VWorld 백지도"),
+      note: T("국토지리정보원. 지질도 밑에 깔기 좋다"),
       make: function () { return vworldPlain("white"); },
     };
     BASEMAPS.vworld_midnight = {
-      title: "VWorld 야간",
-      note: "국토지리정보원",
+      title: T("VWorld 야간"),
+      note: T("국토지리정보원"),
       make: function () { return vworldPlain("midnight"); },
     };
     // 위성 사진과 지명은 **따로 오는 레이어다**(`Satellite`·`Hybrid`).
     // 그래서 지명만 끌 수 있다 — 지질 경계를 볼 때 글자가 방해가 된다.
     // 일반 배경지도(`Base`)는 지명이 그림에 박혀 있어 끄지 못한다.
     BASEMAPS.vworld_hybrid = {
-      title: "VWorld 위성",
-      note: "국토지리정보원. 지명을 끄고 켤 수 있다",
+      title: T("VWorld 위성"),
+      note: T("국토지리정보원. 지명을 끄고 켤 수 있다"),
       labels: true,
       make: function () {
         var labels = new ol.layer.Tile({
@@ -393,7 +411,7 @@
         var mark = document.createElement("span");
         mark.className = "unverified";
         mark.textContent = " ·";
-        mark.title = "오픈API 로 그려지는지 아직 대조하지 않았다";
+        mark.title = T("오픈API 로 그려지는지 아직 대조하지 않았다");
         label.appendChild(mark);
       }
 
@@ -413,7 +431,7 @@
     }
 
     var base = BASE_LAYERS.filter(function (name) { return byName[name]; });
-    var baseBox = folder("group base", "기본 지질도", base.length, true);
+    var baseBox = folder("group base", T("기본 지질도"), base.length, true);
     base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
     host.appendChild(baseBox);
 
@@ -427,7 +445,7 @@
     });
     if (!restCount) return;
 
-    var more = folder("group more", "추가 지질도", restCount, false);
+    var more = folder("group more", T("추가 지질도"), restCount, false);
     rest.forEach(function (group) {
       var details = folder("group", group.name, group.layers.length, false);
       group.layers.forEach(function (layer) { details.appendChild(layerRow(layer)); });
@@ -446,7 +464,7 @@
     setCount("count-layers", active.length);
     host.innerHTML = "";
     if (!active.length) {
-      host.innerHTML = '<li class="empty">아직 켠 레이어가 없다</li>';
+      host.innerHTML = '<li class="empty">' + esc(T("아직 켠 레이어가 없다")) + "</li>";
       return;
     }
     active.forEach(function (entry, index) {
@@ -455,21 +473,21 @@
       var head = document.createElement("div");
       head.className = "active-head";
 
-      var up = iconButton("↑", "위로", index === 0, function () { move(entry.name, -1); });
-      var down = iconButton("↓", "아래로", index === active.length - 1, function () { move(entry.name, 1); });
+      var up = iconButton("↑", T("위로"), index === 0, function () { move(entry.name, -1); });
+      var down = iconButton("↓", T("아래로"), index === active.length - 1, function () { move(entry.name, 1); });
       var title = document.createElement("span");
       title.className = "active-title";
       title.textContent = entry.title;
       title.title = entry.name;
-      var legendBtn = iconButton("범", "범례를 펼친다", false, function () {
+      var legendBtn = iconButton(T("범"), T("범례를 펼친다"), false, function () {
         entry.legendOpen = !entry.legendOpen;
         renderActive();
       });
       var bbox = byName[entry.name] && byName[entry.name].bbox;
-      var fit = iconButton("⊙", "이 레이어가 있는 곳으로 범위를 맞춘다", !bbox, function () {
+      var fit = iconButton("⊙", T("이 레이어가 있는 곳으로 범위를 맞춘다"), !bbox, function () {
         fitLayer(entry.name);
       });
-      var off = iconButton("×", "끈다", false, function () { removeLayer(entry.name); });
+      var off = iconButton("×", T("끈다"), false, function () { removeLayer(entry.name); });
 
       head.append(up, down, title, fit, legendBtn, off);
 
@@ -494,10 +512,10 @@
       if (entry.legendOpen) {
         var img = document.createElement("img");
         img.className = "legend-img";
-        img.alt = entry.title + " 범례";
+        img.alt = T("{title} 범례", { title: entry.title });
         img.src = BASE + "legend/?layer=" + encodeURIComponent(entry.name);
         img.addEventListener("error", function () {
-          img.replaceWith(note("범례를 받지 못했다"));
+          img.replaceWith(note(T("범례를 받지 못했다")));
         });
         li.appendChild(img);
       }
@@ -540,10 +558,10 @@
   // "내 자료" 로 올린다.
 
   var MODE_HINT = {
-    info: "지도를 누르면 그 지점의 지질 속성이 뜬다.",
-    point: "지도를 누르면 점이 찍히고 위경도가 적힌다. 점을 눌러 지운다.",
-    line: "눌러 가며 선을 잇는다. 두 번 누르면 끝난다.",
-    area: "눌러 가며 둘레를 두른다. 두 번 누르면 끝난다.",
+    info: T("지도를 누르면 그 지점의 지질 속성이 뜬다."),
+    point: T("지도를 누르면 점이 찍히고 위경도가 적힌다. 점을 눌러 지운다."),
+    line: T("눌러 가며 선을 잇는다. 두 번 누르면 끝난다."),
+    area: T("눌러 가며 둘레를 두른다. 두 번 누르면 끝난다."),
   };
 
   function tempStyle(feature) {
@@ -652,9 +670,9 @@
   function measureOf(geometry) {
     var opts = { projection: map.getView().getProjection() };
     if (geometry instanceof ol.geom.Polygon) {
-      return { text: asArea(ol.sphere.getArea(geometry, opts)), kind: "넓이" };
+      return { text: asArea(ol.sphere.getArea(geometry, opts)), kind: T("넓이") };
     }
-    return { text: asLength(ol.sphere.getLength(geometry, opts)), kind: "거리" };
+    return { text: asLength(ol.sphere.getLength(geometry, opts)), kind: T("거리") };
   }
 
   function setMode(next) {
@@ -714,10 +732,10 @@
     var points = tempSource ? tempSource.getFeatures().length : 0;
     var bits = [];
     if (lastMeasure) bits.push(lastMeasure);
-    if (points) bits.push("점 " + points + "개");
-    if (mode === "point" && !points) bits.push("지도를 눌러 점을 찍는다");
-    if (mode === "line" && !lastMeasure) bits.push("눌러 가며 잇는다 · 두 번 누르면 끝");
-    if (mode === "area" && !lastMeasure) bits.push("눌러 가며 두른다 · 두 번 누르면 끝");
+    if (points) bits.push(T("점 {n}개", { n: points }));
+    if (mode === "point" && !points) bits.push(T("지도를 눌러 점을 찍는다"));
+    if (mode === "line" && !lastMeasure) bits.push(T("눌러 가며 잇는다 · 두 번 누르면 끝"));
+    if (mode === "area" && !lastMeasure) bits.push(T("눌러 가며 두른다 · 두 번 누르면 끝"));
     out.textContent = bits.join("  ·  ");
     out.hidden = !bits.length;
   }
@@ -742,7 +760,7 @@
     updateToolOut();
     host.innerHTML = "";
     if (!features.length) {
-      host.innerHTML = '<li class="empty">지도 오른쪽 위 <b>점</b> 도구로 찍는다</li>';
+      host.innerHTML = '<li class="empty">' + T("지도 오른쪽 위 <b>점</b> 도구로 찍는다") + "</li>";
       return;
     }
     features.forEach(function (feature) {
@@ -755,22 +773,22 @@
       var text = document.createElement("button");
       text.type = "button";
       text.className = "temp-coord";
-      text.title = "눌러서 복사한다";
+      text.title = T("눌러서 복사한다");
       text.textContent = formatPair(feature.get("lon"), feature.get("lat"));
       text.addEventListener("click", function () {
         var value = text.textContent;
         copyText(value).then(function () {
-          text.textContent = "복사했다";
+          text.textContent = T("복사했다");
           setTimeout(function () { text.textContent = value; }, 700);
         });
       });
 
-      var go = iconButton("⊙", "이 점으로 이동", false, function () {
+      var go = iconButton("⊙", T("이 점으로 이동"), false, function () {
         map.getView().animate({
           center: feature.getGeometry().getCoordinates(), duration: 300,
         });
       });
-      var del = iconButton("×", "지운다", false, function () {
+      var del = iconButton("×", T("지운다"), false, function () {
         tempSource.removeFeature(feature);
         renderTemp();
       });
@@ -791,14 +809,14 @@
     var msg = document.getElementById("save-msg");
     if (!features.length) {
       msg.className = "msg bad";
-      msg.textContent = "저장할 점이 없다.";
+      msg.textContent = T("저장할 점이 없다.");
       return;
     }
-    var name = prompt("목록 이름", "찍은 점 " + new Date().toLocaleDateString("ko-KR"));
+    var name = prompt(T("목록 이름"), T("찍은 점 {date}", { date: new Date().toLocaleDateString(LANG === "en" ? "en-GB" : "ko-KR") }));
     if (name === null) return;
 
     msg.className = "msg";
-    msg.textContent = "저장하는 중…";
+    msg.textContent = T("저장하는 중…");
 
     fetch(BASE + "pointsets/create/", {
       method: "POST",
@@ -807,7 +825,7 @@
         name: name,
         color: "#5c3a1e",
         points: features.map(function (f) {
-          return { lat: f.get("lat"), lon: f.get("lon"), label: "점 " + f.get("no") };
+          return { lat: f.get("lat"), lon: f.get("lon"), label: T("점 {n}", { n: f.get("no") }) };
         }),
       }),
     })
@@ -815,7 +833,7 @@
       .then(function (res) {
         if (!res.ok) {
           msg.className = "msg bad";
-          msg.textContent = res.d.error || "저장하지 못했다";
+          msg.textContent = res.d.error || T("저장하지 못했다");
           return;
         }
         pointsets.unshift(res.d.pointset);
@@ -825,11 +843,11 @@
         tempSeq = 0;
         renderTemp();
         msg.className = "msg good";
-        msg.textContent = "'" + res.d.pointset.name + "' 으로 저장했다.";
+        msg.textContent = T("'{name}' 으로 저장했다.", { name: res.d.pointset.name });
       })
       .catch(function () {
         msg.className = "msg bad";
-        msg.textContent = "저장하지 못했다";
+        msg.textContent = T("저장하지 못했다");
       });
   }
 
@@ -856,7 +874,7 @@
     lastMeasure = "";
     renderTemp();
     var out = document.getElementById("measure-out");
-    out.textContent = "아직 잰 것이 없다";
+    out.textContent = T("아직 잰 것이 없다");
     out.classList.remove("done");
     updateToolOut();
   }
@@ -876,7 +894,7 @@
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
       if (feature.get("no") !== undefined && feature.get("lat") !== undefined) {
         parts.push({
-          title: "찍은 점 " + feature.get("no"),
+          title: T("찍은 점 {n}", { n: feature.get("no") }),
           props: {
             "위도": feature.get("lat").toFixed(6),
             "경도": feature.get("lon").toFixed(6),
@@ -885,7 +903,7 @@
         });
         return;
       }
-      parts.push({ title: feature.get("_점묶음") || "내 자료", props: plain(feature.getProperties()) });
+      parts.push({ title: feature.get("_점묶음") || T("내 자료"), props: plain(feature.getProperties()) });
     }, { hitTolerance: 5 });
 
     var queryable = active.filter(function (e) {
@@ -894,11 +912,11 @@
     });
 
     if (!queryable.length) {
-      showPopup(evt.coordinate, parts, parts.length ? "" : "켠 레이어가 없다");
+      showPopup(evt.coordinate, parts, parts.length ? "" : T("켠 레이어가 없다"));
       return;
     }
 
-    showPopup(evt.coordinate, parts, "읽는 중…");
+    showPopup(evt.coordinate, parts, T("읽는 중…"));
 
     var view = map.getView();
     var pending = queryable.length;
@@ -922,12 +940,12 @@
           pending -= 1;
           if (pending === 0) {
             var all = parts.concat.apply(parts, results.filter(Boolean));
-            showPopup(evt.coordinate, all, all.length ? "" : "이 자리에는 아무것도 없다");
+            showPopup(evt.coordinate, all, all.length ? "" : T("이 자리에는 아무것도 없다"));
           }
         });
     });
 
-    if (pending === 0) showPopup(evt.coordinate, parts, parts.length ? "" : "이 자리에는 아무것도 없다");
+    if (pending === 0) showPopup(evt.coordinate, parts, parts.length ? "" : T("이 자리에는 아무것도 없다"));
   }
 
   function showPopup(coordinate, parts, emptyText) {
@@ -940,21 +958,21 @@
     var head = document.createElement("button");
     head.type = "button";
     head.className = "popup-coord";
-    head.title = "눌러서 복사한다";
+    head.title = T("눌러서 복사한다");
     var value = formatPair(ll[0], ll[1]);
     var lat = useDms ? dd2dms(ll[1], true) : ll[1].toFixed(6);
     var lon = useDms ? dd2dms(ll[0], false) : ll[0].toFixed(6);
     head.innerHTML =
-      '<span class="k">위도</span><span class="v">' + esc(lat) + "</span>" +
-      '<span class="k">경도</span><span class="v">' + esc(lon) + "</span>" +
-      '<span class="copy">복사</span>';
+      '<span class="k">' + esc(T("위도")) + '</span><span class="v">' + esc(lat) + "</span>" +
+      '<span class="k">' + esc(T("경도")) + '</span><span class="v">' + esc(lon) + "</span>" +
+      '<span class="copy">' + esc(T("복사")) + "</span>";
     head.addEventListener("click", function () {
       copyText(value).then(function () {
         head.classList.add("copied");
-        head.querySelector(".copy").textContent = "복사했다";
+        head.querySelector(".copy").textContent = T("복사했다");
         setTimeout(function () {
           head.classList.remove("copied");
-          head.querySelector(".copy").textContent = "복사";
+          head.querySelector(".copy").textContent = T("복사");
         }, 900);
       });
     });
@@ -975,7 +993,7 @@
         Object.keys(part.props).forEach(function (key) {
           var tr = document.createElement("tr");
           var th = document.createElement("th");
-          th.textContent = key;
+          th.textContent = T(key);
           tr.append(th, valueCell(part.props[key]));
           if (EXTRA_PROPS.indexOf(key) >= 0) {
             tr.className = "extra";
@@ -1023,7 +1041,7 @@
   function syncExtra(only) {
     var buttons = only ? [only] : document.querySelectorAll("#popup-body .extra-toggle");
     buttons.forEach(function (b) {
-      b.textContent = showExtraProps ? "접기" : "모두 표시 (" + b.dataset.count + ")";
+      b.textContent = showExtraProps ? T("접기") : T("모두 표시 ({n})", { n: b.dataset.count });
     });
     if (only) return;
     document.querySelectorAll("#popup-body table").forEach(function (t) {
@@ -1174,7 +1192,7 @@
     setCount("count-points", pointsets.length);
     host.innerHTML = "";
     if (!pointsets.length) {
-      host.innerHTML = '<li class="empty">왼쪽 위 <b>불러오기</b> 탭에서 올린다</li>';
+      host.innerHTML = '<li class="empty">' + T("왼쪽 위 <b>불러오기</b> 탭에서 올린다") + "</li>";
       return;
     }
     pointsets.forEach(function (ps) {
@@ -1199,9 +1217,9 @@
 
       var count = document.createElement("span");
       count.className = "ps-count";
-      count.textContent = ps.count + "점";
+      count.textContent = T("{n}점", { n: ps.count });
 
-      var zoom = iconButton("⊙", "이 자료로 범위를 맞춘다", false, function () {
+      var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () {
         var source = pointLayers[ps.id] && pointLayers[ps.id].getSource();
         var extent = source && source.getExtent();
         if (extent && isFinite(extent[0])) {
@@ -1211,12 +1229,12 @@
 
       // 올린 것을 GeoJSON 으로 돌려받는다. 원래 CSV 였어도 위경도와 속성이
       // 그대로 나온다 — QGIS 에 곧장 얹을 수 있다
-      var save = iconButton("⤓", "GeoJSON 으로 내려받는다", false, function () {
+      var save = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
         location.href = BASE + "pointsets/" + ps.id + "/geojson/?download=1";
       });
 
-      var del = iconButton("×", "지운다", false, function () {
-        if (!confirm("'" + ps.name + "' 을 지운다.")) return;
+      var del = iconButton("×", T("지운다"), false, function () {
+        if (!confirm(T("'{name}' 을 지운다.", { name: ps.name }))) return;
         post(BASE + "pointsets/" + ps.id + "/delete/").then(function () {
           if (pointLayers[ps.id]) {
             pointLayerGroup.getLayers().remove(pointLayers[ps.id]);
@@ -1326,6 +1344,19 @@
     });
   }
 
+  /** 한국어·영어. 화면 틀을 서버가 그리므로 **쿠키로 서버에 알리고 다시
+   *  읽는다.** 쿠키에는 `ko`·`en` 두 글자만 담긴다. */
+  function wireLang() {
+    document.querySelectorAll("#opt-lang button").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.lang === LANG);
+      b.addEventListener("click", function () {
+        if (b.dataset.lang === LANG) return;
+        document.cookie = "gsm_lang=" + b.dataset.lang + "; path=/; max-age=31536000; SameSite=Lax";
+        location.reload();
+      });
+    });
+  }
+
   function wireSettings() {
     var sheet = document.getElementById("settings");
     var loaded = false;
@@ -1339,7 +1370,7 @@
         .then(function (r) { return r.json(); })
         .then(function (d) { renderNotes(d.notes || []); })
         .catch(function () {
-          document.getElementById("notes").textContent = "판 이력을 읽지 못했다.";
+          document.getElementById("notes").textContent = T("판 이력을 읽지 못했다.");
         });
     }
 
@@ -1362,16 +1393,17 @@
     });
 
     wireLooks();
+    wireLang();
   }
 
   /** 지금 무엇으로 돌고 있는지. 화면을 보고 상태를 물어오는 일이 잦아 둔다. */
   function renderState() {
     var rows = [
-      ["배경지도", (BASEMAPS[document.getElementById("basemap").value] || {}).title || "없음"],
-      ["켠 레이어", active.length ? active.map(function (e) { return e.title; }).join(", ") : "없음"],
-      ["찍은 점", tempSource.getFeatures().length + "개"],
-      ["올린 자료", pointsets.length + "묶음"],
-      ["좌표 표기", useDms ? "도분초" : "십진도"],
+      [T("배경지도"), (BASEMAPS[document.getElementById("basemap").value] || {}).title || T("없음")],
+      [T("켠 레이어"), active.length ? active.map(function (e) { return e.title; }).join(", ") : T("없음")],
+      [T("찍은 점"), T("{n}개", { n: tempSource.getFeatures().length })],
+      [T("올린 자료"), T("{n}묶음", { n: pointsets.length })],
+      [T("좌표 표기"), useDms ? T("도분초") : T("십진도")],
     ];
     var host = document.getElementById("settings-state");
     host.innerHTML = "";
@@ -1388,7 +1420,7 @@
     var host = document.getElementById("notes");
     host.innerHTML = "";
     if (!notes.length) {
-      host.textContent = "아직 적힌 판이 없다.";
+      host.textContent = T("아직 적힌 판이 없다.");
       return;
     }
     notes.forEach(function (note) {
@@ -1448,7 +1480,7 @@
           input.setCustomValidity("");
         })
         .catch(function () {
-          input.setCustomValidity("좌표로 읽지 못했다");
+          input.setCustomValidity(T("좌표로 읽지 못했다"));
           input.reportValidity();
           setTimeout(function () { input.setCustomValidity(""); }, 1500);
         });
@@ -1475,29 +1507,29 @@
       data.append("color", document.getElementById("upload-color").value);
 
       msg.className = "msg";
-      msg.textContent = "읽는 중…";
+      msg.textContent = T("읽는 중…");
 
       post(BASE + "pointsets/upload/", data)
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
           if (!res.ok) {
             msg.className = "msg bad";
-            msg.textContent = res.d.error || "올리지 못했다";
+            msg.textContent = res.d.error || T("올리지 못했다");
             return;
           }
           pointsets.unshift(res.d.pointset);
           renderPointSets();
           msg.className = "msg good";
-          msg.textContent = res.d.pointset.count + "점을 올렸다." +
+          msg.textContent = T("{n}점을 올렸다.", { n: res.d.pointset.count }) +
             (res.d.notes && res.d.notes.length ? " " + res.d.notes.join(" / ") : "");
           form.reset();
           var box = file.closest(".filebox");
           box.classList.remove("has");
-          box.querySelector("span").textContent = "CSV · GeoJSON 고르기";
+          box.querySelector("span").textContent = T("CSV · GeoJSON 고르기");
         })
         .catch(function () {
           msg.className = "msg bad";
-          msg.textContent = "올리지 못했다";
+          msg.textContent = T("올리지 못했다");
         });
     });
   }

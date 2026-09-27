@@ -9,6 +9,7 @@ import io
 import json
 
 from . import coords
+from .i18n import msg
 
 #: 위도로 읽는 열 이름. 소문자로 견준다.
 LAT_KEYS = ("lat", "latitude", "위도", "y", "lat_dd", "dd_lat", "북위")
@@ -36,7 +37,7 @@ def _decode(raw: bytes) -> str:
             return raw.decode(encoding)
         except UnicodeDecodeError:
             continue
-    raise UploadError("글자를 읽지 못했다. UTF-8 이나 CP949 로 저장해 다시 올린다.")
+    raise UploadError(msg("글자를 읽지 못했다. UTF-8 이나 CP949 로 저장해 다시 올린다."))
 
 
 def _pick(fieldnames, wanted):
@@ -55,15 +56,16 @@ def _from_csv(text: str):
         dialect = csv.excel                       # 열 하나뿐이면 재지 못한다
     reader = csv.DictReader(io.StringIO(text), dialect=dialect)
     if not reader.fieldnames:
-        raise UploadError("첫 줄에 열 이름이 없다.")
+        raise UploadError(msg("첫 줄에 열 이름이 없다."))
 
     lat_col = _pick(reader.fieldnames, LAT_KEYS)
     lon_col = _pick(reader.fieldnames, LON_KEYS)
     if not lat_col or not lon_col:
-        raise UploadError(
-            "위경도 열을 찾지 못했다. 열 이름을 "
-            f"{'·'.join(LAT_KEYS[:4])} / {'·'.join(LON_KEYS[:4])} 가운데 하나로 두고 "
-            f"다시 올린다. (읽은 열: {', '.join(reader.fieldnames)})")
+        raise UploadError(msg(
+            "위경도 열을 찾지 못했다. 열 이름을 {lat} / {lon} 가운데 하나로 두고 "
+            "다시 올린다. (읽은 열: {cols})",
+            lat="·".join(LAT_KEYS[:4]), lon="·".join(LON_KEYS[:4]),
+            cols=", ".join(reader.fieldnames)))
     label_col = _pick(reader.fieldnames, LABEL_KEYS)
 
     points, notes, skipped = [], [], 0
@@ -72,7 +74,7 @@ def _from_csv(text: str):
         if pair is None:
             skipped += 1
             if len(notes) < 5:
-                notes.append(f"{lineno}째 줄 — 좌표를 읽지 못해 건너뛰었다")
+                notes.append(msg("{line}째 줄 — 좌표를 읽지 못해 건너뛰었다", line=lineno))
             continue
         lat, lon = pair
         # 위경도와 이름표로 쓴 열은 속성에서 뺀다. 넣어 두면 팝업에
@@ -85,9 +87,9 @@ def _from_csv(text: str):
                        "props": props})
 
     if not points:
-        raise UploadError("좌표를 하나도 읽지 못했다.")
+        raise UploadError(msg("좌표를 하나도 읽지 못했다."))
     if skipped > len(notes):
-        notes.append(f"…모두 {skipped}줄을 건너뛰었다")
+        notes.append(msg("…모두 {n}줄을 건너뛰었다", n=skipped))
     return points, notes
 
 
@@ -111,13 +113,13 @@ def _from_geojson(text: str):
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise UploadError(f"GeoJSON 이 깨져 있다: {exc}") from exc
+        raise UploadError(msg("GeoJSON 이 깨져 있다: {err}", err=exc)) from exc
 
     features = data.get("features") if isinstance(data, dict) else None
     if features is None:
         features = [data] if isinstance(data, dict) and data.get("type") == "Feature" else None
     if not features:
-        raise UploadError("GeoJSON 에 features 가 없다.")
+        raise UploadError(msg("GeoJSON 에 features 가 없다."))
 
     points, notes, skipped = [], [], 0
     for feature in features:
@@ -143,7 +145,7 @@ def _from_geojson(text: str):
         points.append({"lat": lat, "lon": lon, "label": label, "props": props})
 
     if not points:
-        raise UploadError("Point 를 하나도 찾지 못했다. 선·면은 아직 받지 않는다.")
+        raise UploadError(msg("Point 를 하나도 찾지 못했다. 선·면은 아직 받지 않는다."))
     if skipped:
-        notes.append(f"Point 가 아닌 것 {skipped}개를 건너뛰었다 — 선·면은 아직 받지 않는다")
+        notes.append(msg("Point 가 아닌 것 {n}개를 건너뛰었다 — 선·면은 아직 받지 않는다", n=skipped))
     return points, notes

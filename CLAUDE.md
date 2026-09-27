@@ -170,6 +170,37 @@ GeoServer 는 그것을 요구하고 `/openapi/wms` 는 접두사 없는 이름�
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
 한국지질자원연구원이다 — 우리는 받은 것을 다시 내주지 않는다.
 
+## 영어판
+
+**화면의 글을 새로 적거나 고치면 영어도 같은 커밋에서 적는다.** 판을 붙일
+때 영어판이 한국어판을 따라가지 못한 채 나가지 않게 하려는 것이다.
+
+- 원문은 한국어다. JS 는 `T("…")`, 템플릿은 `{% t "…" %}`, 파이썬 메시지는
+  `msg("…")` 로 감싸고, 영어는 `viewer/i18n.py` 의 표에 적는다 — 화면 문장은
+  `EN`, 팝업 속성 이름은 `PROP_EN`, 레이어는 `LAYER_EN`·`GROUP_EN`
+- 숫자·이름이 끼면 `{n}`·`{name}` 자리표로 적는다. 조각을 `+` 로 잇지 않는다
+- **시험이 지킨다.** `test_i18n` 이 코드를 긁어 표에 없는 문장이 있으면 깨진다.
+  카탈로그처럼 자료에서 오는 것은 `manage.py i18n_missing` 으로 본다 — 레이어가
+  새로 들어오면 돌려 보고 `LAYER_EN` 을 채운다
+- 영어판의 화면 제목은 `Great Stone Map`, 그 밑 작은 줄에 `대돌여지도` 다 —
+  한국어판의 짝을 뒤집었다
+- 지질시대는 **ICS 국제층서표**(https://stratigraphy.org/chart)의 명칭을 따른다
+- **옮기지 않는 것** — 속성 값(지층명·암석명·도폭명·사람 이름), 판 이력
+  (`CHANGELOG.md`), 타일 안에 그려진 글자(상류·VWorld 가 그린다). 지질시대
+  값만은 낱말을 조합한 것이라 옮긴다
+
+영어 낱말도 한 뜻에 하나만 쓴다.
+
+| 한국어 | 영어 |
+|---|---|
+| 타일 | tile |
+| 레이어 | layer |
+| 레이어군 | layer group |
+| 점묶음 | point set |
+| 속성 | attributes |
+| 범위 | extent |
+| 배경(지도) | basemap |
+
 ## 구조
 
 ```
@@ -178,6 +209,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   kigam.py        상류를 타는 곳 — 여기 말고 어디서도 requests 를 쓰지 않는다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
+  i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
   models.py       Layer·LayerGroup·PointSet·Point
   views.py        화면 하나 + 프록시 둘 + 업로드

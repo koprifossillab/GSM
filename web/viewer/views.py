@@ -18,7 +18,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, kigam, patchnotes, pointsets, tilecache, tiles
+from . import coords, i18n, kigam, patchnotes, pointsets, tilecache, tiles
+from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet
 
 log = logging.getLogger(__name__)
@@ -108,8 +109,11 @@ def asset_stamp():
 
 @require_GET
 def map_view(request):
+    lang = i18n.lang_of(request)
     return render(request, "viewer/map.html", {
-        "catalog": json.dumps(_catalog(), ensure_ascii=False),
+        "lang": lang,
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "catalog": json.dumps(_catalog(lang), ensure_ascii=False),
         "pointsets": json.dumps(_pointset_list(), ensure_ascii=False),
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
@@ -122,19 +126,23 @@ def map_view(request):
 
 # ── 카탈로그 ──────────────────────────────────────────────────────────
 
-def _catalog():
+def _catalog(lang="ko"):
+    """레이어 패널의 목록. 영어판이면 제목만 `i18n.LAYER_EN` 으로 바꾼다."""
+    en = lang == "en"
     groups = []
     for group in LayerGroup.objects.prefetch_related("layers").all():
         layers = [{
             "name": l.name,
-            "title": l.title,
+            "title": i18n.LAYER_EN.get(l.name, l.title) if en else l.title,
             "bbox": l.bbox,
             "queryable": l.queryable,
             "verified": bool(l.verified_at),
-            "abstract": l.abstract,
+            # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
+            "abstract": "" if en else l.abstract,
         } for l in group.layers.filter(enabled=True)]
         if layers:
-            groups.append({"name": group.name, "layers": layers})
+            name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
+            groups.append({"name": name, "layers": layers})
     return groups
 
 
@@ -155,7 +163,7 @@ def patch_notes(request):
 
 @require_GET
 def catalog_json(request):
-    return JsonResponse({"groups": _catalog()})
+    return JsonResponse({"groups": _catalog(i18n.lang_of(request))})
 
 
 # ── 상류 프록시 ───────────────────────────────────────────────────────
@@ -233,6 +241,7 @@ def feature_info(request):
     더하면 팝업에도 저절로 는다. 기하는 버린다. 팝업에 쓰지 않는데
     폴리곤 좌표가 한 응답에 수천 개씩 실려 오기 때문이다.
     """
+    lang = i18n.lang_of(request)
     params = kigam.clean_params(request.GET)
     params.setdefault("feature_count", "5")
 
@@ -244,7 +253,7 @@ def feature_info(request):
         if not kigam.has_key():
             data = _cached_json(cache_key, stale=True)
             if data is None:
-                return JsonResponse({"error": "인증키가 없다", "features": []},
+                return JsonResponse({"error": i18n.t(msg("인증키가 없다"), lang), "features": []},
                                     status=503)
         else:
             try:
@@ -253,7 +262,8 @@ def feature_info(request):
                 data = _cached_json(cache_key, stale=True)
                 if data is None:
                     log.warning("속성을 읽지 못했다: %s", exc)
-                    return JsonResponse({"error": str(exc), "features": []},
+                    error = str(exc) if lang == "ko" else i18n.t(msg("상류에서 받지 못했다"), lang)
+                    return JsonResponse({"error": error, "features": []},
                                         status=502)
             else:
                 _store_json(cache_key, data)
@@ -274,6 +284,9 @@ def feature_info(request):
             continue
         seen.add(mark)
         props = {k: _split_links(v) for k, v in props.items()}
+        if lang == "en":
+            # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
+            props = i18n.props_en(props)
         features.append({"id": feature.get("id", ""), "props": props})
         if len(features) >= MAX_FEATURES:
             break
@@ -304,7 +317,7 @@ def legend(request):
     """레이어 범례 이미지. 레이어 패널에서 펼쳐 볼 때 부른다."""
     layer = request.GET.get("layer", "")
     if not layer:
-        return JsonResponse({"error": "layer 가 없다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("layer 가 없다"), i18n.lang_of(request))}, status=400)
 
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
     # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.
@@ -356,14 +369,15 @@ def pointset_index(request):
 
 @require_POST
 def pointset_upload(request):
+    lang = i18n.lang_of(request)
     upload = request.FILES.get("file")
     if not upload:
-        return JsonResponse({"error": "올린 파일이 없다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("올린 파일이 없다"), lang)}, status=400)
 
     try:
         points, notes = pointsets.parse(upload.name, upload.read())
     except pointsets.UploadError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
 
     name = (request.POST.get("name") or "").strip() or upload.name.rsplit(".", 1)[0]
     color = (request.POST.get("color") or "").strip() or "#e4572e"
@@ -382,7 +396,7 @@ def pointset_upload(request):
         "pointset": {"id": pointset.id, "name": pointset.name,
                      "color": pointset.color, "visible": True,
                      "count": len(points)},
-        "notes": notes,
+        "notes": [i18n.t(note, lang) for note in notes],
     })
 
 
@@ -396,17 +410,19 @@ def pointset_create(request):
 
     받는 것: `{"name": "...", "color": "#rrggbb", "points": [{lat, lon, label}]}`
     """
+    lang = i18n.lang_of(request)
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
-        return JsonResponse({"error": "읽지 못했다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("읽지 못했다"), lang)}, status=400)
 
     rows = payload.get("points") or []
     if not rows:
-        return JsonResponse({"error": "저장할 점이 없다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("저장할 점이 없다"), lang)}, status=400)
     if len(rows) > MAX_SAVED_POINTS:
         return JsonResponse(
-            {"error": f"한 번에 {MAX_SAVED_POINTS}점까지 저장한다"}, status=400)
+            {"error": i18n.t(msg("한 번에 {n}점까지 저장한다", n=MAX_SAVED_POINTS), lang)},
+            status=400)
 
     points = []
     for row in rows:
@@ -418,7 +434,7 @@ def pointset_create(request):
             continue
         points.append((lat, lon, str(row.get("label") or "")[:200]))
     if not points:
-        return JsonResponse({"error": "쓸 만한 좌표가 없다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("쓸 만한 좌표가 없다"), lang)}, status=400)
 
     name = (payload.get("name") or "").strip() or "찍은 점"
     color = (payload.get("color") or "").strip() or "#27456f"
@@ -487,7 +503,7 @@ def coord_parse(request):
     """
     pair = coords.parse(request.GET.get("q", ""))
     if pair is None:
-        return JsonResponse({"error": "좌표로 읽지 못했다"}, status=400)
+        return JsonResponse({"error": i18n.t(msg("좌표로 읽지 못했다"), i18n.lang_of(request))}, status=400)
     lat, lon = pair
     return JsonResponse({"lat": lat, "lon": lon,
                          "dms": coords.format_pair(lon, lat, dms=True)})
