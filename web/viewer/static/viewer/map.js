@@ -978,7 +978,7 @@
 
     var BASE_LAYERS = REGIONS[region].base;
     var base = BASE_LAYERS.filter(function (name) { return byName[name]; });
-    // 기본으로 펼쳐 둘 것을 정하지 않은 지역(남극)은 기본 칸을 두지 않고
+    // 기본으로 펼쳐 둘 것이 카탈로그에 하나도 없는 지역은 기본 칸을 두지 않고
     // 아래의 "추가 지질도" 를 펼친다
     if (base.length) {
       var baseBox = folder("group base", T("기본 지질도"), base.length, true);
@@ -2393,9 +2393,10 @@
 
   /** 처음 온 지역이면 대표 레이어 하나를 켜 둔다. */
   function openFirstLayer() {
-    // 대표를 정해 두지 않은 지역은(남극) 목록의 첫 레이어
+    // 대표가 카탈로그에 없으면 그 지역 목록의 첫 레이어
     var here = regionCatalog();
-    var first = REGIONS[region].first || (here[0] && here[0].layers[0] && here[0].layers[0].name);
+    var first = byName[REGIONS[region].first] ? REGIONS[region].first
+      : (here[0] && here[0].layers[0] && here[0].layers[0].name);
     if (first && byName[first]) {
       var box = document.querySelector('input[data-layer="' + cssEscape(first) + '"]');
       if (box) box.checked = true;
