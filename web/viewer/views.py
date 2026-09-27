@@ -20,7 +20,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import coords, crs, geomap, geus, grportal, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
+from . import coords, crs, geomap, geus, grportal, i18n, janmayen, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -158,7 +158,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream == "geomap",
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -183,6 +183,11 @@ def _point_fields(layer) -> dict:
     타일이 아니므로 `/wms/`·`/featureinfo/`·`/legend/` 를 부르지 않는다 —
     `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019).
     """
+    if layer.upstream == "janmayen" and janmayen.knows(layer.name):
+        # 얀마옌 지질도(022) — 점 말고 선·면도 이 길로 간다. 색은 자료가 준다
+        return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
+                "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
+                "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
     if layer.upstream != "grportal" or not grportal.knows(layer.name):
         return {}
     return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
@@ -627,6 +632,8 @@ def point_layer(request):
     """점 레이어 하나를 GeoJSON 으로. 2 만 점이 4.5 MB, 줄이면(gzip) 0.4 MB 다."""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
+    if janmayen.knows(name):
+        return _janmayen_layer(name, lang)
     if not grportal.knows(name):
         return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
     try:
@@ -635,6 +642,24 @@ def point_layer(request):
         log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
     response = HttpResponse(grportal.body(name, features), content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _janmayen_layer(name, lang):
+    """얀마옌 지질도 한 레이어 (022). 파일이 없으면 503 으로 까닭을 말한다 —
+    화면은 그 글을 레이어 패널에 띄우고, 나머지는 그대로 돈다."""
+    if not janmayen.available(name):
+        return JsonResponse({"error": i18n.t(msg("얀마옌 지질도 자료(NPI)가 서버에 없다"), lang)},
+                            status=503)
+    try:
+        content = janmayen.body(name, lang)
+    except (janmayen.JanMayenError, OSError, ValueError) as exc:
+        log.warning("얀마옌 지질도를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("얀마옌 지질도 자료(NPI)를 읽지 못했다"), lang)},
+                            status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response

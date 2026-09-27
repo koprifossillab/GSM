@@ -11,6 +11,7 @@ Bessel 타원체의 옛 중부원점이다. 그것을 위경도로 바꿔 올리
 
 `test_crs` 가 pyproj 로 뽑아 둔 값과 견준다.
 """
+import functools
 import math
 
 GRS80 = (6378137.0, 1 / 298.257222101)
@@ -38,6 +39,7 @@ def is_planar(code: str) -> bool:
 
 # ── 횡메르카토르 (Krüger) ────────────────────────────────────────────
 
+@functools.lru_cache(maxsize=8)
 def _series(ellipsoid):
     a, f = ellipsoid
     n = f / (2 - f)
@@ -113,6 +115,22 @@ def _ll_to_tm(lat, lon, spec):
     x0, _ = _tm_forward_raw(lat0, lon0, lon0, ell)
     x, y = _tm_forward_raw(lat, lon, lon0, ell)
     return fe + k0 * y, fn + k0 * (x - x0)
+
+
+def utm_to_latlon(zone: int, east: float, north: float):
+    """UTM 북반구(ETRS89·WGS84 — 둘은 1 m 안쪽으로 같다) → (위도, 경도).
+
+    고르개(`SYSTEMS`)에 올리지 않는다. 한국 밖 자료를 읽을 때만 쓴다 — 얀마옌
+    지질도가 EPSG:25829(UTM 29N)로 온다 (devlog 022). 셈은 위의 TM 그대로다.
+    """
+    lon0 = zone * 6 - 183
+    return _tm_to_ll(east, north, ("", GRS80, 0, lon0, 0.9996, 500000, 0, False))
+
+
+def latlon_to_utm(zone: int, lat: float, lon: float):
+    """(위도, 경도) → UTM 북반구 (동, 북). 시험과 되짚기에 쓴다."""
+    lon0 = zone * 6 - 183
+    return _ll_to_tm(lat, lon, ("", GRS80, 0, lon0, 0.9996, 500000, 0, False))
 
 
 # ── 옛 측지계 (Bessel ↔ GRS80) ────────────────────────────────────────
