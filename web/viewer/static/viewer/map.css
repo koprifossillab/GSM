@@ -1312,6 +1312,50 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   --glass: rgba(252, 250, 249, .95); --glass-line: #d9d1cb;
 }
 
+/* ── 스발바르 (devlog 021) — 노르웨이 국기: 짙은 남색 바탕에 빨강, 흰 선 ──
+   빨강(#ba0c2f)은 남색 위에서 글자로 읽히지 않아, 칠하는 자리(켜진 탭·단추)에만
+   국기 빨강을 쓰고 강조 글자는 밝힌 빨강으로 적는다. 칸의 선은 흰빛이다 */
+:root[data-region="svalbard"] {
+  --bg: #00163f; --panel: #04204f; --panel-tint: #001236; --raise: #0b2c63;
+  --ink: #f3f6fc; --ink-soft: #b9c5de; --ink-faint: #7a8bb0;
+  --line: rgba(255, 255, 255, .2); --line-soft: rgba(255, 255, 255, .1);
+  --gold: #e0415c; --gold-bright: #ff8a9b; --gold-muted: #d4586d;
+  --gold-wash: rgba(186, 12, 47, .2); --gold-edge: rgba(255, 138, 155, .45);
+  --hi: #ba0c2f; --hi-deep: #ff8a9b; --on-hi: #ffffff; --hi-ink: #ff8a9b;
+  --glass: rgba(0, 18, 54, .93); --glass-line: rgba(255, 255, 255, .3);
+}
+:root[data-region="svalbard"][data-theme="light"] {
+  --bg: #eef1f8; --panel: #ffffff; --panel-tint: #f4f6fb; --raise: #e2e7f2;
+  --ink: #00205b; --ink-soft: #33477a; --ink-faint: #7482a3;
+  --line: #cdd5e6; --line-soft: #e2e7f2;
+  --gold: #ba0c2f; --gold-bright: #8e0822; --gold-muted: #b23a50;
+  --gold-wash: #fbe7eb; --gold-edge: #eeaab6;
+  --hi: #00205b; --hi-deep: #00133a; --on-hi: #ffffff; --hi-ink: #ba0c2f;
+  --glass: rgba(255, 255, 255, .95); --glass-line: #cdd5e6;
+}
+
+/* ── 북극 (devlog 021) — 그린란드·스발바르·얀마옌을 한 화면에. 극야: 먹청 바탕에
+   흰 얼음빛. 품은 지역의 색(빙하 청·국기 빨강·용암 주황) 어느 것과도 겹치지 않게
+   색을 빼고 밝기로만 가른다 */
+:root[data-region="arctic"] {
+  --bg: #0e141b; --panel: #151d26; --panel-tint: #0b1117; --raise: #1e2833;
+  --ink: #edf2f6; --ink-soft: #b4c0cb; --ink-faint: #75838f;
+  --line: #2a3643; --line-soft: #1d2833;
+  --gold: #dce6ee; --gold-bright: #ffffff; --gold-muted: #aebdca;
+  --gold-wash: rgba(220, 230, 238, .1); --gold-edge: rgba(220, 230, 238, .4);
+  --hi: #dce6ee; --hi-deep: #ffffff; --on-hi: #0b1117; --hi-ink: #ffffff;
+  --glass: rgba(11, 17, 23, .93); --glass-line: rgba(220, 230, 238, .3);
+}
+:root[data-region="arctic"][data-theme="light"] {
+  --bg: #eef2f5; --panel: #fbfcfd; --panel-tint: #f2f5f8; --raise: #e2e8ed;
+  --ink: #111a22; --ink-soft: #45535f; --ink-faint: #85929c;
+  --line: #d0d8df; --line-soft: #e2e8ed;
+  --gold: #3c4b58; --gold-bright: #1c2731; --gold-muted: #5b6b78;
+  --gold-wash: #e6ecf1; --gold-edge: #b7c3cd;
+  --hi: #1c2731; --hi-deep: #0b1117; --on-hi: #f5f8fa; --hi-ink: #1c2731;
+  --glass: rgba(251, 252, 253, .95); --glass-line: #d0d8df;
+}
+
 /* 실험 기능 — 설정에서 켠 사람에게만 보인다 */
 .tool.labs { text-decoration: none; }
 .tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */

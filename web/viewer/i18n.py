@@ -129,6 +129,9 @@ EN = {
     "그린란드": "Greenland",
     "남극": "Antarctica",
     "얀마옌": "Jan Mayen",
+    # 스발바르와, 그린란드·스발바르·얀마옌을 한 화면에 모은 북극 탭 (devlog 021)
+    "스발바르": "Svalbard",
+    "북극": "Arctic",
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
@@ -150,8 +153,6 @@ EN = {
     "오른쪽 위": "Top right",
     "오른쪽 아래": "Bottom right",
     "왼쪽 아래": "Bottom left",
-    "주소·장소 찾기는 한국 지역에서만 된다. 좌표는 넣으면 간다.":
-        "Address and place search works in the Korea region only. Coordinates still work.",
     "주제도 비교": "Compare maps",
     "끔": "Off",
     "밀어 보기": "Swipe",
@@ -424,6 +425,19 @@ EN = {
     "얀마옌 지질도 자료(NPI)를 읽지 못했다": "Could not read the Jan Mayen geology data (NPI)",
     "원본 자료 — Norsk Polarinstitutt, CC BY 4.0": "Source dataset — Norsk Polarinstitutt, CC BY 4.0",
     "그런 타일은 없다": "No such tile",
+    # 스발바르 — 노르웨이 극지연구소 (npolar.py·map.js, devlog 021)
+    "Sentinel-2 위성 (NPI)": "Sentinel-2 satellite (NPI)",
+    "노르웨이 극지연구소 · Copernicus Sentinel-2. CC BY 4.0":
+        "Norwegian Polar Institute · Copernicus Sentinel-2. CC BY 4.0",
+    "스발바르 지형도 (NPI)": "Svalbard topographic map (NPI)",
+    "노르웨이 극지연구소. CC BY 4.0": "Norwegian Polar Institute. CC BY 4.0",
+    "이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·북극 탭에서 찾는다":
+        "Here you go by coordinates — addresses and places work in Korea, place names in the Svalbard and Arctic tabs",
+    "좌표·지명으로 이동 — 78.223, 15.647 · Longyearbyen": "Go to coordinates or a place name — 78.223, 15.647 · Longyearbyen",
+    "좌표로 이동 — 위도, 경도 (예: {example})": "Go to coordinates — latitude, longitude (e.g. {example})",
+    "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
+    "찾은 것이 없다 — 스발바르 지명을 넣어 본다": "Nothing found — try a Svalbard place name",
+    "지명": "Place name",
 }
 
 
@@ -518,6 +532,36 @@ PROP_EN = {
     "노르웨이어 이름": "Norwegian name",
     "층서 계통": "Lithostratigraphic hierarchy",
     "암층 코드": "Unit code (geo_code)",
+    # 노르웨이 극지연구소 — 스발바르·드로닝모드랜드 (npolar.FRIENDLY·POINTS, devlog 021)
+    "주 암상": "Main lithology",
+    "시대 하한": "Age (base)",
+    "시대 상한": "Age (top)",
+    "상위 단위": "Superior unit",
+    "갈래": "Type",
+    "연대 근거": "Dating method",
+    "정확도": "Accuracy",
+    "범례 번호": "Legend code",
+    "층서명": "Stratigraphic unit",
+    "모식지": "Type section / area",
+    "모식지 갈래": "Nature of section",
+    "UTM 위치": "UTM position",
+    "번호": "ID",
+    "옛 이름": "Former name",
+    "비고": "Remarks",
+    "층서 사전": "Stratigraphic lexicon",
+    "채취 연도": "Year collected",
+    "탐사": "Expedition",
+    "위치 정확도": "Position accuracy",
+    "보관함": "Cabinet",
+    "시료 보관소": "Sample archive",
+    "사진": "Photo",
+    "연대 갈래": "Age type",
+    "암석": "Rock",
+    "문헌 번호": "Reference no.",
+    "위치 근거": "Location basis",
+    "기재": "Description",
+    "지점": "Locality",
+    "시료": "Samples",
     "광종": "Commodity",
     "광종 무리": "Commodity group",
     "경제성": "Economic status",
@@ -617,6 +661,83 @@ def age_en(value: str) -> str:
     return " – ".join(parts)
 
 
+# ── 지질시대 — 거꾸로 (영어 → 한국어) ──
+#
+# 노르웨이 극지연구소(NPI)의 지질도는 시대를 **영문 ICS 명칭**으로 준다 —
+# `late Paleocene`·`Early - Middle Triassic`·`Carboniferous - Permian`. 한국어판에서는
+# 위의 표를 거꾸로 써서 옮긴다(devlog 021). 규칙은 `age_en` 과 같다 — 모르는
+# 낱말이 하나라도 있으면 **통째로 원문을 둔다.** 절(Age) 이름(`Bashkirian`·
+# `Aptian`)은 한국어 표기가 하나로 굳지 않아 표에 넣지 않았다 — 그런 값은 원문이다.
+
+#: 영어 → 한국어. `AGE_WORDS` 에서 먼저 나온 한국어를 고른다(`시생누대`·`고진기`).
+AGE_WORDS_KO = {}
+for _ko, _en in AGE_WORDS.items():
+    AGE_WORDS_KO.setdefault(_en.lower(), _ko)
+# 영국식 철자 — NPI 가 섞어 쓴다(`Palaeoproterozoic`·`Early Palaeozoic`)
+for _en in list(AGE_WORDS_KO):
+    if "paleo" in _en:
+        AGE_WORDS_KO.setdefault(_en.replace("paleo", "palaeo"), AGE_WORDS_KO[_en])
+AGE_WORDS_KO.setdefault("archaean", AGE_WORDS_KO["archean"])
+AGE_MODIFIERS_KO = {"early": "전기", "middle": "중기", "late": "후기"}
+#: 사이를 잇는 말. 범위는 상류(KIGAM)처럼 `~` 로 붙여 적는다
+AGE_JOINERS_KO = {"-": "~", "–": "~", "and/or": " 및/또는 ", "or": " 또는 ", "and": " 및 ",
+                  ",": ", ", ";": ", "}
+_AGE_TOKEN = re.compile(r"and/or|[A-Za-z]+|\?|[-–,;]")
+
+
+def age_ko(value: str) -> str:
+    """영문 지질시대 값 하나를 한국어로. 못 옮기면 원문을 그대로 돌려준다.
+
+        late Paleocene              → 팔레오세 후기
+        Early - Middle Triassic     → 트라이아스기 전기~중기
+        Carboniferous - Permian     → 석탄기~페름기
+        Neoproterozoic (?)          → 신원생대(?)
+    """
+    text = str(value or "").strip()
+    if not text:
+        return value
+    rest = _AGE_TOKEN.sub("", text.replace("(?)", "?"))
+    if rest.replace("(", "").replace(")", "").strip():
+        return value                                   # 숫자·괄호 말 같은 모르는 것이 섞였다
+    segments, joiners, current = [], [], {"mods": [], "noun": None, "doubt": False}
+    for token in _AGE_TOKEN.findall(text.replace("(?)", "?")):
+        low = token.lower()
+        if low in AGE_JOINERS_KO:
+            if not (current["mods"] or current["noun"]):
+                return value
+            segments.append(current)
+            joiners.append(AGE_JOINERS_KO[low])
+            current = {"mods": [], "noun": None, "doubt": False}
+        elif token == "?":
+            # 뒤에 붙은 것(`Paleocene ?`)도, 앞에 붙은 것(`- ? Oligocene`)도 지금 조각의 것이다
+            current["doubt"] = True
+        elif low in AGE_MODIFIERS_KO and not current["noun"]:
+            current["mods"].append(AGE_MODIFIERS_KO[low])
+        elif low in AGE_WORDS_KO and not current["noun"]:
+            current["noun"] = AGE_WORDS_KO[low]
+        else:
+            return value
+    if not (current["mods"] or current["noun"]):
+        return value
+    segments.append(current)
+    # 꾸밈말만 있는 조각(`Early - Middle Triassic` 의 앞)은 뒤 조각의 낱말을 빌린다
+    out, shown = [], None
+    for index, seg in enumerate(segments):
+        noun = seg["noun"]
+        if noun is None:
+            noun = next((s["noun"] for s in segments[index + 1:] if s["noun"]), None)
+            if noun is None or not seg["mods"]:
+                return value
+        mods = " ".join(seg["mods"])
+        if noun == shown and mods:
+            piece = mods                               # 앞에서 적은 낱말은 되풀이하지 않는다
+        else:
+            piece = f"{noun} {mods}".strip()
+        shown = noun
+        out.append(piece + ("(?)" if seg["doubt"] else ""))
+    return "".join(p + (joiners[i] if i < len(joiners) else "") for i, p in enumerate(out))
+
+
 #: 값을 지질시대로 읽는 속성 이름.
 AGE_PROPS = ("지질시대", "시대", "퇴적물시기")
 
@@ -664,6 +785,10 @@ GROUP_EN = {
     "GeoMAP 지질도": "GeoMAP geological maps",
     # 얀마옌 (NPI)
     "얀마옌 지질 (NPI)": "Jan Mayen geology (NPI)",
+    # 노르웨이 극지연구소 (npolar.py, devlog 021)
+    "스발바르 지질 (NPI)": "Svalbard geology (NPI)",
+    "스발바르 시료·층서 (NPI)": "Svalbard samples & stratigraphy (NPI)",
+    "드로닝모드랜드 (NPI)": "Dronning Maud Land (NPI)",
 }
 
 LAYER_EN = {
@@ -766,4 +891,16 @@ LAYER_EN = {
     "janmayen:units": "Geological units (1:250K)",
     "janmayen:lines": "Eruptive fissures, lava fronts & caldera",
     "janmayen:vents": "Eruptive centres & fumaroles",
+    # 노르웨이 극지연구소 — 스발바르·드로닝모드랜드 (npolar.py)
+    "npolar:svalbard_units": "Geological units (1:250K · 1:750K)",
+    "npolar:svalbard_faults": "Faults & folds",
+    "npolar:svalbard_paper": "Printed geological map (hillshade)",
+    "npolar:svalbard_type_localities": "Lithostratigraphic type localities",
+    "npolar:rock_archive": "Rock sample archive",
+    "npolar:dml_units": "Geological units (1:250K · 1:5M)",
+    "npolar:dml_structures": "Structures",
+    "npolar:dml_tectonic": "Major tectonic boundaries",
+    "npolar:dml_geochron": "Geochronology",
+    "npolar:dml_samples": "Rock sample archive (Antarctica)",
+    "npolar:dml_sites": "Field sites",
 }

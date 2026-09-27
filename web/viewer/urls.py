@@ -37,5 +37,7 @@ urlpatterns = [
     path("coords/parse/", views.coord_parse, name="coord-parse"),
     path("coords/project/", views.coord_project, name="coord-project"),
     path("search/", views.place_search, name="place-search"),
+    # 스발바르 지명 찾기 (NPI, devlog 021) — 한국의 search/ 자리
+    path("placenames/", views.place_names, name="place-names"),
     path("whereis/", views.whereis, name="whereis"),
 ]

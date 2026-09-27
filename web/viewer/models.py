@@ -11,7 +11,10 @@ from django.db import models
 #: 지역. 화면 위의 지역 탭이 이것으로 레이어 목록을 가른다 (devlog 016).
 REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "남극"),
            # 얀마옌 — NPI 지질도를 우리가 그린다 (devlog 022)
-           ("jan_mayen", "얀마옌"))
+           ("jan_mayen", "얀마옌"),
+           # 스발바르 — NPI 지도 서버를 중계한다 (devlog 021). "북극" 탭은 지역이 아니라
+           # 화면이 그린란드·스발바르·얀마옌을 묶어 보이는 것이라 여기 없다
+           ("svalbard", "스발바르"))
 
 
 class LayerGroup(models.Model):
@@ -57,7 +60,8 @@ class Layer(models.Model):
     #: 어느 문으로 나가나. kigam → `kigam.py`, geus → `geus.py`, vworld → `vworld.py`,
     #: grportal → `grportal.py` (타일이 아니라 점을 통째로 받는다 — devlog 019),
     #: geomap → `geomap.py` (상류가 아니라 우리 디스크의 파일이다 — devlog 018),
-    #: janmayen → `janmayen.py` (NPI 지질도 파일, 모양을 통째로 준다 — devlog 022)
+    #: janmayen → `janmayen.py` (NPI 지질도 파일, 모양을 통째로 준다 — devlog 022),
+    #: npolar → `npolar.py` (NPI 지도 서버 — 스발바르·드로닝모드랜드, devlog 021)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
