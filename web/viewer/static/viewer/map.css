@@ -1203,3 +1203,12 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .popup-tm .k { color: var(--ink-faint); white-space: nowrap; }
 .popup-tm .v { font-family: var(--font-mono); color: var(--ink); }
 .popup-tm.copied .v { color: var(--hi-ink); }
+
+/* 설정 — 최근 지운 점묶음 */
+.deleted-list { margin: 6px 0 4px; padding: 0; list-style: none; }
+.deleted-list li { display: flex; align-items: center; gap: 8px; padding: 6px 2px;
+                   border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.deleted-list li.empty { color: var(--ink-faint); border: 0; }
+.del-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.del-meta { color: var(--ink-faint); font-size: 11.5px; }
+.del-done { font-size: 11.5px; color: var(--ink-faint); }

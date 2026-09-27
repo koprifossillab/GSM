@@ -1852,6 +1852,7 @@
     function open() {
       sheet.hidden = false;
       renderState();
+      renderDeleted();
       if (loaded) return;
       loaded = true;
       fetch(BASE + "patchnotes/")
@@ -1902,6 +1903,57 @@
       dd.textContent = row[1];
       host.append(dt, dd);
     });
+  }
+
+  /** 설정의 "지금 상태" 아래 — 최근 지운 점묶음과 되살리기. */
+  function renderDeleted() {
+    var host = document.getElementById("deleted-list");
+    fetch(BASE + "pointsets/deleted/")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        host.innerHTML = "";
+        if (!d.deleted.length) {
+          host.innerHTML = '<li class="empty">' + esc(T("지운 것이 없다")) + "</li>";
+          return;
+        }
+        d.deleted.forEach(function (row) {
+          var li = document.createElement("li");
+          var when = new Date(row.deleted_at).toLocaleString(LANG === "en" ? "en-GB" : "ko-KR",
+            { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+          var text = document.createElement("span");
+          text.className = "del-text";
+          text.innerHTML = '<b>' + esc(row.name) + "</b> <span class=\"del-meta\">" +
+            esc(countText({ count: row.points, lines: row.lines, polygons: row.polygons })) +
+            " · " + esc(when) + (row.client ? " · " + esc(row.client) : "") + "</span>";
+          li.appendChild(text);
+          if (row.restored) {
+            var done = document.createElement("span");
+            done.className = "del-done";
+            done.textContent = T("되살림");
+            li.appendChild(done);
+          } else {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn quiet";
+            btn.textContent = T("되살리기");
+            btn.addEventListener("click", function () {
+              btn.disabled = true;
+              post(BASE + "pointsets/deleted/" + row.id + "/restore/")
+                .then(function (r) { return r.json().then(function (d2) { return { ok: r.ok, d: d2 }; }); })
+                .then(function (res) {
+                  if (!res.ok) { btn.textContent = res.d.error || T("되살리지 못했다"); return; }
+                  pointsets.unshift(res.d.pointset);
+                  renderPointSets();
+                  renderDeleted();
+                  renderState();
+                });
+            });
+            li.appendChild(btn);
+          }
+          host.appendChild(li);
+        });
+      })
+      .catch(function () { host.innerHTML = '<li class="empty">' + esc(T("읽지 못했다")) + "</li>"; });
   }
 
   function renderNotes(notes) {

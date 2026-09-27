@@ -129,6 +129,34 @@ class Shape(models.Model):
         return self.label or f"{self.get_kind_display()} ({self.lat:.5f}, {self.lon:.5f})"
 
 
+class PointSetDeletion(models.Model):
+    """지운 점묶음의 기록 — 누가(접속한 곳)·언제·무엇을.
+
+    **지운 것의 사본(GeoJSON)도 남긴다.** 점묶음은 사람이 올리거나 찍은 것이라
+    상류에서 다시 받을 길이 없다. 잘못 지웠으면 `manage.py deleted_pointsets
+    --restore <번호>` 로 되살린다. devlog 014.
+    """
+
+    name = models.CharField("이름", max_length=120)
+    color = models.CharField("색", max_length=7, blank=True)
+    source_filename = models.CharField("올린 파일", max_length=255, blank=True)
+    created_at = models.DateTimeField("올린 때", null=True, blank=True)
+    deleted_at = models.DateTimeField("지운 때", auto_now_add=True)
+    client = models.CharField("지운 곳 (접속 주소)", max_length=64, blank=True)
+    points = models.PositiveIntegerField("점", default=0)
+    lines = models.PositiveIntegerField("선", default=0)
+    polygons = models.PositiveIntegerField("면", default=0)
+    snapshot = models.JSONField("사본 (GeoJSON)", default=dict)
+    restored_at = models.DateTimeField("되살린 때", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-deleted_at"]
+        verbose_name = "지운 점묶음"
+
+    def __str__(self):
+        return f"{self.deleted_at:%Y-%m-%d %H:%M} {self.name}"
+
+
 class UpstreamDay(models.Model):
     """상류에 하루 몇 번 물었나. **한계를 재지 않고 지켜보려고** 둔다.
 

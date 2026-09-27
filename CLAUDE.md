@@ -224,7 +224,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   crs.py          평면 좌표계(TM·UTM-K·옛 Bessel) <-> 위경도. pyproj 없이
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
-  models.py       Layer·LayerGroup·PointSet·Point·Shape·UpstreamDay
+  models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
   views.py        화면 하나 + 프록시 둘 + 업로드
 deploy/           Docker·nginx·배포 스크립트
 data/             카탈로그 씨앗

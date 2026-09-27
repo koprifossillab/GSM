@@ -21,6 +21,8 @@ urlpatterns = [
     path("pointsets/upload/", views.pointset_upload, name="pointset-upload"),
     path("pointsets/create/", views.pointset_create, name="pointset-create"),
     path("pointsets/<int:pk>/geojson/", views.pointset_geojson, name="pointset-geojson"),
+    path("pointsets/deleted/", views.pointset_deleted, name="pointset-deleted"),
+    path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
 
     path("coords/parse/", views.coord_parse, name="coord-parse"),

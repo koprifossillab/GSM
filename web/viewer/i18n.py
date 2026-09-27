@@ -291,6 +291,14 @@ EN = {
     "한 번에 {n}점까지 저장한다": "Up to {n} points can be saved at once",
     "쓸 만한 좌표가 없다": "No usable coordinates",
     "상류에서 받지 못했다": "Could not get it from the source",
+    "이미 되살렸다": "Already restored",
+    "최근 지운 점묶음": "Recently deleted point sets",
+    "지울 때 사본을 남겨 둔다. 잘못 지웠으면 되살린다.":
+        "A copy is kept when a point set is deleted. Restore it if it was a mistake.",
+    "지운 것이 없다": "Nothing deleted",
+    "되살림": "restored",
+    "되살리기": "Restore",
+    "되살리지 못했다": "Could not restore",
     "주소 검색이 꺼져 있다 — VWorld 열쇠가 없다": "Address search is off — no VWorld key",
     "VWorld 가 답하지 않는다": "VWorld is not responding",
 

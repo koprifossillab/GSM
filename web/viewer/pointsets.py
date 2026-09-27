@@ -373,3 +373,38 @@ def _from_geojson(text: str, crs_code: str = "4326"):
         notes.append(msg("읽지 못한 것 {n}개를 건너뛰었다 (기하가 없거나 깨졌거나 GeometryCollection)",
                          n=skipped))
     return points, notes
+
+
+def restore(gone):
+    """지운 기록(`PointSetDeletion`)의 사본으로 점묶음을 되살린다.
+
+    (새 점묶음, 점 수, 모양 수). 명령(`deleted_pointsets --restore`)과 화면의
+    되살리기 단추가 함께 쓴다.
+    """
+    from django.db import transaction
+    from django.utils import timezone
+
+    from .models import Point, PointSet, Shape
+
+    feats = (gone.snapshot or {}).get("features") or []
+    with transaction.atomic():
+        ps = PointSet.objects.create(name=gone.name, color=gone.color or "#e4572e",
+                                     source_filename=gone.source_filename)
+        points = shapes = 0
+        for f in feats:
+            geom = f.get("geometry") or {}
+            props = dict(f.get("properties") or {})
+            label = str(props.pop("이름표", ""))[:200]
+            if geom.get("type") == "Point":
+                lon, lat = geom["coordinates"][:2]
+                Point.objects.create(pointset=ps, lat=lat, lon=lon, label=label, props=props)
+                points += 1
+            elif geom.get("type") in SHAPE_KINDS:
+                s = _shape_from(geom)
+                if s:
+                    Shape.objects.create(pointset=ps, kind=s["kind"], geometry=s["geometry"],
+                                         lat=s["lat"], lon=s["lon"], label=label, props=props)
+                    shapes += 1
+        gone.restored_at = timezone.now()
+        gone.save(update_fields=["restored_at"])
+    return ps, points, shapes

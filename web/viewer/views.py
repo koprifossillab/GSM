@@ -20,7 +20,7 @@ from gsmweb.version import VERSION
 
 from . import coords, crs, i18n, kigam, patchnotes, pointsets, tilecache, tiles, vworld
 from .i18n import msg
-from .models import Layer, LayerGroup, Point, PointSet, Shape
+from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
 log = logging.getLogger(__name__)
 
@@ -488,15 +488,9 @@ def pointset_create(request):
     return JsonResponse({"pointset": _pointset_summary(pointset)})
 
 
-@require_GET
-def pointset_geojson(request, pk):
-    """점묶음을 GeoJSON 으로. 지도가 그릴 때도, 사람이 내려받을 때도 쓴다.
-
-    `?download=1` 이면 파일로 내려준다. 한글 이름이 깨지지 않게 파일명을
-    RFC 5987 로도 적는다.
-    """
-    pointset = get_object_or_404(PointSet, pk=pk)
-    response = JsonResponse({
+def _pointset_features(pointset) -> dict:
+    """점묶음 하나를 GeoJSON FeatureCollection 으로. 내려받기와 지울 때의 사본이 쓴다."""
+    return {
         "type": "FeatureCollection",
         "name": pointset.name,
         "features": [{
@@ -508,7 +502,19 @@ def pointset_geojson(request, pk):
             "geometry": s.geometry,
             "properties": dict(s.props, **{"이름표": s.label} if s.label else {}),
         } for s in pointset.shapes.all()],
-    }, json_dumps_params={"ensure_ascii": False})
+    }
+
+
+@require_GET
+def pointset_geojson(request, pk):
+    """점묶음을 GeoJSON 으로. 지도가 그릴 때도, 사람이 내려받을 때도 쓴다.
+
+    `?download=1` 이면 파일로 내려준다. 한글 이름이 깨지지 않게 파일명을
+    RFC 5987 로도 적는다.
+    """
+    pointset = get_object_or_404(PointSet, pk=pk)
+    response = JsonResponse(_pointset_features(pointset),
+                            json_dumps_params={"ensure_ascii": False})
     if request.GET.get("download"):
         from urllib.parse import quote
         stem = re.sub(r'[\\/:*?"<>|]+', "_", pointset.name).strip() or f"pointset-{pk}"
@@ -521,11 +527,49 @@ def pointset_geojson(request, pk):
 
 @require_POST
 def pointset_delete(request, pk):
+    """지운다. **지우기 전에 기록과 사본을 남긴다** (`PointSetDeletion`)."""
     pointset = get_object_or_404(PointSet, pk=pk)
-    name = pointset.name
-    pointset.delete()
-    log.info("점묶음 '%s' 지웠다", name)
+    summary = _pointset_summary(pointset)
+    client = _client(request)
+    with transaction.atomic():
+        PointSetDeletion.objects.create(
+            name=pointset.name, color=pointset.color,
+            source_filename=pointset.source_filename, created_at=pointset.created_at,
+            client=client, points=summary["count"], lines=summary["lines"],
+            polygons=summary["polygons"], snapshot=_pointset_features(pointset))
+        pointset.delete()
+    log.info("점묶음 '%s' 지웠다 — 점 %d, 선 %d, 면 %d (%s)", summary["name"],
+             summary["count"], summary["lines"], summary["polygons"], client)
     return JsonResponse({"ok": True})
+
+
+@require_GET
+def pointset_deleted(request):
+    """최근 지운 점묶음 20 개. 설정의 "지금 상태" 가 부른다. 사본은 싣지 않는다."""
+    return JsonResponse({"deleted": [{
+        "id": d.id, "name": d.name, "deleted_at": d.deleted_at.isoformat(),
+        "client": d.client, "points": d.points, "lines": d.lines, "polygons": d.polygons,
+        "restored": bool(d.restored_at),
+    } for d in PointSetDeletion.objects.all()[:20]]})
+
+
+@require_POST
+def pointset_restore(request, pk):
+    """지운 점묶음을 되살린다. 한 기록은 한 번만 — 두 번 누르면 두 벌이 생긴다."""
+    lang = i18n.lang_of(request)
+    gone = get_object_or_404(PointSetDeletion, pk=pk)
+    if gone.restored_at:
+        return JsonResponse({"error": i18n.t(msg("이미 되살렸다"), lang)}, status=409)
+    ps, _, _ = pointsets.restore(gone)
+    log.info("지운 점묶음 '%s' 을 되살렸다 (%s)", ps.name, _client(request))
+    return JsonResponse({"pointset": _pointset_summary(ps)})
+
+
+def _client(request) -> str:
+    """지운 곳. nginx 가 붙여 주는 X-Real-IP 가 먼저다 (deploy/nginx)."""
+    return (request.META.get("HTTP_X_REAL_IP")
+            or request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+            or request.META.get("REMOTE_ADDR", ""))[:64]
 
 
 # ── 주소 (VWorld) ─────────────────────────────────────────────────────

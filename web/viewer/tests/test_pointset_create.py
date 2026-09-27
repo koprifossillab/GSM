@@ -211,3 +211,66 @@ class Shapes(TestCase):
         got = self.client.post("/GSM/pointsets/create/", json.dumps(payload),
                                content_type="application/json").json()
         self.assertEqual((got["pointset"]["count"], got["pointset"]["lines"]), (1, 0))
+
+
+class Deletion(TestCase):
+    """지우면 기록과 사본이 남고, 잘못 지운 것은 되살린다."""
+
+    def setUp(self):
+        from viewer.models import PointSetDeletion  # noqa: F401
+        self.ps = PointSet.objects.create(name="현장 A", color="#123456", source_filename="a.csv")
+        Point.objects.create(pointset=self.ps, lat=36.3, lon=127.3, label="GS-01", props={"암상": "화강암"})
+        Shape.objects.create(pointset=self.ps, kind="line", label="경로",
+                             geometry={"type": "LineString", "coordinates": [[127.3, 36.3], [127.4, 36.4]]},
+                             lat=36.35, lon=127.35, props={})
+
+    def delete(self):
+        return self.client.post(f"/GSM/pointsets/{self.ps.id}/delete/", HTTP_X_REAL_IP="10.0.0.7")
+
+    def test_지우면_기록과_사본이_남는다(self):
+        from viewer.models import PointSetDeletion
+        self.assertEqual(self.delete().status_code, 200)
+        self.assertFalse(PointSet.objects.exists())
+        gone = PointSetDeletion.objects.get()
+        self.assertEqual((gone.name, gone.client, gone.points, gone.lines), ("현장 A", "10.0.0.7", 1, 1))
+        self.assertEqual(len(gone.snapshot["features"]), 2)
+
+    def test_되살리면_그대로_돌아온다(self):
+        from viewer.models import PointSetDeletion
+        self.delete()
+        gone = PointSetDeletion.objects.get()
+        got = self.client.post(f"/GSM/pointsets/deleted/{gone.id}/restore/").json()
+        self.assertEqual((got["pointset"]["count"], got["pointset"]["lines"]), (1, 1))
+        ps = PointSet.objects.get()
+        self.assertEqual((ps.name, ps.color), ("현장 A", "#123456"))
+        p = ps.points.get()
+        self.assertEqual((p.label, p.props), ("GS-01", {"암상": "화강암"}))
+        self.assertEqual(ps.shapes.get().label, "경로")
+
+    def test_한_기록은_한_번만_되살린다(self):
+        from viewer.models import PointSetDeletion
+        self.delete()
+        gone = PointSetDeletion.objects.get()
+        self.client.post(f"/GSM/pointsets/deleted/{gone.id}/restore/")
+        second = self.client.post(f"/GSM/pointsets/deleted/{gone.id}/restore/")
+        self.assertEqual(second.status_code, 409)
+        self.assertEqual(PointSet.objects.count(), 1)
+
+    def test_목록은_사본을_싣지_않는다(self):
+        self.delete()
+        row = self.client.get("/GSM/pointsets/deleted/").json()["deleted"][0]
+        self.assertEqual(row["name"], "현장 A")
+        self.assertNotIn("snapshot", row)
+
+    def test_명령으로도_보고_되살린다(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        from viewer.models import PointSetDeletion
+        self.delete()
+        out = StringIO()
+        call_command("deleted_pointsets", stdout=out)
+        self.assertIn("현장 A", out.getvalue())
+        call_command("deleted_pointsets", restore=PointSetDeletion.objects.get().id, stdout=out)
+        self.assertEqual(PointSet.objects.get().points.count(), 1)
