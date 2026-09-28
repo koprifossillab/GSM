@@ -21,7 +21,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               pointsets, tilecache, tiles, vworld)
+               phyloserver, pointsets, tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -199,6 +199,10 @@ def _point_fields(layer) -> dict:
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+    if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
+        # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
+        return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
+                "source": phyloserver.source_url(layer.name), "attribution": phyloserver.ATTRIBUTION}
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
@@ -226,6 +230,10 @@ def _layer_extra(layer) -> dict:
                 "minZoom": spec["min"], "maxZoom": spec["max"],
                 "legend": spec["legend"] or "none", "viewer": gsj.VIEWER_URL,
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "phyloserver" and phyloserver.knows_scan(layer.name):
+        # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
+        return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
+                "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
     return {}
 
 
@@ -431,6 +439,26 @@ def gsj_tile(request, layer, z, x, y):
     return response
 
 
+@require_GET
+def phyloserver_tile(request, layer, level, x, y):
+    """한반도 지질도 타일 — `phyloserver/<레이어>/<레벨>/<x>_<y>.png` (026).
+
+    카카오 격자의 번호 그대로 phyloserver 에 넘긴다. 같은 서버의 파일이라
+    캐시에 담지 않는다. 없는 자리는 빈 타일이다."""
+    name, level, x, y = f"phyloserver:{layer}", int(level), int(x), int(y)
+    if not phyloserver.valid_scan_tile(name, level, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    try:
+        png = phyloserver.get_scan_tile(name, level, x, y)
+    except phyloserver.PhyloserverError as exc:
+        log.warning("phyloserver 타일을 받지 못했다 (%s %s/%s_%s): %s", name, level, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    if png is None:
+        png = tiles.blank_tile(256, 256)
+    return _tile(png)
+
+
 def _float(value):
     try:
         return float(value)
@@ -620,6 +648,9 @@ def legend(request):
 
     if layer in geomap.LAYERS:
         return _geomap_legend(request, layer)
+    if phyloserver.knows_scan(layer):
+        # 한반도 지질도(026)는 범례를 따로 주지 않는다. KIGAM 에 묻지 않게 여기서 막는다
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), i18n.lang_of(request))}, status=404)
 
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
     # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.
@@ -734,6 +765,7 @@ _point_locks = {}
 _POINT_DOORS = (
     ("grportal", grportal.knows, grportal, grportal.PortalError),
     ("npolar", npolar.knows_points, npolar, npolar.NpolarError),
+    ("phyloserver", phyloserver.knows, phyloserver, phyloserver.PhyloserverError),
 )
 POINT_ERRORS = tuple(door[3] for door in _POINT_DOORS)
 
@@ -758,14 +790,16 @@ def point_features(name: str, *, refresh: bool = False) -> bytes:
     """
     _, module = _point_door(name)
     key = _point_key(name)
+    # 날마다 바뀌는 상류(phyloserver 의 암맥, 026)는 하루면 다시 묻는다
+    fresh = getattr(module, "FRESH_SECONDS", None)
     if not refresh:
-        hit = tilecache.get(key, ".json")
+        hit = tilecache.get(key, ".json", max_age=fresh)
         if hit is not None:
             return hit
     lock = _point_locks.setdefault(name, threading.Lock())
     with lock:
         if not refresh:
-            hit = tilecache.get(key, ".json")         # 기다리는 사이 앞사람이 담았다
+            hit = tilecache.get(key, ".json", max_age=fresh)   # 기다리는 사이 앞사람이 담았다
             if hit is not None:
                 return hit
         try:

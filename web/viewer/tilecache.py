@@ -78,11 +78,14 @@ def _files():
         yield from Path(settings.TILE_CACHE_DIR).rglob(f"*{suffix}")
 
 
-def get(key: str, suffix: str = ".png", *, stale: bool = False):
+def get(key: str, suffix: str = ".png", *, stale: bool = False, max_age: int = None):
     """들고 있으면 바이트를, 없으면 None.
 
     늙은 것은 평소에 None 이다 — 상류에 다시 물으라는 뜻이다. 상류가 못 줄
     때 `stale=True` 로 다시 부르면 늙은 것도 내준다.
+
+    `max_age`(초)는 늙었다고 볼 나이를 따로 준다. 날마다 바뀌는 자료(암맥
+    기록, devlog 026)가 쓴다 — 받은 것을 3 년 들고 있으면 안 된다.
     """
     if not enabled():
         return None
@@ -92,7 +95,8 @@ def get(key: str, suffix: str = ".png", *, stale: bool = False):
     except OSError:
         return None
 
-    max_age = settings.TILE_CACHE_MAX_AGE_DAYS * 86400
+    if max_age is None:
+        max_age = settings.TILE_CACHE_MAX_AGE_DAYS * 86400
     if not stale and max_age > 0 and (time.time() - stat.st_mtime) > max_age:
         return None                     # 늙었다. 지우지 않는다 — 새 것이 덮는다
 

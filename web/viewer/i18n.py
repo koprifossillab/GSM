@@ -473,6 +473,15 @@ EN = {
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
     "범례가 없는 레이어다": "This layer has no legend",
     "bbox 가 없다": "bbox is missing",
+    # 암맥 기록 — phyloserver (devlog 026)
+    "산성암맥": "Felsic dikes",
+    "중성암맥": "Intermediate dikes",
+    "염기성암맥": "Mafic dikes",
+    "석영맥·광맥": "Quartz & ore veins",
+    "그 밖·미상": "Other / unknown",
+    "암맥 {n}건 · 줌 {z} 아래에서는 도폭 {m}곳의 로즈": "{n} dikes · below zoom {z}, rose diagrams for {m} map sheets",
+    "갈래는 적힌 암석 이름에서 GSM 이 가른 것이다": "Classes are GSM's grouping of the recorded rock names",
+    "원본 기록 — phyloserver": "Original records — phyloserver",
 }
 
 
@@ -629,6 +638,13 @@ PROP_EN = {
     "자료 품질 (1–5)": "Data quality (1–5)",
     "노두": "Outcrop",
     "자료": "Dataset",
+    # 암맥 기록 — phyloserver (devlog 026)
+    "주향 (끝점에서 잰 값)": "Strike (from endpoints)",
+    "메모": "Memo",
+    "기록 번호": "Record ID",
+    "phyloserver 기록": "phyloserver record",
+    "암맥 수": "Dikes",
+    "평균 주향": "Mean strike",
 }
 
 
@@ -874,6 +890,8 @@ GROUP_EN = {
     "심리스 지질도 (GSJ)": "Seamless geological map (GSJ)",
     # 중국 (geo3al.py, devlog 025)
     "중국·동아시아 지질 (USGS)": "China & East Asia geology (USGS)",
+    # 우리가 모은 자료로 그린 레이어 — 첫째가 phyloserver 의 암맥 (devlog 026)
+    "커스텀 지질도": "Custom geological maps",
 }
 
 LAYER_EN = {
@@ -997,4 +1015,7 @@ LAYER_EN = {
     # 중국 — USGS geo3al (geo3al.py)
     "geo3al:age": "Geologic age (1:5M)",
     "geo3al:rock": "Igneous rocks & eolian deposits",
+    # 연구실의 암맥 기록 — phyloserver (devlog 026)
+    "phyloserver:dikes": "Dike records",
+    "phyloserver:peninsula": "Korean Peninsula geology (scan)",
 }

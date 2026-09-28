@@ -58,7 +58,9 @@ class Command(BaseCommand):
                 # 일본 — GSJ 심리스 지질도 (024)
                 (settings.GSJ_CATALOG_SEED, "일본 (GSJ)", "japan", "gsj"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
-                (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al")):
+                (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
+                # 연구실의 암맥 기록 — phyloserver (026)
+                (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

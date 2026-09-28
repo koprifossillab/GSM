@@ -142,6 +142,8 @@
     // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
     // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // 중부원점(GRS80) — phyloserver 의 한반도 지질도가 카카오맵 격자로 잘려 있다 (devlog 026)
+    proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
   }
 
@@ -335,6 +337,35 @@
     });
   }
 
+  /** 한반도 지질도 — phyloserver 가 카카오맵 격자로 잘라 둔 타일 (devlog 026).
+   *  격자(`phyloserver.py` 의 SCAN_*)를 그대로 받고 OpenLayers 가 옮겨 그린다.
+   *  카카오 레벨 L 의 한 픽셀은 2^(L-3) m 이고 13 이 가장 거칠다. 타일 번호는 아래에서
+   *  위로 세므로, 위에서 아래로 세는 OpenLayers 의 번호를 뒤집는다. */
+  var KAKAO_GRID = { origin: [-30000, -60000], levels: [7, 13], top: [2, 5] };
+
+  function phyloserverSource(name) {
+    var row = byName[name] || {};
+    if (!ol.proj.get("EPSG:5181")) return wmsSource(name);    // proj4 를 못 읽었다
+    var g = KAKAO_GRID;
+    var span = 256 * Math.pow(2, g.levels[1] - 3);            // 레벨 13 한 장의 길이(m)
+    var extent = [g.origin[0], g.origin[1], g.origin[0] + g.top[0] * span, g.origin[1] + g.top[1] * span];
+    var resolutions = [];
+    for (var level = g.levels[1]; level >= g.levels[0]; level--) resolutions.push(Math.pow(2, level - 3));
+    return new ol.source.TileImage({
+      projection: "EPSG:5181",
+      tileGrid: new ol.tilegrid.TileGrid({ extent: extent, origin: [extent[0], extent[3]],
+                                           resolutions: resolutions, tileSize: 256 }),
+      tileUrlFunction: function (coord) {
+        var level = g.levels[1] - coord[0];
+        var rows = g.top[1] * Math.pow(2, coord[0]);
+        return BASE + row.tiles.replace("{z}", level).replace("{x}", coord[1])
+          .replace("{y}", rows - 1 - coord[2]);
+      },
+      transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 일본 지질도의 속성 주소 — WMS 가 아니라 누른 자리의 위경도로 묻는다(`gsj/info/`). */
   function gsjInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -357,6 +388,7 @@
     geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
+    phyloserver: { source: phyloserverSource, info: null },
   };
 
   function layerKind(name) {
@@ -1320,6 +1352,8 @@
         li.appendChild(vectorLegend(entry.name));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "points") {
         li.appendChild(pointLegend(entry));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].noLegend) {
+        li.appendChild(note(T("범례가 없는 레이어다")));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].legend) {
         entry.legendBox = gsjLegend(entry);
         li.appendChild(entry.legendBox);
@@ -1935,6 +1969,8 @@
             layer.set("gsmLegend", data.legend || null);
             layer.set("gsmCount", features.length);
             source.addFeatures(features);
+            // 암맥(026) — 멀리서 볼 도폭별 로즈를 같은 자료에서 세어 곁들인다
+            if (row.style === "dike") source.addFeatures(dikeRoses(features));
             if (success) success(features);
             renderActive();
           })
@@ -1951,7 +1987,8 @@
     var Kind = row.render === "image" ? ol.layer.VectorImage : ol.layer.Vector;
     layer = new Kind({
       source: source,
-      style: LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
+      style: row.style === "dike" ? dikeStyle()
+        : LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
         : portalPointStyle(row.style || "sample"),
       opacity: 1,
       // 겹친 점을 하나씩 그린다 — 2 만 점이라 글자처럼 걸러내지(declutter) 않는다
@@ -2103,6 +2140,7 @@
     var box = document.createElement("div");
     box.className = "vector-legend";
     if (LEGEND_STYLED[kind]) return dataLegend(entry, row, box);
+    if (kind === "dike") return dikeLegend(entry, row, box);
     function item(color, text, shape) {
       var line = document.createElement("div");
       var sw = document.createElement("span");
@@ -2220,6 +2258,177 @@
       a.textContent = row.upstream === "geo3al"
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
         : T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
+      box.appendChild(a);
+    }
+    return box;
+  }
+
+  // ── 암맥 — 연구실 phyloserver 의 기록 (devlog 026) ──────────────
+  //
+  // 포털 점과 같은 길(`/points/`)로 온다. 끝점이 둘인 기록은 선, 하나뿐인 것은 점.
+  // **줌이 표현을 정한다** — 암맥은 대개 수백 m 라 줌 11 아래에서는 1 px 도 안
+  // 된다. 그래서 그보다 멀면 선을 숨기고 도폭마다 주향을 센 로즈를 그린다.
+  // 로즈는 서버가 따로 주지 않고 **같은 자료에서 여기서 센다** — 선과 로즈가
+  // 다른 자료를 보면 안 된다 (phyloserver 의 one-map 과 같은 까닭이다).
+  // 색은 암석 갈래(`cls`)다. 갈래는 서버가 암석 이름에서 가른 것이다.
+
+  var DIKE_CLASSES = [
+    { code: "acid", color: "#c2185b", label: "산성암맥" },
+    { code: "intermediate", color: "#ef6c00", label: "중성암맥" },
+    { code: "basic", color: "#1b5e20", label: "염기성암맥" },
+    { code: "vein", color: "#1565c0", label: "석영맥·광맥" },
+    { code: "other", color: "#616161", label: "그 밖·미상" },
+  ];
+  //: 이 줌 아래에서는 선 대신 로즈를 그린다
+  var DIKE_ROSE_BELOW = 11;
+  //: 로즈의 칸 — 10° 씩 18 칸. 주향은 방향이 없어 맞은편에도 같은 꽃잎을 그린다
+  var DIKE_ROSE_BINS = 18;
+  //: 가장 큰 로즈의 반지름(지도 단위 — 3857 이라 북위 37° 에서 땅보다 1.25 배 길다).
+  //  도폭 칸이 경도 15′·위도 10′ 이라 3857 에서 가로 27.8 km·세로 23 km 남짓이다.
+  //  이만하면 이웃 도폭의 로즈와 겹치지 않는다. 화면에서는 4–60 px 사이로 둔다
+  var DIKE_ROSE_METERS = 11000;
+
+  function dikeColor(cls) {
+    for (var i = 0; i < DIKE_CLASSES.length; i++) {
+      if (DIKE_CLASSES[i].code === cls) return DIKE_CLASSES[i].color;
+    }
+    return DIKE_CLASSES[DIKE_CLASSES.length - 1].color;
+  }
+
+  function dikeStyle() {
+    var cache = {};
+    return function (feature, resolution) {
+      var zoom = map.getView().getZoomForResolution(resolution) || 0;
+      var far = zoom < DIKE_ROSE_BELOW;
+      var rose = feature.get("rose");
+      if (rose) return far ? roseStyle(feature, resolution) : null;
+      if (far) return null;
+      var cls = feature.get("cls") || "other";
+      var point = feature.getGeometry().getType() === "Point";
+      var wide = zoom >= 14;
+      var key = cls + (point ? "p" : "l") + (wide ? "w" : "");
+      if (cache[key]) return cache[key];
+      var color = dikeColor(cls);
+      cache[key] = point
+        ? new ol.style.Style({ image: new ol.style.Circle({ radius: wide ? 4 : 3,
+            fill: new ol.style.Fill({ color: color }),
+            stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 1 }) }) })
+        : [
+          new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.8)", width: wide ? 5 : 4 }) }),
+          new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: wide ? 3 : 2, lineCap: "round" }) }),
+        ];
+      return cache[key];
+    };
+  }
+
+  /** 도폭마다 로즈 feature 하나. 자리는 그 도폭 암맥들 가운데(선의 가운데 점의 평균)이고,
+   *  팝업에 도폭·수·평균 주향이 뜬다. 평균은 방향이 없는 자료라 각을 두 배로 해서 잰다. */
+  function dikeRoses(features) {
+    var bySheet = {};
+    features.forEach(function (f) {
+      var strike = f.get("strike");
+      var sheet = f.get("sheet");
+      if (typeof strike !== "number" || !sheet) return;
+      var ext = f.getGeometry().getExtent();
+      var s = bySheet[sheet] || (bySheet[sheet] = { x: 0, y: 0, n: 0, sin: 0, cos: 0, bins: [] });
+      s.x += (ext[0] + ext[2]) / 2;
+      s.y += (ext[1] + ext[3]) / 2;
+      s.n += 1;
+      s.sin += Math.sin(strike * Math.PI / 90);
+      s.cos += Math.cos(strike * Math.PI / 90);
+      var bin = Math.floor(strike / (180 / DIKE_ROSE_BINS)) % DIKE_ROSE_BINS;
+      s.bins[bin] = (s.bins[bin] || 0) + 1;
+    });
+    var most = 1;
+    Object.keys(bySheet).forEach(function (k) { most = Math.max(most, bySheet[k].n); });
+    return Object.keys(bySheet).map(function (sheet) {
+      var s = bySheet[sheet];
+      var mean = Math.atan2(s.sin, s.cos) * 90 / Math.PI;
+      var f = new ol.Feature({ geometry: new ol.geom.Point([s.x / s.n, s.y / s.n]) });
+      f.setProperties({ rose: s.bins, share: Math.sqrt(s.n / most), sheet: sheet, n: s.n,
+                        mean: Math.round((mean + 180) % 180) + "°" });
+      return f;
+    });
+  }
+
+  /** 로즈 한 송이. 꽃잎의 길이는 칸의 수의 제곱근이다 — 넓이가 수에 비례하게.
+   *  크기는 땅 위의 길이로 정한다 — 줌을 바꿔도 로즈가 제 도폭 칸 안에 든다.
+   *  그 안에서 암맥이 적은 도폭은 작게(가장 많은 도폭에 견준 제곱근, 적어도 0.45). */
+  function roseStyle(feature, resolution) {
+    var full = DIKE_ROSE_METERS / resolution;
+    var radius = Math.round(Math.max(4, Math.min(60, full * Math.max(0.45, feature.get("share")))));
+    var styles = feature.get("roseStyles") || {};
+    if (styles[radius]) return styles[radius];
+    var style;
+    var bins = feature.get("rose");
+    var ratio = window.devicePixelRatio || 1;
+    var size = radius * 2 + 4;
+    var canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size * ratio;
+    var ctx = canvas.getContext("2d");
+    ctx.scale(ratio, ratio);
+    var c = size / 2;
+    var top = 1;
+    for (var i = 0; i < DIKE_ROSE_BINS; i++) top = Math.max(top, bins[i] || 0);
+    ctx.beginPath();
+    ctx.arc(c, c, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(60,40,20,0.5)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    var step = Math.PI / DIKE_ROSE_BINS;
+    ctx.fillStyle = "rgba(120,40,40,0.85)";
+    for (var b = 0; b < DIKE_ROSE_BINS; b++) {
+      if (!bins[b]) continue;
+      var r = radius * Math.sqrt(bins[b] / top);
+      [0, Math.PI].forEach(function (flip) {
+        // 북이 0°, 시계 방향. 캔버스의 0 은 동쪽이라 90° 를 뺀다
+        var a0 = b * step + flip - Math.PI / 2;
+        ctx.beginPath();
+        ctx.moveTo(c, c);
+        ctx.arc(c, c, r, a0, a0 + step);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+    style = new ol.style.Style({ image: new ol.style.Icon({ img: canvas, width: size, height: size }) });
+    styles[radius] = style;
+    feature.set("roseStyles", styles, true);
+    return style;
+  }
+
+  function dikeLegend(entry, row, box) {
+    var counts = {};
+    var roses = 0;
+    entry.layer.getSource().getFeatures().forEach(function (f) {
+      if (f.get("rose")) { roses += 1; return; }
+      var cls = f.get("cls") || "other";
+      counts[cls] = (counts[cls] || 0) + 1;
+    });
+    DIKE_CLASSES.forEach(function (c) {
+      var line = document.createElement("div");
+      var sw = document.createElement("span");
+      sw.className = "sw-line";
+      sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
+        c.color + '" stroke-width="2.5"/></svg>';
+      var label = document.createElement("span");
+      label.textContent = T(c.label) + (counts[c.code] ? "  (" + counts[c.code].toLocaleString() + ")" : "");
+      line.append(sw, label);
+      box.appendChild(line);
+    });
+    var count = entry.layer.get("gsmCount");
+    box.appendChild(note(entry.layer.get("gsmFailed") ? (entry.layer.get("gsmError") || T("점을 받지 못했다"))
+      : count === undefined ? T("받는 중…")
+      : T("암맥 {n}건 · 줌 {z} 아래에서는 도폭 {m}곳의 로즈", { n: count.toLocaleString(), z: DIKE_ROSE_BELOW, m: roses })));
+    box.appendChild(note(T("갈래는 적힌 암석 이름에서 GSM 이 가른 것이다")));
+    if (row.source) {
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.source;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("원본 기록 — phyloserver");
       box.appendChild(a);
     }
     return box;
