@@ -15,10 +15,15 @@
 .gitignore
 .github
 
-# 자료. /srv 에서 마운트해 본다.
-*.db
-*.sqlite3
-GSM.db*
+# 자료. /srv 에서 마운트해 본다. `**/` 를 붙여야 하위 폴더까지 거른다 —
+# 맨 `*.db` 는 맥락의 뿌리에만 맞는다
+**/*.db
+**/*.sqlite3
+**/GSM.db*
+
+# Claude Code 의 작업 자리 — 에이전트 worktree 가 저장소 사본을 통째로 든다.
+# v0.7.0 이미지에 34 MB 가 딸려 들어갔다(빈 DB 와 코드 사본뿐이라 샌 것은 없다)
+.claude/
 
 # 호스트에서 모은 정적 파일. 이미지는 제 손으로 다시 모은다
 # (Dockerfile 의 collectstatic). 안 지우면 호스트 것이 덮인다.

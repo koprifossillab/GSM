@@ -141,7 +141,7 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
   (`db/geomap/ATA_SCAR_GeoMAP_Geology_v2022_08.gpkg` 490 MB,
   `db/npolar/NP_J250_Geologi/*.geojson`)
 - 기동할 때 이주 0006–0008 과 씨앗(VWorld 11·포털 4·GeoMAP 5·NPI 5+6·얀마옌 3)이 들어간다
-- 올린 뒤 한 번 — `docker exec gsm-web-1 python manage.py fetch_grportal`
+- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py fetch_grportal`
   (시료 2 만 점을 미리 받아 둔다. 상류를 천천히 탄다)
 
 ## VWorld 로 더 할 수 있는 것
