@@ -26,6 +26,9 @@ urlpatterns = [
     # 일본 지질도 — GSJ 심리스 지질도 타일·속성·범례 (gsj.py, devlog 024). 레이어는 `gsj:` 를 뗀 이름
     re_path(r"^gsj/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.gsj_tile, name="gsj-tile"),
+    # 한반도 지질도 음영판 — 우리가 잘라 둔 EPSG:5179 타일 (peninsula.py, devlog 027)
+    re_path(r"^peninsula/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.webp$",
+            views.peninsula_tile, name="peninsula-tile"),
     # 한반도 지질도 — phyloserver 의 카카오 격자 타일 (phyloserver.py, devlog 026)
     re_path(r"^phyloserver/(?P<layer>[\w-]+)/(?P<level>\d{1,2})/(?P<x>\d{1,5})_(?P<y>\d{1,5})\.png$",
             views.phyloserver_tile, name="phyloserver-tile"),

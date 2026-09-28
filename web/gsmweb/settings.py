@@ -143,6 +143,10 @@ NPOLAR_DIR = env("GSM_NPOLAR_DIR") or str(_data_dir() / "npolar")
 #: 재배포를 막는다. 저장소·이미지에 두지 않고, 없으면 "자료가 없다" 가 뜰 뿐 뷰어는 돈다.
 #: 기본은 `<DB 옆>/usgs/` 이다 — 운영은 /srv/GSM/db/usgs (023 §3).
 USGS_DIR = env("GSM_USGS_DIR") or str(_data_dir() / "usgs")
+#: 한반도 지질도 음영판 — 좌표가 박힌 QGIS PDF 한 장과 그것을 잘라 둔 타일 (devlog 027).
+#: `<여기>/*.pdf` 를 `manage.py build_peninsula` 가 `<여기>/tiles/` 로 자른다. 출처를 몰라
+#: 저장소·이미지에 두지 않는다. 없으면 안내 타일이 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/peninsula/`.
+PENINSULA_DIR = env("GSM_PENINSULA_DIR") or str(_data_dir() / "peninsula")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -231,6 +235,8 @@ GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)
 PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
+#: 한반도 지질도 음영판 — 우리 디스크의 PDF (devlog 027)
+PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

@@ -1018,4 +1018,6 @@ LAYER_EN = {
     # 연구실의 암맥 기록 — phyloserver (devlog 026)
     "phyloserver:dikes": "Dike records",
     "phyloserver:peninsula": "Korean Peninsula geology (scan)",
+    # 한반도 지질도 음영판 (devlog 027)
+    "peninsula:shaded": "Korean Peninsula geology (shaded relief)",
 }

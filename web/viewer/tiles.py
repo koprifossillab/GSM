@@ -26,6 +26,8 @@ NO_KEY = "GSM: no API key"
 NO_MAP = "GSM: upstream gave no map"
 #: 남극 지질도(GeoMAP) 파일이 서버에 없다 — geomap.py
 NO_DATA = "GSM: no GeoMAP data file"
+#: 한반도 지질도 음영판을 아직 잘라 두지 않았다 — peninsula.py
+NO_PENINSULA = "GSM: no peninsula tiles"
 
 
 def notice_tile(width: int, height: int, message: str) -> bytes:

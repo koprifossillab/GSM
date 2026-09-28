@@ -60,7 +60,9 @@ class Command(BaseCommand):
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)
-                (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver")):
+                (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver"),
+                # 한반도 지질도 음영판 — 우리 디스크의 PDF 를 잘라 둔 타일 (027)
+                (settings.PENINSULA_CATALOG_SEED, "한반도 음영판", "korea", "peninsula")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

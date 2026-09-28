@@ -144,6 +144,8 @@
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     // 중부원점(GRS80) — phyloserver 의 한반도 지질도가 카카오맵 격자로 잘려 있다 (devlog 026)
     proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // UTM-K(GRS80) — 한반도 지질도 음영판을 이 격자로 잘라 둔다 (devlog 027)
+    proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
   }
 
@@ -366,6 +368,24 @@
     });
   }
 
+  /** 한반도 지질도 음영판 — 우리 서버(`peninsula/`)가 잘라 둔 5179 타일 (devlog 027).
+   *  격자(범위·해상도)는 카탈로그 행이 준다. 원점은 왼쪽 위, 번호는 위에서 아래로다. */
+  function peninsulaSource(name) {
+    var row = byName[name] || {};
+    if (!ol.proj.get("EPSG:5179") || !row.grid) return wmsSource(name);   // proj4 를 못 읽었다
+    var extent = row.grid.extent;
+    return new ol.source.TileImage({
+      projection: "EPSG:5179",
+      tileGrid: new ol.tilegrid.TileGrid({ extent: extent, origin: [extent[0], extent[3]],
+                                           resolutions: row.grid.resolutions, tileSize: 256 }),
+      tileUrlFunction: function (coord) {
+        return BASE + row.tiles.replace("{z}", coord[0]).replace("{x}", coord[1]).replace("{y}", coord[2]);
+      },
+      transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 일본 지질도의 속성 주소 — WMS 가 아니라 누른 자리의 위경도로 묻는다(`gsj/info/`). */
   function gsjInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -389,6 +409,7 @@
     npolar: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
+    peninsula: { source: peninsulaSource, info: null },
   };
 
   function layerKind(name) {

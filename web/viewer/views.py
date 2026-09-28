@@ -21,7 +21,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               phyloserver, pointsets, tilecache, tiles, vworld)
+               peninsula, phyloserver, pointsets, tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -159,7 +159,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -234,6 +234,11 @@ def _layer_extra(layer) -> dict:
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
                 "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
+    if layer.upstream == "peninsula" and layer.name in peninsula.LAYERS:
+        # 한반도 지질도 음영판(027) — 우리가 잘라 둔 5179 타일. 격자를 화면에 알린다
+        return {"attribution": peninsula.ATTRIBUTION, "queryable": False, "noLegend": True,
+                "projection": "EPSG:5179", "grid": peninsula.grid(),
+                "tiles": f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}"}
     return {}
 
 
@@ -459,6 +464,24 @@ def phyloserver_tile(request, layer, level, x, y):
     return _tile(png)
 
 
+@require_GET
+def peninsula_tile(request, layer, z, x, y):
+    """한반도 지질도 음영판 타일 — `peninsula/<레이어>/<z>/<x>/<y>.webp` (027).
+
+    `manage.py build_peninsula` 가 잘라 둔 파일을 내주기만 한다. 캐시에 담지 않는다 —
+    이미 우리 디스크의 타일이다. 잘라 둔 것이 없으면 안내 타일, 바다는 빈 타일이다."""
+    name, z, x, y = f"peninsula:{layer}", int(z), int(x), int(y)
+    if name not in peninsula.LAYERS or not peninsula.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    if not peninsula.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
+    data = peninsula.read_tile(z, x, y)
+    if data is None:
+        return _tile(tiles.blank_tile(256, 256))
+    return _tile(data, content_type="image/webp")
+
+
 def _float(value):
     try:
         return float(value)
@@ -535,13 +558,13 @@ def gsj_legend(request):
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 
-def _tile(png: bytes, *, cached: bool = False, store: bool = True):
+def _tile(png: bytes, *, cached: bool = False, store: bool = True, content_type: str = "image/png"):
     """안내 타일과 캐시에서 꺼낸 타일을 같은 문으로 내보낸다.
 
     안내 타일은 `store=False` 다 — 브라우저가 들고 있으면 인증키가 생긴 뒤에도
     "키가 없다" 가 계속 뜬다. 캐시에서 꺼낸 것은 진짜 지도이므로 평소대로 둔다.
     """
-    response = HttpResponse(png, content_type="image/png")
+    response = HttpResponse(png, content_type=content_type)
     if store and settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     else:
@@ -648,8 +671,8 @@ def legend(request):
 
     if layer in geomap.LAYERS:
         return _geomap_legend(request, layer)
-    if phyloserver.knows_scan(layer):
-        # 한반도 지질도(026)는 범례를 따로 주지 않는다. KIGAM 에 묻지 않게 여기서 막는다
+    if phyloserver.knows_scan(layer) or layer in peninsula.LAYERS:
+        # 한반도 지질도(026·027)는 범례를 따로 주지 않는다. KIGAM 에 묻지 않게 여기서 막는다
         return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), i18n.lang_of(request))}, status=404)
 
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라

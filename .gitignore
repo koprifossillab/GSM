@@ -42,6 +42,8 @@ venv/
 /usgs/
 geo3al.shp
 geo3al.dbf
+# 한반도 지질도 음영판 — 기본 자리 <DB 옆>/peninsula/. 출처를 몰라 올리지 않는다 (devlog 027)
+/peninsula/
 
 # Claude Code 의 작업 자리 (에이전트 worktree 등)
 /.claude/

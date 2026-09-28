@@ -67,7 +67,9 @@ class Layer(models.Model):
     #: janmayen → `janmayen.py` (NPI 지질도 파일, 모양을 통째로 준다 — devlog 022),
     #: npolar → `npolar.py` (NPI 지도 서버 — 스발바르·드로닝모드랜드, devlog 021),
     #: gsj → `gsj.py` (일본 GSJ 심리스 지질도 — 타일을 z/x/y 로 받는다, devlog 024),
-    #: geo3al → `geo3al.py` (USGS 동아시아 지질도 파일, 모양을 통째로 준다 — devlog 025)
+    #: geo3al → `geo3al.py` (USGS 동아시아 지질도 파일, 모양을 통째로 준다 — devlog 025),
+    #: phyloserver → `phyloserver.py` (연구실 암맥 기록·한반도 지질도 — devlog 026),
+    #: peninsula → `peninsula.py` (한반도 지질도 음영판 PDF 를 잘라 둔 타일 — devlog 027)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
