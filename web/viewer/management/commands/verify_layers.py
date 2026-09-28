@@ -8,6 +8,11 @@
 치운다 — 눌러도 빈 자리만 뜨는 것을 목록에 두지 않으려는 것이다.
 
 레이어 61 개에 요청 61 번이다. 상류의 이용제한을 생각해 한 장씩 사이를 둔다.
+
+끝에 한 번 더 — `/openapi/wms` 가 `GetFeatureInfo` 를 열었는지 찔러본다
+(`kigam.probe_openapi_feature_info`). 속성은 지금 GeoServer 로 가는데(006),
+열리면 제자리로 돌려놓아야 한다. 대조할 레이어가 없어도 이것만은 돈다.
+`--probe-info` 는 대조를 건너뛰고 이것만 부른다.
 """
 import time
 
@@ -20,6 +25,8 @@ from viewer.models import Layer
 #: 한반도 한복판의 작은 상자. 어느 레이어든 걸치도록 넓게 잡지 않는다 —
 #: 큰 상자는 상류에 무거운 그림을 그리게 한다.
 PROBE_BBOX = "127.0,36.0,127.4,36.4"
+#: 속성을 찔러볼 레이어. 상자 한가운데에 면이 반드시 있는 것으로 고른다.
+PROBE_LAYER = "L_250K_Geology_Map"
 
 
 class Command(BaseCommand):
@@ -32,11 +39,16 @@ class Command(BaseCommand):
                             help="이 글자가 든 레이어명만 본다")
         parser.add_argument("--redo", action="store_true",
                             help="이미 확인한 것도 다시 본다")
+        parser.add_argument("--probe-info", action="store_true",
+                            help="대조는 건너뛰고 /openapi/wms 의 GetFeatureInfo 만 찔러본다")
 
     def handle(self, *args, **options):
         if not kigam.has_key():
             self.stderr.write(self.style.ERROR(
                 "인증키가 없다. .env 의 GSM_KIGAM_KEY 를 채운다."))
+            return
+        if options["probe_info"]:
+            self._probe_info()
             return
 
         layers = Layer.objects.filter(upstream="kigam")      # 그린란드(GEUS)는 따로다
@@ -48,6 +60,7 @@ class Command(BaseCommand):
         total = layers.count()
         if not total:
             self.stdout.write("대조할 레이어가 없다.")
+            self._probe_info()
             return
         self.stdout.write(f"{total}개를 대조한다.")
 
@@ -81,3 +94,9 @@ class Command(BaseCommand):
         if failed:
             self.stdout.write(
                 "안 되는 것은 enabled=False 로 내렸다. 까닭은 Layer.verify_note 에 있다.")
+        self._probe_info()
+
+    def _probe_info(self):
+        result = kigam.probe_openapi_feature_info(PROBE_LAYER, PROBE_BBOX)
+        style = self.style.SUCCESS if result.startswith("열렸다") else self.style.NOTICE
+        self.stdout.write(style(f"/openapi/wms 의 GetFeatureInfo: {result}"))

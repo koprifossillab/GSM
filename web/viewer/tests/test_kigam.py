@@ -217,3 +217,44 @@ class KeyFromFile(SimpleTestCase):
                 os.environ.pop("GSM_KIGAM_KEY_FILE", None)
             else:
                 os.environ["GSM_KIGAM_KEY_FILE"] = old
+
+
+class ProbeOpenapiFeatureInfo(SimpleTestCase):
+    """`/openapi/wms` 가 속성을 열었는지 찔러보는 것. 제품의 길이 아니다."""
+
+    def _reply(self, status, body=b"", ctype="application/json"):
+        from unittest import mock
+        r = mock.Mock(status_code=status, content=body, headers={"content-type": ctype})
+        r.json.side_effect = (lambda: __import__("json").loads(body))
+        return r
+
+    def _probe(self, reply):
+        from unittest import mock
+        with mock.patch("viewer.kigam.requests.get", return_value=reply) as get, \
+                mock.patch("viewer.kigam.usage.record"):
+            got = kigam.probe_openapi_feature_info("L_250K_Geology_Map", "127,36,127.4,36.4")
+        return got, get
+
+    @override_settings(KIGAM_KEY="SECRET", WMS_URL="https://x/openapi/wms")
+    def test_문서화된_주소로_키를_붙여_간다(self):
+        got, get = self._probe(self._reply(500, b"error", "text/html"))
+        self.assertTrue(got.startswith("아직 막혀 있다"))
+        self.assertEqual(get.call_args.args[0], "https://x/openapi/wms")
+        self.assertEqual(get.call_args.kwargs["params"]["key"], "SECRET")
+        self.assertNotIn("SECRET", got)
+
+    @override_settings(KIGAM_KEY="SECRET")
+    def test_JSON_이_오면_열렸다(self):
+        got, _ = self._probe(self._reply(200, b'{"features": []}'))
+        self.assertTrue(got.startswith("열렸다"))
+
+    @override_settings(KIGAM_KEY="SECRET")
+    def test_200_이라도_JSON_이_아니면_막혀_있다(self):
+        got, _ = self._probe(self._reply(200, b"<html>", "text/html"))
+        self.assertTrue(got.startswith("아직 막혀 있다"))
+
+    @override_settings(KIGAM_KEY="")
+    def test_키가_없으면_부르지_않는다(self):
+        got, get = self._probe(self._reply(200))
+        get.assert_not_called()
+        self.assertIn("인증키", got)

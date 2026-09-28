@@ -177,6 +177,38 @@ def get_feature_info(params: dict) -> dict:
         raise UpstreamError("속성이 JSON 이 아니다", body=r.text[:500]) from exc
 
 
+def probe_openapi_feature_info(layer: str, bbox: str) -> str:
+    """`/openapi/wms` 가 `GetFeatureInfo` 를 열었는지 한 번 찔러본다.
+
+    `DIRECT_REQUESTS` 를 건너뛰고 문서화된 주소로 키를 붙여 보낸다. 제품이
+    도는 길에서는 부르지 않는다 — `manage.py verify_layers` 가 대조 끝에
+    한 번 부른다. 돌려주는 것은 사람이 읽을 한 줄이고, 열렸으면
+    "열렸다" 로 시작한다. 그때 사람이 `DIRECT_REQUESTS` 에서 지운다.
+    """
+    if not settings.KIGAM_KEY:
+        return "인증키가 없어 찔러보지 못했다"
+    params = {"service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo",
+              "layers": layer, "query_layers": layer, "srs": "EPSG:4326",
+              "bbox": bbox, "width": "64", "height": "64", "x": "32", "y": "32",
+              "info_format": "application/json", "key": settings.KIGAM_KEY}
+    try:
+        r = requests.get(settings.WMS_URL, params=params,
+                         timeout=settings.UPSTREAM_TIMEOUT, verify=_verify(),
+                         headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("kigam", ok=False)
+        return f"닿지 못했다: {redact(str(exc))}"
+    usage.record("kigam", ok=r.status_code == 200,
+                 blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    if r.status_code == 200:
+        try:
+            r.json()
+        except ValueError:
+            return f"아직 막혀 있다 (200 이지만 JSON 이 아니다, type={r.headers.get('content-type', '')})"
+        return "열렸다 — kigam.DIRECT_REQUESTS 에서 getfeatureinfo 를 지워도 된다"
+    return f"아직 막혀 있다 (status={r.status_code})"
+
+
 def get_legend(layer: str):
     """`GetLegendGraphic`. (바이트, content-type) 을 돌려준다.
 
