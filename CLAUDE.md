@@ -164,7 +164,8 @@ GeoServer 는 그것을 요구하고 `/openapi/wms` 는 접두사 없는 이름�
 
 2026-09-23 에 phyloserver 의 지질도 캐시(789 MB)를 가져올지 견주고
 **안 가져오기로 했다** — 지질 폴리곤은 같은데 주향·경사·단층·지명이 빠진
-2015 년 판이었다. 자세한 것은 devlog 002.
+2015 년 판이었다. 자세한 것은 devlog 002. (002 가 "5만 원도 스캔" 이라 적은
+`uploads/geolmap` 은 원도가 아니라 한반도 지질도 한 장이었다 — 026)
 
 **받아온 것은 계속 보탠다** (2026-09-27, devlog 007). 타일·범례·속성을
 모두 캐시에 담고 스스로 지우지 않는다 — 다음에 같은 자리를 볼 때 상류를
@@ -196,7 +197,7 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
   **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·geomap·janmayen·geo3al). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·phyloserver·geomap·janmayen·geo3al). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -225,6 +226,8 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
+- **phyloserver(026)는 같은 서버의 연구실 자료다** — 캐시는 하루만 믿는다(`FRESH_SECONDS`).
+  한반도 지질도는 카카오 격자(EPSG:5181)를 다시 굽지 않고 화면이 옮겨 그린다. 캐시에 담지 않는다
 
 ## 영어판
 
@@ -268,6 +271,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
+  phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. requests 없음
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
@@ -285,8 +289,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/t
 devlog/           왜 그렇게 했는지
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`.**
-이 여섯 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`.**
+이 일곱 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
