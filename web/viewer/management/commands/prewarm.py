@@ -19,6 +19,18 @@
   글자가 겹치지 않게 놓기 때문이다. 2026-09-27 에 견줘 보니 다른 픽셀이
   1.3~1.6% 였고 모두 글자였다. `--meta 1` 이면 한 장씩 받는다
 
+**상류마다 받는 꼴이 다르다** — 브라우저가 부르는 꼴 그대로 받아야 캐시가 맞는다.
+
+| 상류 | 꼴 | 큰 그림 |
+|---|---|---|
+| KIGAM·GEUS·VWorld | WMS, 3857, 512 px | 된다 |
+| NPI | WMS, 지역의 투영(3413·3031), 512 px (021) | 된다 |
+| GSJ | z/x/y, 256 px, 줌 13 까지 (024) | 안 된다 — 한 장씩 |
+| GeoMAP | 우리가 굽는다, 3031, 256 px (018) | 안 된다. 상류가 없어 쉬지 않는다 |
+
+    manage.py prewarm --bbox 10,76,30,81 --zooms 3-8 --layers npolar:svalbard_units
+    manage.py prewarm --bbox -180,-90,180,-60 --zooms 0-5 --layers geomap_simple_geology
+
 밤에 돌리려면 cron 에 건다. 이 명령 자체는 시간을 가리지 않는다.
 """
 import io
@@ -29,7 +41,7 @@ from PIL import Image
 
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import kigam, tilecache, tilegrid, usage
+from viewer import geomap, gsj, kigam, npolar, tilecache, tilegrid, usage, views
 from viewer.models import Layer
 
 DEFAULT_LAYERS = ["L_50K_Geology_Map"]
@@ -66,45 +78,50 @@ class Command(BaseCommand):
         bbox = self._bbox(o)
         zooms = parse_zooms(o["zooms"])
         layers = [n.strip() for n in o["layers"].split(",") if n.strip()]
-        known = set(Layer.objects.filter(name__in=layers, enabled=True).values_list("name", flat=True))
-        unknown = [n for n in layers if n not in known]
+        rows = dict(Layer.objects.filter(name__in=layers, enabled=True).values_list("name", "upstream"))
+        unknown = [n for n in layers if n not in rows]
         if unknown:
             raise CommandError(f"카탈로그에 없거나 꺼진 레이어: {', '.join(unknown)}")
+        plans = {name: plan_for(name, rows[name]) for name in layers}
+        cannot = [n for n, p in plans.items() if p is None]
+        if cannot:
+            raise CommandError(f"미리 받을 수 없는 레이어(타일이 아니다): {', '.join(cannot)}")
         rate = min(max(o["rate"], 0.1), 2.0)          # 2 번/초 위로는 올리지 않는다
         meta = o["meta"]
         if meta not in (1, 2, 4, 8):
             raise CommandError("--meta 는 1·2·4·8 가운데 하나")
 
-        # 타일을 meta×meta 블록으로 묶는다. 빠진 타일이 하나라도 있는 블록만 묻는다
+        # 타일을 meta×meta 블록으로 묶는다(큰 그림을 못 받는 꼴은 1×1). 빠진 타일이
+        # 하나라도 있는 블록만 묻는다
         blocks, have, missing = {}, 0, 0
-        for layer in layers:
+        for name, plan in plans.items():
+            m = meta if plan.meta else 1
             for z in zooms:
-                for _, x, y in tilegrid.tiles_for(bbox, z):
-                    key = tilecache.key_for("map", kigam.clean_params(tilegrid.wms_params(layer, z, x, y)))
-                    if tilecache.get(key) is None:
+                for _, x, y in plan.tiles_for(bbox, z):
+                    if tilecache.get(plan.key(z, x, y)) is None:
                         missing += 1
-                        blocks.setdefault((layer, z, x // meta, y // meta), True)
+                        blocks.setdefault((name, z, x // m, y // m), True)
                     else:
                         have += 1
         todo = list(blocks)
         batch = todo[:o["max"]]
         self.stdout.write(
             f"타일 {have + missing:,}장 — 이미 있는 것 {have:,}, 받을 것 {missing:,}. "
-            f"큰 그림({512 * meta}px) {len(todo):,}번에 나눠 묻는다. 이번에 {len(batch):,}번, "
-            f"약 {math.ceil(len(batch) * max(1 / rate, SECONDS_PER_CALL[meta]) / 60)}분 "
-            f"(큰 그림 한 장에 {SECONDS_PER_CALL[meta]:g}초 남짓 걸린다).")
+            f"{len(todo):,}번에 나눠 묻는다(WMS 는 큰 그림 {512 * meta}px). 이번에 {len(batch):,}번, "
+            f"약 {math.ceil(sum(plans[b[0]].seconds(rate, meta) for b in batch) / 60)}분.")
         if o["dry_run"] or not batch:
             return
-        if not kigam.has_key():
+        if any(p.upstream == "kigam" for p in plans.values()) and not kigam.has_key():
             raise CommandError("인증키가 없다")
 
         got = fails = in_a_row = 0
         gap = 1.0 / rate
-        for i, (layer, z, bx, by) in enumerate(batch, start=1):
+        for i, (name, z, bx, by) in enumerate(batch, start=1):
+            plan = plans[name]
             started = time.monotonic()
             try:
-                got += self._fetch_block(layer, z, bx, by, meta)
-            except kigam.UpstreamError as exc:
+                got += plan.fetch_block(z, bx, by, meta if plan.meta else 1)
+            except PREWARM_ERRORS as exc:
                 fails += 1
                 in_a_row += 1
                 if usage.paused() or "차단" in str(exc):
@@ -117,39 +134,10 @@ class Command(BaseCommand):
                 in_a_row = 0
             if i % 50 == 0:
                 self.stdout.write(f"  {i:,}/{len(batch):,}번 — 타일 {got:,}장, 실패 {fails}")
-            time.sleep(max(0.0, gap - (time.monotonic() - started)))
+            if plan.remote:                           # GeoMAP 은 우리 디스크라 쉬지 않는다
+                time.sleep(max(0.0, gap - (time.monotonic() - started)))
         self.stdout.write(self.style.SUCCESS(
             f"물은 것 {i:,}번, 담은 타일 {got:,}장, 실패 {fails}번. 남은 블록 {len(todo) - i + fails:,}."))
-
-    def _fetch_block(self, layer, z, bx, by, meta):
-        """블록 하나를 큰 그림으로 받아 잘라 담는다. 담은 타일 수를 돌려준다."""
-        last = 2 ** z - 1
-        x0, y0 = bx * meta, by * meta
-        x1, y1 = min(x0 + meta - 1, last), min(y0 + meta - 1, last)
-        nx, ny = x1 - x0 + 1, y1 - y0 + 1
-        if nx == 1 and ny == 1:
-            params = tilegrid.wms_params(layer, z, x0, y0)
-        else:
-            sw, ne = tilegrid.tile_extent(z, x0, y1), tilegrid.tile_extent(z, x1, y0)
-            params = dict(tilegrid.wms_params(layer, z, x0, y0),
-                          width=str(512 * nx), height=str(512 * ny),
-                          bbox=",".join(tilegrid.js_number(v) for v in (sw[0], sw[1], ne[2], ne[3])))
-        content, _ = kigam.get_map(params)
-        if nx == 1 and ny == 1:
-            pieces = {(x0, y0): content}
-        else:
-            image = Image.open(io.BytesIO(content))
-            pieces = {}
-            for dx in range(nx):
-                for dy in range(ny):
-                    buf = io.BytesIO()
-                    image.crop((dx * 512, dy * 512, dx * 512 + 512, dy * 512 + 512)).save(
-                        buf, format="PNG", optimize=True)
-                    pieces[(x0 + dx, y0 + dy)] = buf.getvalue()
-        for (x, y), data in pieces.items():
-            key = tilecache.key_for("map", kigam.clean_params(tilegrid.wms_params(layer, z, x, y)))
-            tilecache.put(key, data)
-        return len(pieces)
 
     def _bbox(self, o):
         try:
@@ -165,3 +153,142 @@ class Command(BaseCommand):
         if not (w < e and s < n):
             raise CommandError("범위가 뒤집혀 있다")
         return w, s, e, n
+
+
+# ── 상류마다 받는 꼴 ────────────────────────────────────────────────
+
+PREWARM_ERRORS = views.UPSTREAM_ERRORS + (gsj.GsjError, OSError, ValueError)
+
+
+def _crop(content, nx, ny, size):
+    """큰 그림을 타일로 자른다. {(dx, dy): PNG 바이트}"""
+    image = Image.open(io.BytesIO(content))
+    pieces = {}
+    for dx in range(nx):
+        for dy in range(ny):
+            buf = io.BytesIO()
+            image.crop((dx * size, dy * size, dx * size + size, dy * size + size)).save(
+                buf, format="PNG", optimize=True)
+            pieces[(dx, dy)] = buf.getvalue()
+    return pieces
+
+
+class WmsPlan:
+    """WMS 로 받는 것 — KIGAM·GEUS·VWorld(3857)와 NPI(지역의 투영).
+    열쇠는 브라우저가 `/wms/` 로 보내는 변수 그대로다 (`views.wms`)."""
+    meta = True
+    remote = True
+
+    def __init__(self, name, upstream, grid=None):
+        self.name, self.upstream, self.grid = name, upstream, grid
+        self.get_map = views._Door(upstream).get_map
+
+    def params(self, z, x, y):
+        if self.grid:
+            return self.grid.wms_params(self.name, z, x, y)
+        return tilegrid.wms_params(self.name, z, x, y)
+
+    def extent(self, z, x, y):
+        return (self.grid.tile_extent if self.grid else tilegrid.tile_extent)(z, x, y)
+
+    def seconds(self, rate, meta):
+        return max(1 / rate, SECONDS_PER_CALL[meta])
+
+    def tiles_for(self, bbox, z):
+        return (self.grid.tiles_for if self.grid else tilegrid.tiles_for)(bbox, z)
+
+    def key(self, z, x, y):
+        return tilecache.key_for("map", kigam.clean_params(self.params(z, x, y)))
+
+    def fetch_block(self, z, bx, by, meta):
+        """블록 하나를 큰 그림으로 받아 잘라 담는다. 담은 타일 수를 돌려준다."""
+        last = 2 ** z - 1
+        x0, y0 = bx * meta, by * meta
+        x1, y1 = min(x0 + meta - 1, last), min(y0 + meta - 1, last)
+        nx, ny = x1 - x0 + 1, y1 - y0 + 1
+        if nx == 1 and ny == 1:
+            content, _ = self.get_map(self.params(z, x0, y0))
+            pieces = {(0, 0): content}
+        else:
+            sw, ne = self.extent(z, x0, y1), self.extent(z, x1, y0)
+            params = dict(self.params(z, x0, y0), width=str(512 * nx), height=str(512 * ny),
+                          bbox=",".join(tilegrid.js_number(v) for v in (sw[0], sw[1], ne[2], ne[3])))
+            content, _ = self.get_map(params)
+            pieces = _crop(content, nx, ny, 512)
+        for (dx, dy), data in pieces.items():
+            tilecache.put(self.key(z, x0 + dx, y0 + dy), data)
+        return len(pieces)
+
+
+class GsjPlan:
+    """GSJ — z/x/y 타일을 한 장씩 (`views.gsj_tile`). 줌 밖은 묻지 않는다."""
+    meta = False
+    remote = True
+    upstream = "gsj"
+
+    def __init__(self, name):
+        self.name = name
+        self.spec = gsj.LAYERS[name]
+
+    def seconds(self, rate, meta):
+        return 1 / rate
+
+    def tiles_for(self, bbox, z):
+        if not (self.spec["min"] <= z <= self.spec["max"]):
+            return iter(())
+        return tilegrid.tiles_for(bbox, z)
+
+    def key(self, z, x, y):
+        return views.gsj_tile_key(self.name, z, x, y)
+
+    def fetch_block(self, z, x, y, meta):
+        tilecache.put(self.key(z, x, y), gsj.get_tile(self.name, z, x, y))
+        return 1
+
+
+class GeomapPlan:
+    """남극 GeoMAP — 상류가 없다. 화면이 부를 256 px 타일을 미리 굽는다 (`views.geomap_tile`)."""
+    meta = False
+    remote = False
+    upstream = "geomap"
+
+    def __init__(self, name):
+        if not geomap.available():
+            raise CommandError("GeoMAP 자료가 서버에 없다")
+        self.name = name
+
+    def seconds(self, rate, meta):
+        return 0.3                 # 굽는 데 드는 초 남짓. 상류가 없어 쉬지 않는다
+
+    def tiles_for(self, bbox, z):
+        if z > geomap.MAX_ZOOM:
+            return
+        min_x, min_y, max_x, max_y = tilegrid.projected_bbox(bbox, "EPSG:3031")
+        x0, y0 = geomap.tile_of(z, min_x, max_y)
+        x1, y1 = geomap.tile_of(z, max_x, min_y)
+        last = 2 ** z - 1
+        for x in range(max(0, x0), min(last, x1) + 1):
+            for y in range(max(0, y0), min(last, y1) + 1):
+                yield z, x, y
+
+    def key(self, z, x, y):
+        return views.geomap_tile_key(self.name, z, x, y, geomap.TILE)
+
+    def fetch_block(self, z, x, y, meta):
+        png = geomap.render(self.name, geomap.tile_bbox(z, x, y), geomap.TILE, geomap.TILE)
+        tilecache.put(self.key(z, x, y), png)
+        return 1
+
+
+def plan_for(name, upstream):
+    """레이어 하나를 어떻게 받나. 타일이 아니면(점·모양·연구실 타일) None."""
+    if upstream in ("kigam", "geus", "vworld"):
+        row = Layer.objects.filter(name=name).values_list("kind", flat=True).first()
+        return None if row in ("vector", "points") else WmsPlan(name, upstream)
+    if upstream == "npolar" and npolar.knows(name):
+        return WmsPlan(name, upstream, tilegrid.PolarGrid(npolar.TILES[name]["projection"]))
+    if upstream == "gsj" and gsj.knows(name):
+        return GsjPlan(name)
+    if upstream == "geomap" and name in geomap.LAYERS:
+        return GeomapPlan(name)
+    return None

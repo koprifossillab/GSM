@@ -388,6 +388,12 @@ def _geomap_wms(params, width, height):
     return _tile(content)
 
 
+def geomap_tile_key(layer, z, x, y, size):
+    """GeoMAP 타일의 캐시 열쇠. `manage.py prewarm` 도 이것으로 담는다."""
+    return tilecache.key_text("geomap", f"{layer}/{geomap.data_version()}/r{geomap.RENDERER}"
+                                        f"/{z}/{x}/{y}/{size}")
+
+
 @require_GET
 def geomap_tile(request, layer, z, x, y, retina=None):
     """남극 지질도 타일 — `geomap/<레이어>/<z>/<x>/<y>.png` (`@2x` 면 512 px).
@@ -404,8 +410,7 @@ def geomap_tile(request, layer, z, x, y, retina=None):
     if not geomap.available():
         return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
 
-    key = tilecache.key_text("geomap", f"{layer}/{geomap.data_version()}/r{geomap.RENDERER}"
-                                       f"/{z}/{x}/{y}/{size}")
+    key = geomap_tile_key(layer, z, x, y, size)
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)
@@ -428,6 +433,11 @@ def geomap_tile(request, layer, z, x, y, retina=None):
 # WMS 가 아니라 z/x/y 타일과 `point=` 범례라서 `/wms/`·`/featureinfo/`·`/legend/` 를
 # 타지 않고 따로 받는다. 캐시·옛것 내주기·안내 타일은 다른 상류와 같다.
 
+def gsj_tile_key(name, z, x, y):
+    """GSJ 타일의 캐시 열쇠. `manage.py prewarm` 도 이것으로 담는다."""
+    return tilecache.key_text("gsj", f"{name}/{z}/{x}/{y}")
+
+
 @require_GET
 def gsj_tile(request, layer, z, x, y):
     """일본 지질도 타일 — `gsj/<레이어>/<z>/<x>/<y>.png`. 레이어는 `gsj:` 를 뗀 이름이다."""
@@ -435,7 +445,7 @@ def gsj_tile(request, layer, z, x, y):
     if not gsj.valid_tile(name, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
-    key = tilecache.key_text("gsj", f"{name}/{z}/{x}/{y}")
+    key = gsj_tile_key(name, z, x, y)
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)

@@ -41,6 +41,43 @@ class Grid(SimpleTestCase):
                          ("1.3.0", "EPSG:3857", "512", "true"))
 
 
+class PolarGrid(SimpleTestCase):
+    """NPI 는 지역의 투영(3413·3031)으로 받는다. 아래 `BBOX` 는 2026-09-28 에 같은 판의
+    OpenLayers(`vendor/ol.js`)를 node 로 돌려 `npolarSource` 와 같은 격자에서 뽑은 값이다."""
+    SEEN = {
+        ("EPSG:3413", 6, 37, 20): "655360,1441792,786432,1572864",
+        ("EPSG:3031", 7, 70, 45): "312481.3150875,937443.9452625001,364561.53426875005,989524.16444375",
+        ("EPSG:3031", 3, 1, 5): "-2499850.5207,-1666567.0138000003,-1666567.0138000003,-833283.5069000003",
+    }
+
+    def test_브라우저와_한_글자까지_같다(self):
+        for (crs, z, x, y), bbox in self.SEEN.items():
+            p = tilegrid.PolarGrid(crs).wms_params("L", z, x, y)
+            self.assertEqual((p["crs"], p["bbox"]), (crs, bbox))
+
+    def test_남극_투영은_GeoMAP_의_식과_같다(self):
+        from viewer import geomap
+        for lon, lat in ((0, -80), (120, -70), (-60, -65)):
+            a = tilegrid.polar_forward(lon, lat, "EPSG:3031")
+            b = geomap.lonlat_to_3031(lon, lat)
+            self.assertAlmostEqual(a[0], b[0], places=6)
+            self.assertAlmostEqual(a[1], b[1], places=6)
+
+    def test_북극_중앙_경선은_아래로(self):
+        x, y = tilegrid.polar_forward(-45, 70, "EPSG:3413")
+        self.assertAlmostEqual(x, 0, places=6)
+        self.assertLess(y, 0)
+
+    def test_스발바르를_덮는_타일(self):
+        grid = tilegrid.PolarGrid("EPSG:3413")
+        tiles = list(grid.tiles_for((10, 76, 30, 81), 6))
+        # 롱위에아르뷔엔(15.6, 78.2) 을 품은 타일이 들어 있다
+        px, py = tilegrid.polar_forward(15.6, 78.2, "EPSG:3413")
+        span = 512 * grid.resolution(6)
+        want = (6, int((px + 4194304) // span), int((4194304 - py) // span))
+        self.assertIn(want, tiles)
+
+
 class Blocked(SimpleTestCase):
     def setUp(self):
         usage.reset()
@@ -86,3 +123,35 @@ class Counting(TestCase):
         rows = {r.upstream: r for r in UpstreamDay.objects.all()}
         self.assertEqual((rows["kigam"].ok, rows["kigam"].fail), (2, 1))
         self.assertEqual(rows["vworld"].ok, 4)
+
+
+class PrewarmPlans(TestCase):
+    """미리 데우기가 상류마다 브라우저와 같은 열쇠로 담는지."""
+
+    def test_상류마다_받는_꼴(self):
+        from viewer.management.commands import prewarm
+        from viewer.models import Layer, LayerGroup
+        group = LayerGroup.objects.create(name="시험")
+        Layer.objects.create(name="lt_l_gimsfault", title="단층", group=group, upstream="vworld", kind="vector")
+        self.assertIsInstance(prewarm.plan_for("L_50K_Geology_Map", "kigam"), prewarm.WmsPlan)
+        npi = prewarm.plan_for("npolar:svalbard_units", "npolar")
+        self.assertEqual(npi.grid.crs, "EPSG:3413")
+        self.assertIsInstance(prewarm.plan_for("gsj:geology", "gsj"), prewarm.GsjPlan)
+        self.assertIsNone(prewarm.plan_for("lt_l_gimsfault", "vworld"))       # 모양이다
+        self.assertIsNone(prewarm.plan_for("npolar:rock_archive", "npolar"))   # 점이다
+        self.assertIsNone(prewarm.plan_for("geo3al:age", "geo3al"))
+
+    def test_GSJ_는_줌_밖을_묻지_않는다(self):
+        from viewer.management.commands import prewarm
+        plan = prewarm.plan_for("gsj:faults", "gsj")                          # 줌 10 부터
+        self.assertEqual(list(plan.tiles_for((139.5, 35.5, 139.8, 35.8), 9)), [])
+        self.assertTrue(list(plan.tiles_for((139.5, 35.5, 139.8, 35.8), 10)))
+
+    def test_열쇠는_화면이_부르는_것과_같다(self):
+        from viewer import kigam, tilecache, views
+        from viewer.management.commands import prewarm
+        npi = prewarm.plan_for("npolar:svalbard_units", "npolar")
+        params = tilegrid.PolarGrid("EPSG:3413").wms_params("npolar:svalbard_units", 6, 37, 20)
+        self.assertEqual(npi.key(6, 37, 20), tilecache.key_for("map", kigam.clean_params(params)))
+        self.assertEqual(prewarm.plan_for("gsj:geology", "gsj").key(9, 1, 2),
+                         views.gsj_tile_key("gsj:geology", 9, 1, 2))
