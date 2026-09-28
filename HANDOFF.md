@@ -3,7 +3,7 @@
 이 문서는 **지금 어디까지 왔고 다음이 무엇인지** 한 곳에서 답한다.
 왜 그렇게 했는지는 `devlog/`, 무엇이 언제 붙었는지는 `CHANGELOG.md`.
 
-마지막으로 손본 날: **2026-09-27**
+마지막으로 손본 날: **2026-09-28**
 
 ## 한 줄
 
@@ -19,6 +19,12 @@
 **v0.5.x 에서 늘어난 것** — 주제도 비교(밀어 보기·나란히, 011), 선·면 GeoJSON 과
 잡은 범위를 네모 그대로 저장(모양 `Shape`, 012), 좌표계 고르기(TM·UTM-K·옛 Bessel,
 013). 판마다 무엇이 붙었는지는 `CHANGELOG.md`.
+
+**v0.7.0 — 극지** (017–022). 지역이 한국·그린란드·스발바르·얀마옌·남극에 북극
+묶음 탭까지 여섯이다. 극지는 극 평사도법(3413·3031)으로 본다. 남극 GeoMAP 과 얀마옌은
+**파일을 받아 우리가 그린다** — 파일은 `/srv/GSM/db/geomap/`·`/srv/GSM/db/npolar/`
+에 있고 원본은 NAS `N:\GSM\sources\`. 상류(문)가 다섯으로 늘었다 — KIGAM·VWorld·
+GEUS·그린란드 정부 포털·NPI.
 
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
@@ -128,6 +134,15 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 주인은 1006 이라, 무리(gid 1000)에게 읽기를 열어야 한다. 2026-09-27 에
 `kigam_key` 를 `600` 으로 만들었더니 컨테이너가 못 읽어 "인증키가 없다" 띠가
 떴다. 설정은 기동할 때 읽으므로 고친 뒤에는 `docker restart gsm-web-1`.
+
+### v0.7.0 을 올릴 때 (2026-09-28)
+
+- 파일 둘은 이미 `db/` 아래 두었다 — compose 를 고칠 일이 없다
+  (`db/geomap/ATA_SCAR_GeoMAP_Geology_v2022_08.gpkg` 490 MB,
+  `db/npolar/NP_J250_Geologi/*.geojson`)
+- 기동할 때 이주 0006–0008 과 씨앗(VWorld 11·포털 4·GeoMAP 5·NPI 5+6·얀마옌 3)이 들어간다
+- 올린 뒤 한 번 — `docker exec gsm-web-1 python manage.py fetch_grportal`
+  (시료 2 만 점을 미리 받아 둔다. 상류를 천천히 탄다)
 
 ## VWorld 로 더 할 수 있는 것
 

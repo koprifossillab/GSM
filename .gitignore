@@ -38,3 +38,6 @@ venv/
 *.gpkg
 # 얀마옌 지질도(NPI) — 기본 자리 <DB 옆>/npolar/. 저장소가 공개라 받은 것을 올리지 않는다 (devlog 022)
 /npolar/
+
+# Claude Code 의 작업 자리 (에이전트 worktree 등)
+/.claude/

@@ -23,10 +23,6 @@ services:
       TZ: Asia/Seoul
       GSM_DB_PATH: /srv/GSM/db/GSM.db
       GSM_TILE_CACHE_DIR: /srv/GSM/tiles
-      # 남극 지질도(SCAR GeoMAP) 파일. 없으면 남극 레이어에 안내 타일이 뜰 뿐이다 (devlog 018)
-      GSM_GEOMAP_DIR: /srv/GSM/geomap
-      # NPI 에서 받아 둔 파일(얀마옌 지질도). 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐이다 (devlog 022)
-      GSM_NPOLAR_DIR: /srv/GSM/npolar
       GSM_DEBUG: "0"
       GSM_URL_PREFIX: "GSM/"
       GSM_SECRET_KEY: ${GSM_SECRET_KEY:-dev-only-not-a-secret}
@@ -38,9 +34,5 @@ services:
     volumes:
       - /srv/GSM/db:/srv/GSM/db
       - /srv/GSM/tiles:/srv/GSM/tiles
-      # 읽기만 한다. ATA_SCAR_GeoMAP_Geology_v2022_08.gpkg 를 여기 둔다
-      - /srv/GSM/geomap:/srv/GSM/geomap:ro
-      # 읽기만 한다. NP_J250_Geologi/NP_J250_Geologi_{f,l,p}.geojson 를 여기 둔다
-      - /srv/GSM/npolar:/srv/GSM/npolar:ro
     ports:
       - "127.0.0.1:8094:9090"
