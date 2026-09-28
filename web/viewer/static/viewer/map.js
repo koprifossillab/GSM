@@ -88,6 +88,23 @@
               basemap: "eox_s2", places: true,
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
               first: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"] },
+    // ── 일본·동아시아 (devlog 024) ──
+    // 일본은 GSJ 의 심리스 지질도 V2 를 우리 서버가 z/x/y 타일로 중계한다(`gsjSource`).
+    // 한국과 같은 3857 이라 **동아시아는 한국·일본을 한 화면에 모은 묶음이다** — 북극처럼
+    // `includes` 로 모으고 DB 에는 없다. 다른 나라가 오면 `includes` 에 더한다.
+    // 동아시아는 한국을 품으므로 VWorld 배경·주소 찾기·한국 좌표계·KIGAM 띠가 그대로 돈다
+    japan: { title: "일본", proj: "EPSG:3857", center: [137.5, 37.0], zoom: 5, vworld: false,
+             home: [14304555, 3503550, 16252646, 5716479],
+             basemap: "gsi_pale", example: "35.361, 138.727",
+             base: ["gsj:geology", "gsj:faults", "gsj:boundaries", "gsj:geology_level2"],
+             first: "gsj:geology" },
+    eastasia: { title: "동아시아", proj: "EPSG:3857", center: [135.0, 37.5], zoom: 5, vworld: true,
+                includes: ["korea", "japan"],
+                home: [13803617, 3763311, 16252646, 5388389],
+                basemap: "eox_terrain",
+                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults"],
+                // 넓게 보는 탭이라 한국은 100만, 일본은 20만(가장 넓은 판)을 켠다
+                first: ["L_1M_Geology_Map", "gsj:geology"] },
   };
   var region = "korea";
 
@@ -123,8 +140,8 @@
   REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
   });
-  //: 스발바르·북극도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic"].forEach(function (key) {
+  //: 스발바르·북극·일본도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
+  ["svalbard", "arctic", "japan"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -295,6 +312,27 @@
     });
   }
 
+  /** 일본 — GSJ 심리스 지질도 (devlog 024). 우리 서버(`gsj/`)가 z/x/y 타일을 중계한다.
+   *  주소·줌·출처는 카탈로그 행이 준다. 줌 13 까지만 그려 주고, 더 들어가면
+   *  OpenLayers 가 13 을 키워 그린다. */
+  function gsjSource(name) {
+    var row = byName[name] || {};
+    return new ol.source.XYZ({
+      url: BASE + row.tiles,
+      maxZoom: row.maxZoom || 13,
+      transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
+  /** 일본 지질도의 속성 주소 — WMS 가 아니라 누른 자리의 위경도로 묻는다(`gsj/info/`). */
+  function gsjInfoUrl(source, coordinate) {
+    var ll = toLL(coordinate);
+    return BASE + "gsj/info/?" + new URLSearchParams({
+      layer: source.get("gsmName"), lat: ll[1].toFixed(6), lon: ll[0].toFixed(6),
+    }).toString();
+  }
+
   //: 타일 레이어를 짓는 손 — **상류마다 하나다.** 상류가 주는 꼴이 달라서다
   //  (KIGAM·GEUS·VWorld 는 WMS, GeoMAP 은 우리가 구운 타일). `info` 가 없으면 그
   //  레이어는 눌러도 속성을 묻지 않는다. 벡터·점(`kind`)은 `makeLayer` 가 따로 짓는다
@@ -307,6 +345,7 @@
     grportal: { source: null, info: null },
     janmayen: { source: null, info: null },
     npolar: { source: npolarSource, info: wmsInfoUrl },
+    gsj: { source: gsjSource, info: gsjInfoUrl },
   };
 
   function layerKind(name) {
@@ -332,7 +371,19 @@
     var row = byName[name];
     if (row && row.kind === "vector") return vectorLayerFor(row);
     if (row && row.kind === "points") return pointLayerFor(row);
-    return new ol.layer.Tile({ source: layerSource(name), opacity: DEFAULT_OPACITY });
+    var tile = new ol.layer.Tile({ source: layerSource(name), opacity: DEFAULT_OPACITY });
+    // 가까이서만 그려 주는 레이어(일본의 경계·단층·기호, 줌 10·11 부터)는 그보다
+    // 멀면 숨긴다 — 빈 타일을 묻지 않는다. 반 단계를 빼야 그 줌의 타일이 뜨는 자리부터 보인다
+    if (row && row.minZoom) tile.setMinZoom(row.minZoom - 0.5);
+    // 묶음 탭(동아시아)에서는 레이어의 범위 밖 타일을 묻지 않는다 — 일본을 볼 때
+    // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
+    // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
+    if (row && row.bbox && REGIONS[region].includes && isMercator()) {
+      var b = row.bbox;
+      tile.setExtent(ol.proj.transformExtent([b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5],
+                                             "EPSG:4326", viewProj()));
+    }
+    return tile;
   }
 
   // ── 벡터 레이어 — 모양을 받아 우리가 그린다 ─────────────────────
@@ -563,13 +614,13 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen", "svalbard"],
+    regions: ["greenland", "jan_mayen", "svalbard", "japan"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen", "svalbard"],
+    regions: ["greenland", "jan_mayen", "svalbard", "japan"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -618,6 +669,49 @@
     regions: ["svalbard"], needs: "EPSG:3413",
     make: function () { return npiTiles("NP_Basiskart_Svalbard_WMTS_25833", NPI_TOPO); },
   };
+
+  // ── 일본 배경 — 국토지리원 지리원 타일 (devlog 024) ──
+  //
+  // VWorld 의 짝이다. 브라우저가 곧장 부르고(열쇠 없음, CORS 열림), 출처만 적으면 된다.
+  // 일본 밖은 줌 8 쯤까지만 그린다. **지질도 밑에는 담색(淡色)이 낫다** — VWorld
+  // 백지도와 같은 까닭이다(004). 동아시아 탭에서도 고를 수 있다(`includes`)
+  var GSI = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a> (国土地理院)';
+  BASEMAPS.gsi_pale = {
+    title: T("일본 담색 지도 (국토지리원)"),
+    note: T("일본 국토지리원. 지질도 밑에 깔기 좋다"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("pale", "png", 18); },
+  };
+  BASEMAPS.gsi_std = {
+    title: T("일본 표준 지도 (국토지리원)"),
+    note: T("일본 국토지리원"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("std", "png", 18); },
+  };
+  BASEMAPS.gsi_photo = {
+    title: T("일본 항공사진 (국토지리원)"),
+    note: T("일본 국토지리원. 일본 밖은 줌 8 까지만 그린다"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("seamlessphoto", "jpg", 18); },
+  };
+  BASEMAPS.gsi_hillshade = {
+    title: T("일본 음영기복 (국토지리원)"),
+    note: T("일본 국토지리원. 지형을 지질도와 견줄 때"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("hillshademap", "png", 16); },
+  };
+
+  function gsiLayer(name, ext, maxZoom) {
+    return new ol.layer.Tile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://cyberjapandata.gsi.go.jp/xyz/" + name + "/{z}/{x}/{y}." + ext,
+        crossOrigin: "anonymous",
+        maxZoom: maxZoom,
+        attributions: GSI,
+      }),
+    });
+  }
 
   /** NPI 가 25833 으로 구워 둔 타일. 격자는 서비스의 `tileInfo` 그대로다 —
    *  원점 (-5120900, 9998100), 256 픽셀, 줌 0 이 21674.71 m, 18 단계. */
@@ -794,6 +888,7 @@
 
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
+    map.on("moveend", refreshExtentLegends);
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
   }
@@ -1205,10 +1300,18 @@
         li.appendChild(srcLine);
       }
 
+      // 가까이서만 그려 주는 레이어 — 멀리서 켜면 아무것도 안 보이는 까닭을 적는다
+      var minZoom = byName[entry.name] && byName[entry.name].minZoom;
+      if (minZoom) li.appendChild(note(T("줌 {n} 부터 그려진다", { n: minZoom })));
+
+      entry.legendBox = null;
       if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "vector") {
         li.appendChild(vectorLegend(entry.name));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "points") {
         li.appendChild(pointLegend(entry));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].legend) {
+        entry.legendBox = gsjLegend(entry);
+        li.appendChild(entry.legendBox);
       } else if (entry.legendOpen) {
         var img = document.createElement("img");
         img.className = "legend-img";
@@ -1908,6 +2011,74 @@
       props[labels[key]] = value;
     });
     return { title: layerTitle(name), props: props };
+  }
+
+  /** 일본 지질도의 범례 (devlog 024). 원본은 2 416 칸이라 그림으로 받지 않고
+   *  **보는 범위에 든 것만** 물어 여기서 그린다 — 지도를 옮기면 다시 묻는다
+   *  (`refreshExtentLegends`). 간략판은 14 칸을 통째로, 선·기호는 원본 뷰어로 잇는다. */
+  function gsjLegend(entry) {
+    var row = byName[entry.name] || {};
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    if (row.legend === "none") {
+      box.appendChild(note(T("선·기호의 범례는 GSJ 가 따로 주지 않는다")));
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.viewer;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("원본 뷰어에서 본다 — GSJ");
+      box.appendChild(a);
+      return box;
+    }
+    box.appendChild(note(T("받는 중…")));
+    var q = { layer: entry.name };
+    if (row.legend === "extent") {
+      var view = map.getView();
+      var ext = ol.proj.transformExtent(view.calculateExtent(map.getSize()), viewProj(), "EPSG:4326");
+      q.bbox = [Math.max(ext[0], -180), Math.max(ext[1], -85), Math.min(ext[2], 180), Math.min(ext[3], 85)]
+        .map(function (v) { return v.toFixed(2); }).join(",");
+      q.z = Math.round(view.getZoom());
+    }
+    fetch(BASE + "gsj/legend/?" + new URLSearchParams(q).toString())
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || "");
+        var rows = res.d.rows || [];
+        box.innerHTML = "";
+        if (row.legend === "extent") {
+          box.appendChild(note(rows.length ? T("지금 보는 범위에 든 것 {n}칸", { n: rows.length + (res.d.more || 0) })
+            : T("지금 보는 범위에는 칠해진 것이 없다")));
+        }
+        rows.forEach(function (r) {
+          var line = document.createElement("div");
+          var sw = document.createElement("span");
+          sw.className = "sw box";
+          sw.style.background = r.color;
+          var label = document.createElement("span");
+          label.textContent = r.lithology + (r.age ? " — " + r.age : "");
+          label.title = r.symbol;
+          line.append(sw, label);
+          box.appendChild(line);
+        });
+        if (res.d.more) box.appendChild(note(T("…그 밖 {n}칸 — 더 들어가면 줄어든다", { n: res.d.more })));
+      })
+      .catch(function (err) {
+        box.innerHTML = "";
+        box.appendChild(note(err.message || T("범례를 받지 못했다")));
+      });
+    return box;
+  }
+
+  /** 지도를 옮기면 범위 범례만 다시 받는다. 목록 전체를 다시 그리지 않는다. */
+  function refreshExtentLegends() {
+    active.forEach(function (entry) {
+      var row = byName[entry.name];
+      if (!entry.legendBox || !row || row.legend !== "extent") return;
+      var fresh = gsjLegend(entry);
+      entry.legendBox.replaceWith(fresh);
+      entry.legendBox = fresh;
+    });
   }
 
   /** 범례 자리. 타일 레이어는 상류의 범례 그림을 받지만, 점 레이어는

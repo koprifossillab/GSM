@@ -1356,6 +1356,49 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   --glass: rgba(251, 252, 253, .95); --glass-line: #d0d8df;
 }
 
+/* ── 일본 (devlog 024) — 벚꽃: 짙은 자두빛 바탕에 벚꽃 분홍 ──
+   스발바르(국기 남색·빨강)와 얀마옌(용암 주황)을 피해, 붉은 기를 빼고 분홍으로 갔다 */
+:root[data-region="japan"] {
+  --bg: #1c141b; --panel: #251a24; --panel-tint: #170f16; --raise: #30222e;
+  --ink: #f6ebf1; --ink-soft: #cdb3c2; --ink-faint: #8e7483;
+  --line: #3e2c3a; --line-soft: #2d202b;
+  --gold: #f0a6c4; --gold-bright: #ffd0e2; --gold-muted: #cf8eaa;
+  --gold-wash: rgba(240, 166, 196, .13); --gold-edge: rgba(240, 166, 196, .42);
+  --hi: #f0a6c4; --hi-deep: #ffd0e2; --on-hi: #170f16; --hi-ink: #ffd0e2;
+  --glass: rgba(23, 15, 22, .93); --glass-line: rgba(240, 166, 196, .35);
+}
+:root[data-region="japan"][data-theme="light"] {
+  --bg: #f6eef2; --panel: #fffafc; --panel-tint: #f9f1f5; --raise: #eee2e8;
+  --ink: #2a1824; --ink-soft: #624959; --ink-faint: #9a8190;
+  --line: #e3d1da; --line-soft: #eee2e8;
+  --gold: #c2517f; --gold-bright: #93325b; --gold-muted: #b0668a;
+  --gold-wash: #fbe8f0; --gold-edge: #ebb3cb;
+  --hi: #5b2a45; --hi-deep: #3a1a2c; --on-hi: #fff4f9; --hi-ink: #a83d6b;
+  --glass: rgba(255, 250, 252, .95); --glass-line: #e3d1da;
+}
+
+/* ── 동아시아 (devlog 024) — 한국·일본을 한 화면에. 청자: 먹녹 바탕에 비색 ──
+   두 나라가 함께 빚은 것에서 땄다. 품은 지역의 색(금·벚꽃 분홍) 어느 쪽도 아니다.
+   남극의 청록보다 회색이 돌고 밝다 */
+:root[data-region="eastasia"] {
+  --bg: #121b18; --panel: #19241f; --panel-tint: #0e1613; --raise: #22302a;
+  --ink: #e9f1ec; --ink-soft: #b1c4b9; --ink-faint: #74887c;
+  --line: #2b3b34; --line-soft: #1f2c26;
+  --gold: #9cc9b0; --gold-bright: #c9e6d5; --gold-muted: #86ae98;
+  --gold-wash: rgba(156, 201, 176, .12); --gold-edge: rgba(156, 201, 176, .4);
+  --hi: #9cc9b0; --hi-deep: #c9e6d5; --on-hi: #0e1613; --hi-ink: #c9e6d5;
+  --glass: rgba(14, 22, 19, .93); --glass-line: rgba(156, 201, 176, .33);
+}
+:root[data-region="eastasia"][data-theme="light"] {
+  --bg: #edf3ef; --panel: #fbfdfc; --panel-tint: #f2f7f4; --raise: #e0eae4;
+  --ink: #15211b; --ink-soft: #465a4f; --ink-faint: #82958a;
+  --line: #cfddd5; --line-soft: #e0eae4;
+  --gold: #4f8a6c; --gold-bright: #2f6a4d; --gold-muted: #5f8f76;
+  --gold-wash: #e3f0e8; --gold-edge: #aecfbc;
+  --hi: #24483a; --hi-deep: #142c22; --on-hi: #f3faf6; --hi-ink: #2f6a4d;
+  --glass: rgba(251, 253, 252, .95); --glass-line: #cfddd5;
+}
+
 /* 실험 기능 — 설정에서 켠 사람에게만 보인다 */
 .tool.labs { text-decoration: none; }
 .tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */
@@ -1375,5 +1418,6 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .vector-legend .sw.star { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); border: 0; width: 12px; height: 12px; }
 .vector-legend .sw-line { flex: none; display: inline-flex; }
 
-/* KIGAM 인증키·임시 경로 띠는 한국 지질도에 대한 것이다. 다른 지역에서는 숨긴다 */
-:root[data-region]:not([data-region="korea"]) .korea-only { display: none; }
+/* KIGAM 인증키·임시 경로 띠는 한국 지질도에 대한 것이다. 다른 지역에서는 숨긴다.
+   동아시아는 한국을 품으므로 보인다 (devlog 024) */
+:root[data-region]:not([data-region="korea"]):not([data-region="eastasia"]) .korea-only { display: none; }
