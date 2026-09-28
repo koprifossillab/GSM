@@ -112,6 +112,13 @@ def asset_stamp():
     return digest.hexdigest()[:10]
 
 
+def _script_json(data) -> str:
+    """`<script type="application/json">` 에 넣을 JSON. 점묶음 이름은 사람이 적은
+    것이라 `</script>` 가 들어 있으면 문서가 끊긴다 — `<`·`>`·`&` 를 `\\u` 로 적는다."""
+    text = json.dumps(data, ensure_ascii=False)
+    return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 @require_GET
 def map_view(request):
     lang = i18n.lang_of(request)
@@ -120,7 +127,7 @@ def map_view(request):
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "crs_options": [(code, i18n.t(spec[0], lang)) for code, spec in crs.SYSTEMS.items()],
         "catalog": json.dumps(_catalog(lang), ensure_ascii=False),
-        "pointsets": json.dumps(_pointset_list(), ensure_ascii=False),
+        "pointsets": _script_json(_pointset_list()),
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -134,11 +141,18 @@ def map_view(request):
 def map3d_view(request):
     """3D — 실험 (devlog 015). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
+    # 3D 는 3857 WMS 타일만 얹는다(`map3d.js` 의 `wmsTiles`). 모양·점 레이어와, 우리가
+    # 굽거나(GeoMAP·음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —
+    # 목록에 두면 골라도 빈 화면이다
+    groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
+                              and l.get("upstream") in ("kigam", "geus", "vworld")])
+              for g in _catalog(lang)]
     return render(request, "viewer/map3d.html", {
         "lang": lang,
-        # 3D 는 타일만 얹는다. 점 레이어(`kind: vector`)는 뺀다
-        "catalog_groups": [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")])
-                           for g in _catalog(lang)],
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "catalog_groups": [g for g in groups if g["layers"]],
+        # 점묶음 요약 — 2D 와 같은 것이다. 모양은 `pointsets/<번호>/geojson/` 으로 받는다 (P02)
+        "pointsets": _script_json(_pointset_list()),
         "vworld_key": settings.VWORLD_KEY,
         "base": request.path.rsplit("3d", 1)[0],
         "version": VERSION,

@@ -10,6 +10,15 @@
 
   var BASE = location.pathname.replace(/3d\/?$/, "");
   var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
+
+  // 영어판 — 2D(`map.js`)와 같은 꼴이다. 실험 화면이 본 화면의 속을 끌어다 쓰지 않게 따로 둔다
+  var LANG = document.documentElement.lang === "en" ? "en" : "ko";
+  var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  function T(text, vars) {
+    var out = (LANG === "en" && I18N[text]) || text;
+    if (vars) out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
+    return out;
+  }
   var DEM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 
   function wmsTiles(layer) {
@@ -61,6 +70,7 @@
   map.addControl(new maplibregl.ScaleControl(), "bottom-left");
   map.on("load", function () {
     map.setTerrain({ source: "dem", exaggeration: 1.5 });
+    renderPointSets();
     window.__gsm3dReady = true;
   });
   window.__gsm3d = map;
@@ -87,5 +97,191 @@
       localStorage.setItem("gsm.view", JSON.stringify({ lon: +c.lng.toFixed(5), lat: +c.lat.toFixed(5),
                                                         zoom: +map.getZoom().toFixed(2) }));
     } catch (e) { /* 사생활 모드 */ }
+  });
+
+  // ── 내 자료(점묶음) — P02 ────────────────────────────────────────
+  //
+  // 서버의 `pointsets/<번호>/geojson/` 을 그대로 얹는다. 점은 둥근 점으로 지형 위에
+  // 앉히고(세우지 않는다), 선·면은 지형 표면에 입힌다. 켜고 끈 것은 2D 와 같은 열쇠
+  // (`gsm.pointsets.off`)에 둔다. **켠 것만 받는다** — 끈 점묶음은 소스도 만들지 않는다.
+
+  var pointsets = JSON.parse((document.getElementById("pointset-data") || {}).textContent || "[]");
+  var PS_OFF_KEY = "gsm.pointsets.off";
+  //: 켠 점이 이보다 많으면 패널에 한 줄 띄운다. 막지는 않는다
+  var MANY_POINTS = 20000;
+  var loaded = {};            // 번호 → 받은 GeoJSON (범위 맞추기에 쓴다)
+
+  function offIds() {
+    try { return JSON.parse(localStorage.getItem(PS_OFF_KEY) || "[]") || []; } catch (e) { return []; }
+  }
+  function setOff(id, off) {
+    var ids = offIds().filter(function (x) { return x !== id; });
+    if (off) ids.push(id);
+    try { localStorage.setItem(PS_OFF_KEY, JSON.stringify(ids)); } catch (e) { /* 사생활 모드 */ }
+  }
+  function isOn(ps) { return offIds().indexOf(ps.id) < 0; }
+
+  function layerIds(ps) {
+    var p = "ps-" + ps.id + "-";
+    return [p + "fill", p + "edge", p + "line", p + "point"];
+  }
+
+  function addPointSet(ps) {
+    var id = "ps-" + ps.id;
+    if (map.getSource(id)) {
+      layerIds(ps).forEach(function (l) { map.setLayoutProperty(l, "visibility", "visible"); });
+      return;
+    }
+    var url = BASE + "pointsets/" + ps.id + "/geojson/";
+    map.addSource(id, { type: "geojson", data: url });
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) { loaded[ps.id] = d; })
+      .catch(function () { /* 범위 맞추기만 못 한다 */ });
+    var polygon = ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false];
+    var line = ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false];
+    map.addLayer({ id: id + "-fill", type: "fill", source: id, filter: polygon,
+                   paint: { "fill-color": ps.color, "fill-opacity": 0.25 } });
+    map.addLayer({ id: id + "-edge", type: "line", source: id, filter: polygon,
+                   paint: { "line-color": ps.color, "line-width": 2 } });
+    map.addLayer({ id: id + "-line", type: "line", source: id, filter: line,
+                   layout: { "line-join": "round", "line-cap": "round" },
+                   paint: { "line-color": ps.color, "line-width": 3 } });
+    // 2D 의 점과 같게 — 점묶음 색, 흰 테 1.5 px. 늘 정면을 본다(`viewport`)
+    map.addLayer({ id: id + "-point", type: "circle", source: id,
+                   filter: ["==", ["geometry-type"], "Point"],
+                   paint: { "circle-radius": 5, "circle-color": ps.color,
+                            "circle-stroke-color": "#fff", "circle-stroke-width": 1.5,
+                            "circle-pitch-alignment": "viewport" } });
+  }
+
+  function hidePointSet(ps) {
+    if (!map.getSource("ps-" + ps.id)) return;
+    layerIds(ps).forEach(function (l) { map.setLayoutProperty(l, "visibility", "none"); });
+  }
+
+  /** 받은 GeoJSON 의 위경도 범위 `[[서, 남], [동, 북]]`. 비었으면 null. */
+  function boundsOf(data) {
+    var b = [Infinity, Infinity, -Infinity, -Infinity];
+    function walk(c) {
+      if (typeof c[0] === "number") {
+        b[0] = Math.min(b[0], c[0]); b[1] = Math.min(b[1], c[1]);
+        b[2] = Math.max(b[2], c[0]); b[3] = Math.max(b[3], c[1]);
+      } else c.forEach(walk);
+    }
+    (data.features || []).forEach(function (f) { if (f.geometry) walk(f.geometry.coordinates); });
+    return isFinite(b[0]) ? [[b[0], b[1]], [b[2], b[3]]] : null;
+  }
+
+  function fitPointSet(ps) {
+    var go = function (d) {
+      var b = boundsOf(d);
+      if (b) map.fitBounds(b, { padding: 60, maxZoom: 14, duration: 600 });
+    };
+    if (loaded[ps.id]) return go(loaded[ps.id]);
+    fetch(BASE + "pointsets/" + ps.id + "/geojson/").then(function (r) { return r.json(); })
+      .then(function (d) { loaded[ps.id] = d; go(d); });
+  }
+
+  function countText(ps) {
+    var bits = [T("{n}점", { n: ps.count || 0 })];
+    if (ps.lines) bits.push(T("선 {n}", { n: ps.lines }));
+    if (ps.polygons) bits.push(T("면 {n}", { n: ps.polygons }));
+    if (!ps.count && (ps.lines || ps.polygons)) bits.shift();
+    return bits.join(" · ");
+  }
+
+  function renderPointSets() {
+    var host = document.getElementById("ps3d");
+    if (!host) return;
+    host.innerHTML = "";
+    if (!pointsets.length) {
+      var empty = document.createElement("li");
+      empty.className = "empty";
+      empty.textContent = T("올린 점묶음이 없다 — 2D 에서 올린다");
+      host.appendChild(empty);
+    }
+    var shown = 0;
+    pointsets.forEach(function (ps) {
+      var on = isOn(ps);
+      if (on) { addPointSet(ps); shown += ps.count || 0; } else hidePointSet(ps);
+      var li = document.createElement("li");
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = on;
+      box.addEventListener("change", function () {
+        setOff(ps.id, !box.checked);
+        renderPointSets();
+      });
+      var swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = ps.color;
+      var name = document.createElement("span");
+      name.className = "ps-name";
+      name.textContent = ps.name;
+      name.title = ps.name + " — " + countText(ps);
+      var count = document.createElement("span");
+      count.className = "ps-count";
+      count.textContent = countText(ps);
+      var fit = document.createElement("button");
+      fit.type = "button";
+      fit.textContent = "⊙";
+      fit.title = T("이 자료로 범위를 맞춘다");
+      fit.addEventListener("click", function () { fitPointSet(ps); });
+      li.append(box, swatch, name, count, fit);
+      host.appendChild(li);
+    });
+    var warn = document.getElementById("ps3d-warn");
+    if (warn) {
+      warn.hidden = shown <= MANY_POINTS;
+      warn.textContent = T("켠 점이 {n}개다 — 지형과 함께 그리면 느릴 수 있다", { n: shown.toLocaleString() });
+    }
+  }
+
+  // 2D 창에서 켜고 끄면 따라간다
+  window.addEventListener("storage", function (e) {
+    if (e.key === PS_OFF_KEY && map.isStyleLoaded()) renderPointSets();
+  });
+
+  // ── 누르면 속성 — 2D 팝업과 같은 꼴: 머리는 점묶음 이름, 밑에 이름표, 표는 딸린 속성
+
+  function esc(text) {
+    return String(text).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function psLayers() {
+    var ids = [];
+    pointsets.forEach(function (ps) {
+      if (map.getSource("ps-" + ps.id)) ids = ids.concat(layerIds(ps));
+    });
+    return ids;
+  }
+
+  map.on("click", function (e) {
+    var layers = psLayers();
+    if (!layers.length) return;
+    var pad = 4;
+    var hits = map.queryRenderedFeatures([[e.point.x - pad, e.point.y - pad], [e.point.x + pad, e.point.y + pad]],
+                                         { layers: layers });
+    if (!hits.length) return;
+    var f = hits[0];
+    var psId = +String(f.layer.id).split("-")[1];
+    var ps = pointsets.filter(function (x) { return x.id === psId; })[0] || {};
+    var props = f.properties || {};
+    var html = '<div class="popup3d"><h3>' + esc(ps.name || T("내 자료")) + "</h3>";
+    if (props["이름표"]) html += '<p class="label">' + esc(props["이름표"]) + "</p>";
+    var rows = Object.keys(props).filter(function (k) { return k !== "이름표"; });
+    if (rows.length) {
+      html += "<table>" + rows.map(function (k) {
+        return "<tr><th>" + esc(T(k)) + "</th><td>" + esc(props[k]) + "</td></tr>";
+      }).join("") + "</table>";
+    }
+    html += "</div>";
+    new maplibregl.Popup({ maxWidth: "320px" }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+  });
+  map.on("mousemove", function (e) {
+    var layers = psLayers();
+    var hit = layers.length && map.queryRenderedFeatures(e.point, { layers: layers }).length;
+    map.getCanvas().style.cursor = hit ? "pointer" : "";
   });
 })();

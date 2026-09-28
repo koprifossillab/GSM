@@ -75,3 +75,28 @@ class PolarProjectionTests(TestCase):
             used.add(json.loads(seed.read_text(encoding="utf-8")).get("_상류", "kigam"))
         self.assertLessEqual(used, kinds)
         self.assertIn("geomap", kinds)
+
+
+class Map3dView(TestCase):
+    """3D 가 점묶음 요약과 번역표를 싣는지 (P02)."""
+
+    def test_점묶음_요약을_싣는다(self):
+        from viewer.models import PointSet
+        PointSet.objects.create(name="설악 시료 </script><b>", color="#e4572e")
+        html = self.client.get(reverse("viewer:map3d")).content.decode()
+        self.assertIn('id="pointset-data"', html)
+        self.assertIn('id="i18n-data"', html)
+        # 사람이 적은 이름에 든 `</script>` 가 문서를 끊지 않는다
+        self.assertNotIn("설악 시료 </script>", html)
+        data = re.search(r'id="pointset-data" type="application/json">(.*?)</script>', html).group(1)
+        self.assertEqual(json.loads(data)[0]["name"], "설악 시료 </script><b>")
+
+    def test_3857_WMS_레이어만_고른다(self):
+        group = LayerGroup.objects.create(name="시험")
+        Layer.objects.create(name="L_250K_Geology_Map", title="25만", group=group, upstream="kigam")
+        Layer.objects.create(name="gsj:geology", title="일본", group=group, upstream="gsj")
+        Layer.objects.create(name="lt_l_gimsfault", title="단층", group=group, upstream="vworld", kind="vector")
+        html = self.client.get(reverse("viewer:map3d")).content.decode()
+        self.assertIn('value="L_250K_Geology_Map"', html)
+        self.assertNotIn('value="gsj:geology"', html)
+        self.assertNotIn('value="lt_l_gimsfault"', html)

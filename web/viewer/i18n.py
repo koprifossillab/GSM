@@ -118,6 +118,8 @@ EN = {
     "지질 레이어": "Geology layer",
     "투명도": "Opacity",
     "지형 과장": "Terrain exaggeration",
+    "올린 점묶음이 없다 — 2D 에서 올린다": "No point sets yet — upload them in 2D",
+    "켠 점이 {n}개다 — 지형과 함께 그리면 느릴 수 있다": "{n} points shown — drawing them over terrain may be slow",
     "음영 보이기": "Show hillshade",
     "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
         "Drag with the right button (or Ctrl+drag) to tilt and rotate.",
