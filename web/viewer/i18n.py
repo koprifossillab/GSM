@@ -120,6 +120,15 @@ EN = {
     "지형 과장": "Terrain exaggeration",
     "올린 점묶음이 없다 — 2D 에서 올린다": "No point sets yet — upload them in 2D",
     "켠 점이 {n}개다 — 지형과 함께 그리면 느릴 수 있다": "{n} points shown — drawing them over terrain may be slow",
+    "그림": "Image",
+    "그림으로 내려받기 — 지금 보는 지도를 PNG 한 장으로. 레이어·축척·출처를 아래에 적는다":
+        "Download as image — the current map as one PNG, with layers, scale and credits below",
+    "그림을 만들지 못했다": "Could not make the image",
+    "배경지도가 그림으로 뽑는 것을 막았다 — 배경을 '없음' 으로 두고 다시 한다":
+        "The basemap blocked the export — set the basemap to 'None' and try again",
+    "가운데": "Centre",
+    "한국지질자원연구원": "Korea Institute of Geoscience and Mineral Resources (KIGAM)",
+    "출처": "Source",
     "음영 보이기": "Show hillshade",
     "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
         "Drag with the right button (or Ctrl+drag) to tilt and rotate.",

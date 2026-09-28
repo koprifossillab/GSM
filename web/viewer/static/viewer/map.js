@@ -1964,10 +1964,140 @@
       });
     });
     document.getElementById("tool-clear").addEventListener("click", clearDrawn);
+    document.getElementById("tool-export").addEventListener("click", exportPng);
     document.getElementById("save-temp").addEventListener("click", saveTemp);
     document.getElementById("clear-temp").addEventListener("click", clearDrawn);
     renderTemp();
     setMode("info");
+  }
+
+  // ── 그림으로 내려받기 ───────────────────────────────────────────
+  //
+  // 지금 보는 지도를 PNG 한 장으로. OpenLayers 는 레이어마다 캔버스를 따로 그리므로
+  // 그 캔버스들을 투명도·변환 그대로 한 장에 겹치고, 밑에 띠를 붙여 **무엇을 봤는지**
+  // 적는다 — 지역·켠 레이어·점묶음·가운데 좌표·축척 막대·출처·날짜. 인쇄는 이 그림을
+  // 인쇄한다. 브라우저가 곧장 부르는 배경(VWorld·EOX …)은 `crossOrigin` 으로 받아
+  // 캔버스를 더럽히지 않는다. 그래도 막히면 까닭을 말한다. 비교(나란히)의 오른쪽 지도는
+  // 담지 않는다.
+
+  function exportPng() {
+    var button = document.getElementById("tool-export");
+    button.disabled = true;
+    map.once("rendercomplete", function () {
+      try {
+        var canvas = composeExport();
+        canvas.toBlob(function (blob) {
+          button.disabled = false;
+          if (!blob) { alert(T("그림을 만들지 못했다")); return; }
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "GSM-" + stampText().replace(/[-: ]/g, "").slice(0, 12) + ".png";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        }, "image/png");
+      } catch (e) {
+        button.disabled = false;
+        // 교차 출처 그림이 섞여 캔버스가 더럽혀졌다 (SecurityError)
+        alert(T("배경지도가 그림으로 뽑는 것을 막았다 — 배경을 '없음' 으로 두고 다시 한다"));
+      }
+    });
+    map.renderSync();
+  }
+
+  function stampText() {
+    var d = new Date();
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " +
+      two(d.getHours()) + ":" + two(d.getMinutes());
+  }
+
+  /** 레이어 캔버스를 겹친 지도 + 밑의 띠. 화면 픽셀 비율대로 또렷하게 뽑는다. */
+  function composeExport() {
+    var ratio = window.devicePixelRatio || 1;
+    var size = map.getSize();
+    var w = size[0], h = size[1];
+    var lines = exportLines();
+    var lineH = 17, pad = 12;
+    var foot = pad * 2 + lineH * lines.length + 26;
+    var out = document.createElement("canvas");
+    out.width = Math.round(w * ratio);
+    out.height = Math.round((h + foot) * ratio);
+    var ctx = out.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    map.getViewport().querySelectorAll(".ol-layer canvas, canvas.ol-layer").forEach(function (c) {
+      if (!c.width) return;
+      var opacity = c.parentNode.style.opacity || c.style.opacity;
+      ctx.globalAlpha = opacity === "" ? 1 : Number(opacity);
+      var m = /^matrix\(([^(]*)\)$/.exec(c.style.transform || "");
+      var t = m ? m[1].split(",").map(Number) : [w / c.width, 0, 0, h / c.height, 0, 0];
+      ctx.setTransform(t[0] * ratio, t[1] * ratio, t[2] * ratio, t[3] * ratio, t[4] * ratio, t[5] * ratio);
+      var bg = c.parentNode.style.backgroundColor;
+      if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height); }
+      ctx.drawImage(c, 0, 0);
+    });
+    ctx.globalAlpha = 1;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    // 띠 — 지도와 선을 그어 가른다
+    ctx.fillStyle = "#faf7f1";
+    ctx.fillRect(0, h, w, foot);
+    ctx.fillStyle = "#3f2712";
+    ctx.fillRect(0, h, w, 1);
+    ctx.textBaseline = "top";
+    lines.forEach(function (line, i) {
+      ctx.font = (i === 0 ? "bold 14px " : "12px ") + "sans-serif";
+      ctx.fillStyle = i === 0 ? "#1f1409" : "#3f3228";
+      ctx.fillText(fitText(ctx, line, w - pad * 2 - (i === 0 ? 170 : 0)), pad, h + pad + i * lineH + (i ? 3 : 0));
+    });
+    drawScaleBar(ctx, w - pad - 150, h + pad + 2, 150);
+    return out;
+  }
+
+  /** 띠에 적을 줄들. 첫 줄이 제목이다. */
+  function exportLines() {
+    var shown = active.filter(function (e) { return e.layer.getVisible(); });
+    var mine = pointsets.filter(function (ps) { return ps.visible; });
+    var center = toLL(map.getView().getCenter());
+    var credits = Array.prototype.map.call(
+      document.querySelectorAll(".ol-attribution li"), function (li) { return li.textContent.trim(); })
+      .filter(Boolean);
+    // KIGAM 은 화면에서 출처를 비워 둔다(레이어 이름이 곧 출처다). 그림은 떨어져 돌아다니므로 적는다
+    if (shown.some(function (e) { return (byName[e.name] || {}).upstream === "kigam"; })) {
+      credits.unshift(T("한국지질자원연구원"));
+    }
+    var out = [T("대돌여지도") + " · " + T(REGIONS[region].title) + " · " + stampText()];
+    out.push(T("레이어") + ": " + (shown.length ? shown.map(function (e) { return e.title; }).join(" / ") : "—"));
+    if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
+    out.push(T("가운데") + ": " + formatPair(center[0], center[1]) + " · " + viewProj().getCode());
+    if (credits.length) out.push(T("출처") + ": " + credits.join(" · "));
+    return out;
+  }
+
+  /** 넘치면 끝을 줄임표로 자른다. */
+  function fitText(ctx, text, max) {
+    if (ctx.measureText(text).width <= max) return text;
+    while (text.length > 1 && ctx.measureText(text + "…").width > max) text = text.slice(0, -1);
+    return text + "…";
+  }
+
+  /** 지도 가운데의 땅 축척으로 막대를 그린다. 1·2·5 × 10ⁿ 로 반올림한다. */
+  function drawScaleBar(ctx, x, y, maxWidth) {
+    var view = map.getView();
+    var metersPerPx = ol.proj.getPointResolution(viewProj(), view.getResolution(), view.getCenter(), "m");
+    if (!isFinite(metersPerPx) || metersPerPx <= 0) return;
+    var raw = metersPerPx * maxWidth;
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var nice = [5, 2, 1].map(function (k) { return k * pow; }).filter(function (v) { return v <= raw; })[0] || pow;
+    var px = nice / metersPerPx;
+    ctx.fillStyle = "#1f1409";
+    ctx.fillRect(x, y + 14, px, 4);
+    ctx.fillRect(x, y + 10, 1.5, 8);
+    ctx.fillRect(x + px - 1.5, y + 10, 1.5, 8);
+    ctx.font = "12px sans-serif";
+    ctx.fillText(nice >= 1000 ? (nice / 1000) + " km" : nice + " m", x, y - 4);
   }
 
   function clearDrawn() {
