@@ -209,6 +209,23 @@
   }
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
+  //: 끈 점묶음의 번호 — 이 브라우저에 둔다(P02). 서버의 `visible` 을 쓰지 않는 것은
+  //  계정이 없는 뷰어라 한 사람이 끄면 모두에게 꺼지기 때문이다. 켠 것이 아니라 끈 것을
+  //  적어 새로 올린 점묶음은 켜진 채 뜬다. 3D(`map3d.js`)가 같은 열쇠를 읽고 쓴다
+  var PS_OFF_KEY = "gsm.pointsets.off";
+  function pointsetsOff() {
+    try { return JSON.parse(localStorage.getItem(PS_OFF_KEY) || "[]") || []; } catch (e) { return []; }
+  }
+  function setPointsetOff(id, off) {
+    var ids = pointsetsOff().filter(function (x) { return x !== id; });
+    if (off) ids.push(id);
+    try { localStorage.setItem(PS_OFF_KEY, JSON.stringify(ids)); } catch (e) { /* 사생활 모드 */ }
+  }
+  (function () {
+    var off = pointsetsOff();
+    pointsets.forEach(function (ps) { ps.visible = off.indexOf(ps.id) < 0; });
+  })();
+
   //: 레이어를 켤 때의 투명도. 배경지도를 깔고 보는 것이 예사이므로
   //  처음부터 밑이 비치게 둔다. 100% 로 두면 배경을 덮어서, 사람이
   //  슬라이더를 찾아 내려야 배경이 보인다.
@@ -2885,6 +2902,14 @@
     pointLayerGroup.getLayers().push(layer);
   }
 
+  // 3D 창에서 켜고 끄면 이 창도 따라간다 (다른 창의 저장소 바뀜만 온다)
+  window.addEventListener("storage", function (e) {
+    if (e.key !== PS_OFF_KEY) return;
+    var off = pointsetsOff();
+    pointsets.forEach(function (ps) { ps.visible = off.indexOf(ps.id) < 0; });
+    renderPointSets();
+  });
+
   function renderPointSets() {
     var host = document.getElementById("pointset-list");
     setCount("count-points", pointsets.length);
@@ -2902,6 +2927,7 @@
       box.checked = ps.visible;
       box.addEventListener("change", function () {
         ps.visible = box.checked;
+        setPointsetOff(ps.id, !ps.visible);
         if (pointLayers[ps.id]) pointLayers[ps.id].setVisible(ps.visible);
       });
 
