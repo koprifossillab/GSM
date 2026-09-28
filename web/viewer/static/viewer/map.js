@@ -175,6 +175,20 @@
    *  극지 화면에서 그대로 부르면 엉뚱한 곳이 나온다. 그래서 늘 이 둘을 거친다. */
   function toLL(coordinate) { return ol.proj.toLonLat(coordinate, viewProj()); }
   function fromLL(lonlat) { return ol.proj.fromLonLat(lonlat, viewProj()); }
+
+  /** 이 해상도가 **3857 로 보았다면 몇 줌인가.** 점을 작게 그리는 문턱(6)·이름표
+   *  문턱(11)은 3857 화면에서 맞춘 값이다. 극 평사도법 화면의 줌은 투영 범위 한 장이
+   *  줌 0 이라 같은 땅을 두세 단계 낮게 읽는다 — 그대로 쓰면 극지에서만 이름표가
+   *  늦게 뜬다. 극 평사도법의 한 단위는 참축척 위도(70°N·71°S) 둘레에서 거의 땅의
+   *  1 m 이고, 3857 은 위도 φ 에서 땅을 1/cos φ 배 부풀려 그린다. 그래서 화면 한가운데
+   *  위도로 3857 해상도를 되짚는다. 극점을 가운데 둔 남극에서는 80° 로 자른다 */
+  var MERC_RES0 = 156543.03392804097;
+  function mercZoom(resolution) {
+    var view = map.getView();
+    if (isMercator()) return view.getZoomForResolution(resolution) || 0;
+    var lat = Math.min(Math.abs(toLL(view.getCenter())[1]), 80);
+    return Math.log2(MERC_RES0 * Math.cos(lat * Math.PI / 180) / resolution);
+  }
   var addedRegions = ["korea"];
 
   function stateKey(name) {
@@ -2043,8 +2057,7 @@
   function portalPointStyle(kind) {
     var cache = {};
     return function (feature, resolution) {
-      var zoom = map.getView().getZoomForResolution(resolution) || 0;
-      var far = zoom < 6;
+      var far = mercZoom(resolution) < 6;
       var color = kind === "age" ? ageColor(feature.get("age"))
         : kind === "sample" ? (feature.get("color") || POINT_COLORS.sample)
         : POINT_COLORS[kind] || POINT_COLORS.none;
@@ -2794,8 +2807,7 @@
       var kind = feature.getGeometry().getType();
       var isPoint = kind === "Point";
       var label = feature.get("이름표");
-      var zoom = map.getView().getZoomForResolution(resolution);
-      var text = label && zoom >= LABEL_MIN_ZOOM ? new ol.style.Text({
+      var text = label && mercZoom(resolution) >= LABEL_MIN_ZOOM ? new ol.style.Text({
         text: String(label),
         font: "12px sans-serif",
         offsetX: isPoint ? 8 : 0,
