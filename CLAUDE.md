@@ -176,7 +176,9 @@ GeoServer 는 그것을 요구하고 `/openapi/wms` 는 접두사 없는 이름�
 **미리 데우기(`manage.py prewarm`)는 천천히 간다** — 1 초에 한 번, 차단
 조짐이면 멈춘다. **호출 제한을 재려고 두드리지 않는다.** 재다 걸리면 서버
 IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
-`manage.py upstream_stats` 로 지켜본다.
+`manage.py upstream_stats` 로 지켜본다. 받는 타일은 브라우저가 부르는 것과
+**한 글자까지 같아야** 캐시가 맞는다 — 상류마다 꼴이 달라(3857 WMS·극지 투영
+WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 
 캐시는 여전히 **덤이지 자료가 아니다.** 통째로 지워도 뷰어는 그대로 돌고,
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
@@ -216,7 +218,9 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이다 — 밖에 열 때 다시 본다
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
-  재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025)
+  재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025).
+  내리는 스위치는 `GSM_PUBLIC=1`(또는 `<DB 옆>/public`)이다 — geo3al·phyloserver·peninsula 를
+  목록에서 빼고 그 길도 닫는다(`views.LAB_ONLY`). 연구실 내부용 상류가 새로 오면 거기 더한다 (029)
 - GEUS 는 부르는 이를 `whoami` 로 밝혀 달라고 한다. 이메일이라 **저장소에
   적지 않는다** — `GSM_GEUS_WHOAMI` 나 `<DB 옆>/geus_whoami`
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
@@ -247,7 +251,9 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
   새로 들어오면 돌려 보고 `LAYER_EN` 을 채운다
 - 영어판의 화면 제목은 `Great Stone Map`, 그 밑 작은 줄에 `대돌여지도` 다 —
   한국어판의 짝을 뒤집었다
-- 지질시대는 **ICS 국제층서표**(https://stratigraphy.org/chart)의 명칭을 따른다
+- 지질시대는 **ICS 국제층서표**(https://stratigraphy.org/chart)의 명칭을 따른다.
+  영어 → 한국어는 ICS 가 싣는 **한글판**(대한지질학회 옮김, v2024/12)의 표기다 — 절(Age)
+  이름도 이것으로 옮긴다(`i18n.AGE_STAGES`, 029)
 - **옮기지 않는 것** — 속성 값(지층명·암석명·도폭명·사람 이름), 판 이력
   (`CHANGELOG.md`), 타일 안에 그려진 글자(상류·VWorld 가 그린다). 지질시대
   값만은 낱말을 조합한 것이라 옮긴다
