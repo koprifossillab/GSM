@@ -174,8 +174,8 @@ v0.4.0 에서 화면 문장·서버 메시지·속성 이름·레이어 제목·
       단서: NAS `KimSunho/3차원에 섞을 것.cdr` 이 같은 지도의 CorelDRAW 벡터다(2023-05-31,
       `kopri`). 어느 출판 지도를 따라 그렸는지를 묻는다. 스캔이 아니면 레이어 이름의 "(스캔)" 을 고친다 (026)
 - [x] QGIS 음영판(`KimSunho/geomap!!!!.pdf`)은 좌표가 박힌 PDF 였다 — "한반도 지질도 (음영)" 으로 얹었다 (027)
-- [ ] **운영에 음영판을 둔다** — `/srv/GSM/db/peninsula/geomap.pdf` 에 두고 컨테이너 안에서
-      `manage.py build_peninsula` (3.5 GB·24 초). 서버가 빠듯하면 여기서 잘라 `tiles/`(29 MB)만 옮긴다.
+- [x] 운영에 음영판을 두었다 — `/srv/GSM/db/peninsula/{geomap.pdf,tiles/}` (2026-09-28, 여기서 잘라 옮겼다).
+      판이 바뀌면 `manage.py build_peninsula` (3.5 GB·24 초).
       원본은 NAS `N:\GSM\sources\peninsula\geomap.pdf` 에 두었다
 - [ ] (사람) QGIS 프로젝트의 원본(GeoTIFF·벡터)을 받을 수 있는지 김선호 님께 묻는다 — 음영판의 좌표는
       해안선에 대 고쳐 쓰고 있다(027). 원본이 오면 고친 값을 버리고 그것을 믿는다. 제주가 빠진 것도 함께
