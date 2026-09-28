@@ -230,6 +230,10 @@ def _layer_extra(layer) -> dict:
                 "minZoom": spec["min"], "maxZoom": spec["max"],
                 "legend": spec["legend"] or "none", "viewer": gsj.VIEWER_URL,
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "phyloserver" and phyloserver.knows_scan(layer.name):
+        # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
+        return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
+                "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
     return {}
 
 
@@ -435,6 +439,26 @@ def gsj_tile(request, layer, z, x, y):
     return response
 
 
+@require_GET
+def phyloserver_tile(request, layer, level, x, y):
+    """한반도 지질도 타일 — `phyloserver/<레이어>/<레벨>/<x>_<y>.png` (026).
+
+    카카오 격자의 번호 그대로 phyloserver 에 넘긴다. 같은 서버의 파일이라
+    캐시에 담지 않는다. 없는 자리는 빈 타일이다."""
+    name, level, x, y = f"phyloserver:{layer}", int(level), int(x), int(y)
+    if not phyloserver.valid_scan_tile(name, level, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    try:
+        png = phyloserver.get_scan_tile(name, level, x, y)
+    except phyloserver.PhyloserverError as exc:
+        log.warning("phyloserver 타일을 받지 못했다 (%s %s/%s_%s): %s", name, level, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    if png is None:
+        png = tiles.blank_tile(256, 256)
+    return _tile(png)
+
+
 def _float(value):
     try:
         return float(value)
@@ -624,6 +648,9 @@ def legend(request):
 
     if layer in geomap.LAYERS:
         return _geomap_legend(request, layer)
+    if phyloserver.knows_scan(layer):
+        # 한반도 지질도(026)는 범례를 따로 주지 않는다. KIGAM 에 묻지 않게 여기서 막는다
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), i18n.lang_of(request))}, status=404)
 
     # 범례도 캐시한다. 타일보다 훨씬 드물게 부르지만 한 장이 수십 KB 라
     # (25만 지질도 범례는 223x5218 픽셀이다) 다시 받을 까닭이 없다.

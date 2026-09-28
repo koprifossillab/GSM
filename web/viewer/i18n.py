@@ -1017,4 +1017,5 @@ LAYER_EN = {
     "geo3al:rock": "Igneous rocks & eolian deposits",
     # 연구실의 암맥 기록 — phyloserver (devlog 026)
     "phyloserver:dikes": "Dike records",
+    "phyloserver:peninsula": "Korean Peninsula geology (scan)",
 }

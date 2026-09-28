@@ -142,6 +142,8 @@
     // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
     // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // 중부원점(GRS80) — phyloserver 의 한반도 지질도가 카카오맵 격자로 잘려 있다 (devlog 026)
+    proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
   }
 
@@ -335,6 +337,35 @@
     });
   }
 
+  /** 한반도 지질도 — phyloserver 가 카카오맵 격자로 잘라 둔 타일 (devlog 026).
+   *  격자(`phyloserver.py` 의 SCAN_*)를 그대로 받고 OpenLayers 가 옮겨 그린다.
+   *  카카오 레벨 L 의 한 픽셀은 2^(L-3) m 이고 13 이 가장 거칠다. 타일 번호는 아래에서
+   *  위로 세므로, 위에서 아래로 세는 OpenLayers 의 번호를 뒤집는다. */
+  var KAKAO_GRID = { origin: [-30000, -60000], levels: [7, 13], top: [2, 5] };
+
+  function phyloserverSource(name) {
+    var row = byName[name] || {};
+    if (!ol.proj.get("EPSG:5181")) return wmsSource(name);    // proj4 를 못 읽었다
+    var g = KAKAO_GRID;
+    var span = 256 * Math.pow(2, g.levels[1] - 3);            // 레벨 13 한 장의 길이(m)
+    var extent = [g.origin[0], g.origin[1], g.origin[0] + g.top[0] * span, g.origin[1] + g.top[1] * span];
+    var resolutions = [];
+    for (var level = g.levels[1]; level >= g.levels[0]; level--) resolutions.push(Math.pow(2, level - 3));
+    return new ol.source.TileImage({
+      projection: "EPSG:5181",
+      tileGrid: new ol.tilegrid.TileGrid({ extent: extent, origin: [extent[0], extent[3]],
+                                           resolutions: resolutions, tileSize: 256 }),
+      tileUrlFunction: function (coord) {
+        var level = g.levels[1] - coord[0];
+        var rows = g.top[1] * Math.pow(2, coord[0]);
+        return BASE + row.tiles.replace("{z}", level).replace("{x}", coord[1])
+          .replace("{y}", rows - 1 - coord[2]);
+      },
+      transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 일본 지질도의 속성 주소 — WMS 가 아니라 누른 자리의 위경도로 묻는다(`gsj/info/`). */
   function gsjInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -357,7 +388,7 @@
     geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
-    phyloserver: { source: null, info: null },
+    phyloserver: { source: phyloserverSource, info: null },
   };
 
   function layerKind(name) {
@@ -1321,6 +1352,8 @@
         li.appendChild(vectorLegend(entry.name));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].kind === "points") {
         li.appendChild(pointLegend(entry));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].noLegend) {
+        li.appendChild(note(T("범례가 없는 레이어다")));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].legend) {
         entry.legendBox = gsjLegend(entry);
         li.appendChild(entry.legendBox);

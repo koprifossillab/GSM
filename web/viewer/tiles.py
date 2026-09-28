@@ -47,3 +47,11 @@ def notice_tile(width: int, height: int, message: str) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
+
+def blank_tile(width: int = 256, height: int = 256) -> bytes:
+    """비어 있는 자리의 투명한 타일. 상류에 그 자리 타일이 아예 없을 때 쓴다 —
+    한반도 지질도(026)의 바다가 그렇다. 안내가 아니라 "그릴 것이 없다" 이다."""
+    buf = io.BytesIO()
+    Image.new("RGBA", (max(1, min(width, 4096)), max(1, min(height, 4096))), (0, 0, 0, 0)).save(buf, format="PNG")
+    return buf.getvalue()

@@ -61,6 +61,58 @@ LAYERS = {
     DIKES: {"style": "dike", "path": "/dikesync/dike-records/?format=json"},
 }
 
+# ── 한반도 지질도 — phyloserver 가 들고 있는 타일 (devlog 026) ───────────
+#
+# phyloserver 의 `uploads/geolmap/map_tiles/` 에 한반도(북한 포함) 지질도 한 장이
+# **카카오맵 격자로** 잘려 있다. 옛 화면(geolmap2.html)이 카카오 지도 위에 얹던
+# 것이다. 격자는 EPSG:5181(중부원점, GRS80) 에 원점 (-30 000, -60 000), 레벨 L 의
+# 한 픽셀이 2^(L-3) m, 타일 번호는 **아래에서 위로** 센다. 레벨 13 이 가로 2·세로
+# 5 장이고 한 단계 내려갈 때마다 두 배다. 7 이 가장 자세하다.
+#
+# 우리 쪽에서 다시 굽지 않는다 — 화면(OpenLayers)이 5181 격자를 그대로 받아
+# 3857 로 옮겨 그린다. 캐시에도 담지 않는다. 같은 서버 디스크의 파일이라 담으면
+# 925 MB 가 두 벌이 될 뿐이다.
+
+SCANS = {
+    "phyloserver:peninsula": {"path": "/media/geolmap/map_tiles/{level}/{x}_{y}.png"},
+}
+#: 격자 — 화면(`map.js` 의 phyloserverSource)이 같은 값을 쓴다
+SCAN_LEVELS = (7, 13)
+SCAN_ORIGIN = (-30000, -60000)
+SCAN_TOP = (2, 5)          # 레벨 13 의 가로·세로 장 수
+
+
+def knows_scan(name: str) -> bool:
+    return name in SCANS
+
+
+def valid_scan_tile(name: str, level: int, x: int, y: int) -> bool:
+    if name not in SCANS or not (SCAN_LEVELS[0] <= level <= SCAN_LEVELS[1]):
+        return False
+    mult = 2 ** (SCAN_LEVELS[1] - level)
+    return 0 <= x < SCAN_TOP[0] * mult and 0 <= y < SCAN_TOP[1] * mult
+
+
+def get_scan_tile(name: str, level: int, x: int, y: int):
+    """타일 한 장(PNG 바이트). 그 자리에 타일이 없으면(바다·격자 밖) None."""
+    if not enabled():
+        raise PhyloserverError("phyloserver 주소가 없다")
+    path = SCANS[name]["path"].format(level=level, x=x, y=y)
+    url = f"{settings.PHYLOSERVER_URL.rstrip('/')}{path}"
+    try:
+        r = requests.get(url, timeout=settings.UPSTREAM_TIMEOUT, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("phyloserver", ok=False)
+        raise PhyloserverError(f"phyloserver 에 닿지 못했다: {exc}") from exc
+    if r.status_code == 404:
+        usage.record("phyloserver", ok=True)
+        return None
+    if r.status_code != 200 or not r.headers.get("Content-Type", "").startswith("image/"):
+        usage.record("phyloserver", ok=False)
+        raise PhyloserverError(f"phyloserver 가 타일을 주지 않았다 (status={r.status_code})")
+    usage.record("phyloserver", ok=True)
+    return r.content
+
 
 class PhyloserverError(RuntimeError):
     pass

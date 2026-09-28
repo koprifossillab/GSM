@@ -158,3 +158,45 @@ class View(TestCase):
         self.assertEqual(row["kind"], "points")
         self.assertEqual(row["style"], "dike")
         self.assertFalse(row["queryable"])
+
+
+class ScanTile(TestCase):
+    """한반도 지질도 — 카카오 격자 타일을 번호 그대로 중계한다."""
+
+    def setUp(self):
+        patcher = override_settings(PHYLOSERVER_URL="http://phylo.test")
+        patcher.enable()
+        self.addCleanup(patcher.disable)
+
+    def test_격자_밖은_묻지_않는다(self):
+        name = "phyloserver:peninsula"
+        self.assertTrue(phyloserver.valid_scan_tile(name, 13, 1, 4))
+        self.assertFalse(phyloserver.valid_scan_tile(name, 13, 2, 0))          # 가로 2 장뿐
+        self.assertTrue(phyloserver.valid_scan_tile(name, 7, 127, 319))
+        self.assertFalse(phyloserver.valid_scan_tile(name, 6, 0, 0))
+        with mock.patch.object(phyloserver.requests, "get") as get:
+            response = self.client.get("/GSM/phyloserver/peninsula/13/2_0.png")
+        self.assertEqual(response.status_code, 404)
+        get.assert_not_called()
+
+    def test_번호_그대로_넘긴다(self):
+        png = b"\x89PNG fake"
+        resp = mock.Mock(status_code=200, content=png, headers={"Content-Type": "image/png"})
+        with mock.patch.object(phyloserver.requests, "get", return_value=resp) as get, \
+                mock.patch.object(phyloserver.usage, "record"):
+            response = self.client.get("/GSM/phyloserver/peninsula/9/12_34.png")
+        self.assertEqual(response.content, png)
+        self.assertEqual(get.call_args.args[0], "http://phylo.test/media/geolmap/map_tiles/9/12_34.png")
+
+    def test_없는_자리는_투명한_타일이다(self):
+        with mock.patch.object(phyloserver.requests, "get", return_value=mock.Mock(status_code=404)), \
+                mock.patch.object(phyloserver.usage, "record"):
+            response = self.client.get("/GSM/phyloserver/peninsula/13/0_0.png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, views.tiles.blank_tile(256, 256))
+
+    def test_범례는_KIGAM_에_묻지_않는다(self):
+        with mock.patch.object(views.kigam, "get_legend") as legend:
+            response = self.client.get("/GSM/legend/", {"layer": "phyloserver:peninsula"})
+        self.assertEqual(response.status_code, 404)
+        legend.assert_not_called()
