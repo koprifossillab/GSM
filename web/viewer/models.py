@@ -16,7 +16,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 화면이 그린란드·스발바르·얀마옌을 묶어 보이는 것이라 여기 없다
            ("svalbard", "스발바르"),
            # 일본 — GSJ 심리스 지질도 (devlog 024). "동아시아" 탭도 북극처럼 묶음이라 여기 없다
-           ("japan", "일본"))
+           ("japan", "일본"),
+           # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025). 동아시아 묶음에도 들어간다
+           ("china", "중국"))
 
 
 class LayerGroup(models.Model):
@@ -64,7 +66,8 @@ class Layer(models.Model):
     #: geomap → `geomap.py` (상류가 아니라 우리 디스크의 파일이다 — devlog 018),
     #: janmayen → `janmayen.py` (NPI 지질도 파일, 모양을 통째로 준다 — devlog 022),
     #: npolar → `npolar.py` (NPI 지도 서버 — 스발바르·드로닝모드랜드, devlog 021),
-    #: gsj → `gsj.py` (일본 GSJ 심리스 지질도 — 타일을 z/x/y 로 받는다, devlog 024)
+    #: gsj → `gsj.py` (일본 GSJ 심리스 지질도 — 타일을 z/x/y 로 받는다, devlog 024),
+    #: geo3al → `geo3al.py` (USGS 동아시아 지질도 파일, 모양을 통째로 준다 — devlog 025)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

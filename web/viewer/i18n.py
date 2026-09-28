@@ -135,6 +135,8 @@ EN = {
     # 일본과, 한국·일본을 한 화면에 모은 동아시아 탭 (devlog 024)
     "일본": "Japan",
     "동아시아": "East Asia",
+    # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025)
+    "중국": "China",
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
@@ -455,6 +457,16 @@ EN = {
     "줌 {n} 부터 그려진다": "Drawn from zoom {n}",
     "선·기호의 범례는 GSJ 가 따로 주지 않는다": "GSJ gives no separate legend for lines and symbols",
     "원본 뷰어에서 본다 — GSJ": "See it in the original viewer — GSJ",
+    # 중국 — USGS geo3al (geo3al.py·views.py·map.js, devlog 025)
+    "중국 지질도 자료(USGS geo3al)가 서버에 없다": "The China geology data (USGS geo3al) is not on the server",
+    "중국 지질도 자료(USGS geo3al)를 읽지 못했다": "Could not read the China geology data (USGS geo3al)",
+    "원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지":
+        "Source dataset — USGS geo3al (OFR 97-470F). Internal lab use only, no redistribution",
+    "관입 화성암": "Intrusive igneous rock",
+    "분출 화성암": "Extrusive igneous rock",
+    "초염기성암·오피올라이트": "Ultrabasic rock or ophiolite",
+    "풍성 퇴적물": "Eolian deposits",
+    "기호 풀이 없음 (x)": "Code not explained (x)",
     "지금 보는 범위에 든 것 {n}칸": "{n} units in the current extent",
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
@@ -596,6 +608,9 @@ PROP_EN = {
     "채취 지점": "Locality",
     "채취자": "Collector",
     "채취일": "Collected",
+    # 중국 — USGS geo3al (geo3al.LABELS)
+    "암종": "Rock type",
+    "원도 기호": "Source map code",
     # 남극 GeoMAP 속성 (geomap.PROPS)
     "간추린 지질": "Simplified geology",
     "노두 갈래": "Outcrop type",
@@ -857,6 +872,8 @@ GROUP_EN = {
     "드로닝모드랜드 (NPI)": "Dronning Maud Land (NPI)",
     # 일본 (gsj.py, devlog 024)
     "심리스 지질도 (GSJ)": "Seamless geological map (GSJ)",
+    # 중국 (geo3al.py, devlog 025)
+    "중국·동아시아 지질 (USGS)": "China & East Asia geology (USGS)",
 }
 
 LAYER_EN = {
@@ -977,4 +994,7 @@ LAYER_EN = {
     "gsj:boundaries": "Geological boundaries",
     "gsj:faults": "Faults & flexures",
     "gsj:symbols": "Legend symbols",
+    # 중국 — USGS geo3al (geo3al.py)
+    "geo3al:age": "Geologic age (1:5M)",
+    "geo3al:rock": "Igneous rocks & eolian deposits",
 }

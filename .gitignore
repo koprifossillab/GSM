@@ -38,6 +38,10 @@ venv/
 *.gpkg
 # 얀마옌 지질도(NPI) — 기본 자리 <DB 옆>/npolar/. 저장소가 공개라 받은 것을 올리지 않는다 (devlog 022)
 /npolar/
+# 중국 지질도(USGS geo3al) — 기본 자리 <DB 옆>/usgs/. 이용 조건이 재배포를 막는다 (devlog 025)
+/usgs/
+geo3al.shp
+geo3al.dbf
 
 # Claude Code 의 작업 자리 (에이전트 worktree 등)
 /.claude/

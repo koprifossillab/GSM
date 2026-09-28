@@ -47,3 +47,6 @@ geomap/
 # 얀마옌 지질도(NPI) 파일 — 저장소에도 이미지에도 두지 않는다 (devlog 022)
 npolar/
 *.gpkg
+# 중국 지질도(USGS geo3al) — 이용 조건이 재배포를 막는다. public 이미지에 **절대** 굽지 않는다 (devlog 025)
+usgs/
+**/geo3al.*

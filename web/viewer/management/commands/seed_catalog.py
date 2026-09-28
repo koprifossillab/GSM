@@ -56,7 +56,9 @@ class Command(BaseCommand):
                 (settings.NPOLAR_CATALOG_SEED, "스발바르 (NPI)", "svalbard", "npolar"),
                 (settings.NPOLAR_DML_CATALOG_SEED, "드로닝모드랜드 (NPI)", "antarctica", "npolar"),
                 # 일본 — GSJ 심리스 지질도 (024)
-                (settings.GSJ_CATALOG_SEED, "일본 (GSJ)", "japan", "gsj")):
+                (settings.GSJ_CATALOG_SEED, "일본 (GSJ)", "japan", "gsj"),
+                # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
+                (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))
