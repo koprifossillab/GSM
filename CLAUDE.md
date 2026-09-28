@@ -222,15 +222,16 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
 - **파일을 받아 우리가 그리는 것 넷** — 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
   018), 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022), 중국 USGS geo3al
-  (`GSM_USGS_DIR`, 기본 `<DB 옆>/usgs`, 025), 한반도 지질도 음영판(`GSM_PENINSULA_DIR`,
-  기본 `<DB 옆>/peninsula`, 027 — PDF 를 `manage.py build_peninsula` 로 잘라 둔다). 운영은
+  (`GSM_USGS_DIR`, 기본 `<DB 옆>/usgs`, 025), 한반도 지질도 음영판·민판(`GSM_PENINSULA_DIR`,
+  기본 `<DB 옆>/peninsula`, 027·028 — PDF·PNG 를 `manage.py build_peninsula` 로 잘라 둔다). 운영은
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
 - **phyloserver(026)는 같은 서버의 연구실 자료다** — 캐시는 하루만 믿는다(`FRESH_SECONDS`).
   한반도 지질도는 카카오 격자(EPSG:5181)를 다시 굽지 않고 화면이 옮겨 그린다. 캐시에 담지 않는다
-- **한반도 지질도 음영판(027)은 PDF 의 좌표를 고쳐 쓴다** — QGIS 가 적은 범위가 해안선보다
-  355 m 북쪽·가로 0.134% 늘어나 있어 `peninsula.X0…Y1` 로 고쳤다. 스캔판처럼 출처를 몰라 밖에 열지 않는다
+- **한반도 지질도 음영판(027)·민판(028)은 원본의 좌표를 고쳐 쓴다** — 음영판 PDF 는 해안선보다
+  355 m 북쪽·가로 0.134%, 민판 월드파일은 가로 0.267%·세로 0.137% 늘어나 있어 판마다
+  `Sheet.extent` 로 고쳤다. 원본이 적은 좌표는 믿지 않고 OSM 해안선에 댄다. 스캔판처럼 출처를 몰라 밖에 열지 않는다
 
 ## 영어판
 
@@ -279,7 +280,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
-  peninsula.py    한반도 지질도 음영판 — 좌표가 박힌 QGIS PDF -> EPSG:5179 타일(미리 잘라 둔다)
+  peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
   crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트) <-> 위경도. pyproj 없이

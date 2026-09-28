@@ -243,10 +243,11 @@ def _layer_extra(layer) -> dict:
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
                 "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
-    if layer.upstream == "peninsula" and layer.name in peninsula.LAYERS:
-        # 한반도 지질도 음영판(027) — 우리가 잘라 둔 5179 타일. 격자를 화면에 알린다
-        return {"attribution": peninsula.ATTRIBUTION, "queryable": False, "noLegend": True,
-                "projection": "EPSG:5179", "grid": peninsula.grid(),
+    if layer.upstream == "peninsula" and layer.name in peninsula.SHEETS:
+        # 한반도 지질도 음영판·민판(027·028) — 우리가 잘라 둔 5179 타일. 격자를 화면에 알린다
+        sheet = peninsula.SHEETS[layer.name]
+        return {"attribution": sheet.attribution, "queryable": False, "noLegend": True,
+                "projection": "EPSG:5179", "grid": sheet.grid(),
                 "tiles": f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}"}
     return {}
 
@@ -475,17 +476,18 @@ def phyloserver_tile(request, layer, level, x, y):
 
 @require_GET
 def peninsula_tile(request, layer, z, x, y):
-    """한반도 지질도 음영판 타일 — `peninsula/<레이어>/<z>/<x>/<y>.webp` (027).
+    """한반도 지질도 음영판·민판 타일 — `peninsula/<레이어>/<z>/<x>/<y>.webp` (027·028).
 
     `manage.py build_peninsula` 가 잘라 둔 파일을 내주기만 한다. 캐시에 담지 않는다 —
     이미 우리 디스크의 타일이다. 잘라 둔 것이 없으면 안내 타일, 바다는 빈 타일이다."""
     name, z, x, y = f"peninsula:{layer}", int(z), int(x), int(y)
-    if _lab_only(name) or name not in peninsula.LAYERS or not peninsula.valid_tile(z, x, y):
+    sheet = peninsula.SHEETS.get(name)
+    if _lab_only(name) or sheet is None or not sheet.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
-    if not peninsula.available():
+    if not sheet.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
-    data = peninsula.read_tile(z, x, y)
+    data = sheet.read_tile(z, x, y)
     if data is None:
         return _tile(tiles.blank_tile(256, 256))
     return _tile(data, content_type="image/webp")
