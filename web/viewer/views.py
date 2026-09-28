@@ -299,6 +299,8 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
 def _upstream_of(layers: str) -> str:
     """레이어명(여럿이면 첫째)의 상류. 카탈로그에 없으면 kigam 이다."""
     name = (layers or "").split(",")[0].strip()
+    # 도폭 하나(`npolar:svalbard_sheets@A4G`)는 카탈로그에 없다 — 밑 레이어의 상류를 따른다
+    name = name.split("@", 1)[0]
     try:
         row = Layer.objects.filter(name=name).values_list("upstream", flat=True).first()
     except Exception:                  # 카탈로그를 못 읽어도 한국 지도는 돌아야 한다

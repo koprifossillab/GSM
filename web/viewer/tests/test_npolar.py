@@ -340,3 +340,62 @@ class Seed(TestCase):
         # 드로닝모드랜드는 GeoMAP 뒤에 선다
         geomap = LayerGroup.objects.get(name="GeoMAP 지질도", region="antarctica")
         self.assertGreater(dml.group.order, geomap.order)
+
+
+class Sheets(SimpleTestCase):
+    """스발바르 도폭 스캔 (P01 6 단계) — 도폭 하나만 그리기, 도폭 경계 면."""
+
+    SERVICE = {"layers": [
+        {"id": 1, "name": "Kartbilder", "parentLayerId": -1},
+        {"id": 2, "name": "A4G-Vasahalvøya_100_2007.tif", "parentLayerId": 1},
+        {"id": 34, "name": "FG23G-NordaustlandetNE_200_2014.tif", "parentLayerId": 1},
+        {"id": 35, "name": "FG23G-NordaustlandetNE_200_2014Storøya.tif", "parentLayerId": 1},
+        {"id": 80, "name": "Papirkart_Med_Tegnforklaring", "parentLayerId": -1},
+        {"id": 81, "name": "A4G-Vasahalvøya_med_tegnforklaring.tif", "parentLayerId": 80},
+    ]}
+
+    def setUp(self):
+        npolar._sheet_memo.clear()
+
+    def tearDown(self):
+        npolar._sheet_memo.clear()
+
+    def _table(self):
+        from unittest import mock
+        reply = mock.Mock(status_code=200)
+        reply.json.return_value = self.SERVICE
+        with mock.patch("viewer.npolar._get", return_value=reply):
+            return npolar.sheet_rasters()
+
+    def test_번호로_래스터를_모은다(self):
+        self.assertEqual(self._table(), {"A4G": [2], "FG23G": [34, 35]})    # 범례 붙은 종이(80)는 뺀다
+
+    def test_도폭_하나만_그린다(self):
+        self._table()
+        url, sent = npolar.export_params({"layers": "npolar:svalbard_sheets@FG23G", "crs": "EPSG:3413",
+                                          "bbox": "0,-1200000,300000,-900000",
+                                          "width": "512", "height": "512"})
+        self.assertEqual(sent["layers"], "show:34,35")
+        self.assertIn("G_Geologi_Kartblad", url)
+
+    def test_모르는_도폭은_멈춘다(self):
+        self._table()
+        for name in ("npolar:svalbard_sheets@C6G", "npolar:svalbard_sheets@1;DROP"):
+            with self.assertRaises(npolar.NpolarError):
+                npolar.sheet_spec(name)
+
+    def test_면을_받는다(self):
+        from viewer import arcpoints
+        feature = {"type": "Feature", "id": 3, "properties": {"KartNR": "A4G"},
+                   "geometry": {"type": "Polygon", "coordinates": [[[10.123456789, 79.1], [11, 79.1],
+                                                                    [11, 79.5], [10.123456789, 79.1]]]}}
+        fields = {"code": arcpoints.field("KartNR", "도폭 번호")}
+        self.assertIsNone(arcpoints.compact(feature, fields))                 # 점 레이어는 면을 버린다
+        row = arcpoints.compact(feature, fields, areal=True)
+        self.assertEqual(row["geometry"]["type"], "Polygon")
+        self.assertEqual(row["geometry"]["coordinates"][0][0], [10.12346, 79.1])
+        self.assertEqual(row["properties"], {"code": "A4G"})
+
+    def test_사람_이메일_열은_받지_않는다(self):
+        spec = npolar.POINTS["npolar:svalbard_sheet_index"]
+        self.assertFalse(any("Folk" in f["from"] for f in spec["fields"].values()))

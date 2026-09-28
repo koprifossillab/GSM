@@ -1039,6 +1039,7 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   border-radius: 10px;
 }
 .proplink:hover { color: var(--on-hi); background: var(--hi); }
+button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
 
 /* ══ 설정 화면 ═════════════════════════════════════════════════════ */
 .sheet {

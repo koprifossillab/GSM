@@ -71,16 +71,30 @@ def collect(get_page, fields: dict, *, page: int, max_pages: int, pause: float, 
     return out
 
 
-def compact(feature: dict, fields: dict, oid: str = "FID"):
-    """상류 feature 하나 → 우리 것. 점이 아니면(기하가 없으면) None."""
+def _round(coords):
+    if coords and isinstance(coords[0], (int, float)):
+        return [round(float(coords[0]), DIGITS), round(float(coords[1]), DIGITS)]
+    return [_round(c) for c in coords]
+
+
+def compact(feature: dict, fields: dict, oid: str = "FID", *, areal: bool = False):
+    """상류 feature 하나 → 우리 것. 점이 아니면(기하가 없으면) None.
+    `areal` 이면 면(Polygon·MultiPolygon)도 받는다 — 스발바르 도폭 경계."""
     geom = feature.get("geometry") or {}
     coords = geom.get("coordinates")
-    if geom.get("type") != "Point" or not coords or len(coords) < 2:
+    if areal and geom.get("type") in ("Polygon", "MultiPolygon") and coords:
+        try:
+            geometry = {"type": geom["type"], "coordinates": _round(coords)}
+        except (TypeError, ValueError, IndexError):
+            return None
+    elif geom.get("type") != "Point" or not coords or len(coords) < 2:
         return None
-    try:
-        lon, lat = round(float(coords[0]), DIGITS), round(float(coords[1]), DIGITS)
-    except (TypeError, ValueError):
-        return None
+    else:
+        try:
+            geometry = {"type": "Point", "coordinates": [round(float(coords[0]), DIGITS),
+                                                         round(float(coords[1]), DIGITS)]}
+        except (TypeError, ValueError):
+            return None
     src = feature.get("properties") or {}
     props = {}
     for key, spec in fields.items():
@@ -90,8 +104,7 @@ def compact(feature: dict, fields: dict, oid: str = "FID"):
     fid = feature.get("id")
     if fid is None:
         fid = src.get(oid, src.get("FID", src.get("OBJECTID", src.get("ObjectId"))))
-    return {"type": "Feature", "id": fid,
-            "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props}
+    return {"type": "Feature", "id": fid, "geometry": geometry, "properties": props}
 
 
 def clean(value, kind):

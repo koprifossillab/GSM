@@ -87,6 +87,12 @@ TILES = {
     "npolar:svalbard_type_localities": {
         "service": "Temadata/G_Lithostratigraphic_Lexicon_of_Svalbard", "projection": "EPSG:3413", "show": [0], "info": [0],
         "legend": [0], "format": "png32"},
+    # 스발바르 1:10만 도폭 스캔(P01 6 단계) — 인쇄한 도폭을 지도면만 오려 붙인 래스터 38 장.
+    # `1` 은 그 묶음(Kartbilder)이다. 스캔이라 png8 로 받는다. 도폭 하나만 그리는 것은
+    # `npolar:svalbard_sheets@<KartNR>` 이다(`sheet_spec`)
+    "npolar:svalbard_sheets": {
+        "service": "Temadata/G_Geologi_Kartblad", "projection": "EPSG:3413", "show": [1], "info": None,
+        "legend": None, "format": "png8"},
     # 남극 드로닝모드랜드 — 1:25만(6)과 1:500만(7)이 스발바르처럼 축척으로 갈린다
     "npolar:dml_units": {
         "service": "Temadata/G_Geologi_DML", "projection": "EPSG:3031", "show": [6, 7], "info": [6, 7],
@@ -167,6 +173,25 @@ POINTS = {
         },
     },
     # 지명 — 레이어로 켜지 않고 찾기 칸이 뒤진다 (카탈로그에 없다)
+    # 스발바르 도폭 경계(P01 6 단계) — 면 45 개. 점이 아니라 면이라 `areal`, 상류의 선이
+    # 촘촘해(4.7 MB) 0.001° 로 줄여 받는다(10 KB). `csv.Folk` 에는 사람 이메일이 들어
+    # 있어 받지 않는다. `sheets` 면 스캔이 있는 도폭에 `scan` 을 붙인다
+    "npolar:svalbard_sheet_index": {
+        "where": "map", "path": "Temadata/G_Geologi_Kartblad/MapServer/120",
+        "oid": "S_100_Geologi_Kartblad_Indeks.FID", "paged": False, "areal": True,
+        "generalize": 0.001, "sheets": True,
+        "style": "sheet", "source": "https://data.npolar.no/",
+        "fields": {
+            "code": _f("S_100_Geologi_Kartblad_Indeks.KartNR", "도폭 번호"),
+            "name": _f("S_100_Geologi_Kartblad_Indeks.Navn", "도폭명"),
+            "scale": _f("S_100_Geologi_Kartblad_Indeks.csv.Skala", "축척"),
+            "printed": _f("S_100_Geologi_Kartblad_Indeks.csv.aar", "발행"),
+            "field": _f("S_100_Geologi_Kartblad_Indeks.csv.Feltarbeid_status", "야외 조사"),
+            "digital": _f("S_100_Geologi_Kartblad_Indeks.csv.Digitaliseringsstatus", "수치화"),
+            "pub": _f("S_100_Geologi_Kartblad_Indeks.csv.NP_publikasjonsdatabase", "출판물", "link"),
+            "archive": _f("S_100_Geologi_Kartblad_Indeks.csv.NP_kartarkiv", "지도 보관소", "link"),
+        },
+    },
     "npolar:place_names": {
         "where": "features", "path": "NPI_Place_Names_Svalbard/FeatureServer/0", "oid": "ObjectId",
         "style": "name", "source": "https://placenames.npolar.no/",
@@ -224,7 +249,54 @@ def _spec(params: dict, *keys) -> tuple:
         name = (params.get(key) or "").split(",")[0].strip()
         if name in TILES:
             return name, TILES[name]
+        if name.startswith(SHEETS + "@"):
+            return name, sheet_spec(name)
     raise NpolarError("NPI 레이어가 아니다")
+
+
+# ── 도폭 하나 (P01 6 단계) ────────────────────────────────────────────
+#
+# 도폭 경계의 팝업에서 "이 도폭만 켜기" 를 누르면 `npolar:svalbard_sheets@A4G` 를 켠다.
+# 도폭 번호(KartNR)로 Kartbilder 묶음(`1`) 안의 래스터를 찾는다 — 래스터 이름이
+# `A4G-Vasahalvøya_100_2007.tif` 처럼 번호로 시작한다. 한 도폭에 래스터가 여럿인 것이
+# 있다(FG23G 여섯, DE23G 셋). 대응표는 지도 서버의 레이어 목록에서 한 번 받아 하루 믿는다.
+
+SHEETS = "npolar:svalbard_sheets"
+_SHEET_CODE = re.compile(r"^[A-Z]{1,2}\d{1,4}G$")
+#: 대응표를 믿는 초
+SHEET_TABLE_SECONDS = 24 * 3600
+_sheet_memo = {}
+
+
+def sheet_rasters() -> dict:
+    """도폭 번호 → Kartbilder 안의 래스터 번호들."""
+    import time
+    now = time.time()
+    if _sheet_memo.get("at", 0) + SHEET_TABLE_SECONDS > now:
+        return _sheet_memo["table"]
+    spec = TILES[SHEETS]
+    data = _json(_get(_map_url(spec["service"], ""), {"f": "json"}))
+    group = set(spec["show"])
+    table = {}
+    for layer in data.get("layers") or []:
+        if layer.get("parentLayerId") not in group:
+            continue
+        code = str(layer.get("name") or "").split("-", 1)[0].strip()
+        if _SHEET_CODE.match(code):
+            table.setdefault(code, []).append(int(layer["id"]))
+    _sheet_memo.update(at=now, table=table)
+    return table
+
+
+def sheet_spec(name: str) -> dict:
+    """`npolar:svalbard_sheets@A4G` → 그 도폭의 래스터만 그리는 스펙."""
+    code = name.split("@", 1)[1] if "@" in name else ""
+    if not _SHEET_CODE.match(code):
+        raise NpolarError("도폭 번호가 아니다")
+    ids = sheet_rasters().get(code)
+    if not ids:
+        raise NpolarError(f"스캔이 없는 도폭이다: {code}")
+    return dict(TILES[SHEETS], show=ids)
 
 
 def _srs(params: dict) -> int:
@@ -452,14 +524,22 @@ def fetch(name: str, pause: float = None) -> list:
     def page(offset):
         params = {"where": "1=1", "outFields": ",".join(wanted), "returnGeometry": "true",
                   "outSR": "4326", "f": "geojson"}
+        if spec.get("generalize"):
+            params["maxAllowableOffset"] = spec["generalize"]
         if paged:
             params.update(orderByFields=f"{spec['oid']} ASC", resultOffset=offset, resultRecordCount=PAGE)
         return _json(_get(url, params))
 
     if not paged:
         data = page(0)
-        return [row for row in (arcpoints.compact(f, fields, spec["oid"]) for f in data.get("features") or [])
-                if row is not None]
+        rows = [row for row in (arcpoints.compact(f, fields, spec["oid"], areal=spec.get("areal", False))
+                                for f in data.get("features") or []) if row is not None]
+        if spec.get("sheets"):
+            scans = sheet_rasters()
+            for row in rows:
+                if row["properties"].get("code") in scans:
+                    row["properties"]["scan"] = 1
+        return rows
     return arcpoints.collect(page, fields, page=PAGE, max_pages=MAX_PAGES,
                              pause=PAUSE if pause is None else pause, name=name)
 

@@ -34,6 +34,22 @@
    "확인한날": "2026-09-27"
   },
   {
+   "name": "npolar:svalbard_sheets",
+   "title": "도폭 스캔 (1:10만 등, 전부)",
+   "group": "스발바르 지질 (NPI)",
+   "abstract": "Scanned geological map sheets of Svalbard (mostly 1:100 000), map face only — 38 rasters. Turn on one sheet from the sheet index popup",
+   "bbox": [10.0, 74.0, 35.0, 81.0],
+   "확인한날": "2026-09-28"
+  },
+  {
+   "name": "npolar:svalbard_sheet_index",
+   "title": "도폭 경계",
+   "group": "스발바르 지질 (NPI)",
+   "abstract": "Index of geological map sheets — number, name, year printed, publication. Click a sheet to show only its scan",
+   "bbox": [10.0, 74.0, 35.0, 81.0],
+   "확인한날": "2026-09-28"
+  },
+  {
    "name": "npolar:rock_archive",
    "title": "암석 시료 보관소",
    "group": "스발바르 시료·층서 (NPI)",

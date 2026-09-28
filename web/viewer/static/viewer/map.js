@@ -1171,9 +1171,25 @@
     return ground / ol.proj.getPointResolution(viewProj(), 1, here);
   }
 
+  /** 스발바르 도폭 하나(`npolar:svalbard_sheets@A4G`)의 카탈로그 행. 카탈로그에는 도폭
+   *  스캔 전부만 있어, 밑 행을 베껴 이름·제목만 바꾼다 (P01 6 단계). */
+  function sheetRow(name, label) {
+    var at = name.indexOf("@");
+    var base = at > 0 && byName[name.slice(0, at)];
+    var code = name.slice(at + 1);
+    if (!base || !/^[A-Z]{1,2}\d{1,4}G$/.test(code)) return null;
+    var row = Object.assign({}, base, {
+      name: name,
+      title: label ? T("도폭 {code} {name}", { code: code, name: label }) : T("도폭 {code}", { code: code }),
+    });
+    byName[name] = row;
+    regionOfLayer[name] = regionOfLayer[base.name];
+    return row;
+  }
+
   function addLayer(name) {
     if (active.some(function (e) { return e.name === name; })) return;
-    var row = byName[name];
+    var row = byName[name] || sheetRow(name);
     if (!row) return;
     // 점 레이어(`kind: points`)는 밑을 가리지 않으므로 처음부터 진하게 둔다.
     // 면을 싣는 것(얀마옌 지질 단위)은 카탈로그가 투명도를 따로 준다
@@ -2189,6 +2205,7 @@
     layer = new Kind({
       source: source,
       style: row.style === "dike" ? dikeStyle()
+        : row.style === "sheet" ? sheetStyle()
         : LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
         : portalPointStyle(row.style || "sample"),
       opacity: 1,
@@ -2245,6 +2262,39 @@
 
   /** 누른 점 하나 → 팝업 한 칸. 이름은 서버가 준 한국어(`labels`)이고
    *  영어판이면 팝업이 `T()` 로 옮긴다(`i18n.PROP_EN`). */
+  /** 스발바르 도폭 경계 — 선만 긋고 속은 비운다(밑의 지질도가 보이게). 속을 아주 옅게
+   *  칠해 두는 것은 면 안쪽을 눌러도 걸리게 하려는 것이다. 가까이 오면 번호·이름을 적는다. */
+  var SHEET_COLOR = "#1d3b6e";
+  function sheetStyle() {
+    var fill = new ol.style.Fill({ color: "rgba(29, 59, 110, 0.04)" });
+    var stroke = new ol.style.Stroke({ color: SHEET_COLOR, width: 1.6 });
+    var plain = new ol.style.Style({ fill: fill, stroke: stroke });
+    return function (feature, resolution) {
+      var zoom = mercZoom(resolution);
+      if (zoom < 5) return plain;
+      var text = feature.get("code") + (zoom >= 7 && feature.get("name") ? " " + feature.get("name") : "");
+      return new ol.style.Style({
+        fill: fill, stroke: stroke,
+        text: new ol.style.Text({
+          text: text, font: "bold 12px sans-serif", overflow: false,
+          fill: new ol.style.Fill({ color: SHEET_COLOR }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
+        }),
+      });
+    };
+  }
+
+  /** 도폭 경계를 누르면 뜨는 "이 도폭만 켜기" — 스캔이 있는 도폭에만. */
+  function sheetAction(feature) {
+    var code = feature.get("code");
+    if (!feature.get("scan") || !code) return null;
+    var name = "npolar:svalbard_sheets@" + code;
+    return { text: "", links: [{ label: T("이 도폭만 켜기"), action: function () {
+      sheetRow(name, feature.get("name"));
+      addLayer(name);
+    } }] };
+  }
+
   function pointPart(feature, layer, seen) {
     var name = layer.get("gsmPoints");
     seen[name] = (seen[name] || 0) + 1;
@@ -2261,6 +2311,10 @@
       }
       props[labels[key]] = value;
     });
+    if ((byName[name] || {}).style === "sheet") {
+      var action = sheetAction(feature);
+      if (action) props[T("스캔")] = action;
+    }
     return { title: layerTitle(name), props: props };
   }
 
@@ -2876,6 +2930,16 @@
     if (value && typeof value === "object" && value.links) {
       if (value.text) td.appendChild(document.createTextNode(value.text));
       value.links.forEach(function (link) {
+        // 화면 안의 일(스발바르 "이 도폭만 켜기")은 주소 없이 단추로 그린다
+        if (link.action) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "proplink action";
+          b.textContent = link.label;
+          b.addEventListener("click", link.action);
+          td.appendChild(b);
+          return;
+        }
         var a = document.createElement("a");
         a.className = "proplink";
         a.href = link.url;
