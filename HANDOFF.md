@@ -3,7 +3,7 @@
 이 문서는 **지금 어디까지 왔고 다음이 무엇인지** 한 곳에서 답한다.
 왜 그렇게 했는지는 `devlog/`, 무엇이 언제 붙었는지는 `CHANGELOG.md`.
 
-마지막으로 손본 날: **2026-09-28**
+마지막으로 손본 날: **2026-09-29**
 
 ## 한 줄
 
@@ -39,6 +39,12 @@ z/x/y 타일로 중계하고, 한국·일본을 한 화면에 모은 동아시�
 
 **v0.9.1 — 한반도 지질도 음영판** (027). 좌표가 박힌 QGIS PDF 를 5179 타일로 잘라 두고
 화면이 옮겨 그린다 — `db/peninsula/`. PDF 의 좌표는 해안선에 대 고쳐 쓴다. 문이 아니다.
+
+**v0.10.0 — 그림 내려받기, 3D 점묶음, 스발바르 도폭** (028·029). 도구 막대의 "그림" 이 지금
+보는 지도를 PNG 한 장으로 내려준다(레이어·축척·출처를 밑에 적는다). 3D(실험)에 점묶음이
+얹히고, 켜고 끈 것은 2D 와 함께 기억한다. 스발바르에 1:10만 도폭 스캔과 도폭 경계가 섰다.
+절(Age) 이름은 국제지질연대층서표 한글판을 따른다. `prewarm` 이 NPI·GSJ·GeoMAP 을 안다.
+밖에 열 때는 `GSM_PUBLIC=1` 하나로 연구실 내부용 레이어가 내려간다. 한반도 지질도 민판(028).
 
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
@@ -79,7 +85,7 @@ GSM_DEV_DIRECT_WMS=0
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 117 개 다 돈다 (`manage.py test viewer`) |
+| 시험 | 464 개 다 돈다 (`manage.py test viewer`, 2026-09-29) |
 | 오픈API | 키로 61 개 전부 그려진다. 범례도 된다. **속성은 막혀 있다** (006) |
 | 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 | 배경지도 | VWorld `Base`·`Satellite`·`Hybrid` 200. 자리 차례는 `z/y/x` (003) |
@@ -141,6 +147,7 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 | `kigam_key` | 상류 인증키 |
 | `dev_direct_wms` | `1` 이면 임시 경로로 간다 |
 | `vworld_key` | 배경지도 열쇠. 있으면 고르개에 VWorld 가 오른다 (넣어 두었다) |
+| `public` | `1` 이면 밖에 연 뷰어 — 연구실 내부용 레이어를 내린다 (029). 지금은 없다 |
 
 환경변수가 있으면 그쪽이 이긴다. 파일은 없어도 된다.
 
@@ -174,6 +181,18 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 - 음영판 파일은 먼저 두었다 — `db/peninsula/geomap.pdf` 와 잘라 둔 `db/peninsula/tiles/`
   (2 343 장, 75 MB 가운데 타일 29 MB). 판이 바뀌면 컨테이너 안에서 `manage.py build_peninsula`
 - 기동할 때 씨앗(음영판 1)이 들어간다. 이주는 없다
+
+### v0.10.0 을 올릴 때
+
+- 민판 파일을 먼저 둔다 (028) — `db/peninsula/` 에 `geomap_new_5179.{png,pgw}` 와 잘라 둔
+  `tiles-plain/`(1 015 장, 6.3 MB). 컨테이너 안에서 `manage.py build_peninsula --layer plain` 을
+  돌려도 같다(메모리 2.2 GB·13 초)
+- 기동할 때 씨앗(지질 참고 +2 지하수 등치선, 스발바르 +2 도폭 스캔·경계, 민판 +1)이 들어간다. 이주는 없다
+- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py fetch_grportal`
+  (이제 NPI 점·지명·도폭 경계까지 받는다)
+- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --probe-info`
+  (`/openapi/wms` 가 속성을 열었는지. 이 서버에는 키가 없어 못 보았다)
+- 운영에서 볼 것 — VWorld 배경을 깐 채 "그림" 을 한 번 (캔버스가 더럽혀지지 않는지)
 
 ## VWorld 로 더 할 수 있는 것
 
