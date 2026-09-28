@@ -181,26 +181,27 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
 한국지질자원연구원이다 — 우리는 받은 것을 다시 내주지 않는다.
 
-## 지역 — 한국·일본·그린란드·스발바르·얀마옌·남극, 그리고 동아시아·북극
+## 지역 — 한국·일본·중국·그린란드·스발바르·얀마옌·남극, 그리고 동아시아·북극
 
 화면 위 지역 탭으로 가른다 (devlog 016). **한국이 기본**이고 다른 지역은
 "+ 추가 지역" 에서 더한다. 지역마다 레이어 목록·켠 레이어·보던 자리·배경·색이
-따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 그린란드는 빙하빛, 스발바르는 노르웨이
+따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 중국은 청화백자, 그린란드는 빙하빛, 스발바르는 노르웨이
 국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 남극은 오로라 청록, 동아시아는 청자.
 
-- **지역마다 화면 투영이 다르다** — 한국·일본·동아시아 3857, 그린란드·스발바르·얀마옌·북극
+- **지역마다 화면 투영이 다르다** — 한국·일본·중국·동아시아 3857, 그린란드·스발바르·얀마옌·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다
 - **북극은 지역이 아니라 묶음이다** — `REGIONS.arctic.includes` 가 그린란드·스발바르·
   얀마옌의 레이어군을 한 화면에 모은다. DB 의 `REGIONS` 에는 없다 (021).
-  **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본을 모은다. 묶음
+  **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·geomap·janmayen). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·geomap·janmayen·geo3al). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
-  받아 우리가 그린다(019·022)
+  받아 우리가 그린다(019·022·025). 면이 만 개를 넘는 중국은 `render: image`
+  (`ol.layer.VectorImage`)로 한 장씩 굽는다
 - **WMS 는 대개 3857 로 받고 OpenLayers 가 옮겨 그린다** — 캐시 열쇠가 앞 판과
   같다. **NPI 만은 지역의 투영으로 곧장 받는다** — 3857 로 물으면 축척이 부풀어
   1:25만 대신 1:75만을 준다 (021). **일본(GSJ)은 WMS 가 아니라 z/x/y 타일**이다 —
@@ -212,11 +213,15 @@ IP 가 막혀 모든 것이 멈춘다 (devlog 010). 얼마나 묻는지는
 - 극지 배경(EOX·NASA GIBS·PGC·NPI 타일)과 일본 배경(국토지리원 지리원 타일)은 VWorld 처럼
   브라우저가 곧장 부른다.
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이다 — 밖에 열 때 다시 본다
+- **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
+  가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
+  재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025)
 - GEUS 는 부르는 이를 `whoami` 로 밝혀 달라고 한다. 이메일이라 **저장소에
   적지 않는다** — `GSM_GEUS_WHOAMI` 나 `<DB 옆>/geus_whoami`
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
-- **파일을 받아 우리가 그리는 것 둘** — 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
-  018)과 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022). 운영은
+- **파일을 받아 우리가 그리는 것 셋** — 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
+  018), 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022), 중국 USGS geo3al
+  (`GSM_USGS_DIR`, 기본 `<DB 옆>/usgs`, 025). 운영은
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
@@ -266,9 +271,10 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. requests 없음
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
+  geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
-  crs.py          평면 좌표계(TM·UTM-K·옛 Bessel) <-> 위경도. pyproj 없이
+  crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트) <-> 위경도. pyproj 없이
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
   models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
@@ -281,7 +287,7 @@ devlog/           왜 그렇게 했는지
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`.**
 이 여섯 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
