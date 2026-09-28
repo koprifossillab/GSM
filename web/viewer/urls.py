@@ -23,6 +23,12 @@ urlpatterns = [
     re_path(r"^geomap/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,7})/(?P<y>\d{1,7})(?P<retina>@2x)?\.png$",
             views.geomap_tile, name="geomap-tile"),
 
+    # 일본 지질도 — GSJ 심리스 지질도 타일·속성·범례 (gsj.py, devlog 024). 레이어는 `gsj:` 를 뗀 이름
+    re_path(r"^gsj/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.gsj_tile, name="gsj-tile"),
+    path("gsj/info/", views.gsj_info, name="gsj-info"),
+    path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
+
     path("catalog/", views.catalog_json, name="catalog"),
     path("patchnotes/", views.patch_notes, name="patchnotes"),
 

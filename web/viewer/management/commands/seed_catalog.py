@@ -54,7 +54,9 @@ class Command(BaseCommand):
                 (settings.JANMAYEN_CATALOG_SEED, "얀마옌", "jan_mayen", "janmayen"),
                 # 노르웨이 극지연구소(NPI, 021) — 스발바르, 그리고 남극의 드로닝모드랜드
                 (settings.NPOLAR_CATALOG_SEED, "스발바르 (NPI)", "svalbard", "npolar"),
-                (settings.NPOLAR_DML_CATALOG_SEED, "드로닝모드랜드 (NPI)", "antarctica", "npolar")):
+                (settings.NPOLAR_DML_CATALOG_SEED, "드로닝모드랜드 (NPI)", "antarctica", "npolar"),
+                # 일본 — GSJ 심리스 지질도 (024)
+                (settings.GSJ_CATALOG_SEED, "일본 (GSJ)", "japan", "gsj")):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

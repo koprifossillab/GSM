@@ -122,6 +122,9 @@ GRPORTAL_URL = env("GSM_GRPORTAL_URL",
 NPOLAR_URL = env("GSM_NPOLAR_URL", "https://geodata.npolar.no/arcgis/rest/services")
 NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
                           "https://services3.arcgis.com/CflNQ7lugha7SFIt/arcgis/rest/services")
+#: 일본 산업기술종합연구소 지질조사종합센터(GSJ)의 심리스 지질도 V2 Web API
+#: (`viewer/gsj.py`, devlog 024). 열쇠가 없다. 판이 오르면 주소의 `1.3` 이 바뀐다.
+GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
 #: 남극 지질도(SCAR GeoMAP) 파일이 있는 곳. 상류가 아니라 **우리 디스크의 파일**이다
 #: (devlog 018). 비어 있거나 파일이 없으면 남극 레이어 자리에 "자료가 없다" 안내가
 #: 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/geomap/` 이다 — 운영은 /srv/GSM/geomap.
@@ -213,6 +216,8 @@ JANMAYEN_CATALOG_SEED = REPO_DIR / "data" / "janmayen_layers.json"
 #: 노르웨이 극지연구소 — 스발바르와 남극 드로닝모드랜드 (devlog 021). 지역이 둘이라 씨앗도 둘
 NPOLAR_CATALOG_SEED = REPO_DIR / "data" / "npolar_layers.json"
 NPOLAR_DML_CATALOG_SEED = REPO_DIR / "data" / "npolar_dml_layers.json"
+#: 일본 — GSJ 심리스 지질도 (devlog 024)
+GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

@@ -132,6 +132,9 @@ EN = {
     # 스발바르와, 그린란드·스발바르·얀마옌을 한 화면에 모은 북극 탭 (devlog 021)
     "스발바르": "Svalbard",
     "북극": "Arctic",
+    # 일본과, 한국·일본을 한 화면에 모은 동아시아 탭 (devlog 024)
+    "일본": "Japan",
+    "동아시아": "East Asia",
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
@@ -438,6 +441,26 @@ EN = {
     "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
     "찾은 것이 없다 — 스발바르 지명을 넣어 본다": "Nothing found — try a Svalbard place name",
     "지명": "Place name",
+    # 일본 — GSJ 심리스 지질도·국토지리원 배경 (gsj.py·map.js, devlog 024)
+    "일본 담색 지도 (국토지리원)": "Japan pale map (GSI)",
+    "일본 국토지리원. 지질도 밑에 깔기 좋다": "Geospatial Information Authority of Japan. Good under a geological map",
+    "일본 표준 지도 (국토지리원)": "Japan standard map (GSI)",
+    "일본 국토지리원": "Geospatial Information Authority of Japan",
+    "일본 항공사진 (국토지리원)": "Japan aerial photos (GSI)",
+    "일본 국토지리원. 일본 밖은 줌 8 까지만 그린다":
+        "Geospatial Information Authority of Japan. Outside Japan it draws only up to zoom 8",
+    "일본 음영기복 (국토지리원)": "Japan hillshade (GSI)",
+    "일본 국토지리원. 지형을 지질도와 견줄 때":
+        "Geospatial Information Authority of Japan. For comparing terrain with geology",
+    "줌 {n} 부터 그려진다": "Drawn from zoom {n}",
+    "선·기호의 범례는 GSJ 가 따로 주지 않는다": "GSJ gives no separate legend for lines and symbols",
+    "원본 뷰어에서 본다 — GSJ": "See it in the original viewer — GSJ",
+    "지금 보는 범위에 든 것 {n}칸": "{n} units in the current extent",
+    "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
+    "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
+    "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    "범례가 없는 레이어다": "This layer has no legend",
+    "bbox 가 없다": "bbox is missing",
 }
 
 
@@ -558,6 +581,8 @@ PROP_EN = {
     "연대 갈래": "Age type",
     "암석": "Rock",
     "문헌 번호": "Reference no.",
+    # 일본 — GSJ 심리스 지질도 (gsj.friendly, devlog 024)
+    "암상 (원문)": "Lithology (original)",
     "위치 근거": "Location basis",
     "기재": "Description",
     "지점": "Locality",
@@ -738,8 +763,49 @@ def age_ko(value: str) -> str:
     return "".join(p + (joiners[i] if i < len(joiners) else "") for i, p in enumerate(out))
 
 
+def age_ko_stacked(value: str) -> str:
+    """위 단위부터 겹쳐 적은 영문 지질시대(일본 GSJ, devlog 024)를 한국어로.
+
+        Cenozoic Quaternary Holocene              → 신생대 제4기 홀로세
+        Mesozoic Early Triassic - Late Triassic   → 중생대 트라이아스기 전기~트라이아스기 후기
+        Mesozoic Jurassic Early - Middle          → 중생대 쥐라기 전기~중기
+        Neogene and Paleogene                     → 신진기 및 고진기
+
+    `age_ko` 는 한 조각에 낱말 하나를 받아 이 꼴을 못 옮긴다. 꾸밈말은 뒤 낱말에
+    붙이고(`Early Triassic`), 뒤에 낱말이 없으면 앞 낱말 뒤에 둔다(`Jurassic Early`).
+    규칙은 같다 — 절(Age) 이름 같은 **모르는 낱말이 하나라도 있으면 원문**이다.
+    꾸밈말이 겹친 것(`late Late Pleistocene` — 후기 플라이스토세를 다시 나눈 것)도
+    원문이다. "플라이스토세 후기 후기" 는 읽히지 않는다.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return value
+    out = []
+    for index, piece in enumerate(re.split(r"\s+(-|–|and)\s+", text)):
+        if index % 2:
+            out.append("~" if piece in "-–" else " 및 ")
+            continue
+        words, pending = [], []
+        for word in piece.split():
+            low = word.lower()
+            if low in AGE_MODIFIERS_KO:
+                pending.append(AGE_MODIFIERS_KO[low])
+            elif low in AGE_WORDS_KO:
+                words.append(" ".join([AGE_WORDS_KO[low]] + pending))
+                pending = []
+            else:
+                return value
+            if len(pending) > 1:
+                return value
+        words.extend(pending)
+        if not words:
+            return value
+        out.append(" ".join(words))
+    return "".join(out)
+
+
 #: 값을 지질시대로 읽는 속성 이름.
-AGE_PROPS = ("지질시대", "시대", "퇴적물시기")
+AGE_PROPS =("지질시대", "시대", "퇴적물시기")
 
 
 #: 5만 도폭 칸에 딸려 오는 링크의 이름표. 상류가 붙이는 고정된 말이다.
@@ -789,6 +855,8 @@ GROUP_EN = {
     "스발바르 지질 (NPI)": "Svalbard geology (NPI)",
     "스발바르 시료·층서 (NPI)": "Svalbard samples & stratigraphy (NPI)",
     "드로닝모드랜드 (NPI)": "Dronning Maud Land (NPI)",
+    # 일본 (gsj.py, devlog 024)
+    "심리스 지질도 (GSJ)": "Seamless geological map (GSJ)",
 }
 
 LAYER_EN = {
@@ -903,4 +971,10 @@ LAYER_EN = {
     "npolar:dml_geochron": "Geochronology",
     "npolar:dml_samples": "Rock sample archive (Antarctica)",
     "npolar:dml_sites": "Field sites",
+    # 일본 — GSJ 심리스 지질도 V2 (gsj.py)
+    "gsj:geology": "1:200K seamless geology",
+    "gsj:geology_level2": "1:200K seamless geology — simplified (14 classes)",
+    "gsj:boundaries": "Geological boundaries",
+    "gsj:faults": "Faults & flexures",
+    "gsj:symbols": "Legend symbols",
 }

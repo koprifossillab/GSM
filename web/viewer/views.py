@@ -20,8 +20,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geomap, geus, grportal, i18n, janmayen, kigam, npolar, patchnotes, pointsets,
-               tilecache, tiles, vworld)
+from . import (coords, crs, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
+               pointsets, tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -210,6 +210,15 @@ def _layer_extra(layer) -> dict:
         spec = npolar.TILES[layer.name]
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "gsj" and gsj.knows(layer.name):
+        # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
+        # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
+        spec = gsj.LAYERS[layer.name]
+        return {"attribution": gsj.ATTRIBUTION,
+                "tiles": f"gsj/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.png",
+                "minZoom": spec["min"], "maxZoom": spec["max"],
+                "legend": spec["legend"] or "none", "viewer": gsj.VIEWER_URL,
+                **({} if spec["info"] else {"queryable": False})}
     return {}
 
 
@@ -382,6 +391,113 @@ def geomap_tile(request, layer, z, x, y, retina=None):
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
     return response
+
+
+# ── 일본 — GSJ 심리스 지질도 (gsj.py, devlog 024) ─────────────────────
+#
+# WMS 가 아니라 z/x/y 타일과 `point=` 범례라서 `/wms/`·`/featureinfo/`·`/legend/` 를
+# 타지 않고 따로 받는다. 캐시·옛것 내주기·안내 타일은 다른 상류와 같다.
+
+@require_GET
+def gsj_tile(request, layer, z, x, y):
+    """일본 지질도 타일 — `gsj/<레이어>/<z>/<x>/<y>.png`. 레이어는 `gsj:` 를 뗀 이름이다."""
+    name, z, x, y = f"gsj:{layer}", int(z), int(x), int(y)
+    if not gsj.valid_tile(name, z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    key = tilecache.key_text("gsj", f"{name}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = gsj.get_tile(name, z, x, y)
+    except gsj.GsjError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("GSJ 타일을 받지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    # 빈 타일도 담는다 — 바다 한가운데를 다시 물을 까닭이 없다
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+def _float(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+@require_GET
+def gsj_info(request):
+    """`?layer=gsj:geology&lat=35.36&lon=138.73` — 누른 자리의 속성. 팝업이 받는
+    꼴(`features`)은 `/featureinfo/` 와 같다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if not gsj.knows(name) or lat is None or lon is None or not gsj.LAYERS[name]["info"]:
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []},
+                            status=400)
+    # 1e-5° 는 1 m 남짓이다. 같은 자리를 다시 누르면 상류를 타지 않는다
+    key = tilecache.key_text("gsj-info", f"{name}/{lat:.5f},{lon:.5f}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = {"row": gsj.point_legend(name, lat, lon)}
+        except gsj.GsjError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("GSJ 속성을 읽지 못했다: %s", exc)
+                error = str(exc) if lang == "ko" else i18n.t(msg("상류에서 받지 못했다"), lang)
+                return JsonResponse({"error": error, "features": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    row = raw.get("row")
+    if not row:
+        return JsonResponse({"features": []})
+    props = gsj.friendly(row, lang)
+    if lang == "en":
+        props = i18n.props_en(props)
+    return JsonResponse({"features": [{"id": row.get("symbol", ""), "props": props}]})
+
+
+@require_GET
+def gsj_legend(request):
+    """`?layer=gsj:geology&bbox=서,남,동,북&z=9` — 보는 범위의 범례 칸들.
+
+    원본은 범례가 2 416 칸이라 그림 한 장으로 줄 수 없다. 화면이 보는 범위에
+    든 것만 물어 HTML 로 그린다. 간략판(14 칸)은 범위를 보지 않고 통째로 준다.
+    범위는 소수 둘째 자리(1 km 남짓)로 잘라 캐시가 맞게 한다.
+    """
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    spec = gsj.LAYERS.get(name)
+    if not spec or not spec["legend"]:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    bbox, z = None, _int(request.GET.get("z"), spec["max"])
+    if spec["legend"] == "extent":
+        parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+        if len(parts) != 4 or None in parts:
+            return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+        bbox = [round(v, 2) for v in parts]
+    key = tilecache.key_text("gsj-legend", f"{name}/{bbox}/z{z if bbox else ''}")
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = gsj.extent_legend(name, bbox, z)
+        except gsj.GsjError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("GSJ 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []},
+                                    status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    shown = [gsj.legend_row(r, lang) for r in rows[:gsj.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 
 def _tile(png: bytes, *, cached: bool = False, store: bool = True):
