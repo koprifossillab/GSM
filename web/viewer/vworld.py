@@ -330,11 +330,21 @@ FRIENDLY = {
 }
 
 
-def friendly(props: dict) -> dict:
+#: 레이어마다 뜻이 다른 열. 지하수 등치선은 `legend` 에 **선의 값**을 싣는다
+#: (단층의 `legend` 는 구분 1·2 다). `info` 는 모든 선이 1 이라 싣지 않는다.
+#: 2026-09-28 에 WFS 로 확인했다 — 등수위 10~430, 전기전도도 50~1400 (대전·청주 둘레).
+LAYER_FRIENDLY = {
+    "lt_l_gimspoten": {"legend": "지하수위 표고 (m)", "info": None},
+    "lt_l_gimsec": {"legend": "전기전도도 (µS/cm)"},
+}
+
+
+def friendly(props: dict, layer: str = "") -> dict:
     """VWorld 의 열 → 팝업에 보일 `{한국어 이름: 값}`. 받은 차례를 지킨다."""
+    table = dict(FRIENDLY, **LAYER_FRIENDLY.get(layer.lower(), {}))
     out = {}
     for key, value in props.items():
-        name = FRIENDLY.get(str(key).lower())
+        name = table.get(str(key).lower())
         if not name or value in (None, "", "null"):
             continue
         if name == "길이 (m)":

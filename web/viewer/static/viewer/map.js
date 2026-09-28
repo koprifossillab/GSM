@@ -488,7 +488,12 @@
       },
       other: { color: "#6b3a2a", width: 1.4, dash: null },
     },
+    // 지하수 등치선 — 갈래가 아니라 값이다. 한 색으로 긋고 가까이서 값을 선에 적는다
+    lt_l_gimspoten: { color: "#1f5fa8", width: 1.2, dash: null, labelBy: "legend", unit: "m" },
+    lt_l_gimsec: { color: "#2a7f62", width: 1.2, dash: [6, 3], labelBy: "legend", unit: "µS/cm" },
   };
+  //: 등치선 값을 적기 시작하는 줌. 멀리서는 글자가 선을 덮는다
+  var VECTOR_LABEL_ZOOM = 11;
   var DEFAULT_VECTOR_STYLE = { color: "#b3202a", width: 1.6, dash: null };
   var vectorStyleCache = {};
 
@@ -507,6 +512,7 @@
   function vectorSpec(name, feature) {
     var table = VECTOR_STYLES[name];
     if (!table) return DEFAULT_VECTOR_STYLE;
+    if (!table.classes) return table;
     var value = feature ? String(feature.get(table.by)) : "";
     return table.classes[value] || table.other || DEFAULT_VECTOR_STYLE;
   }
@@ -561,7 +567,17 @@
     var layer = new ol.layer.Vector({
       source: source,
       opacity: DEFAULT_OPACITY,
-      style: function (feature) { return vectorStyleOf(vectorSpec(row.name, feature)); },
+      style: function (feature, resolution) {
+        var spec = vectorSpec(row.name, feature);
+        var styles = vectorStyleOf(spec);
+        var value = spec.labelBy && feature.get(spec.labelBy);
+        if (value == null || value === "" || mercZoom(resolution) < VECTOR_LABEL_ZOOM) return styles;
+        return styles.concat(new ol.style.Style({ text: new ol.style.Text({
+          text: String(value), font: "11px sans-serif", placement: "line",
+          fill: new ol.style.Fill({ color: spec.color }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
+        }) }));
+      },
     });
     // 누른 자리의 속성을 팝업에 올릴 때 이 표식으로 가려낸다 (`onClick`)
     layer.set("gsmVector", row.name);
@@ -573,9 +589,12 @@
     var table = VECTOR_STYLES[name];
     var box = document.createElement("div");
     box.className = "vector-legend";
-    var rows = table ? Object.keys(table.classes).map(function (value) {
+    var title = byName[name] ? byName[name].title : name;
+    var rows = table && table.classes ? Object.keys(table.classes).map(function (value) {
       return { spec: table.classes[value], label: T("구분 {value}", { value: value }) };
-    }) : [{ spec: DEFAULT_VECTOR_STYLE, label: byName[name] ? byName[name].title : name }];
+    }) : table && table.unit ? [{ spec: table, label: T("등치선 ({unit}) — 줌 {n} 부터 값을 적는다",
+                                                        { unit: table.unit, n: VECTOR_LABEL_ZOOM }) }]
+      : [{ spec: DEFAULT_VECTOR_STYLE, label: title }];
     rows.forEach(function (r) {
       var line = document.createElement("div");
       line.className = "vector-legend-row";

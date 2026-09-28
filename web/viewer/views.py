@@ -762,7 +762,7 @@ def vector(request):
     out = []
     for f in data.get("features") or []:
         props = dict(f.get("properties") or {})
-        popup = vworld.friendly(props)
+        popup = vworld.friendly(props, name)
         props["_popup"] = i18n.props_en(popup) if lang == "en" else popup
         out.append(dict(f, properties=props))
     return _vector_response({"type": "FeatureCollection", "features": out})

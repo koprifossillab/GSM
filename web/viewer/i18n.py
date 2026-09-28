@@ -180,6 +180,7 @@ EN = {
     "국토지리정보원": "National Geographic Information Institute",
     "국토지리정보원 · VWorld": "NGII · VWorld",
     "구분 {value}": "Class {value}",
+    "등치선 ({unit}) — 줌 {n} 부터 값을 적는다": "Contours ({unit}) — values labelled from zoom {n}",
     "국토지리정보원. 지질도 밑에 깔기 좋다":
         "National Geographic Information Institute. Good under geological maps",
     "국토지리정보원. 지명을 끄고 켤 수 있다":
@@ -545,6 +546,8 @@ PROP_EN = {
     "구분": "Class",
     "길이 (m)": "Length (m)",
     "수문지질단위": "Hydrogeologic unit",
+    "지하수위 표고 (m)": "Groundwater level elevation (m)",
+    "전기전도도 (µS/cm)": "Electrical conductivity (µS/cm)",
     "시도": "Province",
     "시군구": "City / county",
     "읍면동": "Town / township",
@@ -960,6 +963,8 @@ LAYER_EN = {
     "lt_l_gimsfault": "Faults",
     "lt_l_gimslinea": "Geological lineaments",
     "lt_c_gimshydro": "Hydrogeologic units",
+    "lt_l_gimspoten": "Groundwater level contours",
+    "lt_l_gimsec": "Groundwater electrical conductivity",
     "lt_c_uj401": "Hot spring zones",
     "lt_l_frstclimb": "Hiking trails",
     "lt_p_nsnmssitenm": "National place names",
