@@ -1377,6 +1377,28 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   --glass: rgba(255, 250, 252, .95); --glass-line: #e3d1da;
 }
 
+/* ── 중국 (devlog 025) — 청화백자: 먹회색 바탕에 코발트 청 ──
+   스발바르의 남색 바탕, 그린란드의 빙하 하늘빛과 겹치지 않게 바탕은 회색으로 두고
+   청은 보랏빛이 도는 코발트로 갔다. 밝은 판은 백자 바탕이다 */
+:root[data-region="china"] {
+  --bg: #15171c; --panel: #1c1f26; --panel-tint: #111318; --raise: #262a33;
+  --ink: #eceff5; --ink-soft: #b4bccb; --ink-faint: #7b8394;
+  --line: #2e333e; --line-soft: #22262e;
+  --gold: #7f9ff0; --gold-bright: #b5c8fa; --gold-muted: #6f8bd4;
+  --gold-wash: rgba(127, 159, 240, .13); --gold-edge: rgba(127, 159, 240, .42);
+  --hi: #7f9ff0; --hi-deep: #b5c8fa; --on-hi: #111318; --hi-ink: #b5c8fa;
+  --glass: rgba(17, 19, 24, .93); --glass-line: rgba(127, 159, 240, .35);
+}
+:root[data-region="china"][data-theme="light"] {
+  --bg: #f1f3f7; --panel: #fcfcfd; --panel-tint: #f5f6f9; --raise: #e6e9f0;
+  --ink: #161b2a; --ink-soft: #48506a; --ink-faint: #858ca0;
+  --line: #d6dbe6; --line-soft: #e6e9f0;
+  --gold: #2f55c2; --gold-bright: #1d3d99; --gold-muted: #4a67b8;
+  --gold-wash: #e6ecfb; --gold-edge: #b3c3ef;
+  --hi: #1d2d5c; --hi-deep: #111c3d; --on-hi: #f4f7ff; --hi-ink: #2f55c2;
+  --glass: rgba(252, 252, 253, .95); --glass-line: #d6dbe6;
+}
+
 /* ── 동아시아 (devlog 024) — 한국·일본을 한 화면에. 청자: 먹녹 바탕에 비색 ──
    두 나라가 함께 빚은 것에서 땄다. 품은 지역의 색(금·벚꽃 분홍) 어느 쪽도 아니다.
    남극의 청록보다 회색이 돌고 밝다 */

@@ -98,11 +98,21 @@
              basemap: "gsi_pale", example: "35.361, 138.727",
              base: ["gsj:geology", "gsj:faults", "gsj:boundaries", "gsj:geology_level2"],
              first: "gsj:geology" },
+    // ── 중국 (devlog 025) ──
+    // USGS geo3al(1:500만)을 우리 서버가 셰이프파일에서 읽어 모양 한 덩이로 준다 — 얀마옌과
+    // 같은 길(`kind: points`)이다. **연구실 내부용**이다(이용 조건이 재배포를 막는다).
+    // 자료가 몽골·한반도·일본·인도차이나 일부까지 덮지만 탭은 중국에 맞춘다
+    china: { title: "중국", proj: "EPSG:3857", center: [104.0, 35.0], zoom: 4, vworld: false,
+             home: [8126323, 1920825, 15139451, 7170156],
+             basemap: "eox_terrain", example: "39.904, 116.407",
+             base: ["geo3al:age", "geo3al:rock"],
+             first: "geo3al:age" },
     eastasia: { title: "동아시아", proj: "EPSG:3857", center: [135.0, 37.5], zoom: 5, vworld: true,
-                includes: ["korea", "japan"],
+                includes: ["korea", "japan", "china"],
                 home: [13803617, 3763311, 16252646, 5388389],
                 basemap: "eox_terrain",
-                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults"],
+                // 중국(geo3al, 025)은 한반도·일본까지 덮는 1:500만이라 늘 펼쳐 두되 켜지는 않는다
+                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults", "geo3al:age"],
                 // 넓게 보는 탭이라 한국은 100만, 일본은 20만(가장 넓은 판)을 켠다
                 first: ["L_1M_Geology_Map", "gsj:geology"] },
   };
@@ -140,8 +150,8 @@
   REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
   });
-  //: 스발바르·북극·일본도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "japan"].forEach(function (key) {
+  //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
+  ["svalbard", "arctic", "japan", "china"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -344,6 +354,7 @@
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
     janmayen: { source: null, info: null },
+    geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
   };
@@ -614,13 +625,13 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "japan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "japan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -1935,7 +1946,10 @@
           });
       },
     });
-    layer = new ol.layer.Vector({
+    // 면이 만 개를 넘는 것(중국 geo3al, 025)은 한 장으로 구워 그린다 — 움직이는 동안
+    // 다시 칠하지 않아 끌기가 버벅이지 않는다. 누른 자리 찾기는 그대로 된다
+    var Kind = row.render === "image" ? ol.layer.VectorImage : ol.layer.Vector;
+    layer = new Kind({
       source: source,
       style: LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
         : portalPointStyle(row.style || "sample"),
@@ -2203,7 +2217,9 @@
       a.href = row.source;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.textContent = T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
+      a.textContent = row.upstream === "geo3al"
+        ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
+        : T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
       box.appendChild(a);
     }
     return box;
@@ -2233,6 +2249,11 @@
       }
       // 점 레이어(그린란드 정부 포털)의 점. 받아 둔 속성을 그 자리에서 읽는다
       if (layer && layer.get("gsmPoints")) {
+        // 면은 누른 자리를 품은 것만 — 5 px 너그러움은 점을 누르기 쉽게 하려는 것이라,
+        // 작게 본 면에서는 옆 단위 두셋이 함께 걸린다 (중국 geo3al, 025)
+        var geom = feature.getGeometry();
+        var areal = geom && /Polygon$/.test(geom.getType());
+        if (areal && !geom.intersectsCoordinate(evt.coordinate)) return;
         var pp = pointPart(feature, layer, pointSeen);
         if (pp) parts.push(pp);
         return;

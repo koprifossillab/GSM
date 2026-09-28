@@ -134,6 +134,11 @@ GEOMAP_DIR = env("GSM_GEOMAP_DIR") or str(_data_dir() / "geomap")
 #: GeoMAP 과 같다 — 저장소에 두지 않고, 없으면 그 레이어에 "자료가 없다" 가 뜰
 #: 뿐 뷰어는 돈다. 기본은 `<DB 옆>/npolar/` 이다 — 운영은 /srv/GSM/npolar.
 NPOLAR_DIR = env("GSM_NPOLAR_DIR") or str(_data_dir() / "npolar")
+#: USGS 에서 받아 둔 파일이 있는 곳. 지금은 동아시아 지질도 geo3al 하나다
+#: (`<여기>/geo3al/geo3al.{shp,dbf,prj}`, devlog 025). **연구실 내부용**이다 — 이용 조건이
+#: 재배포를 막는다. 저장소·이미지에 두지 않고, 없으면 "자료가 없다" 가 뜰 뿐 뷰어는 돈다.
+#: 기본은 `<DB 옆>/usgs/` 이다 — 운영은 /srv/GSM/db/usgs (023 §3).
+USGS_DIR = env("GSM_USGS_DIR") or str(_data_dir() / "usgs")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -218,6 +223,8 @@ NPOLAR_CATALOG_SEED = REPO_DIR / "data" / "npolar_layers.json"
 NPOLAR_DML_CATALOG_SEED = REPO_DIR / "data" / "npolar_dml_layers.json"
 #: 일본 — GSJ 심리스 지질도 (devlog 024)
 GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
+#: 중국 — USGS geo3al (devlog 025)
+GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

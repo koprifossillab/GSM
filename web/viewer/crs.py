@@ -133,6 +133,63 @@ def latlon_to_utm(zone: int, lat: float, lon: float):
     return _ll_to_tm(lat, lon, ("", GRS80, 0, lon0, 0.9996, 500000, 0, False))
 
 
+# ── 람베르트 정각원추 (표준위선 둘) ─────────────────────────────────────
+#
+# USGS 의 동아시아 지질도(geo3al)가 이것으로 온다 — 중앙경선 120°E, 표준위선
+# 31°N·29°S, 원점 위도 0°, WGS84 (devlog 025). 표준위선이 적도 양쪽에 있어 원뿔이
+# 거의 원통이다(n ≈ 0.018). 셈은 Snyder (1987) 의 타원체 식 15-1~15-11 그대로다.
+# 이것도 고르개(`SYSTEMS`)에 올리지 않는다 — 한국 좌표계가 아니다.
+
+WGS84 = (6378137.0, 1 / 298.257223563)
+
+
+def _lcc_t(phi, e):
+    s = math.sin(phi)
+    return math.tan(math.pi / 4 - phi / 2) / ((1 - e * s) / (1 + e * s)) ** (e / 2)
+
+
+def _lcc_m(phi, e2):
+    return math.cos(phi) / math.sqrt(1 - e2 * math.sin(phi) ** 2)
+
+
+@functools.lru_cache(maxsize=8)
+def _lcc_constants(lon0, lat1, lat2, lat0, ellipsoid):
+    a, f = ellipsoid
+    e2 = f * (2 - f)
+    e = math.sqrt(e2)
+    p1, p2, p0 = (math.radians(v) for v in (lat1, lat2, lat0))
+    n = ((math.log(_lcc_m(p1, e2)) - math.log(_lcc_m(p2, e2)))
+         / (math.log(_lcc_t(p1, e)) - math.log(_lcc_t(p2, e))))
+    big_f = _lcc_m(p1, e2) / (n * _lcc_t(p1, e) ** n)
+    return a, e, n, big_f, a * big_f * _lcc_t(p0, e) ** n, math.radians(lon0)
+
+
+def lcc_to_latlon(east, north, lon0, lat1, lat2, lat0=0.0, fe=0.0, fn=0.0, ellipsoid=WGS84):
+    """람베르트 정각원추 (동, 북) → (위도, 경도). 위도는 되풀이로 푼다 (1e-12 rad 까지)."""
+    a, e, n, big_f, rho0, lam0 = _lcc_constants(lon0, lat1, lat2, lat0, ellipsoid)
+    x, y = east - fe, rho0 - (north - fn)
+    rho = math.copysign(math.hypot(x, y), n)
+    theta = math.atan2(x, y) if n > 0 else math.atan2(-x, -y)
+    t = (rho / (a * big_f)) ** (1 / n)
+    phi = math.pi / 2 - 2 * math.atan(t)
+    for _ in range(15):
+        es = e * math.sin(phi)
+        nxt = math.pi / 2 - 2 * math.atan(t * ((1 - es) / (1 + es)) ** (e / 2))
+        if abs(nxt - phi) < 1e-12:
+            phi = nxt
+            break
+        phi = nxt
+    return math.degrees(phi), math.degrees(theta / n + lam0)
+
+
+def latlon_to_lcc(lat, lon, lon0, lat1, lat2, lat0=0.0, fe=0.0, fn=0.0, ellipsoid=WGS84):
+    """(위도, 경도) → 람베르트 정각원추 (동, 북). 시험과 되짚기에 쓴다."""
+    a, e, n, big_f, rho0, lam0 = _lcc_constants(lon0, lat1, lat2, lat0, ellipsoid)
+    rho = a * big_f * _lcc_t(math.radians(lat), e) ** n
+    theta = n * (math.radians(lon) - lam0)
+    return fe + rho * math.sin(theta), fn + rho0 - rho * math.cos(theta)
+
+
 # ── 옛 측지계 (Bessel ↔ GRS80) ────────────────────────────────────────
 
 def _geodetic_to_ecef(lat, lon, ell, h=0.0):

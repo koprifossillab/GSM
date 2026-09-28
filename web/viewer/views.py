@@ -20,7 +20,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
+from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
                pointsets, tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -159,7 +159,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -189,6 +189,13 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
+    if layer.upstream == "geo3al" and geo3al.knows(layer.name):
+        # 중국 지질도(USGS geo3al, 025) — 얀마옌처럼 면을 한 덩이로. 면이 1 만 2 천이라
+        # 화면이 한 장으로 구워 그린다(`render: image`). 이용 조건은 범례 칸이 적는다
+        spec = geo3al.LAYERS[layer.name]
+        return {"kind": "points", "queryable": False, "style": spec["style"], "render": "image",
+                "source": geo3al.SOURCE_URL, "attribution": geo3al.ATTRIBUTION,
+                "opacity": spec["opacity"]}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
@@ -781,6 +788,8 @@ def point_layer(request):
     name = request.GET.get("layer", "")
     if janmayen.knows(name):
         return _janmayen_layer(name, lang)
+    if geo3al.knows(name):
+        return _geo3al_layer(name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name == PLACE_NAMES:
@@ -827,6 +836,23 @@ def _janmayen_layer(name, lang):
     except (janmayen.JanMayenError, OSError, ValueError) as exc:
         log.warning("얀마옌 지질도를 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("얀마옌 지질도 자료(NPI)를 읽지 못했다"), lang)},
+                            status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _geo3al_layer(name, lang):
+    """중국 지질도(USGS geo3al) 한 레이어 (025). 꼴과 까닭은 `_janmayen_layer` 와 같다."""
+    if not geo3al.available():
+        return JsonResponse({"error": i18n.t(msg("중국 지질도 자료(USGS geo3al)가 서버에 없다"), lang)},
+                            status=503)
+    try:
+        content = geo3al.body(name, lang)
+    except (geo3al.Geo3alError, OSError, ValueError) as exc:
+        log.warning("geo3al 을 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("중국 지질도 자료(USGS geo3al)를 읽지 못했다"), lang)},
                             status=500)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
