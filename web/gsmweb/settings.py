@@ -125,6 +125,10 @@ NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
 #: 일본 산업기술종합연구소 지질조사종합센터(GSJ)의 심리스 지질도 V2 Web API
 #: (`viewer/gsj.py`, devlog 024). 열쇠가 없다. 판이 오르면 주소의 `1.3` 이 바뀐다.
 GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
+#: 연구실의 phyloserver — 암맥 기록 (`viewer/phyloserver.py`, devlog 026). 열쇠가 없다.
+#: 같은 서버라 컨테이너에서 호스트의 nginx 를 부른다. `paleolab` 은 컨테이너 안에서
+#: 풀리지 않을 수 있어 주소로 둔다. 비우면 암맥 레이어에 "주소가 없다" 가 뜬다.
+PHYLOSERVER_URL = env("GSM_PHYLOSERVER_URL", "http://172.16.116.98")
 #: 남극 지질도(SCAR GeoMAP) 파일이 있는 곳. 상류가 아니라 **우리 디스크의 파일**이다
 #: (devlog 018). 비어 있거나 파일이 없으면 남극 레이어 자리에 "자료가 없다" 안내가
 #: 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/geomap/` 이다 — 운영은 /srv/GSM/geomap.
@@ -225,6 +229,8 @@ NPOLAR_DML_CATALOG_SEED = REPO_DIR / "data" / "npolar_dml_layers.json"
 GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
+#: 연구실의 암맥 기록 — phyloserver (devlog 026)
+PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

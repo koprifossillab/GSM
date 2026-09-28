@@ -21,7 +21,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               pointsets, tilecache, tiles, vworld)
+               phyloserver, pointsets, tilecache, tiles, vworld)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -199,6 +199,10 @@ def _point_fields(layer) -> dict:
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+    if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
+        # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
+        return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
+                "source": phyloserver.source_url(layer.name), "attribution": phyloserver.ATTRIBUTION}
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
@@ -734,6 +738,7 @@ _point_locks = {}
 _POINT_DOORS = (
     ("grportal", grportal.knows, grportal, grportal.PortalError),
     ("npolar", npolar.knows_points, npolar, npolar.NpolarError),
+    ("phyloserver", phyloserver.knows, phyloserver, phyloserver.PhyloserverError),
 )
 POINT_ERRORS = tuple(door[3] for door in _POINT_DOORS)
 
@@ -758,14 +763,16 @@ def point_features(name: str, *, refresh: bool = False) -> bytes:
     """
     _, module = _point_door(name)
     key = _point_key(name)
+    # 날마다 바뀌는 상류(phyloserver 의 암맥, 026)는 하루면 다시 묻는다
+    fresh = getattr(module, "FRESH_SECONDS", None)
     if not refresh:
-        hit = tilecache.get(key, ".json")
+        hit = tilecache.get(key, ".json", max_age=fresh)
         if hit is not None:
             return hit
     lock = _point_locks.setdefault(name, threading.Lock())
     with lock:
         if not refresh:
-            hit = tilecache.get(key, ".json")         # 기다리는 사이 앞사람이 담았다
+            hit = tilecache.get(key, ".json", max_age=fresh)   # 기다리는 사이 앞사람이 담았다
             if hit is not None:
                 return hit
         try:
