@@ -185,7 +185,7 @@ def _redact(text: str) -> str:
     return _KEY_RE.sub(r"\1…", text or "")
 
 
-def _raw(url: str, params: dict):
+def _raw(url: str, params: dict, timeout=None):
     """열쇠를 붙여 부르고 응답을 그대로 돌려준다. 세는 것도 여기서 한다."""
     if not enabled():
         raise VWorldError("VWorld 열쇠가 없다")
@@ -194,7 +194,7 @@ def _raw(url: str, params: dict):
         raise VWorldError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
     sent = dict(params, key=settings.VWORLD_KEY)
     try:
-        r = requests.get(url, params=sent, timeout=settings.UPSTREAM_TIMEOUT,
+        r = requests.get(url, params=sent, timeout=timeout or settings.UPSTREAM_TIMEOUT,
                          verify=settings.CA_BUNDLE or True,
                          headers={"User-Agent": "GSM/0.1"})
     except requests.RequestException as exc:
@@ -233,9 +233,14 @@ def get_map(params: dict):
 
 
 def get_feature_info(params: dict) -> dict:
-    """`GetFeatureInfo` → GeoJSON FeatureCollection (KIGAM 과 같은 꼴)."""
+    """`GetFeatureInfo` → GeoJSON FeatureCollection (KIGAM 과 같은 꼴).
+
+    **시간 제한을 찾기와 같게 짧게 둔다(`TIMEOUT`).** 팝업은 켠 레이어의 속성이
+    다 와야 한 번에 뜬다 — VWorld 하나가 늦으면 지질도 속성까지 20 초를 기다린다
+    (020 에서 한 번 보았다). 이틀 동안 82 번에 실패 0 이라 잦지는 않지만, 늦을 때
+    지질 참고 한 칸을 버리는 편이 팝업 전체를 붙잡는 것보다 낫다."""
     r = _raw(WMS_URL, _wms_params(dict(params, request="GetFeatureInfo",
-                                       info_format="application/json")))
+                                       info_format="application/json")), timeout=TIMEOUT)
     if r.status_code != 200:
         raise VWorldError(f"속성을 읽지 못했다 (status={r.status_code})")
     try:
