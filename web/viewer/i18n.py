@@ -846,11 +846,40 @@ AGE_PROPS =("지질시대", "시대", "퇴적물시기")
 LINK_EN = {"(원도)": "(original map)", "(수치지질도)": "(digital map)", "열기": "open"}
 
 
+#: 상류가 영어 짝을 따로 주는 열. 영어판에서는 **영어 짝을 제자리에 올리고**
+#: 한국어 원문을 `(Korean)` 줄로 곁에 둔다 — 전에는 한국어 값이 `Formation`,
+#: 영어 값이 `Formation (English)` 로 둘 다 떠서 영어판의 첫 줄이 한글이었다.
+#: 원문을 버리지 않는 것은 한국어 문헌과 맞춰 볼 때 그 이름이 필요해서다.
+ENGLISH_TWINS = {"지층명": "영문지층명", "도곽": "영문도곽", "지질노두명": "지질노두명_영문"}
+
+#: 지체구조도(`L_1M_tectonic_litho`)의 `지체구조운동` — 다섯 가지뿐인 닫힌 낱말이라
+#: 지질시대처럼 옮긴다. 지체구조구(경기육괴 …)는 고유명사라 옮기지 않는다.
+TECTONIC_EN = {
+    "마그마작용": "Magmatism",
+    "변형기반암": "Deformed basement",
+    "변형퇴적암": "Deformed sedimentary rocks",
+    "중첩퇴적암": "Overlap sedimentary rocks",
+    "구조동시성 대륙내 열곡": "Syntectonic intracontinental rift",
+}
+
+
 def props_en(props: dict) -> dict:
     """팝업에 보일 속성을 영어로. 이름은 표로, 지질시대 값은 `age_en` 으로,
     링크 이름표는 `LINK_EN` 으로. 나머지 값은 상류가 준 그대로다."""
     out = {}
+    twins = {main: props[twin] for main, twin in ENGLISH_TWINS.items()
+             if main in props and twin in props and str(props[twin]).strip()}
+    moved = {ENGLISH_TWINS[main] for main in twins}
     for key, value in props.items():
+        if key in twins:
+            name = PROP_EN.get(key, key)
+            out[name] = twins[key]
+            out[f"{name} (Korean)"] = value
+            continue
+        if key in moved:
+            continue
+        if key == "지체구조운동" and isinstance(value, str):
+            value = TECTONIC_EN.get(value.strip(), value)
         if key in AGE_PROPS and isinstance(value, str):
             value = age_en(value)
         elif isinstance(value, dict) and value.get("links"):

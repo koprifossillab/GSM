@@ -126,6 +126,24 @@ class Age(SimpleTestCase):
                                "Formation": "경상누층군", "symnum": "1"})
 
 
+    def test_영어_짝이_있으면_제자리에_올리고_원문은_곁에(self):
+        got = i18n.props_en({"지층명": "경상누층군", "영문지층명": "Gyeongsang Supergroup",
+                             "지질시대": "중생대"})
+        self.assertEqual(list(got), ["Formation", "Formation (Korean)", "Geologic age"])
+        self.assertEqual(got["Formation"], "Gyeongsang Supergroup")
+        self.assertEqual(got["Formation (Korean)"], "경상누층군")
+
+    def test_영어_짝이_비었으면_그대로(self):
+        got = i18n.props_en({"지층명": "경상누층군", "영문지층명": " "})
+        self.assertEqual(got["Formation"], "경상누층군")
+        self.assertIn("Formation (English)", got)
+
+    def test_지체구조운동은_닫힌_낱말이라_옮긴다(self):
+        got = i18n.props_en({"지체구조운동": "구조동시성 대륙내 열곡", "지체구조구": "경기육괴"})
+        self.assertEqual(got["Tectonic event"], "Syntectonic intracontinental rift")
+        self.assertEqual(got["Tectonic province"], "경기육괴")
+
+
 class LangOf(SimpleTestCase):
     def req(self, cookie=None, accept=""):
         from django.test import RequestFactory
