@@ -26,6 +26,10 @@
 에 있고 원본은 NAS `N:\GSM\sources\`. 상류(문)가 다섯으로 늘었다 — KIGAM·VWorld·
 GEUS·그린란드 정부 포털·NPI.
 
+**v0.8.0 — 일본·동아시아** (024). 일본 지질조사종합센터(GSJ)의 심리스 지질도 V2 를
+z/x/y 타일로 중계하고, 한국·일본을 한 화면에 모은 동아시아 묶음 탭을 더했다. 문이
+여섯이 되었다(+ GSJ). GSJ 는 열쇠가 없고 파일도 없다.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
@@ -143,6 +147,11 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 - 기동할 때 이주 0006–0008 과 씨앗(VWorld 11·포털 4·GeoMAP 5·NPI 5+6·얀마옌 3)이 들어간다
 - 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py fetch_grportal`
   (시료 2 만 점을 미리 받아 둔다. 상류를 천천히 탄다)
+
+### v0.8.0 을 올릴 때 (2026-09-28)
+
+- 새 파일·열쇠가 없다. 기동할 때 이주 0009 와 GSJ 씨앗 5 개가 들어간다
+- 운영 장비에서 `gbank.gsj.jp`·`cyberjapandata.gsi.go.jp`(브라우저) 로 나갈 수 있어야 한다
 
 ## VWorld 로 더 할 수 있는 것
 
