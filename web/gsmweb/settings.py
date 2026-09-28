@@ -216,6 +216,26 @@ def _dev_direct_wms() -> bool:
 
 DEV_DIRECT_WMS = _dev_direct_wms()
 
+
+def _public() -> bool:
+    """켜면 **밖에 연 뷰어**로 돈다 — 연구실 안에서만 볼 레이어를 내린다.
+
+    내리는 것은 `views.LAB_ONLY` 의 상류다. 중국 geo3al 은 이용 조건이 "내부
+    용도만, 가공물 포함 재배포 금지"(025), 한반도 지질도 스캔·음영판은 출처를
+    몰라서(026·027), phyloserver 암맥은 연구실의 기록이라서다. 목록에서 빠지고
+    그 길(타일·점)도 404 가 된다. 기본은 꺼짐 — 지금은 연구실 망 안에서만 연다.
+
+    환경변수(`GSM_PUBLIC`)와 파일(`<DB 옆>/public`) 둘 다 본다. 까닭은
+    `dev_direct_wms` 와 같다.
+    """
+    if env_bool("GSM_PUBLIC", False):
+        return True
+    flag = _lines_from("GSM_PUBLIC_FILE", "public")
+    return bool(flag) and flag[0].lower() in ("1", "true", "yes", "on")
+
+
+PUBLIC = _public()
+
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"

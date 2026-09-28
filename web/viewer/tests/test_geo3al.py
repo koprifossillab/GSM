@@ -144,6 +144,24 @@ class Serve(TestCase):
             return self.client.get("/GSM/points/", {"layer": layer, "lang": lang},
                                    HTTP_COOKIE=f"gsm_lang={lang}")
 
+    def test_밖에_열면_내부용은_404(self):
+        with override_settings(PUBLIC=True):
+            r = self.get("geo3al:age")
+        self.assertEqual(r.status_code, 404)
+
+    def test_밖에_열면_목록에서_빠진다(self):
+        from viewer import views
+        from viewer.models import Layer, LayerGroup
+        group = LayerGroup.objects.create(name="중국 시험", region="china")
+        for name in ("geo3al:age", "phyloserver:dikes", "peninsula:shaded", "L_250K_Geology_Map"):
+            Layer.objects.create(name=name, title=name, group=group, upstream=name.split(":")[0]
+                                 if ":" in name else "kigam")
+        names = lambda: {l["name"] for g in views._catalog() for l in g["layers"]}
+        self.assertIn("geo3al:age", names())
+        with override_settings(PUBLIC=True):
+            self.assertEqual(names() & {"geo3al:age", "phyloserver:dikes", "peninsula:shaded",
+                                        "L_250K_Geology_Map"}, {"L_250K_Geology_Map"})
+
     def test_시대_레이어는_물을_빼고_다_싣는다(self):
         r = self.get("geo3al:age")
         self.assertEqual(r.status_code, 200)

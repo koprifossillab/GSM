@@ -148,6 +148,15 @@ def map3d_view(request):
 
 # ── 카탈로그 ──────────────────────────────────────────────────────────
 
+#: 연구실 안에서만 보는 상류. 밖에 열면(`settings.PUBLIC`) 목록에서 빠지고 길도
+#: 닫힌다. 레이어 이름이 `<상류>:…` 꼴이라 이름만 보고 가른다.
+LAB_ONLY = ("geo3al", "phyloserver", "peninsula")
+
+
+def _lab_only(name: str) -> bool:
+    return settings.PUBLIC and str(name).split(":", 1)[0] in LAB_ONLY
+
+
 def _catalog(lang="ko"):
     """레이어 패널의 목록. 영어판이면 제목만 `i18n.LAYER_EN` 으로 바꾼다."""
     en = lang == "en"
@@ -171,7 +180,7 @@ def _catalog(lang="ko"):
             **_layer_extra(l),
         } for l in group.layers.filter(enabled=True)
             # VWorld 열쇠가 없으면 "지질 참고" 는 그릴 길이 없다 — 목록에서 뺀다
-            if l.upstream != "vworld" or vworld.enabled()]
+            if (l.upstream != "vworld" or vworld.enabled()) and not _lab_only(l.name)]
         if layers:
             name = i18n.GROUP_EN.get(group.name, group.name) if en else group.name
             groups.append({"name": name, "region": group.region, "layers": layers})
@@ -451,7 +460,7 @@ def phyloserver_tile(request, layer, level, x, y):
     카카오 격자의 번호 그대로 phyloserver 에 넘긴다. 같은 서버의 파일이라
     캐시에 담지 않는다. 없는 자리는 빈 타일이다."""
     name, level, x, y = f"phyloserver:{layer}", int(level), int(x), int(y)
-    if not phyloserver.valid_scan_tile(name, level, x, y):
+    if _lab_only(name) or not phyloserver.valid_scan_tile(name, level, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
     try:
@@ -471,7 +480,7 @@ def peninsula_tile(request, layer, z, x, y):
     `manage.py build_peninsula` 가 잘라 둔 파일을 내주기만 한다. 캐시에 담지 않는다 —
     이미 우리 디스크의 타일이다. 잘라 둔 것이 없으면 안내 타일, 바다는 빈 타일이다."""
     name, z, x, y = f"peninsula:{layer}", int(z), int(x), int(y)
-    if name not in peninsula.LAYERS or not peninsula.valid_tile(z, x, y):
+    if _lab_only(name) or name not in peninsula.LAYERS or not peninsula.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
     if not peninsula.available():
@@ -843,6 +852,8 @@ def point_layer(request):
     """점 레이어 하나를 GeoJSON 으로. 2 만 점이 4.5 MB, 줄이면(gzip) 0.4 MB 다."""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
+    if _lab_only(name):
+        return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
     if janmayen.knows(name):
         return _janmayen_layer(name, lang)
     if geo3al.knows(name):
