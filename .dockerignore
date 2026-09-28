@@ -49,4 +49,8 @@ npolar/
 *.gpkg
 # 중국 지질도(USGS geo3al) — 이용 조건이 재배포를 막는다. public 이미지에 **절대** 굽지 않는다 (devlog 025)
 usgs/
-**/geo3al.*
+# 자료 파일만 — `geo3al.*` 로 쓰면 코드(`web/viewer/geo3al.py`)까지 빠져 컨테이너가 못 뜬다
+**/geo3al.shp
+**/geo3al.shx
+**/geo3al.dbf
+**/geo3al.prj
