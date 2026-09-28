@@ -664,10 +664,15 @@ AGE_WORDS = {
     "고시생대": "Paleoarchean", "중시생대": "Mesoarchean", "신시생대": "Neoarchean",
     "원생누대": "Proterozoic", "원생대": "Proterozoic",
     "고원생대": "Paleoproterozoic", "중원생대": "Mesoproterozoic", "신원생대": "Neoproterozoic",
-    "시데리아기": "Siderian", "리아시아기": "Rhyacian",
+    # 원생누대의 기 — 앞의 것이 국제지질연대층서표 한글판(아래 AGE_STAGES)의 표기,
+    # 뒤의 것은 전에 쓰던 음역이다. 옛것도 받고, 거꾸로 옮길 때는 앞의 것을 쓴다
+    "시데로스기": "Siderian", "시데리아기": "Siderian",
+    "라이악스기": "Rhyacian", "리아시아기": "Rhyacian",
     "오로세이라기": "Orosirian", "스타테로스기": "Statherian",
-    "칼리미아기": "Calymmian", "엑타시스기": "Ectasian", "스테노스기": "Stenian",
-    "토노스기": "Tonian", "크라이오제니아기": "Cryogenian", "에디아카라기": "Ediacaran",
+    "칼리마기": "Calymmian", "칼리미아기": "Calymmian",
+    "엑타시스기": "Ectasian", "스테노스기": "Stenian", "토노스기": "Tonian",
+    "크리오스진기": "Cryogenian", "크라이오제니아기": "Cryogenian", "에디아카라기": "Ediacaran",
+    "명왕누대": "Hadean", "초시생대": "Eoarchean",
     "현생누대": "Phanerozoic",
     "고생대": "Paleozoic",
     "캄브리아기": "Cambrian", "캠브리아기": "Cambrian",
@@ -684,7 +689,67 @@ AGE_WORDS = {
     "팔레오세": "Paleocene", "에오세": "Eocene", "올리고세": "Oligocene",
     "마이오세": "Miocene", "플라이오세": "Pliocene",
     "플라이스토세": "Pleistocene", "홀로세": "Holocene",
+    # 석탄기의 아기, 고생대의 세(통) — 한글판의 표기
+    "미시시피아기": "Mississippian", "펜실베니아아기": "Pennsylvanian", "펜실베니아기": "Pennsylvanian",
+    "시스우랄세": "Cisuralian", "과달루페세": "Guadalupian", "러핑세": "Lopingian",
+    "란도베리세": "Llandovery", "웬록세": "Wenlock", "러들로세": "Ludlow", "프리돌리세": "Pridoli",
+    "테레누브세": "Terreneuvian", "미아오링세": "Miaolingian", "푸롱세": "Furongian",
 }
+
+#: 절(Age) — **국제지질연대층서표 한글판**(ICS v2024/12, 대한지질학회 지질과학용어위원회
+#: 옮김, stratigraphy.org/ICSchart/ChronostratChart2024-12Korean.pdf)의 표기 그대로다.
+#: 전에는 한국어 표기가 하나로 굳지 않았다며 넣지 않았는데(021), ICS 가 싣는 한글판이
+#: 학회의 승인을 거친 것이라 그것을 따른다. 캄브리아기의 이름 없는 절(Stage 2·3·4·10)은
+#: 한글판이 `제2절` 처럼 적는다. 판이 오르면 이 표를 그 판과 대조한다.
+AGE_STAGES = {
+    # 제4기
+    "메갈라야절": "Meghalayan", "노스그립절": "Northgrippian", "그린란드절": "Greenlandian",
+    "지바절": "Chibanian", "칼라브리아절": "Calabrian", "젤라절": "Gelasian",
+    # 신진기
+    "피아첸차절": "Piacenzian", "장클레절": "Zanclean", "메시나절": "Messinian",
+    "토르토나절": "Tortonian", "세라발레절": "Serravallian", "랑게절": "Langhian",
+    "부르디갈라절": "Burdigalian", "아킨텐절": "Aquitanian",
+    # 고진기
+    "카티절": "Chattian", "루펠절": "Rupelian", "프리아보나절": "Priabonian",
+    "바턴절": "Bartonian", "루테티아절": "Lutetian", "이퍼르절": "Ypresian",
+    "타넷절": "Thanetian", "셀란절": "Selandian", "다니아절": "Danian",
+    # 백악기
+    "마스트리히트절": "Maastrichtian", "캄파이나절": "Campanian", "산토눔절": "Santonian",
+    "코냑절": "Coniacian", "투로니아절": "Turonian", "세노마눔절": "Cenomanian",
+    "알바절": "Albian", "압트절": "Aptian", "바렘절": "Barremian",
+    "오트리브절": "Hauterivian", "발랑절": "Valanginian", "베리아절": "Berriasian",
+    # 쥐라기
+    "티토누스절": "Tithonian", "킴머리지절": "Kimmeridgian", "옥스퍼드절": "Oxfordian",
+    "칼로비움절": "Callovian", "바토니움절": "Bathonian", "바조카에절": "Bajocian",
+    "알렌절": "Aalenian", "토아르시움절": "Toarcian", "플린스바흐절": "Pliensbachian",
+    "시네무룸절": "Sinemurian", "에탕주절": "Hettangian",
+    # 트라이아스기
+    "래티아절": "Rhaetian", "노릭절": "Norian", "카닉절": "Carnian", "라딘절": "Ladinian",
+    "아니수스절": "Anisian", "올레네크절": "Olenekian", "인더스절": "Induan",
+    # 페름기
+    "창싱절": "Changhsingian", "우지아핑절": "Wuchiapingian", "캐피탄절": "Capitanian",
+    "워드절": "Wordian", "로드절": "Roadian", "쿤구르절": "Kungurian",
+    "아르틴스크절": "Artinskian", "사크마라절": "Sakmarian", "아셀절": "Asselian",
+    # 석탄기
+    "그젤절": "Gzhelian", "카시모프절": "Kasimovian", "모스코바절": "Moscovian",
+    "바시키르절": "Bashkirian", "세르푸호프절": "Serpukhovian", "비제절": "Visean",
+    "투르네절": "Tournaisian",
+    # 데본기
+    "파멘절": "Famennian", "프랜절": "Frasnian", "지베절": "Givetian", "아이펠절": "Eifelian",
+    "엠즈절": "Emsian", "프라하절": "Pragian", "로치코프절": "Lochkovian",
+    # 실루리아기
+    "로드포드절": "Ludfordian", "고스티절": "Gorstian", "호머절": "Homerian",
+    "셰인우드절": "Sheinwoodian", "텔리치절": "Telychian", "에어론절": "Aeronian",
+    "루단절": "Rhuddanian",
+    # 오르도비스기
+    "허난트절": "Hirnantian", "케이티절": "Katian", "샌드비절": "Sandbian",
+    "다리윌절": "Darriwilian", "다핑절": "Dapingian", "플로절": "Floian",
+    "트레마독절": "Tremadocian",
+    # 캄브리아기
+    "지앙샨절": "Jiangshanian", "파이비절": "Paibian", "구장절": "Guzhangian",
+    "드럼절": "Drumian", "울리우절": "Wuliuan", "포츈절": "Fortunian",
+}
+AGE_WORDS.update(AGE_STAGES)
 #: 앞 낱말을 꾸미는 말. 영어는 앞에 둔다 — `트라이아스기 후기` → `Late Triassic`.
 AGE_MODIFIERS = {"전기": "Early", "중기": "Middle", "후기": "Late"}
 #: 통째로 옮기는 값.
@@ -726,7 +791,7 @@ def age_en(value: str) -> str:
 # `late Paleocene`·`Early - Middle Triassic`·`Carboniferous - Permian`. 한국어판에서는
 # 위의 표를 거꾸로 써서 옮긴다(devlog 021). 규칙은 `age_en` 과 같다 — 모르는
 # 낱말이 하나라도 있으면 **통째로 원문을 둔다.** 절(Age) 이름(`Bashkirian`·
-# `Aptian`)은 한국어 표기가 하나로 굳지 않아 표에 넣지 않았다 — 그런 값은 원문이다.
+# `Aptian`)은 국제지질연대층서표 한글판을 따른다(`AGE_STAGES`).
 
 #: 영어 → 한국어. `AGE_WORDS` 에서 먼저 나온 한국어를 고른다(`시생누대`·`고진기`).
 AGE_WORDS_KO = {}

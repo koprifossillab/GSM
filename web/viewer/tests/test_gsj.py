@@ -135,9 +135,13 @@ class Friendly(SimpleTestCase):
         self.assertEqual(props["지질시대"], "Cenozoic Quaternary Holocene")
         self.assertEqual(props["구분"], "Igneous rocks")
 
-    def test_절_이름이_섞이면_원문(self):
+    def test_절_이름은_한글판을_따른다(self):
         row = dict(FUJI, formationAge_en="Mesozoic Early Cretaceous Aptian - Albian")
-        self.assertEqual(gsj.friendly(row, "ko")["지질시대"], "Mesozoic Early Cretaceous Aptian - Albian")
+        self.assertEqual(gsj.friendly(row, "ko")["지질시대"], "중생대 백악기 전기 압트절~알바절")
+
+    def test_옛_이름이_섞이면_원문(self):
+        row = dict(FUJI, formationAge_en="Paleozoic Cambrian Series 3 - Ordovician Middle")
+        self.assertEqual(gsj.friendly(row, "ko")["지질시대"], row["formationAge_en"])
 
     def test_간략판은_대분류가_암상(self):
         props = gsj.friendly(LEVEL2, "ko")
@@ -168,8 +172,8 @@ class AgeStacked(SimpleTestCase):
         "Neogene and Paleogene": "신진기 및 고진기",
         # 절(Age) 이름이 섞이면 통째로 원문 (devlog 021 의 규칙)
         "Cenozoic Neogene Miocene late Burdigalian - late Serravallian":
-            "Cenozoic Neogene Miocene late Burdigalian - late Serravallian",
-        "Paleozoic Late Devonian - Permian Cisuralian": "Paleozoic Late Devonian - Permian Cisuralian",
+            "신생대 신진기 마이오세 부르디갈라절 후기~세라발레절 후기",
+        "Paleozoic Late Devonian - Permian Cisuralian": "고생대 데본기 후기~페름기 시스우랄세",
         # 꾸밈말이 겹치면 원문 — "플라이스토세 후기 후기" 는 읽히지 않는다
         "Cenozoic Quaternary late Late Pleistocene - Holocene":
             "Cenozoic Quaternary late Late Pleistocene - Holocene",

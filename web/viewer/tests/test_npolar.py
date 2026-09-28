@@ -149,7 +149,9 @@ class AgeKo(SimpleTestCase):
             "Early-Middle Ordovician": "오르도비스기 전기~중기",
             "Late Triassic - Middle Jurassic": "트라이아스기 후기~쥐라기 중기",
             "Late Devonian or Early Carboniferous": "데본기 후기 또는 석탄기 전기",
-            "Tonian and/or Cryogenian": "토노스기 및/또는 크라이오제니아기",
+            "Tonian and/or Cryogenian": "토노스기 및/또는 크리오스진기",
+            "Bashkirian": "바시키르절",
+            "Moscovian - early Kasimovian": "모스코바절~카시모프절 전기",
             "Neoproterozoic (?)": "신원생대(?)",
             "Eocene - ? Oligocene": "에오세~올리고세(?)",
             "Palaeoproterozoic": "고원생대",
@@ -159,7 +161,7 @@ class AgeKo(SimpleTestCase):
             self.assertEqual(i18n.age_ko(en), ko, en)
 
     def test_모르는_낱말이_있으면_원문(self):
-        for text in ("Bashkirian", "Moscovian - early Kasimovian", "Ordovician, 450-475 my",
+        for text in ("Ordovician, 450-475 my",
                      "Caledonian (?)", "Mesoproterozoic or earliest Neoproterozoic",
                      "Late Triasic - Middle Jurassic"):
             self.assertEqual(i18n.age_ko(text), text)
