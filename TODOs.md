@@ -20,7 +20,16 @@ v0.7.0 에서 그린란드·스발바르·얀마옌·북극·남극이 다 섰�
       3857 이라 북위 85° 위가 둥글게 빈다 (017)
 - [ ] 남극에 고해상 위성 배경이 없다 — GIBS Blue Marble 은 500 m 라 기지 축척에서 흐리다
 - [ ] 극지 줌 문턱 — 점 레이어의 `zoom < 6`, 점묶음 이름표 11 은 3857 줌 기준이다
-- [ ] 스발바르 1:10만 도폭 스캔 120 장 — 도폭 경계를 누르면 그 장이 켜지게 (P01 6단계)
+- [ ] **스발바르 1:10만 도폭 스캔** (P01 6단계) — 2026-09-28 에 서비스를 살폈다, 코드는 아직.
+      `Temadata/G_Geologi_Kartblad/MapServer` (25833, `export` 로 3413 이 잘 온다 — 한 장 3–5 초)
+      - 그림 무리 셋: `1` Kartbilder(지도면만, 38 장) · `40` Papirkart · `80` Papirkart_Med_Tegnforklaring(범례 붙은 종이, 39 장)
+      - `120` S_100_Geologi_Kartblad_Indeks — **도폭 경계 45 면**. `KartNR`·`Navn`·`csv.aar`(판)·`csv.Skala`·
+        `csv.Feltarbeid_status`·`csv.Digitaliseringsstatus`·`csv.NP_publikasjonsdatabase`(논문 링크).
+        `csv.Folk` 에 사람 이메일이 들어 있다 — 팝업에 올리지 않는다
+      - 짓는 안: ① "도폭 스캔 (전부)" 타일 레이어 = `show:1` (npolar.TILES 에 한 줄, png8 이 낫다)
+        ② "도폭 경계" = 120 을 points(면) 레이어로, 이름표 `KartNR Navn`
+        ③ 경계 팝업의 "이 도폭만 켜기" — KartNR 로 Kartbilder 래스터 번호(이름 앞머리 `A4G-` 등)를 찾아
+        `show:<번호들>` 로 한 장만 그린다 (FG23G 처럼 래스터가 여럿인 도폭이 있다)
 - [ ] 스발바르 지질시대의 절(Age) 이름(Bashkirian 등) 한국어 표 — 출처를 정하고 넣는다
 - [ ] GeoMAP 암층(Lithostratigraphic) 채색 — 무늬 채우기가 대부분이라 뺐다 (018)
 - [ ] 그린란드 포털의 `gmom_tracts`(면)·지화학 원소 하나를 골라 색으로 그리기 (019)
