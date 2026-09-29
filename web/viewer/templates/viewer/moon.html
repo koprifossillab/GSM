@@ -1,0 +1,111 @@
+{% load static gsm_i18n %}<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% t "대돌여지도" %} · {% t "달" %}</title>
+<link rel="icon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
+<link rel="stylesheet" href="{% static 'viewer/vendor/cesium/Widgets/widgets.css' %}">
+{% comment %}달은 흑백이다 — 영상이 회색이라 화면도 흑백으로 두면 지질도의 색만 도드라진다.
+지구의 지역 테마(016)를 따르지 않는다. 사용자의 테마 설정도 읽지 않는다.{% endcomment %}
+<style>
+  :root { --ink: #f2f2f2; --dim: #9a9a9a; --line: #3a3a3a; --panel: rgba(12, 12, 12, 0.86); }
+  html, body { margin: 0; height: 100%; background: #000; color: var(--ink);
+               font: 13px/1.5 system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  #moon { position: fixed; inset: 0; }
+  .moon-panel { position: fixed; top: 12px; left: 12px; z-index: 5; width: 280px; padding: 12px 14px;
+                background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .moon-panel h1 { margin: 0 0 2px; font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+  .moon-panel h1 .tag { margin-left: 6px; padding: 0 6px; font-size: 11px; font-weight: 400;
+                        border: 1px solid var(--dim); border-radius: 3px; color: var(--dim); }
+  .moon-panel .sub { margin: 0 0 10px; color: var(--dim); font-size: 11px; letter-spacing: .12em; }
+  .moon-panel h2 { margin: 12px 0 4px; font-size: 12px; font-weight: 600; color: var(--dim); }
+  .moon-panel label { display: block; margin: 3px 0; }
+  .moon-panel input[type=range] { width: 100%; accent-color: #ddd; }
+  .moon-panel input[type=radio], .moon-panel input[type=checkbox] { accent-color: #ddd; }
+  .moon-panel .hint { margin: 8px 0 0; color: var(--dim); font-size: 11.5px; }
+  .moon-panel a { color: var(--ink); }
+  #readout { position: fixed; right: 12px; bottom: 30px; z-index: 5; padding: 3px 8px;
+             background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+             font-variant-numeric: tabular-nums; }
+  #attrs { position: fixed; right: 12px; top: 12px; z-index: 5; width: 320px; max-height: 70vh; overflow: auto;
+           padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  #attrs h3 { margin: 0 0 6px; font-size: 13px; }
+  #attrs table { border-collapse: collapse; }
+  #attrs th { padding: 2px 10px 2px 0; color: var(--dim); font-weight: 400; text-align: left; vertical-align: top;
+              white-space: nowrap; }
+  #attrs td { padding: 2px 0; }
+  #attrs .close { float: right; background: none; border: 0; color: var(--dim); font-size: 16px; cursor: pointer; }
+  .moon-panel { max-height: calc(100vh - 48px); overflow: auto; }
+  .moon-panel h1 .home { float: right; background: none; border: 1px solid var(--line); border-radius: 4px;
+                         color: var(--ink); cursor: pointer; font-size: 14px; line-height: 1; padding: 3px 7px; }
+  .moon-panel h2 .src { margin-left: 6px; font-weight: 400; font-size: 10.5px; letter-spacing: .04em; }
+  .moon-panel label.indent { padding-left: 22px; }
+  .moon-panel details { margin-top: 4px; }
+  .moon-panel summary { cursor: pointer; color: var(--dim); }
+  .legend { list-style: none; margin: 6px 0 0; padding: 0; max-height: 240px; overflow: auto; font-size: 11.5px; }
+  .legend li { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .legend img { width: 16px; height: 16px; flex: 0 0 auto; }
+  .find { position: relative; margin: 0 0 4px; }
+  .find input { box-sizing: border-box; width: 100%; padding: 6px 8px; color: var(--ink); background: #000;
+                border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+  .find ul { list-style: none; margin: 4px 0 0; padding: 0; }
+  .find button { display: block; width: 100%; padding: 3px 6px; text-align: left; color: var(--ink);
+                 background: none; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+  .find button:hover, .find button:focus-visible { background: #222; outline: none; }
+  .find button span, .find .none { color: var(--dim); font-size: 11px; }
+  #attrs .swatch { width: 12px; height: 12px; margin: 0 6px -1px 0; border: 0; }
+  input[type=range]:disabled { opacity: .35; }
+  .cesium-viewer-bottom { opacity: .6; }
+  @media (max-width: 640px) {
+    .moon-panel { width: auto; right: 12px; }
+    #attrs { top: auto; bottom: 64px; left: 12px; right: 12px; width: auto; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="moon"></div>
+<aside class="moon-panel">
+  <h1>{% t "달" %} <button type="button" id="moon-home" class="home" title="{% t "앞면 한가운데로" %}">⌂</button></h1>
+  <p class="sub">GREAT STONE MAP · MOON</p>
+
+  <div class="find">
+    <input type="search" id="moon-find" placeholder="{% t "지명·착륙지 찾기 (Tycho, Apollo 11 …)" %}"
+           autocomplete="off" spellcheck="false">
+    <ul id="moon-find-list"></ul>
+  </div>
+
+  <h2>{% t "배경" %}</h2>
+  <label><input type="radio" name="moon-base" value="wac" checked> {% t "LRO 광각 카메라 영상" %}</label>
+  <label><input type="radio" name="moon-base" value="lola"> {% t "LOLA 표고 음영" %}</label>
+
+  <h2>{% t "지질" %} <span class="src">USGS 1:5M, 2020</span></h2>
+  <label><input type="checkbox" id="moon-geo-units" checked> {% t "지질 단위" %}</label>
+  <label class="indent">{% t "투명도" %} <span id="moon-op-num">60%</span>
+    <input type="range" id="moon-op" min="0" max="100" value="60">
+  </label>
+  <label><input type="checkbox" id="moon-geo-contacts"> {% t "지질 경계" %}</label>
+  <label><input type="checkbox" id="moon-geo-linear"> {% t "선 구조 (능선·열구·단층)" %}</label>
+  <details id="moon-legend">
+    <summary>{% t "범례" %}</summary>
+    <ul id="moon-legend-list" class="legend"></ul>
+  </details>
+
+  <h2>{% t "지형" %}</h2>
+  <label><input type="checkbox" id="moon-terrain" checked> {% t "LOLA 표고로 세운다" %}</label>
+  <label class="indent">{% t "지형 과장" %} <span id="moon-exag-num">×2.0</span>
+    <input type="range" id="moon-exag" min="10" max="50" value="20">
+  </label>
+
+  <p class="hint">{% t "끌면 돌고, 휠로 가까이 간다. 오른쪽 단추나 Ctrl+끌기로 기울인다. 누르면 그 자리의 지질 단위를 읽는다." %}</p>
+  <p class="hint">{% t "영상·지질도·표고: NASA Moon Trek (LRO LROC·LOLA, USGS Astrogeology)." %}</p>
+  <p class="hint"><a href="{{ base }}">{% t "지구로 돌아간다" %}</a></p>
+</aside>
+<div id="readout" hidden></div>
+<div id="attrs" hidden></div>
+<script id="i18n-data" type="application/json">{{ i18n_json|safe }}</script>
+<script>window.CESIUM_BASE_URL = "{% static 'viewer/vendor/cesium/' %}";</script>
+<script src="{% static 'viewer/vendor/cesium/Cesium.js' %}"></script>
+<script src="{% static 'viewer/moon.js' %}?v={{ stamp|default:version }}"></script>
+</body>
+</html>

@@ -17,9 +17,9 @@ KOREAN = re.compile(r"[가-힣]")
 
 def used_keys():
     js = "".join((HERE / "static/viewer" / n).read_text(encoding="utf-8")
-                 for n in ("map.js", "map3d.js"))
+                 for n in ("map.js", "map3d.js", "moon.js"))
     html = "".join((HERE / "templates/viewer" / n).read_text(encoding="utf-8")
-                   for n in ("map.html", "map3d.html"))
+                   for n in ("map.html", "map3d.html", "moon.html"))
     keys = set(re.findall(r'\bT\("((?:[^"\\]|\\.)*)"', js))
     keys |= set(re.findall(r'\{% t "((?:[^"\\]|\\.)*)" %\}', html))
     for name in ("views.py", "pointsets.py"):

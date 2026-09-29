@@ -26,7 +26,14 @@
 
 <aside id="panel">
   <header class="brand">
-    <img class="emblem" src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
+    {% comment %}숨은 차림 — 아이콘을 누르면 뜬다. 지역 탭에 두지 않을 곳(달, P05)으로 가는 문이다{% endcomment %}
+    <button type="button" class="emblem-btn" id="emblem-btn" aria-haspopup="menu" aria-expanded="false"
+            aria-controls="hidden-menu" title="{% t "대돌여지도" %}">
+      <img class="emblem" src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
+    </button>
+    <nav class="hidden-menu" id="hidden-menu" role="menu" hidden>
+      <a role="menuitem" href="moon/"><span class="moon-dot" aria-hidden="true"></span>{% t "달" %}</a>
+    </nav>
     <div>
       <h1>{% t "대돌여지도" %}</h1>
       <p class="tagline">{% if lang == "en" %}대돌여지도{% else %}GREAT STONE MAP{% endif %}</p>

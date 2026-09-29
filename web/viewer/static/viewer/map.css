@@ -191,6 +191,23 @@ li.empty { padding: 8px 2px; font-size: 12.5px; color: var(--ink-faint); }
   border-bottom: 1px solid var(--line-soft);
 }
 .emblem { display: block; flex: 0 0 auto; }
+.brand { position: relative; }
+.emblem-btn { flex: 0 0 auto; padding: 0; background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.emblem-btn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+/* 숨은 차림 (P05) — 아이콘 밑에 작게 뜬다. 달은 흑백이라 이 한 줄만 테마를 따르지 않는다 */
+.hidden-menu {
+  position: absolute; top: 56px; left: 0; z-index: 40; min-width: 150px; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.hidden-menu a {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  color: var(--ink); text-decoration: none; border-radius: calc(var(--radius) - 2px);
+}
+.hidden-menu a:hover, .hidden-menu a:focus-visible { background: #111; color: #f2f2f2; outline: none; }
+.hidden-menu .moon-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f4f4f4, #9a9a9a 60%, #4a4a4a);
+}
 .brand h1 {
   margin: 0;
   font-size: 21px;

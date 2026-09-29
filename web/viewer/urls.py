@@ -8,6 +8,13 @@ app_name = "viewer"
 urlpatterns = [
     path("", views.map_view, name="map"),
     path("3d/", views.map3d_view, name="map3d"),
+    path("moon/", views.moon_view, name="moon"),
+    re_path(r"^moon/tiles/(?P<layer>[a-z]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.moon_tile, name="moon-tile"),
+    re_path(r"^moon/dem/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$", views.moon_dem, name="moon-dem"),
+    path("moon/info/", views.moon_info, name="moon-info"),
+    path("moon/legend/", views.moon_legend, name="moon-legend"),
+    path("moon/places/", views.moon_places, name="moon-places"),
 
     # 상류 프록시. 브라우저는 인증키를 모르고 이 둘만 부른다.
     path("wms/", views.wms, name="wms"),

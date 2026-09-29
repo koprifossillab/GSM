@@ -100,3 +100,24 @@ class Map3dView(TestCase):
         self.assertIn('value="L_250K_Geology_Map"', html)
         self.assertNotIn('value="gsj:geology"', html)
         self.assertNotIn('value="lt_l_gimsfault"', html)
+
+
+class MoonView(TestCase):
+    """달 (036, P05). 지역 탭이 아니라 대돌여지도 아이콘의 숨은 차림에서 들어간다."""
+
+    def test_달_화면이_Cesium_과_달_스크립트를_싣는다(self):
+        html = self.client.get(reverse("viewer:moon")).content.decode()
+        self.assertIn("vendor/cesium/Cesium.js", html)
+        self.assertIn("CESIUM_BASE_URL", html)
+        self.assertIn("viewer/moon.js", html)
+
+    def test_2D_의_아이콘이_숨은_차림으로_달을_연다(self):
+        html = self.client.get(reverse("viewer:map")).content.decode()
+        self.assertIn('id="emblem-btn"', html)
+        menu = re.search(r'<nav class="hidden-menu" id="hidden-menu"[^>]*hidden>(.*?)</nav>', html, re.S)
+        self.assertIsNotNone(menu)
+        self.assertIn('href="moon/"', menu.group(1))
+
+    def test_달은_지역_탭이_아니다(self):
+        from viewer.models import REGIONS
+        self.assertNotIn("moon", dict(REGIONS))

@@ -23,7 +23,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               elevation, peninsula, phyloserver, pointsets, tilecache, tiles, vworld, warp)
+               elevation, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -92,7 +92,7 @@ def _split_links(value):
 # ── 화면 ──────────────────────────────────────────────────────────────
 
 #: 주소 끝에 붙여 캐시를 끊는 파일들.
-STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js")
+STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js", "viewer/moon.js")
 
 
 @functools.lru_cache(maxsize=1)
@@ -167,6 +167,145 @@ def map3d_view(request):
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
+
+
+@require_GET
+def moon_view(request):
+    """달 (devlog 036, P05). CesiumJS 의 둥근 달에 USGS 달 통합 지질도와 LOLA 지형을 얹는다.
+
+    지역 탭이 아니라 대돌여지도 아이콘의 숨은 차림에서 들어온다. 지질도·표고·속성·범례는
+    `moon/…` 이 `trek.py` 로 받고, 영상 배경만 브라우저가 Trek 을 곧장 부른다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/moon.html", {
+        "lang": lang,
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "base": request.path.rsplit("moon", 1)[0],
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+# ── 달 (devlog 036, P05) ───────────────────────────────────────────────
+#
+# 문은 `trek.py` 다. 지질도·표고·속성·범례를 캐시에 담는다(007) — 영상 배경만 브라우저가
+# 곧장 부른다. 격자는 경위도(줌 0 이 가로 2 장·세로 1 장)이고 y 는 북쪽부터 센다.
+
+def moon_tile_key(layer, z, x, y):
+    return tilecache.key_text("trek", f"{layer}/{z}/{x}/{y}")
+
+
+@require_GET
+def moon_tile(request, layer, z, x, y):
+    """달 지질도 타일 — `moon/tiles/<units|contacts|linear>/<z>/<x>/<y>.png`."""
+    z, x, y = int(z), int(x), int(y)
+    if layer not in trek.LAYERS or not trek.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = moon_tile_key(layer, z, x, y)
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.get_tile(layer, z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("달 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def moon_dem(request, z, x, y):
+    """달 표고 격자 — `moon/dem/<z>/<x>/<y>.png`, 65×65 Terrarium (LOLA).
+
+    못 받으면 502 다. 화면은 그 자리를 평평하게 그린다 — 안내 타일을 표고로 읽으면
+    엉뚱한 산이 솟는다."""
+    z, x, y = int(z), int(x), int(y)
+    if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-dem", f"{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.dem_tile(z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("달 표고를 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request))}, status=502)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def moon_info(request):
+    """`?lon=-15&lat=20` — 누른 자리의 지질 단위. `{"rows": [[이름, 값], …]}`.
+
+    값은 옮기지 않는다. 시대만 한국어판에서 옮긴다(`trek.AGES_KO`)."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    # 1e-3° 는 달에서 30 m 남짓이다 — 1:500만 지도에는 한 점이다
+    key = tilecache.key_text("trek-info", f"{lon:.3f},{lat:.3f}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = {"hit": trek.identify(lon, lat)}
+        except trek.TrekError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("달 속성을 읽지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    hit = raw.get("hit")
+    if not hit:
+        return JsonResponse({"rows": []})
+    rows = []
+    for label, value in hit["rows"]:
+        if label == "시대" and lang != "en":
+            value = trek.AGES_KO.get(value, value)
+        rows.append([i18n.PROP_EN.get(label, label) if lang == "en" else label, value])
+    return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
+
+
+@require_GET
+def moon_legend(request):
+    """달 지질 단위 49 가지의 범례. 이름은 상류의 것 그대로다(값이라 옮기지 않는다)."""
+    key = tilecache.key_text("trek-legend", "units")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"items": trek.legend()}
+        except trek.TrekError as exc:
+            data = _cached_json(key, stale=True)
+            if data is None:
+                log.warning("달 범례를 받지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request)),
+                                     "items": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
+@functools.lru_cache(maxsize=1)
+def _moon_places():
+    return trek.load_places(settings.MOON_PLACES_FILE)
+
+
+@require_GET
+def moon_places(request):
+    """`?q=tycho` — 달 지명·착륙지 찾기. 저장소의 `data/moon_places.json` 만 뒤진다."""
+    return JsonResponse({"results": trek.search_places(_moon_places(), request.GET.get("q", "")[:80])})
 
 
 # ── 카탈로그 ──────────────────────────────────────────────────────────

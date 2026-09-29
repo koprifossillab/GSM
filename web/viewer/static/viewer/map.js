@@ -4164,6 +4164,27 @@
     return ok;
   }
 
+  /** 대돌여지도 아이콘의 숨은 차림. 누르면 뜨고, 밖을 누르거나 Esc 면 닫힌다 (P05). */
+  function wireEmblemMenu() {
+    var button = document.getElementById("emblem-btn");
+    var menu = document.getElementById("hidden-menu");
+    if (!button || !menu) return;
+    function show(open) {
+      menu.hidden = !open;
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    button.addEventListener("click", function (e) {
+      e.stopPropagation();
+      show(menu.hidden);
+    });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !menu.contains(e.target)) show(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !menu.hidden) { show(false); button.focus(); }
+    });
+  }
+
   function cssEscape(text) {
     return String(text).replace(/["\\]/g, "\\$&");
   }
@@ -4184,6 +4205,7 @@
   wireCrs();
   wireUpload();
   wirePopup();
+  wireEmblemMenu();
 
   renderRegions();
   applyRegion();

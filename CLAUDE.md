@@ -191,6 +191,11 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 중국은 청화백자, 그린란드는 빙하빛, 스발바르는 노르웨이
 국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 남극은 오로라 청록, 동아시아는 청자.
 
+- **달은 지역이 아니다** — 대돌여지도 아이콘의 숨은 차림에서 들어가는 따로 화면(`/GSM/moon/`)이다.
+  CesiumJS 의 둥근 달(극까지 온전하다)에 USGS 달 통합 지질도와 LOLA 지형을 얹고, 테마는 늘 흑백이다
+  (036, P05). 지질도·표고·속성·범례는 `trek.py` 를 거치고, 영상 배경(LRO WAC·LOLA 음영)만 브라우저가
+  Trek 을 곧장 부른다. 좌표는 달 경위도다 — 지구의 `toLL`·점묶음·좌표계를 타지 않는다. 달 지명은
+  `data/moon_places.json`(`manage.py fetch_moon_places`)
 - **지역마다 화면 투영이 다르다** — 한국·일본·중국·동아시아 3857, 그린란드·스발바르·얀마옌·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다
@@ -281,6 +286,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
+  trek.py         NASA Moon Trek 으로 나가는 문 (달 지질도·LOLA 표고·지명). 달 화면(Cesium)만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. requests 없음
@@ -302,8 +308,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/t
 devlog/           왜 그렇게 했는지
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`.**
-이 여덟 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`.**
+이 아홉 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
