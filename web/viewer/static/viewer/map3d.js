@@ -42,11 +42,14 @@
 
   var start = startView();
   var select = document.getElementById("layer3d");
-  select.value = "L_250K_Geology_Map";
+  // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위). 3D 목록에 없으면 25만
+  var asked = new URLSearchParams(location.search).get("layer");
+  select.value = asked && select.querySelector('option[value="' + asked.replace(/"/g, "") + '"]')
+    ? asked : "L_250K_Geology_Map";
 
   var sources = {
     dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 15,
-           attribution: "Terrain: Mapzen/AWS Terrain Tiles" },
+           attribution: "Terrain: Mapzen/AWS Terrain Tiles · 국토지리원 · ArcticDEM/REMA © PGC (CC BY 4.0)" },
     shade: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 15 },
     kigam: { type: "raster", tiles: wmsTiles(select.value), tileSize: 512,
              attribution: "© 한국지질자원연구원" },
@@ -71,6 +74,7 @@
   // devlog 031). AWS(SRTM 30 m)보다 촘촘하다 — 후지산을 3 774 m 로 읽는다(AWS 3 754 m).
   // 경계는 서버의 `elevation.in_japan` 과 같다. 국토지리원 타일은 z14 가 끝이다
   var GSI_MAX_ZOOM = 14;
+  var POLAR_LAT = 60;         // 서버의 `elevation.POLAR_LAT`
   function inJapan(lat, lon) {
     if (!(lon >= 122.9 && lon <= 154.0 && lat >= 20.0 && lat <= 45.6)) return false;
     if (lon < 129.0) return false;
@@ -80,17 +84,21 @@
   }
   function demRequest(url) {
     var m = /\/terrarium\/(\d+)\/(\d+)\/(\d+)\.png$/.exec(url);
-    if (!m) return { url: url };
+    if (!m) return undefined;
     var z = +m[1], x = +m[2], y = +m[3], n = Math.pow(2, z);
-    if (z > GSI_MAX_ZOOM) return { url: url };
     var lon = (x + 0.5) / n * 360 - 180;
     var lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 0.5) / n))) * 180 / Math.PI;
-    return inJapan(lat, lon) ? { url: location.origin + BASE + "dem/" + z + "/" + x + "/" + y + ".png" } : { url: url };
+    // 위도 60° 너머는 PGC ArcticDEM·REMA 2 m 를 서버가 옮겨 준다(032). AWS 는 여기서 이음매가
+    // 계단처럼 드러나고 결이 뭉개진다
+    var ours = Math.abs(lat) >= POLAR_LAT || (z <= GSI_MAX_ZOOM && inJapan(lat, lon));
+    return ours ? { url: location.origin + BASE + "dem/" + z + "/" + x + "/" + y + ".png" } : undefined;
   }
 
   var map = new maplibregl.Map({
     container: "map3d",
-    transformRequest: function (url, kind) { return kind === "Tile" ? demRequest(url) : { url: url }; },
+    // 바꿀 것이 없으면 아무것도 돌려주지 않는다 — `{url}` 을 돌려주면 지질도 타일의 상대 주소가
+    // 풀리지 않아 요청이 나가지 않았다(2026-09-29, 스발바르에서 보았다)
+    transformRequest: function (url, kind) { return kind === "Tile" ? demRequest(url) : undefined; },
     style: { version: 8, sources: sources, layers: layers,
              glyphs: GLYPHS ? location.origin + GLYPHS + "{fontstack}/{range}.pbf" : undefined },
     localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif",

@@ -2016,8 +2016,11 @@
     document.getElementById("tool-3d").addEventListener("click", function () {
       var view = map.getView();
       var ll = toLL(view.getCenter());
+      // 극 평사도법의 줌은 3857 보다 두세 단계 낮게 읽는다 — 되짚은 줌을 넘긴다(`mercZoom`)
+      var top = active.filter(function (e) { return e.layer.getVisible(); })[0];
       this.href = "3d/?lat=" + ll[1].toFixed(5) + "&lon=" + ll[0].toFixed(5) +
-        "&z=" + Math.max(8, view.getZoom()).toFixed(2);
+        "&z=" + Math.max(8, mercZoom(view.getResolution())).toFixed(2) +
+        (top ? "&layer=" + encodeURIComponent(top.name) : "");
     });
     document.getElementById("save-temp").addEventListener("click", saveTemp);
     document.getElementById("clear-temp").addEventListener("click", clearDrawn);
@@ -3353,9 +3356,10 @@
     var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
     document.getElementById("basemap-labels-wrap").style.display = labelled ? "" : "none";
     document.getElementById("crs-pick").hidden = !spec.vworld;
-    // 3D 는 메르카토르 하나뿐이다 — 극지 탭에서는 단추를 숨긴다(P02 §7). 그린란드가
-    // 부풀고 남극은 남위 85° 안쪽이 없어, 눌러서 엉뚱한 곳이 열리는 것보다 낫다
-    document.getElementById("tool-3d").classList.toggle("off-region", regionProj() !== "EPSG:3857");
+    // 3D 는 메르카토르 하나뿐이다. 남극만 숨긴다 — 남위 85° 안쪽이 없다(P02 §7). 북극 쪽
+    // (그린란드 83.6°N 까지)은 메르카토르 안이고, 가까이 보는 3D 에서는 부풂이 거슬리지 않는다.
+    // 지형은 PGC ArcticDEM 을 서버가 옮겨 준다 (032)
+    document.getElementById("tool-3d").classList.toggle("off-region", regionProj() === "EPSG:3031");
     if (syncGotoHint) syncGotoHint();
     var note = document.getElementById("region-note");
     note.hidden = !spec.pending;

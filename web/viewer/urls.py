@@ -52,8 +52,8 @@ urlpatterns = [
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
     path("pointsets/<int:pk>/elevation/", views.pointset_elevation, name="pointset-elevation"),
-    # 3D 의 일본 지형 — 국토지리원 표고 타일을 Terrarium 꼴로 (elevation.py, devlog 031)
-    re_path(r"^dem/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.japan_dem, name="japan-dem"),
+    # 3D 의 촘촘한 지형 — 극지 PGC·일본 국토지리원을 Terrarium 꼴로 (elevation.py, 031·032)
+    re_path(r"^dem/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.dem_tile, name="dem-tile"),
 
     path("coords/parse/", views.coord_parse, name="coord-parse"),
     path("coords/project/", views.coord_project, name="coord-project"),

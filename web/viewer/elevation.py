@@ -226,6 +226,105 @@ def _pixels(image):
     return flat() if flat else image.getdata()
 
 
+# ── 3D 의 극지 지형 ──────────────────────────────────────────────────
+#
+# 북위 60° 너머는 PGC ArcticDEM(남쪽은 REMA)을 3857 타일로 옮겨 3D 에 준다 (032).
+# **PGC 는 3857 로 물으면 값이 비고, 4326 으로 물으면 자리가 어긋나 온다**(2026-09-29,
+# `identify` 한 점 값과 견줬다). 제 투영(3413·3031)으로는 맞게 준다. 그래서 타일이 덮는
+# 극 평사도법 네모를 받아, 칸마다 네 모서리를 되짚어 편다(`warp.py` 와 같은 `MESH`).
+
+PGC_EXPORT_URL = "https://di-pgc.img.arcgis.com/arcgis/rest/services/{service}/ImageServer/exportImage"
+#: 3D 가 극지 표고를 받는 줌. 2 m 모자이크라 z15 까지 값이 촘촘하다
+POLAR_MAX_ZOOM = 15
+_NODATA = -9999.0
+#: 이보다 낮으면 자료 없음으로 본다 — 쌍선형이 빈 칸(−9999)과 섞인 가장자리까지 거른다.
+#: 모자이크의 가장 낮은 값이 −155 m 다
+_FLOOR = -500.0
+_MESH = 8
+_SRC = 512
+
+
+def _terrarium_rgb(value):
+    v = value + 32768
+    r, rem = divmod(v, 256)
+    g = int(rem)
+    b = int(round((rem - g) * 256))
+    if b == 256:
+        g, b = g + 1, 0
+    return (max(0, min(255, int(r))), g, b)
+
+
+def _merc_lonlat(z, x, y, px, py):
+    n = 2 ** z
+    lon = (x + px / 256) / n * 360.0 - 180.0
+    lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + py / 256) / n))))
+    return lon, lat
+
+
+def polar_terrarium(z: int, x: int, y: int):
+    """PGC 해발을 Terrarium 으로 옮긴 3857 타일. 모자이크 밖이면 None(→ AWS)."""
+    from . import tilegrid
+    key = tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return None if hit == _NONE else hit
+    _, lat_mid = _merc_lonlat(z, x, y, 128, 128)
+    crs, service = ("EPSG:3413", "arcticdem_latest") if lat_mid > 0 else ("EPSG:3031", "rema_latest")
+    step = 256 / _MESH
+    corners = {(i, j): tilegrid.polar_forward(*_merc_lonlat(z, x, y, i * step, j * step), crs)
+               for i in range(_MESH + 1) for j in range(_MESH + 1)}
+    xs = [c[0] for c in corners.values()]
+    ys = [c[1] for c in corners.values()]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    side = max(x1 - x0, y1 - y0)                       # 정사각으로 받아 픽셀이 반듯하게
+    x1, y0 = x0 + side, y1 - side
+    r = _get(PGC_EXPORT_URL.format(service=service), "pgc", params={
+        "bbox": f"{x0},{y0},{x1},{y1}", "bboxSR": crs.split(":")[1], "imageSR": crs.split(":")[1],
+        "size": f"{_SRC},{_SRC}", "format": "tiff", "compression": "LZ77", "pixelType": "F32",
+        "noData": _NODATA, "interpolation": "RSP_BilinearInterpolation",
+        "renderingRule": '{"rasterFunction":"Height Orthometric"}', "f": "image"})
+    if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+        raise ElevationError(f"PGC 가 표고 그림을 주지 않았다 (status={r.status_code})")
+    src = Image.open(io.BytesIO(r.content))
+    src.load()
+    if src.mode != "F":
+        raise ElevationError(f"PGC 가 뜻밖의 그림을 주었다 ({src.mode})")
+    res = side / _SRC
+
+    def px(key):
+        e, n = corners[key]
+        return (e - x0) / res, (y1 - n) / res
+
+    mesh = []
+    for i in range(_MESH):
+        for j in range(_MESH):
+            box = (round(i * step), round(j * step), round((i + 1) * step), round((j + 1) * step))
+            mesh.append((box, px((i, j)) + px((i, j + 1)) + px((i + 1, j + 1)) + px((i + 1, j))))
+    warped = src.transform((256, 256), Image.MESH, mesh, resample=Image.BILINEAR, fillcolor=_NODATA)
+    values = list(_pixels(warped))
+    if all(v < _FLOOR for v in values):
+        tilecache.put(key, _NONE)
+        return None
+    fill = None
+    out = []
+    for index, v in enumerate(values):
+        if v < _FLOOR:
+            # 모자이크의 구멍(바다·자료 밖) — 같은 자리의 AWS 값
+            if fill is None:
+                aws = terrarium_tile(z, x, y)
+                fill = list(_pixels(Image.open(io.BytesIO(aws)).convert("RGB"))) if aws else []
+            out.append(fill[index] if fill else (128, 0, 0))
+            continue
+        out.append(_terrarium_rgb(v))
+    image = Image.new("RGB", (256, 256))
+    image.putdata(out)
+    buf = io.BytesIO()
+    image.save(buf, "PNG")
+    png = buf.getvalue()
+    tilecache.put(key, png)
+    return png
+
+
 # ── 3D 의 일본 지형 ──────────────────────────────────────────────────
 
 def japan_terrarium(z: int, x: int, y: int):
@@ -255,13 +354,7 @@ def japan_terrarium(z: int, x: int, y: int):
                 continue
             out.append(fill[index])
             continue
-        v = value + 32768
-        r, rem = divmod(v, 256)
-        g = int(rem)
-        b = int(round((rem - g) * 256))
-        if b == 256:
-            g, b = g + 1, 0
-        out.append((int(r), g, b))
+        out.append(_terrarium_rgb(value))
     image = Image.new("RGB", gsi.size)
     image.putdata(out)
     buf = io.BytesIO()

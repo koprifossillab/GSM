@@ -7,6 +7,7 @@ import functools
 import hashlib
 import json
 import logging
+import math
 import re
 import threading
 
@@ -145,8 +146,10 @@ def map3d_view(request):
     # 3D 는 3857 WMS 타일만 얹는다(`map3d.js` 의 `wmsTiles`). 모양·점 레이어와, 우리가
     # 굽거나(GeoMAP·음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —
     # 목록에 두면 골라도 빈 화면이다
+    # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
-                              and l.get("upstream") in ("kigam", "geus", "vworld")])
+                              and (l.get("upstream") in ("kigam", "geus", "vworld")
+                                   or (l.get("upstream") == "npolar" and npolar.knows(l["name"])))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -1299,16 +1302,25 @@ def pointset_elevation(request, pk):
 
 
 @require_GET
-def japan_dem(request, z, x, y):
-    """3D 의 일본 지형 — 국토지리원 표고 타일을 Terrarium 꼴로 (`dem/<z>/<x>/<y>.png`, 031).
-    일본 밖이면 AWS 로 넘긴다(302). 3D 는 일본 자리의 타일만 여기로 부른다."""
+def dem_tile(request, z, x, y):
+    """3D 의 촘촘한 지형 — Terrarium 꼴 표고 타일 (`dem/<z>/<x>/<y>.png`).
+
+    위도 60° 너머는 PGC ArcticDEM·REMA(2 m, 032), 일본은 국토지리원(10 m, 031)을 옮긴다.
+    그 밖이거나 못 만들면 AWS 로 넘긴다(302). 3D 는 그 두 자리의 타일만 여기로 부른다."""
     z, x, y = int(z), int(x), int(y)
-    if not (0 <= x < 2 ** z and 0 <= y < 2 ** z) or z > elevation.GSI_ZOOM:
+    if not (0 <= x < 2 ** z and 0 <= y < 2 ** z) or z > elevation.POLAR_MAX_ZOOM:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    n = 2 ** z
+    lon = (x + 0.5) / n * 360.0 - 180.0
+    lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 0.5) / n))))
+    png = None
     try:
-        png = elevation.japan_terrarium(z, x, y)
-    except elevation.ElevationError as exc:
-        log.info("일본 표고 타일을 못 만들어 AWS 로 넘긴다: %s", exc)
+        if abs(lat) >= elevation.POLAR_LAT:
+            png = elevation.polar_terrarium(z, x, y)
+        elif z <= elevation.GSI_ZOOM and elevation.in_japan(lat, lon):
+            png = elevation.japan_terrarium(z, x, y)
+    except (elevation.ElevationError, OSError, ValueError) as exc:
+        log.info("표고 타일을 못 만들어 AWS 로 넘긴다 (%s/%s/%s): %s", z, x, y, exc)
         png = None
     if png is None:
         response = HttpResponse(status=302)
