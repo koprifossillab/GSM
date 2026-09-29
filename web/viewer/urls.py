@@ -17,6 +17,15 @@ urlpatterns = [
     path("moon/places/", views.moon_places, name="moon-places"),
     path("moon/landings/", views.moon_landings, name="moon-landings"),
     path("moon/eva/", views.moon_eva, name="moon-eva"),
+    path("mars/", views.mars_view, name="mars"),
+    re_path(r"^mars/tiles/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.mars_tile, name="mars-tile"),
+    re_path(r"^mars/dem/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$", views.mars_dem, name="mars-dem"),
+    path("mars/info/", views.mars_info, name="mars-info"),
+    path("mars/legend/", views.mars_legend, name="mars-legend"),
+    path("mars/places/", views.mars_places, name="mars-places"),
+    path("mars/landings/", views.mars_landings, name="mars-landings"),
+    path("mars/traverses/", views.mars_traverses, name="mars-traverses"),
 
     # 상류 프록시. 브라우저는 인증키를 모르고 이 둘만 부른다.
     path("wms/", views.wms, name="wms"),

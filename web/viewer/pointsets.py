@@ -55,7 +55,7 @@ def parse(filename: str, raw: bytes, crs_code: str = "4326", *, lunar: bool = Fa
     `crs_code` 는 사람이 고른 좌표계다. GeoJSON 이 스스로 `crs` 를 밝히면
     그쪽이 이긴다.
 
-    `lunar` 면 달 경위도로만 읽는다(devlog 037) — 평면 좌표계(TM·UTM-K …)는 지구의 것이라
+    `lunar` 면 달(화성도, 058) 경위도로만 읽는다(devlog 037) — 평면 좌표계(TM·UTM-K …)는 지구의 것이라
     고른 것도 GeoJSON 이 밝힌 것도 듣지 않는다.
     """
     text = _decode(raw)
@@ -385,7 +385,9 @@ def _from_geojson(text: str, crs_code: str = "4326", *, ignore_declared: bool = 
 ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
                "pgc-arcticdem-2m": "pgc-orthometric", "pgc-rema-2m": "pgc-orthometric",
                # 달 — `trek.ELEV_SOURCE`. 반지름 1 737.4 km 구에서 잰 높이 (037)
-               "lola-128ppd": "moon-sphere"}
+               "lola-128ppd": "moon-sphere",
+               # 화성 — `trek.MARS_ELEV_SOURCE`. 화성 기준면(아레오이드)에서 잰 높이 (058)
+               "mola-hrsc-200m": "mars-areoid"}
 
 
 def restore(gone):

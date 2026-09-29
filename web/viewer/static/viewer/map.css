@@ -1489,8 +1489,27 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #1a1a1a; --hi-deep: #000000; --on-hi: #ffffff; --hi-ink: #000000;
   --glass: rgba(255, 255, 255, .94); --glass-line: #cfcfcf;
 }
-:root[data-region="moon"] .count { color: var(--on-hi); background: var(--hi); }
-:root[data-region="moon"] #map { background: #000; }
+/* ══ 화성 (058) — 달의 틀 그대로, 색만 아이콘의 녹슨 주황과 검붉은 흙빛이다 ══ */
+:root[data-region="mars"] {
+  --bg: #140a06; --panel: #1d100a; --panel-tint: #170c07; --raise: #28160d;
+  --ink: #f6e6da; --ink-soft: #d0b3a0; --ink-faint: #957462;
+  --line: #4a2a1a; --line-soft: #331c11;
+  --gold: #e8894c; --gold-bright: #f6a36a; --gold-muted: #b86a3c;
+  --gold-wash: rgba(232, 137, 76, .1); --gold-edge: rgba(232, 137, 76, .42);
+  --hi: #e07a3c; --hi-deep: #f6a36a; --on-hi: #1a0d08; --hi-ink: #f6a36a;
+  --glass: rgba(26, 13, 8, .9); --glass-line: rgba(232, 137, 76, .32);
+}
+:root[data-region="mars"][data-theme="light"] {
+  --bg: #f6ece4; --panel: #fffaf6; --panel-tint: #fbf1ea; --raise: #f0e0d4;
+  --ink: #2a140a; --ink-soft: #5c3a28; --ink-faint: #9a7a66;
+  --line: #e0c8b8; --line-soft: #efe0d4;
+  --gold: #b4501f; --gold-bright: #8e3a12; --gold-muted: #a86a48;
+  --gold-wash: #fbe9dc; --gold-edge: #e8b896;
+  --hi: #c1552a; --hi-deep: #8e3a12; --on-hi: #ffffff; --hi-ink: #8e3a12;
+  --glass: rgba(255, 250, 246, .94); --glass-line: #e0c8b8;
+}
+:root[data-region="moon"] .count, :root[data-region="mars"] .count { color: var(--on-hi); background: var(--hi); }
+:root[data-region="moon"] #map, :root[data-region="mars"] #map { background: #000; }
 /* 구와 평면 — 한 자리를 나눠 쓴다. 넘어가는 것은 `moon.js` 의 `setMode` */
 #globe { position: absolute; inset: 0; background: #000; }
 .moon-globe #map, .moon-flat #globe { visibility: hidden; }
@@ -1498,8 +1517,9 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .moon-globe .if-flat, .moon-flat .if-globe { display: none !important; }
 .moon-globe #scalebar { display: none; }
 .hidden-menu .moon-dot.earth-dot { background: radial-gradient(circle at 35% 35%, #9fd0ff, #3d6fa8 60%, #1d3a5c); }
+.hidden-menu .moon-dot.mars-dot { background: radial-gradient(circle at 35% 35%, #f6a36a, #c1552a 60%, #5a2210); }
 .moon-credit { margin: 4px 2px 0; line-height: 1.5; }
-/* 지구·달 — 2D 의 지역 탭 자리. 달은 지역이 아니라 몸이라 둘뿐이다 */
+/* 지구·달·화성 — 2D 의 지역 탭 자리. 달·화성은 지역이 아니라 몸이다 */
 .body-tabs { margin: 0 16px 12px; }
 .body-tabs a.region-tab { text-decoration: none; }
 /* 지질 레이어 줄 — 투명도·과장 칸이 줄 밑에 붙는다 */
@@ -1543,7 +1563,7 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .legend-list .chip.dot { width: 10px; height: 10px; margin: 0 4px; border-radius: 50%; box-shadow: 0 0 0 1.5px #000; } /* 착륙지 (046) */
 /* Cesium 의 출처 줄 — 좌표 막대에 가리지 않게 위로 */
 .cesium-viewer-bottom { left: 12px !important; bottom: 58px !important; opacity: .7; }
-:root[data-region="moon"] .popup { z-index: 8; }
+:root[data-region="moon"] .popup, :root[data-region="mars"] .popup { z-index: 8; }
 /* 좌표 막대 — 구에서 가운데 점의 기울기·방위 (045) */
 .pose-readout { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint);
                 white-space: nowrap; }
@@ -1559,7 +1579,8 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
             text-align: center; color: var(--ink-faint); border-bottom: 1px solid var(--line-soft); }
 /* 평면에서 범위를 끄는 동안의 네모 — 2D 의 금색 대신 흰색 */
 :root[data-region="moon"] .range-box { border-color: #fff; background: rgba(255, 255, 255, .12); }
-:root[data-region="moon"] .temp-no { color: var(--on-hi); background: var(--hi); }
+:root[data-region="moon"] .temp-no, :root[data-region="mars"] .temp-no { color: var(--on-hi); background: var(--hi); }
+:root[data-region="mars"] .range-box { border-color: #f6a36a; background: rgba(246, 163, 106, .14); }
 /* 영상 보정 (042) — 배경 줄 밑에 접어 둔다 */
 .tune { margin: -2px 0 10px; }
 .tune > summary { cursor: pointer; font-size: 12px; color: var(--ink-soft); }

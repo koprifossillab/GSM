@@ -205,6 +205,38 @@ EN = {
     "달 위도": "Lunar lat", "달 경도": "Lunar lon",
     "자전축": "Axis",
     "시대 모름": "Age unknown",
+    # 화성 (058) — 달 화면을 옮긴 것. 달과 같은 문장은 위의 것을 함께 쓴다
+    "화성": "Mars",
+    "화성 위도": "Mars lat", "화성 경도": "Mars lon",
+    "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    "화성에 얹은 내 것": "Yours on Mars",
+    "바깥 자료를 화성에": "Outside data onto Mars",
+    "좌표는 화성의 위도·경도(도, 행성 중심·동경)다. 평면 좌표계는 받지 않는다.":
+        "Coordinates are Mars latitude/longitude (degrees, planetocentric, east-positive). Projected systems are not accepted.",
+    "영상·지질도·표고: NASA Mars Trek (Viking·MGS MOLA·Mars Odyssey THEMIS·MRO HiRISE·Mars Express HRSC, USGS Astrogeology).":
+        "Imagery, geology and elevation: NASA Mars Trek (Viking, MGS MOLA, Mars Odyssey THEMIS, MRO HiRISE, Mars Express HRSC, USGS Astrogeology).",
+    "바이킹 색 모자이크": "Viking color mosaic",
+    "THEMIS 낮 적외선 (고해상)": "THEMIS day infrared (high resolution)",
+    "MOLA 표고 색 음영": "MOLA colored hillshade",
+    "MOLA 음영 겹치기 — 영상 위에 지형의 그늘을 곱한다": "Overlay MOLA hillshade — multiply terrain shading onto the image",
+    "MOLA–HRSC 표고로 세운다": "Raise with MOLA–HRSC elevation",
+    "처음": "Home",
+    "경도 0°·위도 0° 로 — 본초 자오선(에어리-0 크레이터) 둘레": "To 0° lon, 0° lat — around the prime meridian (Airy-0 crater)",
+    "방위 — 바늘이 화성의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":
+        "Heading — the needle points to Martian north. Click to turn north up, keeping the tilt",
+    "화성의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다": "Mars's rotation axis — show or hide the line through both poles",
+    "좌표·지명·착륙지로 이동 — -4.59, 137.44 · Gale · Curiosity":
+        "Go to coordinates, a place name or landing site — -4.59, 137.44 · Gale · Curiosity",
+    "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(화성의 북쪽 0°)":
+        "Tilt (0° looking straight down) and heading (0° = Martian north) at the centre of the view",
+    "표고 채우기 — MOLA–HRSC 표고에서 점마다 높이를 읽는다 (화성 기준면)":
+        "Fill elevation — read each point's height from MOLA–HRSC elevation (Mars areoid)",
+    "화성 지질 (USGS 1:2000만, 2014)": "Mars geology (USGS 1:20M, 2014)",
+    "착륙선·로버 지점": "Lander and rover sites",
+    "로버 주행 경로": "Rover traverses",
+    "{name} 주행 경로": "{name} traverse",
+    "착륙지 고해상 사진 (MRO HiRISE)": "Landing-site close-ups (MRO HiRISE)",
+    "착륙선": "Lander",
     # 달 그림으로 내려받기 (048)
     "그림으로 내려받기 — 지금 보는 화면을 PNG 한 장으로. 배경·레이어·가운데·출처를 아래에 적는다":
         "Download as image — the current view as one PNG, with basemap, layers, centre and sources noted below",

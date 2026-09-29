@@ -1,0 +1,195 @@
+"""화성 (devlog 058) — 달 화면을 옮긴 것. 문은 같은 `trek.py` 의 `mars_*` 다.
+
+Trek 을 실제로 부르지 않는다. 응답의 꼴은 2026-09-29 에 Mars Trek 에서 받아 본 그대로다 —
+SIM 3292 의 `identify` 는 `Unit`·`UnitDesc` 를 주고, 범례 이름에는 기호가 없다.
+"""
+import re
+import tempfile
+from unittest import mock
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
+
+from viewer import trek
+from viewer.models import PointSet, REGIONS
+from viewer.tests.test_trek import response, tiff
+
+GALE = {"FID": "774", "Unit": "AHi", "UnitDesc": "Amazonian and Hesperian impact unit", "SphArea_km": "87031.1"}
+
+
+class Ages(SimpleTestCase):
+    """화성의 지질시대 — 이름 앞머리에서 읽고, 둘에 걸친 것은 젊은 쪽으로 묶는다."""
+
+    def test_이름_앞머리가_시대다(self):
+        self.assertEqual(trek.mars_age("Early Hesperian basin unit"), "Early Hesperian")
+        self.assertEqual(trek.mars_age("Amazonian and Hesperian impact unit"), "Amazonian and Hesperian")
+        self.assertEqual(trek.mars_age("Noachian highland undivided unit"), "Noachian")
+
+    def test_범례는_젊은_쪽으로_묶는다(self):
+        self.assertEqual(trek.mars_period("Amazonian and Noachian"), "Amazonian")
+        self.assertEqual(trek.mars_period("Late Noachian"), "Noachian")
+
+    def test_한국어판(self):
+        self.assertEqual(trek.mars_age_ko("Early Hesperian"), "헤스페리아기 전기")
+        self.assertEqual(trek.mars_age_ko("Amazonian and Hesperian"), "아마조니스기–헤스페리아기")
+        self.assertEqual(trek.mars_age_ko("Middle Noachian"), "노아키스기 중기")
+
+
+class Upstream(SimpleTestCase):
+
+    def test_지질도는_Mars_Trek_에_화성_경위도로_묻는다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/png", content=b"png")) as get:
+            self.assertEqual(trek.mars_tile(1, 2, 0), b"png")
+        url, params = get.call_args[0][0], get.call_args[1]["params"]
+        self.assertTrue(url.startswith("https://trek.nasa.gov/mars/"))
+        self.assertIn("SIM3292_Global_Geology/MapServer/export", url)
+        self.assertEqual(params["bboxSR"], 104905)
+
+    def test_속성은_단위_이름_그리고_시대(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response({"results": [{"attributes": GALE}]})):
+            hit = trek.mars_identify(137.4, -4.6)
+        self.assertEqual(hit["unit"], "AHi")
+        self.assertEqual(hit["age"], "Amazonian and Hesperian")
+        self.assertEqual(hit["rows"], [("단위", "AHi"), ("이름", "Amazonian and Hesperian impact unit")])
+
+    def test_범례는_기호를_query_로_붙인다(self):
+        legend = {"layers": [{"legend": [
+            {"label": "Early Hesperian volcanic unit", "imageData": "AAA", "contentType": "image/png"},
+            {"label": "Amazonian polar undivided unit", "imageData": "BBB", "contentType": "image/png"}]}]}
+        codes = {"features": [{"attributes": {"Unit": "eHv", "UnitDesc": "Early Hesperian volcanic unit"}}]}
+        with mock.patch("viewer.trek.requests.get", side_effect=[response(legend), response(codes)]):
+            items = trek.mars_legend()
+        self.assertEqual([(i["unit"], i["age"]) for i in items], [("eHv", "Hesperian"), ("", "Amazonian")])
+
+    def test_표고는_화성의_범위만_받는다(self):
+        # 올림푸스 몬스(21 km)는 달의 범위(±20 km)를 넘는다 — 화성은 따로 잰다. S16 의 자료 밖은 0 m
+        raw = tiff([21000.0] * 10 + [-32768.0] * (trek.DEM_SIZE ** 2 - 10))
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/tiff", content=raw)) as get:
+            png = trek.mars_dem_tile(3, 1, 1)
+        # 멀리서는 줄인 판이 있는 MOLA 128 ppd — 200 m 판은 넓게 물으면 400 을 준다
+        self.assertIn(trek.MARS_DEM_COARSE, get.call_args[0][0])
+        from PIL import Image
+        import io
+        px = Image.open(io.BytesIO(png)).getdata()
+        decode = lambda p: p[0] * 256 + p[1] + p[2] / 256 - 32768
+        self.assertAlmostEqual(decode(px[0]), 21000, places=0)
+        self.assertEqual(decode(px[20]), 0)
+
+    def test_가까이서는_200_m_판(self):
+        raw = tiff([100.0] * trek.DEM_SIZE ** 2)
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/tiff", content=raw)) as get:
+            trek.mars_dem_tile(trek.MARS_DEM_FINE_ZOOM, 700, 300)
+        self.assertIn(trek.MARS_DEM + "/", get.call_args[0][0])
+
+    def test_착륙지는_임무를_붙여_모은다(self):
+        page = {"features": [{"geometry": {"x": 137.44, "y": -4.59}, "attributes": {"name": "Bradbury Landing"}}]}
+        with mock.patch("viewer.trek.requests.get", return_value=response(page)) as get:
+            sites = trek.mars_landings()
+        self.assertEqual(get.call_count, len(trek.MARS_WAYPOINTS))
+        curiosity = [s for s in sites if s["mission"] == "Curiosity"][0]
+        self.assertEqual((curiosity["name"], curiosity["kind"]), ("Bradbury Landing", "rover"))
+
+    def test_지명의_북마크는_착륙지만(self):
+        docs = [{"itemType": "nomenclature", "title": "Gale", "productCat2": "Crater, craters",
+                 "bbox": "137.8,-5.4,137.8,-5.4"},
+                {"itemType": "bookmark", "title": "Curiosity Landing Site", "bbox": "136.8,-5.1,138.1,-4.1"},
+                {"itemType": "bookmark", "title": "The Martian Path", "bbox": "-6,7,-5,8"},
+                {"itemType": "bookmark", "title": "Viking 1", "bbox": "-48,22,-47,23"}]
+        with mock.patch("viewer.trek.requests.get", return_value=response({"response": {"docs": docs}})) as get:
+            places = trek.fetch_places("mars")
+        self.assertIn("/mars/", get.call_args[0][0])
+        self.assertEqual([p[:2] for p in places], [["Curiosity Landing Site", "Landing site"],
+                                                   ["Gale", "Crater"], ["Viking 1", "Landing site"]])
+
+
+class MarsViews(TestCase):
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-mars-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_지질도_타일은_캐시에_담고_다시_묻지_않는다(self):
+        url = reverse("viewer:mars-tile", args=["units", 2, 3, 1])
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/png", content=b"png")) as get:
+            self.assertEqual(self.client.get(url).content, b"png")
+            self.assertEqual(self.client.get(url).content, b"png")
+        self.assertEqual(get.call_count, 1)
+
+    def test_모르는_레이어와_격자_밖은_404(self):
+        self.assertEqual(self.client.get(reverse("viewer:mars-tile", args=["contacts", 1, 0, 0])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("viewer:mars-tile", args=["units", 0, 2, 0])).status_code, 404)
+
+    def test_한국어판은_시대를_옮긴다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response({"results": [{"attributes": GALE}]})):
+            data = self.client.get(reverse("viewer:mars-info"), {"lon": 137.4, "lat": -4.6}).json()
+        self.assertEqual(data["unit"], "AHi")
+        self.assertEqual(data["rows"][1], ["시대", "아마조니스기–헤스페리아기"])
+
+    def test_로버_경로는_GeoJSON(self):
+        page = {"features": [{"geometry": {"paths": [[[137.44, -4.59], [137.45, -4.6]]]}}]}
+        with mock.patch("viewer.trek.requests.get", return_value=response(page)):
+            data = self.client.get(reverse("viewer:mars-traverses")).json()
+        self.assertEqual(len(data["features"]), len(trek.MARS_TRAVERSES))
+        self.assertEqual(data["features"][0]["geometry"]["type"], "MultiLineString")
+
+    def test_지명_찾기는_저장소의_파일을_뒤진다(self):
+        data = self.client.get(reverse("viewer:mars-places"), {"q": "gale"}).json()
+        self.assertEqual(data["results"][0]["name"], "Gale")
+
+
+class MarsView(TestCase):
+    """화성 화면 — 달처럼 숨은 차림에서 들어가고, 제 아이콘·대기 화면을 쓴다."""
+
+    def test_화성_화면이_제_스크립트와_아이콘을_싣는다(self):
+        html = self.client.get(reverse("viewer:mars")).content.decode()
+        self.assertIn('data-region="mars"', html)
+        self.assertIn("viewer/mars.js", html)
+        self.assertIn("viewer/emblem-mars.png", html)
+        self.assertIn("viewer/splash-mars.gif", html)
+
+    def test_달_화면도_제_아이콘과_대기_화면(self):
+        html = self.client.get(reverse("viewer:moon")).content.decode()
+        self.assertIn("viewer/emblem-moon.png", html)
+        self.assertIn("viewer/splash-moon.gif", html)
+        self.assertNotIn("viewer/emblem.svg", html)
+
+    def test_2D_의_숨은_차림이_화성을_연다(self):
+        html = self.client.get(reverse("viewer:map")).content.decode()
+        menu = re.search(r'<nav class="hidden-menu" id="hidden-menu"[^>]*hidden>(.*?)</nav>', html, re.S)
+        self.assertIn('href="mars/"', menu.group(1))
+
+    def test_화성은_지역_탭이_아니다(self):
+        self.assertNotIn("mars", dict(REGIONS))
+
+
+class MarsPointSets(TestCase):
+    """점묶음의 몸 — 화성 화면은 화성 것만, 표고는 MOLA–HRSC 로."""
+
+    CSV = "name,lat,lon\nBradbury,-4.5895,137.4417\nJezero,18.4447,77.4508\n"
+
+    def upload(self, **extra):
+        return self.client.post(reverse("viewer:pointset-upload"),
+                                {"file": SimpleUploadedFile("rovers.csv", self.CSV.encode()), **extra})
+
+    def test_화성에서_올리면_화성_점묶음이고_지구에는_없다(self):
+        self.assertEqual(self.upload(body="mars").json()["pointset"]["body"], "mars")
+        self.upload()
+        self.assertEqual(len(self.client.get(reverse("viewer:pointset-index"), {"body": "mars"}).json()["pointsets"]), 1)
+        self.assertEqual(len(self.client.get(reverse("viewer:pointset-index")).json()["pointsets"]), 1)
+
+    def test_표고는_MOLA_HRSC_로(self):
+        self.upload(body="mars")
+        ps = PointSet.objects.get()
+        body = {"samples": [{"locationId": 0, "value": "-4494"}, {"locationId": 1, "value": "-2570"}]}
+        fake = mock.Mock(status_code=200, headers={}, content=b"{}", url="https://trek…", json=lambda: body)
+        with mock.patch("viewer.trek.requests.get", return_value=fake) as get, \
+                mock.patch("viewer.elevation.elevations") as earth:
+            r = self.client.post(reverse("viewer:pointset-elevation", args=[ps.id]))
+        self.assertEqual(r.json()["filled"], 2)
+        earth.assert_not_called()
+        self.assertIn(trek.MARS_DEM, get.call_args[0][0])
+        point = ps.points.get(label="Bradbury")
+        self.assertEqual((point.elev, point.elev_source, point.elev_datum),
+                         (-4494.0, trek.MARS_ELEV_SOURCE, trek.MARS_ELEV_DATUM))

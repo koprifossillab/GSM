@@ -93,7 +93,8 @@ def _split_links(value):
 # ── 화면 ──────────────────────────────────────────────────────────────
 
 #: 주소 끝에 붙여 캐시를 끊는 파일들.
-STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js", "viewer/moon.js")
+STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js", "viewer/moon.js",
+           "viewer/mars.js")
 
 
 @functools.lru_cache(maxsize=1)
@@ -405,6 +406,181 @@ def _moon_places():
 def moon_places(request):
     """`?q=tycho` — 달 지명·착륙지 찾기. 저장소의 `data/moon_places.json` 만 뒤진다."""
     return JsonResponse({"results": trek.search_places(_moon_places(), request.GET.get("q", "")[:80])})
+
+
+# ── 화성 (devlog 058) ─────────────────────────────────────────────────
+#
+# 달을 그대로 옮겼다. 문은 같은 `trek.py`(의 `mars_*`), 격자도 같은 경위도 격자다. 캐시 열쇠는 `trek-mars…`.
+
+@require_GET
+def mars_view(request):
+    """화성 (devlog 058). 달 화면의 틀에 USGS 화성 지질도(SIM 3292)와 MOLA–HRSC 지형을 얹는다.
+
+    달처럼 대돌여지도 아이콘의 숨은 차림에서 들어온다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/mars.html", {
+        "lang": lang,
+        "pointsets": _script_json(_pointset_list("mars")),
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "base": request.path.rsplit("mars", 1)[0],
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+@require_GET
+def mars_tile(request, layer, z, x, y):
+    """화성 지질도 타일 — `mars/tiles/units/<z>/<x>/<y>.png`."""
+    z, x, y = int(z), int(x), int(y)
+    if layer != "units" or not trek.valid_tile(z, x, y, trek.MARS_MAX_ZOOM):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-mars", f"{layer}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.mars_tile(z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("화성 지질도 타일을 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def mars_dem(request, z, x, y):
+    """화성 표고 격자 — `mars/dem/<z>/<x>/<y>.png`, 65×65 Terrarium (MOLA–HRSC). 못 받으면 502 (달과 같다)."""
+    z, x, y = int(z), int(x), int(y)
+    if not trek.valid_tile(z, x, y, trek.MARS_DEM_MAX_ZOOM):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-mars-dem", f"{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.mars_dem_tile(z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("화성 표고를 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request))}, status=502)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def mars_info(request):
+    """`?lon=137.4&lat=-4.6` — 누른 자리의 지질 단위. 값은 옮기지 않고 시대만 한국어판에서 옮긴다."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    # 1e-3° 는 화성에서 60 m 남짓이다 — 1:2000만 지도에는 한 점이다
+    key = tilecache.key_text("trek-mars-info", f"{lon:.3f},{lat:.3f}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = {"hit": trek.mars_identify(lon, lat)}
+        except trek.TrekError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("화성 속성을 읽지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    hit = raw.get("hit")
+    if not hit:
+        return JsonResponse({"rows": []})
+    rows = [[i18n.PROP_EN.get(label, label) if lang == "en" else label, value] for label, value in hit["rows"]]
+    if hit.get("age"):
+        age = hit["age"] if lang == "en" else trek.mars_age_ko(hit["age"])
+        rows.insert(1, [i18n.PROP_EN.get("시대", "시대") if lang == "en" else "시대", age])
+    return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
+
+
+@require_GET
+def mars_legend(request):
+    """화성 지질 단위의 범례. 이름은 상류의 것 그대로, 묶는 머리(시대)만 한국어판에서 옮긴다."""
+    key = tilecache.key_text("trek-mars-legend", "units")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"items": trek.mars_legend()}
+        except trek.TrekError as exc:
+            data = _cached_json(key, stale=True)
+            if data is None:
+                log.warning("화성 범례를 받지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request)),
+                                     "items": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    ko = i18n.lang_of(request) != "en"
+    return JsonResponse({"items": [dict(item, age=trek.MARS_PERIODS_KO.get(item.get("age"), item.get("age")) if ko
+                                        else item.get("age")) for item in data.get("items") or []]})
+
+
+def _mars_cached(request, name, fetch, what):
+    key = tilecache.key_text("trek-mars-" + name, "all")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"items": fetch()}
+        except trek.TrekError as exc:
+            data = _cached_json(key, stale=True)
+            if data is None:
+                log.warning("화성 %s 을 받지 못했다: %s", what, exc)
+                return None
+        else:
+            tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    return data.get("items") or []
+
+
+def _mars_failed(request):
+    return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request)),
+                         "type": "FeatureCollection", "features": []}, status=502)
+
+
+@require_GET
+def mars_landings(request):
+    """화성 착륙선·로버의 이야기 지점 — GeoJSON. 갈래(`kind`)는 `lander`·`rover`."""
+    sites = _mars_cached(request, "landings", trek.mars_landings, "착륙 지점")
+    if sites is None:
+        return _mars_failed(request)
+    return JsonResponse({"type": "FeatureCollection", "features": [{
+        "type": "Feature", "geometry": {"type": "Point", "coordinates": [s["lon"], s["lat"]]},
+        "properties": {"이름표": s["name"], "임무": s["mission"], "kind": s["kind"]},
+    } for s in sites]})
+
+
+@require_GET
+def mars_traverses(request):
+    """로버가 달린 길 — GeoJSON MultiLineString, 임무마다 하나."""
+    items = _mars_cached(request, "traverses", trek.mars_traverses, "로버 동선")
+    if items is None:
+        return _mars_failed(request)
+    return JsonResponse({"type": "FeatureCollection", "features": [{
+        "type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": t["paths"]},
+        "properties": {"임무": t["mission"]},
+    } for t in items if t.get("paths")]})
+
+
+@functools.lru_cache(maxsize=1)
+def _mars_places():
+    return trek.load_places(settings.MARS_PLACES_FILE)
+
+
+@require_GET
+def mars_places(request):
+    """`?q=gale` — 화성 지명·착륙지 찾기. 저장소의 `data/mars_places.json` 만 뒤진다."""
+    return JsonResponse({"results": trek.search_places(_mars_places(), request.GET.get("q", "")[:80])})
 
 
 # ── 카탈로그 ──────────────────────────────────────────────────────────
@@ -1390,7 +1566,7 @@ def pointset_upload(request):
         code = request.POST.get("crs") or "4326"
         points, notes = pointsets.parse(upload.name, upload.read(),
                                         crs_code=code if code in crs.SYSTEMS else "4326",
-                                        lunar=body == "moon")
+                                        lunar=body != "earth")
     except pointsets.UploadError as exc:
         return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
 
@@ -1592,16 +1768,20 @@ def fill_elevation(pointset, *, only_missing: bool = False, pause: float = eleva
     """점묶음의 점마다 표고를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
     다시 부르면 덮는다 — 원천이 판을 올리면 출처 칸이 달라져 알아볼 수 있다(P03 §3).
 
-    달 점묶음은 LOLA 로 간다(`trek.lola_values`, 037) — 지구의 표고 원천을 타지 않는다."""
+    달 점묶음은 LOLA 로 간다(`trek.lola_values`, 037) — 지구의 표고 원천을 타지 않는다.
+    화성 점묶음은 MOLA–HRSC 로 간다(`trek.mars_values`, 058)."""
     points = pointset.points.all()
     if only_missing:
         points = points.filter(elev__isnull=True)
     rows = {p.id: p for p in points}
-    if pointset.body == "moon":
-        got = trek.lola_values({pid: (p.lat, p.lon) for pid, p in rows.items()})
+    if pointset.body in ("moon", "mars"):
+        mars = pointset.body == "mars"
+        got = (trek.mars_values if mars else trek.lola_values)({pid: (p.lat, p.lon) for pid, p in rows.items()})
+        source, datum = ((trek.MARS_ELEV_SOURCE, trek.MARS_ELEV_DATUM) if mars
+                         else (trek.ELEV_SOURCE, trek.ELEV_DATUM))
         for pid, value in got.items():
             p = rows[pid]
-            p.elev, p.elev_source, p.elev_datum = round(value, 1), trek.ELEV_SOURCE, trek.ELEV_DATUM
+            p.elev, p.elev_source, p.elev_datum = round(value, 1), source, datum
         Point.objects.bulk_update([rows[pid] for pid in got], ["elev", "elev_source", "elev_datum"])
         return len(got), len(rows) - len(got)
     got = elevation.elevations({pid: (p.lat, p.lon) for pid, p in rows.items()}, pause=pause)
@@ -1620,8 +1800,8 @@ def pointset_elevation(request, pk):
     if ps is None:
         return JsonResponse({"error": i18n.t(msg("그런 점묶음이 없다"), lang)}, status=404)
     total = ps.points.count()
-    # 극지의 한 점씩 묻기(PGC)는 지구의 일이다. 달은 한 번에 100 점씩이라 극지를 가르지 않는다
-    polar = 0 if ps.body == "moon" else ps.points.filter(
+    # 극지의 한 점씩 묻기(PGC)는 지구의 일이다. 달·화성은 한 번에 100 점씩이라 극지를 가르지 않는다
+    polar = 0 if ps.body != "earth" else ps.points.filter(
         Q(lat__gte=elevation.POLAR_LAT) | Q(lat__lte=-elevation.POLAR_LAT)).count()
     if total > ELEV_IN_REQUEST or polar > ELEV_POLAR_IN_REQUEST:
         return JsonResponse({"error": i18n.t(msg("점이 많아 화면에서 채우지 않는다 — 서버에서 "

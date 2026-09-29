@@ -196,8 +196,15 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   (036, P05). 지질도·표고·속성·범례는 `trek.py` 를 거치고, 영상 배경(LRO WAC·Kaguya TC·LOLA 음영)만 브라우저가
   Trek 을 곧장 부른다. 좌표는 달 경위도다 — 지구의 `toLL`·좌표계를 타지 않는다. 달 지명은
   `data/moon_places.json`(`manage.py fetch_moon_places`). 원도 6 장(1971–1979)은 우리가 굽는다 — 아래 "파일을 받아"
-- **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`, 037). 지구 화면은 `earth` 만, 달 화면은
-  `moon` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`)
+- **화성도 지역이 아니다** — 달 화면을 옮긴 따로 화면(`/GSM/mars/`, `mars.js`·`mars.html`, 058)이다. 틀은 달과 같고
+  자료만 다르다 — USGS 화성 지질도(SIM 3292)·MOLA–HRSC 지형, 영상 배경은 Viking·THEMIS·MOLA. 문은 같은 `trek.py`
+  (`mars_*`, 주소 `TREK_MARS_URL`)다 — 같은 NASA Trek 의 다른 몸이라 문을 새로 내지 않았다. 테마는 녹슨 주황이다.
+  **달 화면을 고치면 화성에도 옮길지 본다** — 두 파일은 일부러 나란히 두었다. 화성 지명은
+  `data/mars_places.json`(`manage.py fetch_moon_places --body mars`). 달·화성은 아이콘(`emblem-moon.png`·
+  `emblem-mars.png`)과 대기 화면(`splash-*.gif`)이 따로다 — 원본은 `docs/brand/`
+- **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
+  `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
+  화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
 - **지역마다 화면 투영이 다르다** — 한국·일본·중국·동아시아 3857, 그린란드·스발바르·얀마옌·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다
@@ -296,7 +303,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
-  trek.py         NASA Moon Trek 으로 나가는 문 (달 지질도·LOLA 표고·지명). 달 화면(Cesium)만 쓴다
+  trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. requests 없음

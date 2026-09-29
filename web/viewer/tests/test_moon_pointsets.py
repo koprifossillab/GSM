@@ -32,7 +32,7 @@ class Body(TestCase):
 
     def test_몸을_안_적으면_지구다(self):
         upload(self.client, APOLLO)
-        upload(self.client, APOLLO, body="mars")
+        upload(self.client, APOLLO, body="jupiter")          # 모르는 몸 — 화성은 058 에서 몸이 되었다
         self.assertEqual(set(PointSet.objects.values_list("body", flat=True)), {"earth"})
 
     def test_지구_화면에는_달_점묶음이_없다(self):

@@ -103,8 +103,8 @@ class PointSet(models.Model):
     """올린 좌표 묶음 하나. CSV 한 장이 점묶음 하나가 된다."""
 
     #: 어느 몸의 위경도인가 (devlog 037). 달 좌표를 지구 화면에 그리면 엉뚱한 곳에 뜬다 —
-    #: 지구 화면은 `earth` 만, 달 화면은 `moon` 만 읽는다
-    BODIES = (("earth", "지구"), ("moon", "달"))
+    #: 지구 화면은 `earth` 만, 달 화면은 `moon` 만, 화성 화면은 `mars` 만 읽는다 (058)
+    BODIES = (("earth", "지구"), ("moon", "달"), ("mars", "화성"))
 
     name = models.CharField("이름", max_length=120)
     body = models.CharField("몸", max_length=10, choices=BODIES, default="earth", db_index=True)

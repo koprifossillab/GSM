@@ -134,6 +134,10 @@ GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
 #: 달 지명 — `manage.py fetch_moon_places` 가 적는다. 저장소의 씨앗 자리(`data/`)에 둔다
 MOON_PLACES_FILE = BASE_DIR.parent / "data" / "moon_places.json"
+#: NASA Mars Trek — 화성 (`viewer/trek.py` 의 "화성" 마디, devlog 058). 같은 Trek 의 다른 몸이다
+TREK_MARS_URL = env("GSM_TREK_MARS_URL", "https://trek.nasa.gov/mars")
+#: 화성 지명 — `manage.py fetch_moon_places --body mars` 가 적는다
+MARS_PLACES_FILE = BASE_DIR.parent / "data" / "mars_places.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")

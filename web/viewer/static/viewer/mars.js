@@ -1,21 +1,18 @@
-/* 대돌여지도 · 달 (devlog 036·037·038, P05).
+/* 대돌여지도 · 화성 (devlog 058).
  *
- * **둥근 달로 들어가서, 가까이 가면 평면에서 본다.** 한 화면에 둘이 있다.
+ * **달 화면(`moon.js`)을 그대로 옮겨 와 화성의 자료로 바꿨다.** 틀 — 구(Cesium)와 평면(OpenLayers)을 오가는
+ * 것, 레이어 목록·카드·범례·점묶음·그리기 도구·그림 내려받기 — 은 달과 같다. 고친 것은 몸과 자료다.
  *
- * - 구 — CesiumJS. 달 타원체를 알아 극까지 온전하다. LOLA 지형을 세우고 기울여 본다
- * - 평면 — OpenLayers. 2D 화면과 같은 손맛이고 축척 막대가 붙는다. 투영은 달의 등거리 원통
- *   (IAU_2015:30110, 미터)이다 — Trek 의 경위도 격자가 그대로 맞는다
+ * - 몸 — 반지름 3 396.19 km 의 구. 평면은 화성의 등거리 원통(IAU_2015:49910, 미터)이다
+ * - 영상 배경(Viking 색 모자이크·THEMIS 적외선·MOLA 음영)·착륙지 사진(HiRISE)은 브라우저가 Mars Trek 을
+ *   곧장 부르고, 지질도(USGS SIM 3292)·표고(MOLA–HRSC)·속성·범례·지명·착륙지는 서버의 문(`trek.py`)을 거친다
  *
- * 곧장 내려다보며 가까이 가면 평면으로, 평면에서 멀어지면 구로 넘어간다. 기울여 보는 동안은 구에
- * 머문다. 극(위도 75° 너머)은 평면이 가로로 늘어나 구에 머문다 (P05 §3).
- *
- * 영상 배경(LRO WAC·LOLA 음영)은 브라우저가 Trek 을 곧장 부르고, 지질도·표고·속성·범례·지명은
- * 서버의 문(`trek.py`)을 거친다.
+ * 달에만 있는 것(원도 6 장·아폴로 EVA 동선·NAC 사진·자전축이 지구를 향한다는 이야기)은 뺐다.
  */
 (function () {
   "use strict";
 
-  var BASE = location.pathname.replace(/moon\/?$/, "");
+  var BASE = location.pathname.replace(/mars\/?$/, "");
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
   function T(text, vars) {
@@ -36,45 +33,35 @@
   }
   function $(id) { return document.getElementById(id); }
 
-  // ══ 달과 격자 ═════════════════════════════════════════════════════
-  var R = 1737400;                                   // 달 반지름 (IAU 2015, 구)
+  // ══ 화성과 격자 ═══════════════════════════════════════════════════
+  var R = 3396190;                                   // 화성 반지름 (IAU 2015 적도, 구로 다룬다 — 서버의 `trek.MARS_RADIUS`)
   var M_PER_DEG = Math.PI * R / 180;
-  var TREK = "https://trek.nasa.gov/tiles/Moon/EQ/";
-  // 줌 끝은 2026-09-29 에 한 장씩 받아 보았다 — WAC 는 8, LOLA 음영은 6 (7 은 404), Kaguya 는 10 (11 은 404)
-  //
-  // 고해상(`kaguya`)은 **WAC 위에 Kaguya 지형 카메라 정사 모자이크를 얹은 것**이다 (043). Kaguya 는 줌 10
-  // (한 픽셀 약 21 m)까지라 WAC(약 100 m)보다 다섯 배 촘촘하지만 틈이 있다 — 위도 75° 안쪽도 곳곳이 비고
-  // (0–2 %), 극 둘레는 40 % 넘게 빈다. 넓게 볼 때는 해가 낮은 WAC 쪽이 지형이 산다. 그래서 `under` 로 WAC 를
-  // 늘 밑에 깔고 Kaguya 는 줌 `min`(8, WAC 가 원자료를 다 쓰는 줌)부터 얹는다 — 틈에는 WAC 가 비친다
+  var TREK = "https://trek.nasa.gov/tiles/Mars/EQ/";
+  // 줌 끝은 2026-09-29 에 한 장씩 받아 보았다 — Viking·MOLA 색 음영·MOLA–HRSC 음영은 7, THEMIS 는 9
+  // (한 픽셀 약 130 m). 화성 전체를 덮는 더 고운 모자이크(CTX)는 Trek 의 타일로 나오지 않는다
   var BASES = {
-    kaguya: { url: TREK + "Kaguya_TCortho_Mosaic_Global_4096ppd/1.0.0/default/default028mm/{z}/{y}/{x}.png",
-              max: 10, min: 8, under: "wac", credit: "SELENE (Kaguya) TC · JAXA" },
-    wac: { url: TREK + "LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
-           max: 8, credit: "LRO LROC WAC · NASA/GSFC/Arizona State University" },
-    lola: { url: TREK + "LRO_LOLA_Shade_Global_256ppd_v06/1.0.0/default/default028mm/{z}/{y}/{x}.png",
-            max: 6, credit: "LRO LOLA · NASA/GSFC" },
+    viking: { url: TREK + "Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+              max: 7, credit: "Viking MDIM 2.1 color mosaic · NASA/JPL/USGS" },
+    themis: { url: TREK + "THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018/1.0.0/default/default028mm/{z}/{y}/{x}.png",
+              max: 9, credit: "Mars Odyssey THEMIS day IR · NASA/JPL/Arizona State University" },
+    mola: { url: TREK + "Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+            max: 7, credit: "MGS MOLA color hillshade · NASA/GSFC" },
+    shade: { url: TREK + "Mars_MOLA_blend200ppx_HRSC_Shade_clon0dd_200mpp_lzw/1.0.0/default/default028mm/{z}/{y}/{x}.png",
+             max: 7, credit: "MOLA–HRSC hillshade · NASA/GSFC, ESA/DLR/FU Berlin" },
   };
-  // 지질 레이어 목록 — 2D 의 카탈로그처럼 골라 켜면 "켠 지질 레이어" 로 올라온다(오버레이).
-  // 레이어군을 더하면(원소·광물 …) 목록에 저절로 선다. 이름은 서버 `trek.LAYERS` 의 열쇠다
-  //   info    누르면 읽는 갈래 (`moon/info/?layer=`)   legend  범례 칸의 갈래   src  카드 밑의 출처
+  // 지질 레이어 목록 — 달과 같은 꼴이다. 이름은 서버 `mars/tiles/<이름>` 의 것
+  //   info    누르면 읽는 갈래 (`mars/info/`)   legend  범례 칸의 갈래   src  카드 밑의 출처
   var CATALOG = [
-    { group: "달 지질 (USGS 1:500만, 2020)", layers: [
-      { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS · NASA Moon Trek" },
-      { name: "contacts", title: "지질 경계", src: "USGS · NASA Moon Trek" },
-      { name: "linear", title: "선 구조 (능선·열구·단층)", src: "USGS · NASA Moon Trek" },
+    { group: "화성 지질 (USGS 1:2000만, 2014)", layers: [
+      { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS SIM 3292 · NASA Mars Trek" },
     ] },
-    // 원도 6 장 — 통합 지질도가 다듬기 전의 원래 단위(195 가지). 우리가 파일을 굽는다 (`moonmap.py`, 039)
-    { group: "달 지질 원도 (USGS 1:500만, 1971–1979)", layers: [
-      { name: "orig-units", title: "원도 지질 단위", info: "orig", legend: "orig",
-        src: "USGS I-703·948·1034·1047·1062·1162 · colors E. Lutz" },
-      { name: "orig-lines", title: "원도 구조선", legend: "orig-lines", src: "USGS 1971–1979" },
-    ] },
-    // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"`) (046)
+    // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"` — 달에서 온 이름)
     { group: "착륙지", layers: [
-      { name: "landings", title: "착륙·충돌 지점", kind: "vector", url: "moon/landings/", legend: "landings",
-        src: "NASA Moon Trek · NSSDC" },
-      { name: "eva", title: "아폴로 EVA 동선", kind: "vector", url: "moon/eva/", src: "Esri UK" },
-      { name: "nac", title: "착륙지 고해상 사진 (LRO NAC)", kind: "nac", src: "NASA/GSFC/Arizona State University" },
+      { name: "landings", title: "착륙선·로버 지점", kind: "vector", url: "mars/landings/", legend: "landings",
+        src: "NASA Mars Trek · JPL" },
+      { name: "eva", title: "로버 주행 경로", kind: "vector", url: "mars/traverses/", legend: "traverses",
+        src: "NASA Mars Trek · JPL" },
+      { name: "nac", title: "착륙지 고해상 사진 (MRO HiRISE)", kind: "nac", src: "NASA/JPL/University of Arizona" },
     ] },
   ];
   var LAYER = {};
@@ -82,23 +69,22 @@
   var ALL_NAMES = Object.keys(LAYER);
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
-  var GEO_MAX = 12;
-  function geoUrl(name) { return BASE + "moon/tiles/" + name + "/{z}/{x}/{y}.png"; }
-  var GEO_CREDIT = "Unified Geologic Map of the Moon 1:5M (Fortezzo et al., 2020, USGS) via NASA Moon Trek";
-  var ORIG_CREDIT = "USGS 1:5M lunar geologic maps 1971–1979 (renovated by Fortezzo & Hare, 2013); colors after E. Lutz";
-  function creditOf(name) { return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : undefined; }
+  var GEO_MAX = 11;            // 서버의 `trek.MARS_MAX_ZOOM`
+  function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png"; }
+  var GEO_CREDIT = "Geologic Map of Mars 1:20M (Tanaka et al., 2014, USGS SIM 3292) via NASA Mars Trek";
+  function creditOf(name) { return name === "units" ? GEO_CREDIT : undefined; }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
-    base: saved("gsm.moon.base", "kaguya"),
-    terrain: saved("gsm.moon.terrain", "on") !== "off",
-    exag: +saved("gsm.moon.exag", "20"),
+    base: saved("gsm.mars.base", "viking"),
+    terrain: saved("gsm.mars.terrain", "on") !== "off",
+    exag: +saved("gsm.mars.exag", "20"),
   };
-  if (!BASES[look.base]) look.base = "kaguya";
+  if (!BASES[look.base] || look.base === "shade") look.base = "viking";
   // 켠 지질 레이어 — 맨 앞이 위다. `[{name, opacity}]`. 처음이면 지질 단위 하나를 반쯤 비치게
   var active = (function () {
     try {
-      var list = JSON.parse(saved("gsm.moon.layers", "null"));
+      var list = JSON.parse(saved("gsm.mars.layers", "null"));
       if (Array.isArray(list)) {
         return list.filter(function (e) { return e && LAYER[e.name]; })
                    .map(function (e) { return { name: e.name, opacity: isFinite(e.opacity) ? +e.opacity : 1 }; });
@@ -108,13 +94,15 @@
   })();
   function entryOf(name) { return active.filter(function (e) { return e.name === name; })[0]; }
   function isOn(name) { return !!entryOf(name); }
-  function saveLayers() { save("gsm.moon.layers", JSON.stringify(active)); }
+  function saveLayers() { save("gsm.mars.layers", JSON.stringify(active)); }
 
   // ══ 구 — Cesium ═══════════════════════════════════════════════════
-  var MOON = Cesium.Ellipsoid.MOON;
+  // Cesium 의 `Ellipsoid.MARS` 는 극이 20 km 납작한 타원체다. Trek 의 격자·서버의 넓이 셈이 구(3 396.19 km)라
+  // 구를 따로 짓는다 — 위도가 어긋나지 않게
+  var MARS = Object.freeze(new Cesium.Ellipsoid(R, R, R));
   // 타원체를 넘기지 않는 곳(카메라 기본 범위·좌표 풀이)이 지구로 여기지 않게 기본값부터 바꾼다
-  Cesium.Ellipsoid.default = MOON;
-  function scheme() { return new Cesium.GeographicTilingScheme({ ellipsoid: MOON }); }
+  Cesium.Ellipsoid.default = MARS;
+  function scheme() { return new Cesium.GeographicTilingScheme({ ellipsoid: MARS }); }
   // `min` 은 제공자의 minimumLevel 이 아니라 레이어의 minimumTerrainLevel 로 건다 — minimumLevel 은 그 줌의
   // 타일이 네 장을 넘으면 그리기가 흐트러진다(Cesium 문서). 구의 격자와 영상 격자가 같아 줌이 맞는다
   function cesiumBase(key) {
@@ -124,14 +112,15 @@
     }), b.min ? { minimumTerrainLevel: b.min } : {});
   }
 
-  // 지형 — LOLA 표고, 서버가 65×65 Terrarium 으로 옮겨 준다 (036)
+  // 지형 — MOLA–HRSC 표고(200 m), 서버가 65×65 Terrarium 으로 옮겨 준다. 화성 기준면(아레오이드)에서 잰 높이를
+  // 구 위에 세운다 — 적도와 극의 기준면 차이(수 km)는 지형에 비하면 작아 그대로 둔다
   var DEM_SIZE = 65;
-  var DEM_MAX = 8;             // 서버의 `trek.DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
+  var DEM_MAX = 9;             // 서버의 `trek.MARS_DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
   var demMemo = {};
   function demGrid(x, y, level) {
     var id = level + "/" + x + "/" + y;
     if (!demMemo[id]) {
-      demMemo[id] = fetch(BASE + "moon/dem/" + id + ".png").then(function (r) {
+      demMemo[id] = fetch(BASE + "mars/dem/" + id + ".png").then(function (r) {
         if (!r.ok) throw new Error(r.status);
         return r.blob();
       }).then(function (blob) {
@@ -156,7 +145,7 @@
   }
   function heights(x, y, level) {
     if (level <= DEM_MAX) return demGrid(x, y, level);
-    // 부모(줌 8) 격자의 한 조각을 겹선형으로 늘린다
+    // 부모(줌 9) 격자의 한 조각을 겹선형으로 늘린다
     var k = Math.pow(2, level - DEM_MAX);
     var ax = Math.floor(x / k), ay = Math.floor(y / k);
     var ox = (x - ax * k) / k, oy = (y - ay * k) / k, span = 1 / k, n = DEM_SIZE - 1;
@@ -174,22 +163,22 @@
       return out;
     });
   }
+  var DEM_CREDIT = "MOLA–HRSC blended DEM (NASA/GSFC, ESA/DLR/FU Berlin)";
   var lolaTerrain = new Cesium.CustomHeightmapTerrainProvider({
-    width: DEM_SIZE, height: DEM_SIZE, tilingScheme: scheme(), callback: heights,
-    credit: "LRO LOLA DEM (NASA/GSFC)",
+    width: DEM_SIZE, height: DEM_SIZE, tilingScheme: scheme(), callback: heights, credit: DEM_CREDIT,
   });
-  var flatTerrain = new Cesium.EllipsoidTerrainProvider({ ellipsoid: MOON });
+  var flatTerrain = new Cesium.EllipsoidTerrainProvider({ ellipsoid: MARS });
 
-  // 배경은 두 겹이다 — 맨 밑의 WAC(`cUnder`, 고해상일 때만 보인다)와 고른 배경(`cBase`). 영상 보정·배경 바꾸기는
-  // 차례(`get(0)`)가 아니라 이 둘을 잡고 한다
-  var cUnder = cesiumBase("wac");
+  // 배경은 두 겹이다 — 맨 밑(`cUnder`)과 고른 배경(`cBase`). 달은 Kaguya 밑에 WAC 를 깔았다(043). 화성의
+  // 배경은 모두 온 행성을 덮어 밑을 쓰지 않지만, 틀은 달과 같게 둔다
+  var cUnder = cesiumBase("viking");
   cUnder.show = !!BASES[look.base].under;
   var cBase = cesiumBase(look.base);
   var viewer = new Cesium.Viewer("globe", {
-    globe: new Cesium.Globe(MOON),
+    globe: new Cesium.Globe(MARS),
     baseLayer: cUnder,
     terrainProvider: look.terrain ? lolaTerrain : flatTerrain,
-    // 달에는 대기가 없다. 지구 전용 단추(주소 찾기·지도 고르개·시간 막대)도 뺀다
+    // 화성의 옅은 대기는 그리지 않는다 — Cesium 의 대기는 지구의 것이다. 지구 전용 단추도 뺀다
     skyAtmosphere: false,
     baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
     navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
@@ -199,18 +188,18 @@
   var scene = viewer.scene;
   scene.globe.showGroundAtmosphere = false;
   scene.globe.enableLighting = false;
-  // 지형 뒤의 것은 가린다 — 끄면 자전축처럼 달 속을 지나는 선이 가까이서 땅 위로 비친다 (045).
+  // 지형 뒤의 것은 가린다 — 끄면 자전축처럼 화성 속을 지나는 선이 가까이서 땅 위로 비친다 (045).
   // 땅에 붙인 점·이름표는 `disableDepthTestDistance` 로 따로 가리지 않는다
   scene.globe.depthTestAgainstTerrain = true;
-  scene.globe.baseColor = Cesium.Color.fromCssColorString("#1a1a1a");
+  scene.globe.baseColor = Cesium.Color.fromCssColorString("#2a140a");
   // 타일을 조금 덜 촘촘하게 — 표고·지질도가 서버를 거치므로 한 화면의 요청을 줄인다
   scene.globe.maximumScreenSpaceError = 3;
   scene.fog.enabled = false;
-  if (scene.moon) scene.moon.show = false;       // 하늘에 뜨는 지구의 달 — 달 위에서는 우습다
+  if (scene.moon) scene.moon.show = false;       // 하늘에 뜨는 지구의 달 — 화성에서는 우습다
   if (scene.sun) scene.sun.show = false;
   scene.backgroundColor = Cesium.Color.BLACK;
   scene.verticalExaggeration = look.exag / 10;
-  window.__gsmMoon = viewer;
+  window.__gsmMars = viewer;
 
   var cGeo = {};
   GEO_NAMES.forEach(function (name) {
@@ -224,13 +213,13 @@
 
   // ══ 평면 — OpenLayers ═════════════════════════════════════════════
   //
-  // 투영은 둘이다. `IAU_2015:30100` 은 달의 경위도(도) — 자료가 그 꼴로 온다. `IAU_2015:30110` 은
+  // 투영은 둘이다. `IAU_2015:49900` 은 화성의 경위도(도) — 자료가 그 꼴로 온다. `IAU_2015:49910` 은
   // 등거리 원통(미터)이고 화면이 쓴다. 둘 사이는 곱셈 하나다. 지구의 EPSG:4326 을 빌리지 않는다 —
-  // OpenLayers 가 지구 반지름으로 거리·축척을 재 3.67 배 틀어진다 (P05 §3)
-  var LL = new ol.proj.Projection({ code: "IAU_2015:30100", units: "degrees",
+  // OpenLayers 가 지구 반지름으로 거리·축척을 재 1.88 배 틀어진다 (달은 P05 §3)
+  var LL = new ol.proj.Projection({ code: "IAU_2015:49900", units: "degrees",
                                     extent: [-180, -90, 180, 90], global: true });
   var EQC = new ol.proj.Projection({
-    code: "IAU_2015:30110", units: "m", global: true,
+    code: "IAU_2015:49910", units: "m", global: true,
     extent: [-180 * M_PER_DEG, -90 * M_PER_DEG, 180 * M_PER_DEG, 90 * M_PER_DEG],
     // 등거리 원통은 남북이 참이고 동서가 위도만큼 늘어난다. 축척 막대는 동서로 잰다 — 가운데 위도의
     // cos 를 곱해 땅의 미터로 바꾼다
@@ -275,8 +264,8 @@
                gamma: ["var", "gamma"], saturation: ["var", "saturation"] },
     });
   }
-  // 구처럼 두 겹 — 밑의 WAC 는 고해상일 때만, 고른 배경은 `min` 줌부터 (평면의 줌은 타일 줌과 같다)
-  var oUnder = baseLayer("moon-base-under", "wac");
+  // 구처럼 두 겹 — 밑은 `under` 가 있을 때만, 고른 배경은 `min` 줌부터 (평면의 줌은 타일 줌과 같다)
+  var oUnder = baseLayer("moon-base-under", "viking");
   var oBase = baseLayer("moon-base", look.base);
   function placeBase() {
     var b = BASES[look.base];
@@ -284,7 +273,7 @@
     oBase.setMinZoom(b.min ? b.min - 0.5 : -Infinity);
   }
   placeBase();
-  var SHADE = BASES.lola;
+  var SHADE = BASES.shade;
   var oShade = new ol.layer.Tile({ className: "moon-shade", visible: false, opacity: 0.7,
                                    source: tileSource(SHADE.url, SHADE.max, SHADE.credit, "anonymous") });   // CORS — 그림으로 뽑으려면 (048)
   var oGeo = {};
@@ -305,31 +294,27 @@
     ]),
   });
 
-  // ══ 착륙지 (046) ═════════════════════════════════════════════════
+  // ══ 착륙지 (달의 046 을 옮겼다) ════════════════════════════════════
   //
-  // 셋이다. 착륙·충돌 지점(Trek, 서버가 캐시)·아폴로 EVA 동선(Esri UK, 저장소의 씨앗)은 벡터로 우리가 그리고,
-  // 착륙지 고해상 사진(LRO NAC)은 Trek 의 모자이크 여러 장을 브라우저가 곧장 받는다(영상 배경과 같다).
-  // 지질 레이어와 같은 손잡이(보이기·투명도·차례)를 갖게 `cGeo`·`oGeo` 에 넣는다 — 구의 벡터는 영상 위에
-  // 따로 그려지므로 차례(`cRaise`)가 없다.
-  var LANDING_ORDER = ["crewed", "soft", "rover", "impact"];
+  // 셋이다. 착륙선·로버 지점과 로버 주행 경로는 Mars Trek 의 MapServer 를 서버가 받아 캐시하고(`mars/landings/`·
+  // `mars/traverses/`) 벡터로 우리가 그린다. 착륙지 고해상 사진(HiRISE)은 Trek 의 모자이크를 브라우저가 곧장
+  // 받는다. 이름(`eva`·`nac`·`LANDING_*`)은 달의 것을 그대로 둔다 — 두 화면을 나란히 고치기 쉽게
+  var LANDING_ORDER = ["lander", "rover"];
   var LANDING_STYLE = {
-    crewed: { color: "#ffffff", size: 10, label: "유인 착륙" },
-    soft: { color: "#4ea5d9", size: 8, label: "연착륙" },
-    rover: { color: "#7bc47f", size: 8, label: "로버" },
-    impact: { color: "#ff8f3d", size: 6, label: "충돌" },
+    lander: { color: "#ffffff", size: 9, label: "착륙선" },
+    rover: { color: "#6fd3ff", size: 9, label: "로버" },
   };
+  //: 로버마다 한 색 — 범례 칸도 이것으로 선다
+  var TRAVERSE_COLOR = { "Spirit": "#ffe14d", "Opportunity": "#7bc47f", "Curiosity": "#ff8fab",
+                         "Perseverance": "#c879ff" };
   var EVA_COLOR = "#ffe14d";
-  // Trek 의 착륙지 모자이크 — 줌 끝은 2026-09-29 에 한 장씩 받아 보았다. 11·14 는 26–28 cm 판(대비를 높였다)
+  // Trek 의 HiRISE 모자이크 — 줌 끝은 2026-09-29 에 한 장씩 받아 보았다(게일 16·예제로 17, 한 픽셀 25–50 cm)
   var NAC = [
-    { layer: "apollo11_26cm_mosaic_byte_geo_1_2_highContrast", max: 15, bbox: [23.4485, 0.1465, 23.5397, 1.1149] },
-    { layer: "LRO_NAC_Apollo12_Mosaic_p", max: 16, bbox: [-23.4442, -3.4713, -23.3572, -2.5019] },
-    { layer: "apollo14_28cm_mosaic_byte_geo_1_2_highContrast", max: 15, bbox: [-17.4901, -4.1921, -17.3908, -3.2254] },
-    { layer: "LRO_NAC_Apollo15_Mosaic_p", max: 16, bbox: [3.5811, 25.7965, 3.6899, 26.7636] },
-    { layer: "LRO_NAC_Apollo16_Mosaic_p", max: 14, bbox: [15.3788, -9.6061, 15.5545, -8.6617] },
-    { layer: "NAC_DTM_APOLLO17_MOSAIC_120CM", max: 14, bbox: [29.9059, 19.3905, 31.658, 21.3035] },
-    { layer: "LRO_NAC_Post_Landing_OrthoMosaic_1mpp_IM_1_LandingSite", max: 13, bbox: [0.9387, -80.2164, 1.9392, -80.0428] },
+    { layer: "curiosity_hirise_mosaic", max: 16, bbox: [137.1225, -4.9255, 137.7298, -4.2490] },
+    { layer: "JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first_dd", max: 17,
+      bbox: [77.2229, 18.3068, 77.5840, 18.6693] },
   ];
-  var NAC_CREDIT = "LRO NAC · NASA/GSFC/Arizona State University (via Moon Trek)";
+  var NAC_CREDIT = "MRO HiRISE · NASA/JPL/University of Arizona (via Mars Trek)";
   var cRaise = {};
   GEO_NAMES.forEach(function (n) { cRaise[n] = [cGeo[n]]; });
   function proxy(onShow, onAlpha) {
@@ -361,7 +346,7 @@
     }) });
     oExtra.getLayers().push(oGeo.nac);
   })();
-  // ── 벡터 — 착륙·충돌 지점, EVA 동선. 처음 켤 때 받는다 ──
+  // ── 벡터 — 착륙선·로버 지점, 로버 주행 경로. 처음 켤 때 받는다 ──
   function vectorLayer(name, draw) {
     var ds = new Cesium.CustomDataSource(name);
     ds.show = false;
@@ -388,25 +373,26 @@
   }
   function landingProps(p) {
     var out = { "이름표": p["이름표"] };
+    out[T("임무")] = p["임무"];
     out[T("종류")] = T((LANDING_STYLE[p.kind] || {}).label || p.kind);
-    if (p.date) out[T("날짜")] = p.date;
-    if (p.link) out["NSSDC"] = p.link;
     return out;
   }
   vectorLayer("landings", {
     chip: "#ffffff",
     cesium: function (ds, f) {
-      var st = LANDING_STYLE[f.properties.kind] || LANDING_STYLE.impact;
+      var st = LANDING_STYLE[f.properties.kind] || LANDING_STYLE.lander;
       var e = ds.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(f.geometry.coordinates[0], f.geometry.coordinates[1], 0, MOON),
+        position: Cesium.Cartesian3.fromDegrees(f.geometry.coordinates[0], f.geometry.coordinates[1], 0, MARS),
         point: { pixelSize: st.size, color: Cesium.Color.fromCssColorString(st.color), outlineColor: Cesium.Color.BLACK,
                  outlineWidth: 1.5, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                 disableDepthTestDistance: 1500000 },
+                 disableDepthTestDistance: 3000000 },
+        // 한 임무의 지점(열 차폐막·낙하산·착륙 자리)은 수백 m 안에 모여 있다 — 멀리서는 임무 이름만 보이게
+        // 이름표를 가까이서만 그린다
         label: { text: f.properties["이름표"], font: "12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
                  outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
                  pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 900000),
-                 disableDepthTestDistance: 1500000 },
+                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 60000),
+                 disableDepthTestDistance: 3000000 },
       });
       e.gsmProps = landingProps(f.properties);
       e.gsmSet = { name: T(LAYER.landings.title), color: st.color };
@@ -414,48 +400,53 @@
     olFeature: function (f) { return { type: "Feature", geometry: f.geometry,
                                         properties: Object.assign({ _kind: f.properties.kind }, landingProps(f.properties)) }; },
     olStyle: function (feature, resolution) {
-      var st = LANDING_STYLE[feature.get("_kind")] || LANDING_STYLE.impact;
+      var st = LANDING_STYLE[feature.get("_kind")] || LANDING_STYLE.lander;
       return new ol.style.Style({
         image: new ol.style.Circle({ radius: st.size / 2 + 1, fill: new ol.style.Fill({ color: st.color }),
                                      stroke: new ol.style.Stroke({ color: "#000", width: 1.5 }) }),
-        text: resolution < 3000 ? new ol.style.Text({ text: feature.get("이름표"), offsetY: -14,
+        text: resolution < 200 ? new ol.style.Text({ text: feature.get("이름표"), offsetY: -14,
           font: "12px system-ui, sans-serif", fill: new ol.style.Fill({ color: "#fff" }),
           stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) : undefined,
       });
     },
   });
   function evaProps(p) {
-    var out = { "이름표": p.mission + " EVA" };
-    out[T("임무")] = p.mission;
-    if (p.who) out[T("사람")] = p.who;
+    var out = { "이름표": T("{name} 주행 경로", { name: p["임무"] }) };
+    out[T("임무")] = p["임무"];
     return out;
   }
+  function traverseColor(mission) { return TRAVERSE_COLOR[mission] || EVA_COLOR; }
   vectorLayer("eva", {
     chip: EVA_COLOR,
     cesium: function (ds, f) {
+      var color = traverseColor(f.properties["임무"]);
       var lines = f.geometry.type === "LineString" ? [f.geometry.coordinates] : f.geometry.coordinates;
       lines.forEach(function (line) {
         var flatArr = [];
         line.forEach(function (c) { flatArr.push(c[0], c[1]); });
         var e = ds.entities.add({ polyline: {
-          positions: Cesium.Cartesian3.fromDegreesArray(flatArr, MOON), width: 2, clampToGround: true,
-          material: Cesium.Color.fromCssColorString(EVA_COLOR),
-          // 동선은 착륙지 둘레 수 km 다 — 멀리서는 점 하나로도 안 보인다
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 120000) } });
+          positions: Cesium.Cartesian3.fromDegreesArray(flatArr, MARS), width: 2.5, clampToGround: true,
+          material: Cesium.Color.fromCssColorString(color),
+          // 가장 긴 오퍼튜니티가 45 km 다 — 그보다 멀리서는 선이 점 하나로 뭉친다
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 800000) } });
         e.gsmProps = evaProps(f.properties);
-        e.gsmSet = { name: T(LAYER.eva.title), color: EVA_COLOR };
+        e.gsmSet = { name: T(LAYER.eva.title), color: color };
       });
     },
-    olFeature: function (f) { return { type: "Feature", geometry: f.geometry, properties: evaProps(f.properties) }; },
-    olStyle: new ol.style.Style({ stroke: new ol.style.Stroke({ color: EVA_COLOR, width: 2 }) }),
+    olFeature: function (f) { return { type: "Feature", geometry: f.geometry,
+                                        properties: Object.assign({ _mission: f.properties["임무"] }, evaProps(f.properties)) }; },
+    olStyle: function (feature) {
+      return new ol.style.Style({ stroke: new ol.style.Stroke({ color: traverseColor(feature.get("_mission")), width: 2.5 }) });
+    },
   });
 
   // ══ 구 ⇄ 평면 ═════════════════════════════════════════════════════
   //
-  // 넘는 높이를 둘로 둔다(되돌이). 구에서 250 km 밑으로 곧장 내려다보면 평면으로, 평면에서 400 km
-  // 높이만큼 멀어지면 구로. 둘이 같으면 문턱에서 오락가락한다
-  var TO_FLAT_H = 250000, TO_GLOBE_H = 400000;
+  // 넘는 높이를 둘로 둔다(되돌이). 구에서 400 km 밑으로 곧장 내려다보면 평면으로, 평면에서 640 km
+  // 높이만큼 멀어지면 구로. 둘이 같으면 문턱에서 오락가락한다. 달(250·400 km)보다 높다 — 화성이 두 배 크다
+  var TO_FLAT_H = 400000, TO_GLOBE_H = 640000;
   var POLE_LIMIT = 75;                    // 이 위도 너머는 평면이 늘어나 구에 머문다
+  var HOME_H = 10000000;                  // 처음·"처음 자리" 의 높이 — 반지름의 세 배쯤, 한 반구가 다 든다
   var mode = "globe";
   var autoFlat = true;                    // 손으로 구로 돌아오면, 한 번 멀어질 때까지 저절로 넘지 않는다
   var wrap = $("map-wrap");
@@ -467,11 +458,11 @@
   function heightToRes(h) { return 2 * h * Math.tan(fovy() / 2) / Math.max(1, scene.canvas.clientHeight); }
   function resToHeight(res) { return res * Math.max(1, scene.canvas.clientHeight) / (2 * Math.tan(fovy() / 2)); }
   function cameraLL() {
-    var c = MOON.cartesianToCartographic(viewer.camera.positionWC);
+    var c = MARS.cartesianToCartographic(viewer.camera.positionWC);
     return c ? { lon: Cesium.Math.toDegrees(c.longitude), lat: Cesium.Math.toDegrees(c.latitude), h: c.height } : null;
   }
   function flyGlobe(lon, lat, h, duration) {
-    var dest = Cesium.Cartesian3.fromDegrees(lon, lat, h, MOON);
+    var dest = Cesium.Cartesian3.fromDegrees(lon, lat, h, MARS);
     var orient = { heading: 0, pitch: -Math.PI / 2, roll: 0 };
     if (duration) viewer.camera.flyTo({ destination: dest, orientation: orient, duration: duration });
     else viewer.camera.setView({ destination: dest, orientation: orient });
@@ -500,13 +491,13 @@
       viewer.useDefaultRenderLoop = true;
       wrap.className = "moon-globe";
     }
-    save("gsm.moon.mode", mode);
+    save("gsm.mars.mode", mode);
   }
 
   viewer.camera.moveEnd.addEventListener(function () {
     var c = cameraLL();
     if (!c) return;
-    save("gsm.moon.view", JSON.stringify({
+    save("gsm.mars.view", JSON.stringify({
       lon: +c.lon.toFixed(5), lat: +c.lat.toFixed(5), h: Math.round(c.h),
       heading: +viewer.camera.heading.toFixed(4), pitch: +viewer.camera.pitch.toFixed(4),
     }));
@@ -518,7 +509,7 @@
   flat.on("moveend", function () {
     if (mode !== "flat") return;
     var v = flat.getView(), ll = toLL(v.getCenter());
-    save("gsm.moon.flat", JSON.stringify({ lon: +ll[0].toFixed(5), lat: +ll[1].toFixed(5), res: Math.round(v.getResolution()) }));
+    save("gsm.mars.flat", JSON.stringify({ lon: +ll[0].toFixed(5), lat: +ll[1].toFixed(5), res: Math.round(v.getResolution()) }));
     if (drawing()) return;                // 그리던 선이 끊기지 않게 (041)
     if (v.getResolution() > heightToRes(TO_GLOBE_H) || Math.abs(ll[1]) > POLE_LIMIT + 3) setMode("globe");
   });
@@ -536,8 +527,8 @@
     }
   });
   $("tool-home").addEventListener("click", function () {
-    if (mode === "flat") setMode("globe", { h: 5200000 });
-    flyGlobe(0, 0, 5200000, 1.5);
+    if (mode === "flat") setMode("globe", { h: HOME_H });
+    flyGlobe(0, 0, HOME_H, 1.5);
   });
   // 북쪽 위 — 가운데 점 위로 올라가 곧장 내려다본다. 가까우면 다 내려다본 뒤 평면으로 넘어간다
   $("tool-top").addEventListener("click", function () {
@@ -552,10 +543,10 @@
   // 지구 3D(MapLibre)와 같은 네 값으로 본다. **돌고 기울이는 중심은 화면 한가운데 아래의 지형 점**이다 —
   // 보던 크레이터가 가운데에 머문다.
   //
-  // - 방위는 **달의 북극**(자전축을 그 점의 수평면에 내린 쪽)이 0°, 시계 방향. IAU 달 좌표계·지명이 다
-  //   이 북쪽이다. 극점 위에서는 북쪽이 없으므로 **위도 89.5° 너머는 지구 쪽(경도 0°, +X 축)이 0°** 다 —
-  //   달은 늘 같은 면을 지구로 향하므로 극에서 가장 자연스러운 기준이다
-  // - 기울기는 그 점에서 **달 구면에 접하는 수평면**으로 잰다. 지형의 경사로 재면 크레이터 벽에서 값이
+  // - 방위는 **화성의 북극**(자전축을 그 점의 수평면에 내린 쪽)이 0°, 시계 방향. IAU 화성 좌표계·지명이 다
+  //   이 북쪽이다. 극점 위에서는 북쪽이 없으므로 **위도 89.5° 너머는 본초 자오선(경도 0°, 에어리-0 크레이터,
+  //   +X 축) 쪽이 0°** 다 — 달의 것(지구 쪽)을 화성의 경도 0° 로 옮겼다
+  // - 기울기는 그 점에서 **화성 구면에 접하는 수평면**으로 잰다. 지형의 경사로 재면 크레이터 벽에서 값이
   //   춤춘다. 보이는 값은 지구 3D 처럼 곧장 내려다봄이 0°, 수평이 90° 다
   //
   // 손 — 오른쪽 단추(또는 Ctrl)로 끌면 기울이고 돈다. 휠은 당기고 민다. 평면에서 그렇게 끌면 같은
@@ -576,22 +567,22 @@
       var ray = viewer.camera.getPickRay(mid);
       pos = ray && scene.globe.pick(ray, scene);
     }
-    if (!pos) pos = viewer.camera.pickEllipsoid(mid, MOON);
+    if (!pos) pos = viewer.camera.pickEllipsoid(mid, MARS);
     return pos ? { pos: pos, range: Cesium.Cartesian3.distance(viewer.camera.positionWC, pos) } : null;
   }
   /** 점 `pos` 의 수평면에서 본 카메라의 방위·기울기(도). `cesium` 이면 Cesium 의 동-북-위를 쓴다 —
    *  `lookAt` 에 넘길 값이다. 아니면 위의 기준(극 가까이는 지구 쪽)이다. */
   function anglesAt(pos, cesium) {
-    var up = MOON.geodeticSurfaceNormal(pos, new Cesium.Cartesian3());
+    var up = MARS.geodeticSurfaceNormal(pos, new Cesium.Cartesian3());
     var north, east;
     if (cesium) {
-      var m = Cesium.Transforms.eastNorthUpToFixedFrame(pos, MOON);
+      var m = Cesium.Transforms.eastNorthUpToFixedFrame(pos, MARS);
       east = Cesium.Matrix4.getColumn(m, 0, new Cesium.Cartesian4());
       north = Cesium.Matrix4.getColumn(m, 1, new Cesium.Cartesian4());
       east = new Cesium.Cartesian3(east.x, east.y, east.z);
       north = new Cesium.Cartesian3(north.x, north.y, north.z);
     } else {
-      var lat = Cesium.Math.toDegrees(MOON.cartesianToCartographic(pos).latitude);
+      var lat = Cesium.Math.toDegrees(MARS.cartesianToCartographic(pos).latitude);
       var ref = Math.abs(lat) > 89.5 ? X_AXIS : Z_AXIS;
       north = Cesium.Cartesian3.subtract(ref, Cesium.Cartesian3.multiplyByScalar(up, Cesium.Cartesian3.dot(ref, up),
                                                                                    new Cesium.Cartesian3()), new Cesium.Cartesian3());
@@ -618,7 +609,7 @@
     }
   }
 
-  // 방위 단추(나침반) — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다
+  // 방위 단추(나침반) — 바늘이 화성의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다
   var needle = $("compass-needle"), poseOut = $("pose"), topBtn = $("tool-top"), compassBtn = $("tool-compass");
   $("tool-compass").addEventListener("click", function () {
     var p = pivot(true);
@@ -655,7 +646,7 @@
     var ground = scene.globe.getHeight(Cesium.Cartographic.fromDegrees(ll[0], ll[1])) || 0;
     tilting = true;
     setMode("globe", { h: h });
-    var p = { pos: Cesium.Cartesian3.fromDegrees(ll[0], ll[1], ground, MOON), range: h - ground };
+    var p = { pos: Cesium.Cartesian3.fromDegrees(ll[0], ll[1], ground, MARS), range: h - ground };
     var x0 = e.clientX, y0 = e.clientY, heading = 0, pitch = -90;
     function move(ev) {
       heading = ((ev.clientX - x0) * 0.4 % 360 + 360) % 360;
@@ -694,7 +685,7 @@
   baseSelect.value = look.base;
   baseSelect.addEventListener("change", function () {
     look.base = baseSelect.value;
-    save("gsm.moon.base", look.base);
+    save("gsm.mars.base", look.base);
     var layers = viewer.imageryLayers;
     layers.remove(cBase, true);
     cBase = cesiumBase(look.base);
@@ -713,7 +704,7 @@
   // 처음에는 평면에 CSS 필터와 SVG 감마(feComponentTransfer)를 걸었는데, 캔버스의 SVG 필터는 CPU 로 그려
   // 헤드리스 크롬에서 화면이 멎었다 — 그래서 셰이더로 옮겼다
   //
-  // "음영 겹치기" 는 WAC 영상 위에 LOLA 음영을 얹어 지형의 그늘을 살린다. 평면은 곱하기(multiply)로 섞고
+  // "음영 겹치기" 는 영상 위에 MOLA–HRSC 음영을 얹어 지형의 그늘을 살린다. 평면은 곱하기(multiply)로 섞고
   // (Lutz 가 색 지질도를 음영에 곱한 것과 같은 수, CP 94), 구는 섞는 법이 없어 반투명으로 얹는다
   var TUNE_DEFAULT = { bright: 100, contrast: 100, gamma: 100, sat: 100, shade: false };
   var PRESETS = {
@@ -721,7 +712,7 @@
     relief: { bright: 110, contrast: 130, gamma: 110, sat: 100, shade: true },
   };
   var tune = (function () {
-    try { return Object.assign({}, TUNE_DEFAULT, JSON.parse(saved("gsm.moon.tune", "{}")) || {}); }
+    try { return Object.assign({}, TUNE_DEFAULT, JSON.parse(saved("gsm.mars.tune", "{}")) || {}); }
     catch (e) { return Object.assign({}, TUNE_DEFAULT); }
   })();
   var cShade = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
@@ -731,15 +722,15 @@
   var TUNES = ["bright", "contrast", "gamma", "sat"];
   function tuneText(key, v) { return key === "gamma" ? (v / 100).toFixed(2) : v + "%"; }
   function applyTune() {
-    // 밑의 WAC 에도 같게 건다 — 고해상의 틈으로 비치는 WAC 가 따로 놀지 않게
+    // 밑의 것에도 같게 건다 — 달에서 고해상의 틈으로 비치는 WAC 가 따로 놀지 않게 한 것이다
     [cUnder, cBase].forEach(function (base) {
       base.brightness = tune.bright / 100;
       base.contrast = tune.contrast / 100;
       base.gamma = tune.gamma / 100;
       base.saturation = tune.sat / 100;
     });
-    // 음영을 음영 위에 겹칠 까닭은 없다 — 배경이 LOLA 음영이면 끈다
-    var shade = tune.shade && look.base !== "lola";
+    // 음영을 음영 위에 겹칠 까닭은 없다 — 배경이 MOLA 색 음영이면 끈다
+    var shade = tune.shade && look.base !== "mola";
     cShade.show = shade;
     oShade.setVisible(shade);
     [oUnder, oBase].forEach(function (layer) {
@@ -753,7 +744,7 @@
     $("tune-shade").checked = tune.shade;
     var changed = TUNES.some(function (k) { return tune[k] !== TUNE_DEFAULT[k]; }) || tune.shade;
     $("tune-state").textContent = changed ? T("고침") : "";
-    save("gsm.moon.tune", JSON.stringify(tune));
+    save("gsm.mars.tune", JSON.stringify(tune));
   }
   TUNES.forEach(function (k) {
     $("tune-" + k).addEventListener("input", function () { tune[k] = +this.value; applyTune(); });
@@ -881,28 +872,28 @@
     look.terrain = terrainBox.checked;
     scene.terrainProvider = look.terrain ? lolaTerrain : flatTerrain;
     exag.disabled = !look.terrain;
-    save("gsm.moon.terrain", look.terrain ? "on" : "off");
+    save("gsm.mars.terrain", look.terrain ? "on" : "off");
   });
   exag.value = look.exag;
   function applyExag() {
     look.exag = +exag.value;
     scene.verticalExaggeration = look.exag / 10;
     $("moon-exag-num").textContent = "×" + (look.exag / 10).toFixed(1);
-    save("gsm.moon.exag", look.exag);
+    save("gsm.mars.exag", look.exag);
   }
   exag.addEventListener("input", applyExag);
   applyExag();
 
   // ══ 좌표 ══════════════════════════════════════════════════════════
   function fmt(ll) {
-    return T("달 위도 {lat}° · 경도 {lon}°", { lat: ll[1].toFixed(4), lon: ll[0].toFixed(4) });
+    return T("화성 위도 {lat}° · 경도 {lon}°", { lat: ll[1].toFixed(4), lon: ll[0].toFixed(4) });
   }
   function globeLL(position) {
     var ray = viewer.camera.getPickRay(position);
     var cartesian = ray && scene.globe.pick(ray, scene);
-    if (!cartesian) cartesian = viewer.camera.pickEllipsoid(position, MOON);
+    if (!cartesian) cartesian = viewer.camera.pickEllipsoid(position, MARS);
     if (!cartesian) return null;
-    var c = MOON.cartesianToCartographic(cartesian);
+    var c = MARS.cartesianToCartographic(cartesian);
     return [Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)];
   }
   function wrapLon(ll) {
@@ -940,15 +931,15 @@
     popup.style.left = left + "px";
     popup.style.top = Math.max(8, top) + "px";
   }
-  // 첫 줄은 누른 자리의 달 위경도 — 2D 처럼 누르면 "위도, 경도" 로 복사한다(아래 `popupBody` 의 click, 041)
+  // 첫 줄은 누른 자리의 화성 위경도 — 2D 처럼 누르면 "위도, 경도" 로 복사한다(아래 `popupBody` 의 click, 041)
   function coordHead(ll) {
     var lat = ll[1].toFixed(6), lon = ll[0].toFixed(6);
     return '<button type="button" class="popup-coord" title="' + esc(T("눌러서 복사한다")) + '" data-copy="' +
-           lat + ", " + lon + '"><span class="k">' + esc(T("달 위도")) + '</span><span class="v">' + lat +
-           '</span><span class="k">' + esc(T("달 경도")) + '</span><span class="v">' + lon +
+           lat + ", " + lon + '"><span class="k">' + esc(T("화성 위도")) + '</span><span class="v">' + lat +
+           '</span><span class="k">' + esc(T("화성 경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
-  // 켠 레이어 가운데 읽을 수 있는 것(통합·원도)을 위에서부터 다 묻는다 — 둘을 켜 두면 견줘 읽는다
+  // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달(통합·원도)에서 온 틀이다. 화성은 하나다
   function askUnit(ll, pixel) {
     markAt(ll);
     var head = coordHead(ll);
@@ -957,7 +948,7 @@
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
     Promise.all(layers.map(function (l) {
-      var url = BASE + "moon/info/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
+      var url = BASE + "mars/info/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
                 (l.info === "units" ? "" : "&layer=" + l.info);
       return fetch(url).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
@@ -1003,7 +994,7 @@
     if (entity && entity.gsmProps) {
       var pos = entity.position && entity.position.getValue(Cesium.JulianDate.now());
       var ll = null;
-      if (pos) { var c = MOON.cartesianToCartographic(pos); ll = [Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)]; }
+      if (pos) { var c = MARS.cartesianToCartographic(pos); ll = [Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)]; }
       showFeature(entity.gsmProps, entity.gsmSet, ll, px);
       return;
     }
@@ -1027,15 +1018,15 @@
 
   // ══ 범례 — 오른쪽 아래, 펼쳐 둔다 ═══════════════════════════════
   //
-  // 켠 레이어마다 칸 하나 — 통합 지질도는 시대별 49 단위, 원도는 29 갈래와 구조선. 켠 차례(위가 앞)대로
+  // 켠 레이어마다 칸 하나 — 지질도는 시대별 단위, 착륙지는 갈래, 주행 경로는 로버. 켠 차례(위가 앞)대로
   var swatches = {};
   var legends = {};                // 갈래 → 그린 HTML (한 번 받는다)
   var dock = $("legend-dock");
-  dock.open = saved("gsm.moon.legend", "open") !== "closed";
-  dock.addEventListener("toggle", function () { save("gsm.moon.legend", dock.open ? "open" : "closed"); });
-  // 달의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.AGES_KO`)
-  var AGE_ORDER = [["코페르니쿠스기", "Copernican"], ["에라토스테네스기", "Eratosthenian"], ["임브리움기", "Imbrian"],
-                   ["넥타리스기", "Nectarian"], ["선넥타리스기", "Pre-Nectarian"]];
+  dock.open = saved("gsm.mars.legend", "open") !== "closed";
+  dock.addEventListener("toggle", function () { save("gsm.mars.legend", dock.open ? "open" : "closed"); });
+  // 화성의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.MARS_PERIODS_KO`).
+  // 둘에 걸친 단위("Amazonian and Hesperian")는 젊은 쪽 상자에 든다
+  var AGE_ORDER = [["아마조니스기", "Amazonian"], ["헤스페리아기", "Hesperian"], ["노아키스기", "Noachian"]];
   function ageRank(age) {
     for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
     return AGE_ORDER.length;
@@ -1049,11 +1040,17 @@
       }).join("");
       return Promise.resolve(legends[kind]);
     }
-    var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
+    if (kind === "traverses") {
+      legends[kind] = Object.keys(TRAVERSE_COLOR).map(function (k) {
+        return '<li><span class="chip line" style="border-color:' + TRAVERSE_COLOR[k] + '"></span>' + esc(k) + "</li>";
+      }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    var url = BASE + "mars/legend/";
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
       if (kind === "units") {
-        // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
+        // 상류의 범례 차례는 이름의 가나다(알파벳)라 시대가 섞여 있다.
         // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는
         // 처음 나온 차례대로 그 밑에 선다 (044)
         var ages = [], byAge = {};
@@ -1068,18 +1065,10 @@
           html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
                   '<span class="age-n">' + byAge[age].length + "</span></div><ul>";
           byAge[age].forEach(function (item) {
-            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
+            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) +
+                    (item.unit ? " (" + esc(item.unit) + ")" : "") + "</li>";
           });
           html += "</ul></li>";
-        });
-      } else if (kind === "orig") {
-        (data.units || []).forEach(function (c) {
-          html += '<li><span class="chip" style="background:' + esc(c.color) + '"></span>' + esc(c.label) + "</li>";
-        });
-      } else {
-        (data.lines || []).forEach(function (c) {
-          html += '<li><span class="chip line' + (c.dash ? " dash" : "") + '" style="border-color:' + esc(c.color) +
-                  '"></span>' + esc(c.label) + "</li>";
         });
       }
       legends[kind] = html;
@@ -1104,13 +1093,13 @@
   // 팝업의 색 조각이 쓰므로 통합판 범례는 처음에 받아 둔다
   legendHtml("units");
 
-  // ══ 내 자료 — 달 점묶음 (037) ═════════════════════════════════════
+  // ══ 내 자료 — 화성 점묶음 (달의 037 을 옮겼다) ═════════════════════
   //
-  // 지구의 점묶음과 같은 틀(`PointSet`)이고 `body: "moon"` 만 다르다. 구에는 Cesium 의 점·선·면으로,
+  // 지구의 점묶음과 같은 틀(`PointSet`)이고 `body: "mars"` 만 다르다. 구에는 Cesium 의 점·선·면으로,
   // 평면에는 OpenLayers 의 벡터 레이어로 같은 GeoJSON 을 그린다
   var pointsets = JSON.parse(($("pointset-data") || {}).textContent || "[]");
   var cSets = {}, oSets = {}, extents = {};
-  var PS_OFF = "gsm.moon.pointsets.off";
+  var PS_OFF = "gsm.mars.pointsets.off";
   function offList() {
     try { return JSON.parse(saved(PS_OFF, "[]")) || []; } catch (e) { return []; }
   }
@@ -1142,12 +1131,12 @@
   }
 
   // 구 — 점·이름표를 지형에 묻히지 않게 깊이 검사를 끄되, **가까울 때만**이다. 끝없이 끄면 뒷면의
-  // 점(창어 4 호)이 달을 뚫고 앞면에 비친다. 1 500 km 는 달 반지름보다 짧다
-  var NO_DEPTH = 1500000;
+  // 점이 화성을 뚫고 앞면에 비친다(달의 창어 4 호가 그랬다). 3 000 km 는 화성 반지름보다 짧다
+  var NO_DEPTH = 3000000;
   function ringPositions(ring) {
     var flatArr = [];
     ring.forEach(function (c) { flatArr.push(c[0], c[1]); });
-    return Cesium.Cartesian3.fromDegreesArray(flatArr, MOON);
+    return Cesium.Cartesian3.fromDegreesArray(flatArr, MARS);
   }
   function addEntity(source, ps, feature) {
     var g = feature.geometry || {}, props = feature.properties || {};
@@ -1161,7 +1150,7 @@
     }
     if (g.type === "Point") {
       add({
-        position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, MOON),
+        position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, MARS),
         point: { pixelSize: 8, color: color, outlineColor: Cesium.Color.BLACK, outlineWidth: 1.5,
                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: NO_DEPTH },
         // 이름표는 가까이 가야 뜬다 — 멀리서는 수천 개가 겹친다
@@ -1303,7 +1292,7 @@
       text.innerHTML = '<span class="ps-name">' + esc(ps.name) + '</span><span class="ps-count">' +
                        esc(countText(ps)) + "</span>";
       var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () { flyToSet(ps); });
-      var elev = iconButton("⛰", T("표고 채우기 — LOLA 표고에서 점마다 높이를 읽는다 (달 기준구 1737.4 km)"),
+      var elev = iconButton("⛰", T("표고 채우기 — MOLA–HRSC 표고에서 점마다 높이를 읽는다 (화성 기준면)"),
                             !ps.count, function () {
         elev.disabled = true;
         post(BASE + "pointsets/" + ps.id + "/elevation/").then(function (d) {
@@ -1336,7 +1325,7 @@
   renderActive();
   applyStack();
 
-  // 올리기 — 2D 의 불러오기와 같은 꼴. 몸만 달로 적는다
+  // 올리기 — 2D 의 불러오기와 같은 꼴. 몸만 화성으로 적는다
   var form = $("upload-form"), fileInput = $("upload-file"), msgBox = $("upload-msg");
   var PALETTE = ["#f2c14e", "#e4572e", "#4ea5d9", "#7bc47f", "#c879ff", "#ff8fab"];
   $("upload-color").value = PALETTE[pointsets.length % PALETTE.length];
@@ -1349,7 +1338,7 @@
     e.preventDefault();
     if (!fileInput.files.length) return;
     var data = new FormData(form);
-    data.set("body", "moon");
+    data.set("body", "mars");
     msgBox.className = "msg";
     msgBox.textContent = T("올리는 중");
     post(BASE + "pointsets/upload/", data).then(function (d) {
@@ -1385,7 +1374,7 @@
         return '<li data-i="' + i + '"' + (i === picked ? ' class="on"' : "") + '><span class="kind">' + esc(p.kind) +
                '</span><span class="title">' + esc(p.name) + '</span><span class="sub">' +
                p.lat.toFixed(3) + ", " + p.lon.toFixed(3) + "</span></li>";
-      }).join("") + '<li class="note src">IAU Gazetteer of Planetary Nomenclature · NASA Moon Trek</li>';
+      }).join("") + '<li class="note src">IAU Gazetteer of Planetary Nomenclature · NASA Mars Trek</li>';
     }
     results.hidden = false;
     results.querySelectorAll("li[data-i]").forEach(function (li) {
@@ -1404,7 +1393,7 @@
     if (!q || parseLatLon(q)) { results.hidden = true; return; }
     findTimer = setTimeout(function () {
       var mine = ++findAsked;
-      fetch(BASE + "moon/places/?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (data) {
+      fetch(BASE + "mars/places/?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (data) {
         if (mine !== findAsked) return;
         found = data.results || [];
         picked = found.length ? 0 : -1;
@@ -1430,17 +1419,11 @@
 
   // ══ 자전축 — 구에서 방향을 잡는 꼬챙이 (041·045) ═════════════════
   //
-  // 구를 돌리고 기울이다 보면 어느 쪽이 북인지 놓친다. 달 고정 좌표의 Z 축이 곧 자전축이다.
-  //
-  // 041 은 달 밖으로 나온 두 토막만 그렸다 — 달 속은 가려져서, 돌려 보면 두 토막이 따로 노는 것처럼
-  // 보였다(사람이 "달과 함께 눕지 않는다" 고 했다). 그래서 **달 속을 지나는 토막도 흐린 끊은 선으로
-  // 비쳐 보이게** 했다(`depthFailMaterial`). 남극점 → 중심 → 북극점이 한 막대로 읽힌다. 중심에 점,
-  // 극점(표면)에 점을 찍고, 밖으로 뻗은 끝에 이름을 적는다.
-  //
-  // **가까이 가면 치운다**(카메라 높이 1 200 km 밑). 달 속의 선이 땅 위로 비쳐 어지럽고, 그 거리에서는
-  // 방위 바늘이 같은 일을 한다. 평면은 늘 북쪽이 위라 구에서만 보인다. 켜고 끈 것을 기억한다
-  var AXIS_OUT = R * 1.45, AXIS_NEAR = 1200000;
-  var axisOn = saved("gsm.moon.axis", "on") !== "off", axisFar = true;
+  // 구를 돌리고 기울이다 보면 어느 쪽이 북인지 놓친다. 화성 고정 좌표의 Z 축이 곧 자전축이다. 달(041·045)과
+  // 같다 — 화성 속을 지나는 토막도 흐린 끊은 선으로 비쳐 남극점 → 중심 → 북극점이 한 막대로 읽힌다.
+  // **가까이 가면 치운다**(카메라 높이 2 400 km 밑 — 달의 두 배). 평면은 늘 북쪽이 위라 구에서만 보인다
+  var AXIS_OUT = R * 1.45, AXIS_NEAR = 2400000;
+  var axisOn = saved("gsm.mars.axis", "on") !== "off", axisFar = true;
   var WHITE_A = Cesium.Color.WHITE;
   var axisEntities = [
     viewer.entities.add({
@@ -1457,7 +1440,7 @@
   ].concat([[1, T("북극점")], [-1, T("남극점")]].reduce(function (all, end) {
     // 표면의 극점 — 뒤로 돌면 가려진다
     all.push(viewer.entities.add({
-      position: new Cesium.Cartesian3(0, 0, end[0] * MOON.maximumRadius),
+      position: new Cesium.Cartesian3(0, 0, end[0] * MARS.maximumRadius),
       point: { pixelSize: 8, color: WHITE_A, outlineColor: Cesium.Color.BLACK, outlineWidth: 2 },
     }));
     // 밖으로 뻗은 끝의 이름 — 극점이 뒤에 있어도 어느 쪽이 북인지 보인다
@@ -1482,7 +1465,7 @@
   }
   $("tool-axis").addEventListener("click", function () {
     axisOn = !axisOn;
-    save("gsm.moon.axis", axisOn ? "on" : "off");
+    save("gsm.mars.axis", axisOn ? "on" : "off");
     applyAxis();
   });
   applyAxis();
@@ -1505,7 +1488,7 @@
     return c.toDataURL();
   })();
   var markC = viewer.entities.add({
-    show: false, position: Cesium.Cartesian3.fromDegrees(0, 0, 0, MOON),
+    show: false, position: Cesium.Cartesian3.fromDegrees(0, 0, 0, MARS),
     billboard: { image: MARK_URL, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                  disableDepthTestDistance: NO_DEPTH },
   });
@@ -1516,17 +1499,17 @@
   function markAt(ll) {
     markC.show = !!ll;
     markO.setGeometry(ll ? new ol.geom.Point(fromLL(ll)) : undefined);
-    if (ll) markC.position = Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MOON);
+    if (ll) markC.position = Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MARS);
   }
 
   // ══ 도구 — 점 찍기·거리·넓이·범위 (041) ═══════════════════════════
   //
-  // 2D 의 그리기 도구와 같은 넷이다. **찍고 잰 것은 달 경위도로 한 곳에 들고, 구와 평면이 저마다
+  // 2D 의 그리기 도구와 같은 넷이다. **찍고 잰 것은 화성 경위도로 한 곳에 들고, 구와 평면이 저마다
   // 그린다** — 켠 레이어·점묶음처럼 넘어가도 그대로 남는다. 그리던 것(끝내지 않은 선)만 넘어갈 때
   // 버리므로, 그리는 동안은 저절로 넘어가지 않는다(`drawing()`).
   //
-  // 길이·넓이는 **달의 구면**(반지름 1737.4 km)으로 잰다. 평면의 가로는 위도만큼 늘어나 있어 평면
-  // 좌표로 재면 틀린다. 넓이는 OpenLayers 의 `ol.sphere.getArea` 와 같은 식이고 반지름만 달의 것이다
+  // 길이·넓이는 **화성의 구면**(반지름 3396.19 km)으로 잰다. 평면의 가로는 위도만큼 늘어나 있어 평면
+  // 좌표로 재면 틀린다. 넓이는 OpenLayers 의 `ol.sphere.getArea` 와 같은 식이고 반지름만 화성의 것이다
   var tool = "";                           // "" 이면 누르면 속성을 읽는다
   var temps = [], ranges = [], measured = null;
   var tempSeq = 0, rangeSeq = 0, lastMeasure = "";
@@ -1553,7 +1536,7 @@
     }
     return Math.abs(sum * R * R / 2);
   }
-  // 경도를 앞 꼭짓점에서 180° 안쪽으로 — 날짜변경선(±180°)을 건너도 선이 달을 한 바퀴 돌지 않게
+  // 경도를 앞 꼭짓점에서 180° 안쪽으로 — 날짜변경선(±180°)을 건너도 선이 화성을 한 바퀴 돌지 않게
   function unwrap(prev, ll) {
     if (!prev) return ll;
     var lon = ll[0];
@@ -1721,7 +1704,7 @@
     drawSource.clear();
     function add(opts) { drawnEntities.push(cDraw.entities.add(opts)); }
     temps.forEach(function (t) {
-      add({ position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 0, MOON),
+      add({ position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 0, MARS),
             point: { pixelSize: 10, color: WHITE, outlineColor: BLACK, outlineWidth: 2,
                      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: NO_DEPTH },
             label: cLabel(String(t.no), -15) });
@@ -1731,7 +1714,7 @@
       var ring = rangeRing(r), label = T("범위 {n}", { n: r.no });
       add({ polygon: { hierarchy: positions(ring), material: WHITE.withAlpha(0.1) } });
       add({ polyline: { positions: positions(ring), width: 2, clampToGround: true, material: Cesium.Color.fromCssColorString("#e4e4e4") } });
-      add({ position: Cesium.Cartesian3.fromDegrees((r.w + r.e) / 2, (r.s + r.n) / 2, 0, MOON), label: cLabel(label) });
+      add({ position: Cesium.Cartesian3.fromDegrees((r.w + r.e) / 2, (r.s + r.n) / 2, 0, MARS), label: cLabel(label) });
       drawSource.addFeature(new ol.Feature({ geometry: new ol.geom.Polygon([eqc(ring)]), kind: "range", label: label }));
     });
     if (measured) {
@@ -1740,7 +1723,7 @@
       if (measured.kind === "area") add({ polygon: { hierarchy: positions(line), material: WHITE.withAlpha(0.14) } });
       add({ polyline: { positions: positions(line), width: 2.5, clampToGround: true, material: dash() } });
       var at = measured.kind === "area" ? centroid(c) : c[c.length - 1];
-      add({ position: Cesium.Cartesian3.fromDegrees(at[0], at[1], 0, MOON), label: cLabel(got.text, measured.kind === "area" ? 0 : -16) });
+      add({ position: Cesium.Cartesian3.fromDegrees(at[0], at[1], 0, MARS), label: cLabel(got.text, measured.kind === "area" ? 0 : -16) });
       var geom = measured.kind === "area" ? new ol.geom.Polygon([eqc(line)]) : new ol.geom.LineString(eqc(line));
       drawSource.addFeature(new ol.Feature({ geometry: geom, kind: "measure", label: got.text }));
     }
@@ -1840,7 +1823,7 @@
   }
   function pixelOf(ll) {
     if (mode === "flat") return flat.getPixelFromCoordinate(fromLL(ll));
-    var p = scene.cartesianToCanvasCoordinates(Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MOON));
+    var p = scene.cartesianToCanvasCoordinates(Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MARS));
     return p ? [p.x, p.y] : [wrap.clientWidth / 2, wrap.clientHeight / 2];
   }
   function showRange(r) {
@@ -1975,7 +1958,7 @@
     renderDrawn();
   }
 
-  // 점묶음으로 저장 — 2D 와 같은 길(`pointsets/create/`)이고 몸만 달이다. 좌표는 ±180° 로 되돌려 싣는다
+  // 점묶음으로 저장 — 2D 와 같은 길(`pointsets/create/`)이고 몸만 화성이다. 좌표는 ±180° 로 되돌려 싣는다
   function lonlat(coords) { return coords.map(wrapLon); }
   function saveTemp() {
     var msg = $("save-msg");
@@ -2002,7 +1985,7 @@
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
       body: JSON.stringify({
-        name: name, color: "#f2f2f2", body: "moon", shapes: shapes,
+        name: name, color: "#f2f2f2", body: "mars", shapes: shapes,
         points: temps.map(function (t) { return { lat: t.lat, lon: t.lon, label: T("점 {n}", { n: t.no }) }; }),
       }),
     })
@@ -2074,7 +2057,7 @@
         if (!blob) { alert(T("그림을 만들지 못했다")); return; }
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "GSM-moon-" + stampText().replace(/[-: ]/g, "").slice(0, 12) + ".png";
+        a.download = "GSM-mars-" + stampText().replace(/[-: ]/g, "").slice(0, 12) + ".png";
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -2133,7 +2116,7 @@
       two(d.getHours()) + ":" + two(d.getMinutes());
   }
 
-  /** 화면 한 장(`paint` 가 그린다) + 밑의 띠. 달 화면처럼 흑백이다. */
+  /** 화면 한 장(`paint` 가 그린다) + 밑의 띠. 띠는 달과 같은 흑백이다 — 인쇄해도 읽히게. */
   function compose(w, h, ratio, paint) {
     var lineH = 17, pad = 12, bar = mode === "flat" ? 170 : 0;
     // 넘치는 줄은 " · " 에서 끊어 다음 줄로 잇는다 — 출처는 잘리면 안 된다(누가 만든 그림인지가 거기 있다)
@@ -2189,19 +2172,19 @@
     } else {
       var p = pivot(false);
       if (p) {
-        var c = MOON.cartesianToCartographic(p.pos), a = anglesAt(p.pos, false);
+        var c = MARS.cartesianToCartographic(p.pos), a = anglesAt(p.pos, false);
         where = fmt(clean([Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)])) + " · " +
                 T("기울기 {tilt}° · 방위 {heading}°", { tilt: Math.round(90 + a.pitch), heading: Math.round(a.heading) % 360 });
       } else where = "—";
       if (look.terrain) where += " · " + T("지형 과장") + " ×" + (look.exag / 10).toFixed(1);
     }
     var credits = [BASES[look.base].credit];
-    if (BASES[look.base].under) credits.push(BASES.wac.credit);
-    if (tune.shade && look.base !== "lola") credits.push(SHADE.credit);
+    if (BASES[look.base].under) credits.push(BASES[BASES[look.base].under].credit);
+    if (tune.shade && look.base !== "mola") credits.push(SHADE.credit);
     active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
-    if (mode === "globe" && look.terrain) credits.push("LRO LOLA DEM (NASA/GSFC)");
+    if (mode === "globe" && look.terrain) credits.push(DEM_CREDIT);
     credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
-    var out = [T("대돌여지도") + " · " + T("달") + " · " + T(mode === "flat" ? "평면" : "구") + " · " + stampText()];
+    var out = [T("대돌여지도") + " · " + T("화성") + " · " + T(mode === "flat" ? "평면" : "구") + " · " + stampText()];
     out.push(T("배경") + ": " + base);
     out.push(T("레이어") + ": " + (shown.length ? shown.join(" / ") : "—"));
     if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
@@ -2258,17 +2241,17 @@
     setTimeout(lift, 12000);
   })();
 
-  // ══ 처음 자리 — 기억한 것. 처음이면 앞면 한가운데를 멀리서 ═══════
+  // ══ 처음 자리 — 기억한 것. 처음이면 경도 0°·위도 0° 를 멀리서 ═════
   // 맨 끝에 둔다 — 평면으로 여는 길이 팝업·목록을 다 만든 뒤라야 한다
   try {
-    var v = JSON.parse(saved("gsm.moon.view", "null"));
+    var v = JSON.parse(saved("gsm.mars.view", "null"));
     if (v && isFinite(v.lon) && isFinite(v.lat) && isFinite(v.h)) {
-      viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(v.lon, v.lat, v.h, MOON),
+      viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(v.lon, v.lat, v.h, MARS),
                               orientation: { heading: v.heading || 0, pitch: isFinite(v.pitch) ? v.pitch : -Math.PI / 2, roll: 0 } });
-    } else flyGlobe(0, 0, 5200000);
-    var f = JSON.parse(saved("gsm.moon.flat", "null"));
-    if (saved("gsm.moon.mode", "globe") === "flat" && f && isFinite(f.lon) && isFinite(f.res)) {
+    } else flyGlobe(0, 0, HOME_H);
+    var f = JSON.parse(saved("gsm.mars.flat", "null"));
+    if (saved("gsm.mars.mode", "globe") === "flat" && f && isFinite(f.lon) && isFinite(f.res)) {
       setMode("flat", { lon: f.lon, lat: f.lat, h: resToHeight(f.res) });
     }
-  } catch (e) { flyGlobe(0, 0, 5200000); }
+  } catch (e) { flyGlobe(0, 0, HOME_H); }
 })();
