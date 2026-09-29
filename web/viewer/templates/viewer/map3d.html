@@ -67,7 +67,7 @@
   <h1>{% t "대돌여지도" %} 3D <span class="tag">{% t "실험" %}</span></h1>
   <label>{% t "지질 레이어" %}
     <select id="layer3d">
-      {% for group in catalog_groups %}<optgroup label="{{ group.name }}">
+      {% for group in catalog_groups %}<optgroup label="{{ group.name }}" data-region="{{ group.region }}">
         {% for l in group.layers %}<option value="{{ l.name }}">{{ l.title }}</option>{% endfor %}
       </optgroup>{% endfor %}
     </select>

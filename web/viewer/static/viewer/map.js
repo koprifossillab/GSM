@@ -3357,10 +3357,9 @@
     var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
     document.getElementById("basemap-labels-wrap").style.display = labelled ? "" : "none";
     document.getElementById("crs-pick").hidden = !spec.vworld;
-    // 3D 는 메르카토르 하나뿐이다. 남극만 숨긴다 — 남위 85° 안쪽이 없다(P02 §7). 북극 쪽
-    // (그린란드 83.6°N 까지)은 메르카토르 안이고, 가까이 보는 3D 에서는 부풂이 거슬리지 않는다.
-    // 지형은 PGC ArcticDEM 을 서버가 옮겨 준다 (032)
-    document.getElementById("tool-3d").classList.toggle("off-region", regionProj() === "EPSG:3031");
+    // 3D 는 메르카토르 하나뿐이라 남위 85° 안쪽은 없다(P02 §7). 그래도 남극도 연다 — 기지와
+    // 산맥은 거의 그 바깥이고, 지형은 REMA·ArcticDEM 을 서버가 옮겨 준다 (032). 지질은 3857 로도
+    // 그려 주는 NPI 드로닝모드랜드뿐이다 — GeoMAP 은 우리가 3031 로 굽는 것이라 3D 에 없다
     if (syncGotoHint) syncGotoHint();
     var note = document.getElementById("region-note");
     note.hidden = !spec.pending;

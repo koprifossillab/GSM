@@ -52,10 +52,12 @@
 
   var start = startView();
   var select = document.getElementById("layer3d");
-  // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위). 3D 목록에 없으면 25만
+  // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위). 3D 목록에 없으면
+  // 그 지역의 첫 레이어(남극의 GeoMAP 이면 드로닝모드랜드), 그것도 없으면 25만
   var asked = new URLSearchParams(location.search).get("layer");
+  var mine = select.querySelector('optgroup[data-region="' + REGION + '"] option');
   select.value = asked && select.querySelector('option[value="' + asked.replace(/"/g, "") + '"]')
-    ? asked : "L_250K_Geology_Map";
+    ? asked : mine ? mine.value : "L_250K_Geology_Map";
 
   var sources = {
     // 표고는 256 px 타일을 512 로 여겨 **한 단계 거칠게** 부른다 — 타일 수가 4 분의 1 이다.
