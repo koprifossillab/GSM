@@ -65,8 +65,30 @@
   // 한글·한자는 조각 없이 브라우저 글꼴이 그린다(`localIdeographFontFamily`). P02 §7
   var GLYPHS = JSON.parse((document.getElementById("glyphs-url") || {}).textContent || '""');
 
+  // 일본 자리의 표고 타일은 국토지리원 것(10 m)을 서버가 Terrarium 꼴로 바꿔 준다(`dem/`,
+  // devlog 031). AWS(SRTM 30 m)보다 촘촘하다 — 후지산을 3 774 m 로 읽는다(AWS 3 754 m).
+  // 경계는 서버의 `elevation.in_japan` 과 같다. 국토지리원 타일은 z14 가 끝이다
+  var GSI_MAX_ZOOM = 14;
+  function inJapan(lat, lon) {
+    if (!(lon >= 122.9 && lon <= 154.0 && lat >= 20.0 && lat <= 45.6)) return false;
+    if (lon < 129.0) return false;
+    if (lat > 35.0 && lon < 129.7) return false;                       // 한반도 동남해안
+    if (lon >= 130.7 && lon <= 131.95 && lat >= 37.1 && lat <= 37.6) return false;   // 울릉도·독도
+    return true;
+  }
+  function demRequest(url) {
+    var m = /\/terrarium\/(\d+)\/(\d+)\/(\d+)\.png$/.exec(url);
+    if (!m) return { url: url };
+    var z = +m[1], x = +m[2], y = +m[3], n = Math.pow(2, z);
+    if (z > GSI_MAX_ZOOM) return { url: url };
+    var lon = (x + 0.5) / n * 360 - 180;
+    var lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 0.5) / n))) * 180 / Math.PI;
+    return inJapan(lat, lon) ? { url: location.origin + BASE + "dem/" + z + "/" + x + "/" + y + ".png" } : { url: url };
+  }
+
   var map = new maplibregl.Map({
     container: "map3d",
+    transformRequest: function (url, kind) { return kind === "Tile" ? demRequest(url) : { url: url }; },
     style: { version: 8, sources: sources, layers: layers,
              glyphs: GLYPHS ? location.origin + GLYPHS + "{fontstack}/{range}.pbf" : undefined },
     localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif",

@@ -13,6 +13,7 @@ import threading
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.gzip import gzip_page
@@ -21,7 +22,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               peninsula, phyloserver, pointsets, tilecache, tiles, vworld, warp)
+               elevation, peninsula, phyloserver, pointsets, tilecache, tiles, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1012,6 +1013,7 @@ def _geomap_legend(request, layer):
 
 def _pointset_summary(ps):
     shapes = list(ps.shapes.values_list("kind", flat=True))
+    elevated = ps.points.filter(elev__isnull=False).count()
     return {
         "id": ps.id,
         "name": ps.name,
@@ -1020,6 +1022,7 @@ def _pointset_summary(ps):
         "count": ps.points.count(),
         "lines": shapes.count("line"),
         "polygons": shapes.count("polygon"),
+        "elevated": elevated,
     }
 
 
@@ -1143,6 +1146,20 @@ def pointset_create(request):
     return JsonResponse({"pointset": _pointset_summary(pointset)})
 
 
+#: 표고 타일에서 읽은 고도를 GeoJSON 에 싣는 이름(P03). "고도" 로 하지 않는 것은 원본의
+#: `고도` 열(실측)과 부딪히지 않게 하려는 것이다. 되살리기(`pointsets.restore`)가 이 둘을 떼어
+#: 제 칸으로 돌린다
+ELEV_PROP, ELEV_SOURCE_PROP = "표고(DEM)", "표고 출처"
+
+
+def _point_props(p) -> dict:
+    props = dict(p.props, **{"이름표": p.label} if p.label else {})
+    if p.elev is not None:
+        props[ELEV_PROP] = round(p.elev, 1)
+        props[ELEV_SOURCE_PROP] = p.elev_source
+    return props
+
+
 def _pointset_features(pointset) -> dict:
     """점묶음 하나를 GeoJSON FeatureCollection 으로. 내려받기와 지울 때의 사본이 쓴다."""
     return {
@@ -1151,7 +1168,7 @@ def _pointset_features(pointset) -> dict:
         "features": [{
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [p.lon, p.lat]},
-            "properties": dict(p.props, **{"이름표": p.label} if p.label else {}),
+            "properties": _point_props(p),
         } for p in pointset.points.all()] + [{
             "type": "Feature",
             "geometry": s.geometry,
@@ -1218,6 +1235,67 @@ def pointset_restore(request, pk):
     ps, _, _ = pointsets.restore(gone)
     log.info("지운 점묶음 '%s' 을 되살렸다 (%s)", ps.name, _client(request))
     return JsonResponse({"pointset": _pointset_summary(ps)})
+
+
+#: 한 번의 요청 안에서 채우는 점의 수. 넘으면 명령(`fill_elevation`)으로 채운다.
+#: 극지는 한 점에 한 번 PGC 에 묻고 사이를 두어 따로 적게 둔다
+ELEV_IN_REQUEST = 2000
+ELEV_POLAR_IN_REQUEST = 100
+
+
+def fill_elevation(pointset, *, only_missing: bool = False, pause: float = elevation.PGC_PAUSE) -> tuple:
+    """점묶음의 점마다 표고를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
+    다시 부르면 덮는다 — 원천이 판을 올리면 출처 칸이 달라져 알아볼 수 있다(P03 §3)."""
+    points = pointset.points.all()
+    if only_missing:
+        points = points.filter(elev__isnull=True)
+    rows = {p.id: p for p in points}
+    got = elevation.elevations({pid: (p.lat, p.lon) for pid, p in rows.items()}, pause=pause)
+    for pid, (value, source) in got.items():
+        p = rows[pid]
+        p.elev, p.elev_source, p.elev_datum = round(value, 1), source, elevation.SOURCES[source][1]
+    Point.objects.bulk_update([rows[pid] for pid in got], ["elev", "elev_source", "elev_datum"])
+    return len(got), len(rows) - len(got)
+
+
+@require_POST
+def pointset_elevation(request, pk):
+    """`POST pointsets/<번호>/elevation/` — 점마다 표고를 채운다 (P03)."""
+    lang = i18n.lang_of(request)
+    ps = PointSet.objects.filter(pk=pk).first()
+    if ps is None:
+        return JsonResponse({"error": i18n.t(msg("그런 점묶음이 없다"), lang)}, status=404)
+    total = ps.points.count()
+    polar = ps.points.filter(Q(lat__gte=elevation.POLAR_LAT) | Q(lat__lte=-elevation.POLAR_LAT)).count()
+    if total > ELEV_IN_REQUEST or polar > ELEV_POLAR_IN_REQUEST:
+        return JsonResponse({"error": i18n.t(msg("점이 많아 화면에서 채우지 않는다 — 서버에서 "
+                                                 "manage.py fill_elevation {id} 를 부른다", id=ps.id), lang)},
+                            status=400)
+    try:
+        filled, missed = fill_elevation(ps)
+    except elevation.ElevationError as exc:
+        log.warning("표고를 채우지 못했다 (%s): %s", ps.id, exc)
+        return JsonResponse({"error": i18n.t(msg("표고를 받지 못했다"), lang)}, status=502)
+    return JsonResponse({"filled": filled, "missed": missed, "pointset": _pointset_summary(ps)})
+
+
+@require_GET
+def japan_dem(request, z, x, y):
+    """3D 의 일본 지형 — 국토지리원 표고 타일을 Terrarium 꼴로 (`dem/<z>/<x>/<y>.png`, 031).
+    일본 밖이면 AWS 로 넘긴다(302). 3D 는 일본 자리의 타일만 여기로 부른다."""
+    z, x, y = int(z), int(x), int(y)
+    if not (0 <= x < 2 ** z and 0 <= y < 2 ** z) or z > elevation.GSI_ZOOM:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    try:
+        png = elevation.japan_terrarium(z, x, y)
+    except elevation.ElevationError as exc:
+        log.info("일본 표고 타일을 못 만들어 AWS 로 넘긴다: %s", exc)
+        png = None
+    if png is None:
+        response = HttpResponse(status=302)
+        response["Location"] = elevation.TERRARIUM_URL.format(z=z, x=x, y=y)
+        return response
+    return _tile(png)
 
 
 def _client(request) -> str:

@@ -375,6 +375,11 @@ def _from_geojson(text: str, crs_code: str = "4326"):
     return points, notes
 
 
+#: 출처 → 높이 기준 (`elevation.SOURCES` 와 같다). 이 파일은 상류를 모르게 두려고 옮겨 적었다
+ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
+               "pgc-arcticdem-2m": "pgc-orthometric", "pgc-rema-2m": "pgc-orthometric"}
+
+
 def restore(gone):
     """지운 기록(`PointSetDeletion`)의 사본으로 점묶음을 되살린다.
 
@@ -395,9 +400,14 @@ def restore(gone):
             geom = f.get("geometry") or {}
             props = dict(f.get("properties") or {})
             label = str(props.pop("이름표", ""))[:200]
+            # 표고(P03)는 `props` 가 아니라 제 칸이다 — 사본에 실린 것을 떼어 돌린다
+            elev, source = props.pop("표고(DEM)", None), str(props.pop("표고 출처", "") or "")
             if geom.get("type") == "Point":
                 lon, lat = geom["coordinates"][:2]
-                Point.objects.create(pointset=ps, lat=lat, lon=lon, label=label, props=props)
+                extra = {}
+                if isinstance(elev, (int, float)) and source in ELEV_DATUMS:
+                    extra = {"elev": float(elev), "elev_source": source, "elev_datum": ELEV_DATUMS[source]}
+                Point.objects.create(pointset=ps, lat=lat, lon=lon, label=label, props=props, **extra)
                 points += 1
             elif geom.get("type") in SHAPE_KINDS:
                 s = _shape_from(geom)

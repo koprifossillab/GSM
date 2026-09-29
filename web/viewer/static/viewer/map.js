@@ -3077,6 +3077,7 @@
     if (ps.lines) bits.push(T("선 {n}", { n: ps.lines }));
     if (ps.polygons) bits.push(T("면 {n}", { n: ps.polygons }));
     if (!ps.count && (ps.lines || ps.polygons)) bits.shift();
+    if (ps.elevated) bits.push(T("고도 {n}", { n: ps.elevated }));
     return bits.join(" · ");
   }
 
@@ -3153,6 +3154,28 @@
         }
       });
 
+      // 표고 타일에서 점마다 고도를 읽어 채운다(P03). 원본의 `고도` 열은 건드리지 않고
+      // "표고(DEM)"·"표고 출처" 두 칸으로 따로 싣는다. 다시 누르면 덮는다
+      var elev = iconButton("⛰", T("표고 채우기 — 표고 타일에서 점마다 고도를 읽는다 (극지 PGC · 일본 국토지리원 · 그 밖 SRTM)"),
+                            !ps.count, function () {
+        elev.disabled = true;
+        post(BASE + "pointsets/" + ps.id + "/elevation/").then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (d) {
+            if (!r.ok) throw new Error(d.error || "");
+            return d;
+          });
+        }).then(function (d) {
+          elev.disabled = false;
+          if (d.pointset) Object.assign(ps, d.pointset, { visible: ps.visible });
+          if (pointLayers[ps.id]) pointLayers[ps.id].getSource().refresh();
+          alert(T("{n}점 채움 · {m}점은 자료 밖", { n: d.filled, m: d.missed }));
+          renderPointSets();
+        }).catch(function (e) {
+          elev.disabled = false;
+          alert((e && e.message) || T("표고를 받지 못했다"));
+        });
+      });
+
       // 올린 것을 GeoJSON 으로 돌려받는다. 원래 CSV 였어도 위경도와 속성이
       // 그대로 나온다 — QGIS 에 곧장 얹을 수 있다
       var save = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
@@ -3175,7 +3198,7 @@
       var label = document.createElement("span");
       label.className = "ps-text";
       label.append(name, count);
-      li.append(box, swatch, label, zoom, save, del);
+      li.append(box, swatch, label, zoom, elev, save, del);
       host.appendChild(li);
     });
   }

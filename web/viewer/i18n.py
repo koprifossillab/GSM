@@ -134,6 +134,15 @@ EN = {
     "스캔": "Scan",
     "이 도폭만 켜기": "Show only this sheet",
     "커스텀 지질도": "Custom geological maps",
+    # 시료 고도 (P03, devlog 031)
+    "표고 채우기 — 표고 타일에서 점마다 고도를 읽는다 (극지 PGC · 일본 국토지리원 · 그 밖 SRTM)":
+        "Fill elevation — read each point's elevation from DEM tiles (polar PGC · Japan GSI · elsewhere SRTM)",
+    "{n}점 채움 · {m}점은 자료 밖": "{n} points filled · {m} outside the data",
+    "고도 {n}": "elevation {n}",
+    "그런 점묶음이 없다": "No such point set",
+    "점이 많아 화면에서 채우지 않는다 — 서버에서 manage.py fill_elevation {id} 를 부른다":
+        "Too many points to fill here — run manage.py fill_elevation {id} on the server",
+    "표고를 받지 못했다": "Could not get the elevation",
     "음영 보이기": "Show hillshade",
     "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
         "Drag with the right button (or Ctrl+drag) to tilt and rotate.",
@@ -533,6 +542,8 @@ PROP_EN = {
     "작성자": "Compiled by",
     "저자": "Author",
     "축척": "Scale",
+    "표고(DEM)": "Elevation (DEM, m)",
+    "표고 출처": "Elevation source",
     # 스발바르 도폭 경계 (npolar.POINTS, P01 6 단계)
     "도폭 번호": "Sheet number",
     "발행": "Printed",

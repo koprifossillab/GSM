@@ -48,6 +48,9 @@ urlpatterns = [
     path("pointsets/deleted/", views.pointset_deleted, name="pointset-deleted"),
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
+    path("pointsets/<int:pk>/elevation/", views.pointset_elevation, name="pointset-elevation"),
+    # 3D 의 일본 지형 — 국토지리원 표고 타일을 Terrarium 꼴로 (elevation.py, devlog 031)
+    re_path(r"^dem/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.japan_dem, name="japan-dem"),
 
     path("coords/parse/", views.coord_parse, name="coord-parse"),
     path("coords/project/", views.coord_project, name="coord-project"),

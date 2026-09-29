@@ -126,6 +126,11 @@ class Point(models.Model):
     lon = models.FloatField("경도")
     # 원본의 나머지 열. 클릭하면 그대로 표로 뜬다.
     props = models.JSONField("딸린 속성", default=dict, blank=True)
+    # 표고 타일에서 읽은 고도(P03). `props` 에 넣지 않는다 — 원본의 `고도` 열(실측)과
+    # 섞이면 어느 것이 잰 것인지 가를 수 없다. 출처·기준은 `elevation.SOURCES`
+    elev = models.FloatField("표고 (m)", null=True, blank=True)
+    elev_source = models.CharField("표고 출처", max_length=40, blank=True)
+    elev_datum = models.CharField("높이 기준", max_length=20, blank=True)
 
     class Meta:
         ordering = ["id"]
