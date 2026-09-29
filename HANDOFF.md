@@ -79,6 +79,8 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 **v0.17.0 — 달 착륙지, 남극 IBCSO** (046·047). 운영 파일 — `/srv/GSM/db/ibcso/tiles-{bed,ice}/`(56 MB, `manage.py build_ibcso`
 가 자른 것. 원본 TIFF 는 NAS `sources/ibcso/`). 달 EVA 동선은 저장소의 씨앗 `data/moon_apollo_eva.json`.
 
+**v0.17.1 — 달 그림 내려받기, 남극 기지 단추** (048·049). 이주·운영 파일 없음.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
