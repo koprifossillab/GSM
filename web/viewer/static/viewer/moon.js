@@ -69,10 +69,19 @@
         src: "USGS I-703·948·1034·1047·1062·1162 · colors E. Lutz" },
       { name: "orig-lines", title: "원도 구조선", legend: "orig-lines", src: "USGS 1971–1979" },
     ] },
+    // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"`) (046)
+    { group: "착륙지", layers: [
+      { name: "landings", title: "착륙·충돌 지점", kind: "vector", url: "moon/landings/", legend: "landings",
+        src: "NASA Moon Trek · NSSDC" },
+      { name: "eva", title: "아폴로 EVA 동선", kind: "vector", url: "moon/eva/", src: "Esri UK" },
+      { name: "nac", title: "착륙지 고해상 사진 (LRO NAC)", kind: "nac", src: "NASA/GSFC/Arizona State University" },
+    ] },
   ];
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
-  var GEO_NAMES = Object.keys(LAYER);
+  var ALL_NAMES = Object.keys(LAYER);
+  //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
   var GEO_MAX = 12;
   function geoUrl(name) { return BASE + "moon/tiles/" + name + "/{z}/{x}/{y}.png"; }
   var GEO_CREDIT = "Unified Geologic Map of the Moon 1:5M (Fortezzo et al., 2020, USGS) via NASA Moon Trek";
@@ -284,14 +293,160 @@
                                      visible: false });
   });
   var oPoints = new ol.layer.Group({ layers: [] });
+  // 착륙지 레이어(벡터·모자이크)가 들어갈 묶음 — 레이어는 "착륙지" 절이 짓는다 (046)
+  var oExtra = new ol.layer.Group({ layers: [] });
   var flat = new ol.Map({
     target: "map",
-    layers: [oUnder, oBase, oShade].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oPoints]),
+    layers: [oUnder, oBase, oShade].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oExtra, oPoints]),
     view: new ol.View({ projection: EQC, center: [0, 0], resolution: 500, maxResolution: 180 * M_PER_DEG / 256,
                         constrainResolution: false }),
     controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }).extend([
       new ol.control.ScaleLine({ target: $("scalebar"), bar: true, steps: 4, text: true, minWidth: 110 }),
     ]),
+  });
+
+  // ══ 착륙지 (046) ═════════════════════════════════════════════════
+  //
+  // 셋이다. 착륙·충돌 지점(Trek, 서버가 캐시)·아폴로 EVA 동선(Esri UK, 저장소의 씨앗)은 벡터로 우리가 그리고,
+  // 착륙지 고해상 사진(LRO NAC)은 Trek 의 모자이크 여러 장을 브라우저가 곧장 받는다(영상 배경과 같다).
+  // 지질 레이어와 같은 손잡이(보이기·투명도·차례)를 갖게 `cGeo`·`oGeo` 에 넣는다 — 구의 벡터는 영상 위에
+  // 따로 그려지므로 차례(`cRaise`)가 없다.
+  var LANDING_ORDER = ["crewed", "soft", "rover", "impact"];
+  var LANDING_STYLE = {
+    crewed: { color: "#ffffff", size: 10, label: "유인 착륙" },
+    soft: { color: "#4ea5d9", size: 8, label: "연착륙" },
+    rover: { color: "#7bc47f", size: 8, label: "로버" },
+    impact: { color: "#ff8f3d", size: 6, label: "충돌" },
+  };
+  var EVA_COLOR = "#ffe14d";
+  // Trek 의 착륙지 모자이크 — 줌 끝은 2026-09-29 에 한 장씩 받아 보았다. 11·14 는 26–28 cm 판(대비를 높였다)
+  var NAC = [
+    { layer: "apollo11_26cm_mosaic_byte_geo_1_2_highContrast", max: 15, bbox: [23.4485, 0.1465, 23.5397, 1.1149] },
+    { layer: "LRO_NAC_Apollo12_Mosaic_p", max: 16, bbox: [-23.4442, -3.4713, -23.3572, -2.5019] },
+    { layer: "apollo14_28cm_mosaic_byte_geo_1_2_highContrast", max: 15, bbox: [-17.4901, -4.1921, -17.3908, -3.2254] },
+    { layer: "LRO_NAC_Apollo15_Mosaic_p", max: 16, bbox: [3.5811, 25.7965, 3.6899, 26.7636] },
+    { layer: "LRO_NAC_Apollo16_Mosaic_p", max: 14, bbox: [15.3788, -9.6061, 15.5545, -8.6617] },
+    { layer: "NAC_DTM_APOLLO17_MOSAIC_120CM", max: 14, bbox: [29.9059, 19.3905, 31.658, 21.3035] },
+    { layer: "LRO_NAC_Post_Landing_OrthoMosaic_1mpp_IM_1_LandingSite", max: 13, bbox: [0.9387, -80.2164, 1.9392, -80.0428] },
+  ];
+  var NAC_CREDIT = "LRO NAC · NASA/GSFC/Arizona State University (via Moon Trek)";
+  var cRaise = {};
+  GEO_NAMES.forEach(function (n) { cRaise[n] = [cGeo[n]]; });
+  function proxy(onShow, onAlpha) {
+    var h = {};
+    Object.defineProperty(h, "show", { set: onShow });
+    Object.defineProperty(h, "alpha", { set: onAlpha });
+    return h;
+  }
+  // ── 착륙지 사진 ──
+  (function nac() {
+    var cl = NAC.map(function (m) {
+      var layer = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+        url: TREK + m.layer + "/1.0.0/default/default028mm/{z}/{y}/{x}.png", tilingScheme: scheme(),
+        maximumLevel: m.max, rectangle: Cesium.Rectangle.fromDegrees(m.bbox[0], m.bbox[1], m.bbox[2], m.bbox[3]),
+        credit: NAC_CREDIT,
+      }));
+      layer.show = false;
+      return layer;
+    });
+    cRaise.nac = cl;
+    cGeo.nac = proxy(function (v) { cl.forEach(function (l) { l.show = v; }); },
+                     function (a) { cl.forEach(function (l) { l.alpha = a; }); });
+    oGeo.nac = new ol.layer.Group({ visible: false, layers: NAC.map(function (m) {
+      return new ol.layer.Tile({
+        extent: [m.bbox[0] * M_PER_DEG, m.bbox[1] * M_PER_DEG, m.bbox[2] * M_PER_DEG, m.bbox[3] * M_PER_DEG],
+        source: tileSource(TREK + m.layer + "/1.0.0/default/default028mm/{z}/{y}/{x}.png", m.max, NAC_CREDIT),
+      });
+    }) });
+    oExtra.getLayers().push(oGeo.nac);
+  })();
+  // ── 벡터 — 착륙·충돌 지점, EVA 동선. 처음 켤 때 받는다 ──
+  function vectorLayer(name, draw) {
+    var ds = new Cesium.CustomDataSource(name);
+    ds.show = false;
+    viewer.dataSources.add(ds);
+    var src = new ol.source.Vector();
+    var ol_ = new ol.layer.Vector({ source: src, visible: false, declutter: name === "landings",
+                                    style: draw.olStyle });
+    ol_.set("gsmSet", { name: T(LAYER[name].title), color: draw.chip });
+    oExtra.getLayers().push(ol_);
+    var loaded = false;
+    function load() {
+      if (loaded) return;
+      loaded = true;
+      fetch(BASE + LAYER[name].url).then(function (r) { return r.json(); }).then(function (data) {
+        (data.features || []).forEach(function (f) { draw.cesium(ds, f); });
+        src.addFeatures(new ol.format.GeoJSON().readFeatures(
+          { type: "FeatureCollection", features: (data.features || []).map(draw.olFeature) },
+          { dataProjection: LL, featureProjection: EQC }));
+      }).catch(function () { loaded = false; });
+    }
+    cRaise[name] = [];
+    cGeo[name] = proxy(function (v) { ds.show = v; if (v) load(); }, function () { /* 벡터는 늘 또렷이 */ });
+    oGeo[name] = ol_;
+  }
+  function landingProps(p) {
+    var out = { "이름표": p["이름표"] };
+    out[T("종류")] = T((LANDING_STYLE[p.kind] || {}).label || p.kind);
+    if (p.date) out[T("날짜")] = p.date;
+    if (p.link) out["NSSDC"] = p.link;
+    return out;
+  }
+  vectorLayer("landings", {
+    chip: "#ffffff",
+    cesium: function (ds, f) {
+      var st = LANDING_STYLE[f.properties.kind] || LANDING_STYLE.impact;
+      var e = ds.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(f.geometry.coordinates[0], f.geometry.coordinates[1], 0, MOON),
+        point: { pixelSize: st.size, color: Cesium.Color.fromCssColorString(st.color), outlineColor: Cesium.Color.BLACK,
+                 outlineWidth: 1.5, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                 disableDepthTestDistance: 1500000 },
+        label: { text: f.properties["이름표"], font: "12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+                 outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                 pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 900000),
+                 disableDepthTestDistance: 1500000 },
+      });
+      e.gsmProps = landingProps(f.properties);
+      e.gsmSet = { name: T(LAYER.landings.title), color: st.color };
+    },
+    olFeature: function (f) { return { type: "Feature", geometry: f.geometry,
+                                        properties: Object.assign({ _kind: f.properties.kind }, landingProps(f.properties)) }; },
+    olStyle: function (feature, resolution) {
+      var st = LANDING_STYLE[feature.get("_kind")] || LANDING_STYLE.impact;
+      return new ol.style.Style({
+        image: new ol.style.Circle({ radius: st.size / 2 + 1, fill: new ol.style.Fill({ color: st.color }),
+                                     stroke: new ol.style.Stroke({ color: "#000", width: 1.5 }) }),
+        text: resolution < 3000 ? new ol.style.Text({ text: feature.get("이름표"), offsetY: -14,
+          font: "12px system-ui, sans-serif", fill: new ol.style.Fill({ color: "#fff" }),
+          stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) : undefined,
+      });
+    },
+  });
+  function evaProps(p) {
+    var out = { "이름표": p.mission + " EVA" };
+    out[T("임무")] = p.mission;
+    if (p.who) out[T("사람")] = p.who;
+    return out;
+  }
+  vectorLayer("eva", {
+    chip: EVA_COLOR,
+    cesium: function (ds, f) {
+      var lines = f.geometry.type === "LineString" ? [f.geometry.coordinates] : f.geometry.coordinates;
+      lines.forEach(function (line) {
+        var flatArr = [];
+        line.forEach(function (c) { flatArr.push(c[0], c[1]); });
+        var e = ds.entities.add({ polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray(flatArr, MOON), width: 2, clampToGround: true,
+          material: Cesium.Color.fromCssColorString(EVA_COLOR),
+          // 동선은 착륙지 둘레 수 km 다 — 멀리서는 점 하나로도 안 보인다
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 120000) } });
+        e.gsmProps = evaProps(f.properties);
+        e.gsmSet = { name: T(LAYER.eva.title), color: EVA_COLOR };
+      });
+    },
+    olFeature: function (f) { return { type: "Feature", geometry: f.geometry, properties: evaProps(f.properties) }; },
+    olStyle: new ol.style.Style({ stroke: new ol.style.Stroke({ color: EVA_COLOR, width: 2 }) }),
   });
 
   // ══ 구 ⇄ 평면 ═════════════════════════════════════════════════════
@@ -613,15 +768,17 @@
   //
   // 쌓는 차례는 구와 평면이 같다. 구는 배경(0 번) 위로 아래 것부터 `raiseToTop`, 평면은 `zIndex`
   function applyStack() {
-    GEO_NAMES.forEach(function (name) {
+    ALL_NAMES.forEach(function (name) {
       var e = entryOf(name);
       cGeo[name].show = !!e;
       oGeo[name].setVisible(!!e);
       if (e) { cGeo[name].alpha = e.opacity; oGeo[name].setOpacity(e.opacity); }
     });
+    // 구 — 영상 레이어만 차례가 있다(벡터 데이터 소스는 늘 영상 위다). 평면 — zIndex
     active.slice().reverse().forEach(function (e, i) {
-      viewer.imageryLayers.raiseToTop(cGeo[e.name]);
-      oGeo[e.name].setZIndex(i + 1);
+      (cRaise[e.name] || []).forEach(function (l) { viewer.imageryLayers.raiseToTop(l); });
+      // 평면도 구처럼 벡터(착륙 지점·동선)는 영상 레이어 위에 둔다 — 사진을 나중에 켜도 점을 덮지 않게
+      oGeo[e.name].setZIndex((LAYER[e.name].kind === "vector" ? 50 : 0) + i + 1);
     });
     // 점묶음은 늘 지질 위다
     oPoints.setZIndex(100);
@@ -884,6 +1041,13 @@
   }
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    if (kind === "landings") {
+      legends[kind] = LANDING_ORDER.map(function (k) {
+        var st = LANDING_STYLE[k];
+        return '<li><span class="chip dot" style="background:' + st.color + '"></span>' + esc(T(st.label)) + "</li>";
+      }).join("");
+      return Promise.resolve(legends[kind]);
+    }
     var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";

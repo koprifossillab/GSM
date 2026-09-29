@@ -15,6 +15,8 @@ urlpatterns = [
     path("moon/info/", views.moon_info, name="moon-info"),
     path("moon/legend/", views.moon_legend, name="moon-legend"),
     path("moon/places/", views.moon_places, name="moon-places"),
+    path("moon/landings/", views.moon_landings, name="moon-landings"),
+    path("moon/eva/", views.moon_eva, name="moon-eva"),
 
     # 상류 프록시. 브라우저는 인증키를 모르고 이 둘만 부른다.
     path("wms/", views.wms, name="wms"),

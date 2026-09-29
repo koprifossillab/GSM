@@ -209,3 +209,46 @@ class Legend(SimpleTestCase):
             items = Client().get(reverse("viewer:moon-legend")).json()["items"]
         self.assertEqual([(i["unit"], i["age"]) for i in items], [("Im2", "임브리움기"), ("pNc", "선넥타리스기")])
         self.assertTrue(items[0]["image"].startswith("data:image/png;base64,"))
+
+
+class Landings(TestCase):
+    """착륙·충돌 지점 (046) — 갈래마다 레이어 하나. 쪽 나누기 없이 통째로 받는다."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-landings-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def fake(self, url, params=None, **kw):
+        layer = int(url.rstrip("/").split("/")[-2])
+        rows = {
+            0: [{"geometry": {"x": 0.0, "y": 30.0}, "attributes": {"Spacecraft": "Luna 2", "Date": "   14 September 1959   ",
+                                                              "Link": "https://nssdc…1959-014A"}}],
+            2: [{"geometry": {"x": 23.47314, "y": 0.67416}, "attributes": {"Spacecraft": "Apollo 11 LM descent stage",
+                                                                        "Date": "20 July 1969", "Link": ""}},
+                {"geometry": {}, "attributes": {"Spacecraft": "좌표 없음"}}],
+        }.get(layer, [])
+        self.assertNotIn("resultRecordCount", params)             # 이 서버는 쪽 나누기를 받지 않는다
+        return response({"features": rows})
+
+    def test_갈래를_열쇠로_붙여_모은다(self):
+        with mock.patch("viewer.trek.requests.get", side_effect=self.fake):
+            sites = trek.landing_sites()
+        self.assertEqual([(s["name"], s["kind"]) for s in sites],
+                         [("Luna 2", "impact"), ("Apollo 11 LM descent stage", "crewed")])
+        self.assertEqual(sites[0]["date"], "14 September 1959")
+
+    def test_경로는_GeoJSON_이고_캐시에_담는다(self):
+        with mock.patch("viewer.trek.requests.get", side_effect=self.fake) as get:
+            first = self.client.get(reverse("viewer:moon-landings")).json()
+            self.client.get(reverse("viewer:moon-landings"))
+        self.assertEqual(get.call_count, 4)                          # 네 갈래를 한 번씩, 두 번째는 캐시
+        self.assertEqual(first["features"][1]["geometry"]["coordinates"], [23.47314, 0.67416])
+        self.assertEqual(first["features"][1]["properties"]["kind"], "crewed")
+
+    def test_EVA_동선은_저장소의_씨앗(self):
+        views._moon_eva.cache_clear()
+        data = self.client.get(reverse("viewer:moon-eva")).json()
+        missions = {f["properties"]["mission"] for f in data["features"]}
+        self.assertEqual(missions, {"Apollo 11", "Apollo 12", "Apollo 14", "Apollo 15", "Apollo 16", "Apollo 17"})
+        self.assertIn("Esri UK", data["source"])

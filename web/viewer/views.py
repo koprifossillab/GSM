@@ -10,6 +10,7 @@ import logging
 import math
 import re
 import threading
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
@@ -355,6 +356,44 @@ def moon_legend(request):
         age = item.get("age") or trek.age_of_unit(unit)
         items.append(dict(item, unit=unit, age=trek.AGES_KO.get(age, age) if ko else age))
     return JsonResponse({"items": items})
+
+
+@require_GET
+def moon_landings(request):
+    """달의 착륙·충돌 지점 — GeoJSON (046). Trek 에서 한 번 받아 캐시에 담는다(백 곳이 안 된다).
+
+    갈래(`kind`)는 열쇠로 보낸다 — `impact`·`soft`·`crewed`·`rover`. 이름을 옮기는 것은 화면이다."""
+    key = tilecache.key_text("trek-landings", "all")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"sites": trek.landing_sites()}
+        except trek.TrekError as exc:
+            data = _cached_json(key, stale=True)
+            if data is None:
+                log.warning("달 착륙 지점을 받지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request)),
+                                     "type": "FeatureCollection", "features": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse({"type": "FeatureCollection", "features": [{
+        "type": "Feature", "geometry": {"type": "Point", "coordinates": [s["lon"], s["lat"]]},
+        "properties": {"이름표": s["name"], "kind": s["kind"], "date": s["date"], "link": s["link"]},
+    } for s in data.get("sites") or []]})
+
+
+@functools.lru_cache(maxsize=1)
+def _moon_eva():
+    try:
+        return json.loads((Path(settings.BASE_DIR).parent / "data" / "moon_apollo_eva.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"type": "FeatureCollection", "features": []}
+
+
+@require_GET
+def moon_eva(request):
+    """아폴로 EVA 동선 — 저장소의 씨앗(`data/moon_apollo_eva.json`, Esri UK). 상류를 타지 않는다 (046)."""
+    return JsonResponse(_moon_eva())
 
 
 @functools.lru_cache(maxsize=1)

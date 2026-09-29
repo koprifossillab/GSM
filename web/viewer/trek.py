@@ -275,6 +275,36 @@ def lola_values(points: dict) -> dict:
     return out
 
 
+# ── 착륙·충돌 지점 (046) ─────────────────────────────────────────────
+#
+# Trek 의 `Lunar_Landing_Impact_Sites` MapServer — 갈래마다 레이어 하나다(충돌·연착륙·유인 착륙·로버).
+# 모두 합쳐 백 곳이 안 된다. 한 번에 통째로 받는다 — 이 서버는 쪽 나누기(`resultRecordCount`)를 받지 않는다.
+# 좌표는 달 경위도(GCS_Moon)이고, 속성에 우주선 이름·날짜·NSSDC 링크가 있다
+
+LANDING_SERVICE = "trekarcgis2/rest/services/Lunar_Landing_Impact_Sites/MapServer"
+#: 레이어 번호 → 갈래 (화면이 모양·색을 고르고 이름을 옮긴다)
+LANDING_KINDS = {0: "impact", 1: "soft", 2: "crewed", 3: "rover"}
+
+
+def landing_sites() -> list:
+    """`[{"name", "kind", "date", "lon", "lat", "link"}]`."""
+    out = []
+    for layer, kind in LANDING_KINDS.items():
+        data = _json(_get(f"{LANDING_SERVICE}/{layer}/query", {
+            "where": "1=1", "outFields": "Spacecraft,Date,Link", "returnGeometry": "true", "f": "json"}))
+        for feat in data.get("features") or []:
+            geom, attrs = feat.get("geometry") or {}, feat.get("attributes") or {}
+            try:
+                lon, lat = float(geom["x"]), float(geom["y"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            out.append({"name": str(attrs.get("Spacecraft") or "").strip(), "kind": kind,
+                        "date": " ".join(str(attrs.get("Date") or "").split()),
+                        "lon": round(lon, 5), "lat": round(lat, 5),
+                        "link": str(attrs.get("Link") or "").strip()})
+    return out
+
+
 # ── 지명 ────────────────────────────────────────────────────────────
 
 def fetch_places() -> list:
