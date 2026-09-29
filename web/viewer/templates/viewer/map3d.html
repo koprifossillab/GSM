@@ -32,6 +32,10 @@
   .ps3d .ps-count { color: var(--ink-soft); font-size: 11px; }
   .ps3d button { padding: 0 5px; font: inherit; color: var(--ink); background: var(--panel-tint);
                  border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+  .panel3d .export3d { display: block; width: 100%; margin-top: 10px; padding: 5px 6px; font: inherit;
+                        color: var(--ink); background: var(--panel-tint); border: 1px solid var(--line);
+                        border-radius: var(--radius); cursor: pointer; }
+  .panel3d .export3d:disabled { opacity: 0.6; cursor: progress; }
   /* MapLibre 팝업은 흰 바탕이다 — 화면의 글자색(먹갈색 테마의 옅은 금색)을 물려받지 않게 */
   .popup3d { color: #1f1409; }
   .popup3d a { color: #7a4a12; }
@@ -60,6 +64,8 @@
     <input type="range" id="exag3d" min="10" max="40" value="15">
   </label>
   <label><input type="checkbox" id="shade3d" checked> {% t "음영 보이기" %}</label>
+  <button type="button" id="export3d" class="export3d"
+          title="{% t "그림으로 내려받기 — 지금 보는 3D 화면을 PNG 한 장으로. 레이어·자리·출처를 아래에 적는다" %}">{% t "그림으로 내려받기" %}</button>
   <h2 id="custom3d-head" hidden>{% t "커스텀 지질도" %}</h2>
   <ul id="custom3d" class="ps3d"></ul>
   <h2>{% t "내 자료" %}</h2>

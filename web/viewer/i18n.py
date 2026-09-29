@@ -123,6 +123,10 @@ EN = {
     "그림": "Image",
     "그림으로 내려받기 — 지금 보는 지도를 PNG 한 장으로. 레이어·축척·출처를 아래에 적는다":
         "Download as image — the current map as one PNG, with layers, scale and credits below",
+    "그림으로 내려받기": "Download as image",
+    "그림으로 내려받기 — 지금 보는 3D 화면을 PNG 한 장으로. 레이어·자리·출처를 아래에 적는다":
+        "Download as image — the current 3D view as one PNG, with layers, position and credits below",
+    "기울기 {pitch}° · 방위 {bearing}° · 지형 과장 ×{x}": "Pitch {pitch}° · bearing {bearing}° · terrain ×{x}",
     "그림을 만들지 못했다": "Could not make the image",
     "배경지도가 그림으로 뽑는 것을 막았다 — 배경을 '없음' 으로 두고 다시 한다":
         "The basemap blocked the export — set the basemap to 'None' and try again",

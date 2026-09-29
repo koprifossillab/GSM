@@ -484,4 +484,112 @@
     var hit = layers.length && map.queryRenderedFeatures(e.point, { layers: layers }).length;
     map.getCanvas().style.cursor = hit ? "pointer" : "";
   });
+
+  // ── 그림으로 내려받기 ───────────────────────────────────────────
+  //
+  // 2D 의 "그림"(`map.js` 의 `exportPng`)과 같은 꼴 — 지금 보는 화면 한 장에 밑의 띠를
+  // 붙여 **무엇을 봤는지** 적는다. 띠에는 레이어·점묶음·가운데·기울기·방위·지형 과장·
+  // 출처·날짜가 들어간다. **축척 막대는 없다** — 기울인 화면은 앞과 뒤의 축척이 달라
+  // 막대 하나가 거짓말을 한다.
+  //
+  // WebGL 캔버스는 그린 뒤 버퍼를 비운다(`preserveDrawingBuffer` 를 켜면 늘 느려진다).
+  // 그래서 타일이 다 온 뒤(`idle`) 한 번 더 그리게 하고, **그 `render` 안에서 곧바로**
+  // 옮겨 담는다. 팝업·패널은 HTML 이라 담기지 않는다.
+
+  function exportPng() {
+    var button = document.getElementById("export3d");
+    button.disabled = true;
+    map.once("idle", function () {
+      map.once("render", function () {
+        var canvas;
+        try {
+          canvas = composeExport();
+        } catch (e) {
+          button.disabled = false;
+          alert(T("그림을 만들지 못했다"));
+          return;
+        }
+        canvas.toBlob(function (blob) {
+          button.disabled = false;
+          if (!blob) { alert(T("그림을 만들지 못했다")); return; }
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "GSM-3D-" + stampText().replace(/[-: ]/g, "").slice(0, 12) + ".png";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        }, "image/png");
+      });
+      map.triggerRepaint();
+    });
+    map.triggerRepaint();
+  }
+
+  function stampText() {
+    var d = new Date();
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " +
+      two(d.getHours()) + ":" + two(d.getMinutes());
+  }
+
+  /** 3D 캔버스 + 밑의 띠. 캔버스의 픽셀 그대로 뽑는다(고해상도 화면이면 그만큼 크다). */
+  function composeExport() {
+    var gl = map.getCanvas();
+    var w = gl.clientWidth, h = gl.clientHeight;
+    var ratio = gl.width / w;
+    var lines = exportLines();
+    var lineH = 17, pad = 12;
+    var foot = pad * 2 + lineH * lines.length;
+    var out = document.createElement("canvas");
+    out.width = gl.width;
+    out.height = Math.round((h + foot) * ratio);
+    var ctx = out.getContext("2d");
+    ctx.drawImage(gl, 0, 0);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    // 띠 — 2D 와 같은 색
+    ctx.fillStyle = "#faf7f1";
+    ctx.fillRect(0, h, w, foot);
+    ctx.fillStyle = "#3f2712";
+    ctx.fillRect(0, h, w, 1);
+    ctx.textBaseline = "top";
+    lines.forEach(function (line, i) {
+      ctx.font = (i === 0 ? "bold 14px " : "12px ") + "sans-serif";
+      ctx.fillStyle = i === 0 ? "#1f1409" : "#3f3228";
+      ctx.fillText(fitText(ctx, line, w - pad * 2), pad, h + pad + i * lineH + (i ? 3 : 0));
+    });
+    return out;
+  }
+
+  /** 띠에 적을 줄들. 첫 줄이 제목이다. */
+  function exportLines() {
+    var shown = [select.options[select.selectedIndex].text];
+    var on = customOn();
+    custom.forEach(function (row) { if (on.indexOf(row.name) >= 0) shown.push(row.title); });
+    var mine = pointsets.filter(isOn);
+    var c = map.getCenter();
+    // MapLibre 는 소스들의 출처를 " | " 로 이어 적는다
+    var attrib = document.querySelector(".maplibregl-ctrl-attrib-inner");
+    var credits = (attrib ? attrib.textContent : "").split("|")
+      .map(function (t) { return t.trim(); }).filter(Boolean);
+    var out = [T("대돌여지도") + " 3D · " + stampText()];
+    out.push(T("레이어") + ": " + shown.join(" / "));
+    if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
+    out.push(T("가운데") + ": " + Math.abs(c.lat).toFixed(5) + "°" + (c.lat < 0 ? "S" : "N") + " " +
+             Math.abs(c.lng).toFixed(5) + "°" + (c.lng < 0 ? "W" : "E") + " · " +
+             T("기울기 {pitch}° · 방위 {bearing}° · 지형 과장 ×{x}", {
+               pitch: Math.round(map.getPitch()),
+               bearing: Math.round((map.getBearing() + 360) % 360),
+               x: (map.getTerrain() || {}).exaggeration || 1 }));
+    if (credits.length) out.push(T("출처") + ": " + credits.join(" · "));
+    return out;
+  }
+
+  /** 넘치면 끝을 줄임표로 자른다. */
+  function fitText(ctx, text, max) {
+    if (ctx.measureText(text).width <= max) return text;
+    while (text.length > 1 && ctx.measureText(text + "…").width > max) text = text.slice(0, -1);
+    return text + "…";
+  }
+
+  document.getElementById("export3d").addEventListener("click", exportPng);
 })();
