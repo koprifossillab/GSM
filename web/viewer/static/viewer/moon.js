@@ -463,7 +463,7 @@
   }
 
   // 방위 단추(나침반) — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다
-  var needle = $("compass-needle"), poseOut = $("pose"), topBtn = $("tool-top");
+  var needle = $("compass-needle"), poseOut = $("pose"), topBtn = $("tool-top"), compassBtn = $("tool-compass");
   $("tool-compass").addEventListener("click", function () {
     var p = pivot(true);
     if (!p) return;
@@ -475,12 +475,15 @@
     Cesium.Matrix4.clone(viewer.camera.viewMatrix, lastView);
     syncAxisNear();
     var p = pivot(false);
-    if (!p) { poseOut.textContent = ""; topBtn.disabled = false; return; }
+    if (!p) { poseOut.textContent = ""; topBtn.disabled = compassBtn.disabled = false; return; }
     var a = anglesAt(p.pos, false);
     needle.setAttribute("transform", "rotate(" + (-a.heading).toFixed(1) + " 12 12)");
     // 이미 북쪽이 위이고 곧장 내려다보면 "북쪽 위" 는 할 일이 없다 — 흐리게 해 눌러도 그대로인 까닭을 보인다.
     // 가운데 점을 못 짚으면(하늘을 보면) 켜 둔다 — 그때도 카메라 발밑으로 내려다보는 일은 한다
-    topBtn.disabled = 90 + a.pitch < 0.5 && Math.min(a.heading, 360 - a.heading) < 0.5;
+    // 방위 단추도 같다 — 북쪽이 이미 위면 흐리게. 곧장 내려다보면 방위는 화면의 위쪽으로 읽는다(`anglesAt`)
+    var north = Math.min(a.heading, 360 - a.heading) < 0.5;
+    compassBtn.disabled = north;
+    topBtn.disabled = north && 90 + a.pitch < 0.5;
     poseOut.textContent = T("기울기 {tilt}° · 방위 {heading}°", { tilt: Math.round(90 + a.pitch), heading: Math.round(a.heading) % 360 });
   });
 
