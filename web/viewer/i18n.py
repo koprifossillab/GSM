@@ -187,6 +187,14 @@ EN = {
     "달 위도": "Lunar lat", "달 경도": "Lunar lon",
     "자전축": "Axis",
     "시대 모름": "Age unknown",
+    # 달 자세 (045)
+    "방위": "Heading",
+    "방위 — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":
+        "Heading — the needle points to lunar north. Click to turn north up, keeping the tilt",
+    "기울기 {tilt}° · 방위 {heading}°": "Tilt {tilt}° · heading {heading}°",
+    "평면에서 그렇게 끌면 구로 넘어가며 기울어진다.": "Doing so on the flat map switches to the globe and tilts.",
+    "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(달의 북쪽 0°)":
+        "Tilt (0° looking straight down) and heading (0° lunar north) at the point in the middle of the screen",
     "북극점": "North pole", "남극점": "South pole",
     "달의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다": "The Moon's spin axis — show or hide the line through the poles",
     # 달 점묶음 (037)

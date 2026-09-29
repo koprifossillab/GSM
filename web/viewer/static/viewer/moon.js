@@ -190,6 +190,9 @@
   var scene = viewer.scene;
   scene.globe.showGroundAtmosphere = false;
   scene.globe.enableLighting = false;
+  // 지형 뒤의 것은 가린다 — 끄면 자전축처럼 달 속을 지나는 선이 가까이서 땅 위로 비친다 (045).
+  // 땅에 붙인 점·이름표는 `disableDepthTestDistance` 로 따로 가리지 않는다
+  scene.globe.depthTestAgainstTerrain = true;
   scene.globe.baseColor = Cesium.Color.fromCssColorString("#1a1a1a");
   // 타일을 조금 덜 촘촘하게 — 표고·지질도가 서버를 거치므로 한 화면의 요청을 줄인다
   scene.globe.maximumScreenSpaceError = 3;
@@ -354,7 +357,7 @@
     if (mode !== "globe") return;
     if (c.h > TO_FLAT_H) { autoFlat = true; return; }
     var straight = viewer.camera.pitch < Cesium.Math.toRadians(-80);
-    if (autoFlat && straight && Math.abs(c.lat) <= POLE_LIMIT && !drawing()) setMode("flat", c);
+    if (autoFlat && straight && Math.abs(c.lat) <= POLE_LIMIT && !drawing() && !tilting) setMode("flat", c);
   });
   flat.on("moveend", function () {
     if (mode !== "flat") return;
@@ -380,10 +383,132 @@
     if (mode === "flat") setMode("globe", { h: 5200000 });
     flyGlobe(0, 0, 5200000, 1.5);
   });
+  // 북쪽 위 — 가운데 점 위로 올라가 곧장 내려다본다. 가까우면 다 내려다본 뒤 평면으로 넘어간다
   $("tool-top").addEventListener("click", function () {
+    var p = pivot(true);
+    if (p) { orbit(p, 0, -90, 0.8); return; }
     var c = cameraLL();
     if (c) flyGlobe(c.lon, c.lat, c.h, 0.8);
   });
+
+  // ══ 자세 — 가운데 점 · 거리 · 방위 · 기울기 (045) ═══════════════════
+  //
+  // 지구 3D(MapLibre)와 같은 네 값으로 본다. **돌고 기울이는 중심은 화면 한가운데 아래의 지형 점**이다 —
+  // 보던 크레이터가 가운데에 머문다.
+  //
+  // - 방위는 **달의 북극**(자전축을 그 점의 수평면에 내린 쪽)이 0°, 시계 방향. IAU 달 좌표계·지명이 다
+  //   이 북쪽이다. 극점 위에서는 북쪽이 없으므로 **위도 89.5° 너머는 지구 쪽(경도 0°, +X 축)이 0°** 다 —
+  //   달은 늘 같은 면을 지구로 향하므로 극에서 가장 자연스러운 기준이다
+  // - 기울기는 그 점에서 **달 구면에 접하는 수평면**으로 잰다. 지형의 경사로 재면 크레이터 벽에서 값이
+  //   춤춘다. 보이는 값은 지구 3D 처럼 곧장 내려다봄이 0°, 수평이 90° 다
+  //
+  // 손 — 오른쪽 단추(또는 Ctrl)로 끌면 기울이고 돈다. 휠은 당기고 민다. 평면에서 그렇게 끌면 같은
+  // 가운데·같은 넓이로 구로 넘어가며 기울기가 붙는다. 평면은 지도 읽기, 기울이는 순간부터는 3D 다
+  var cam = scene.screenSpaceCameraController;
+  cam.tiltEventTypes = [Cesium.CameraEventType.MIDDLE_DRAG, Cesium.CameraEventType.PINCH,
+                        Cesium.CameraEventType.RIGHT_DRAG,
+                        { eventType: Cesium.CameraEventType.LEFT_DRAG, modifier: Cesium.KeyboardEventModifier.CTRL }];
+  cam.zoomEventTypes = [Cesium.CameraEventType.WHEEL, Cesium.CameraEventType.PINCH];
+  var tilting = false;                     // 평면에서 넘어와 끄는 중 — 그동안은 평면으로 되넘지 않는다
+  var X_AXIS = new Cesium.Cartesian3(1, 0, 0), Z_AXIS = new Cesium.Cartesian3(0, 0, 1);
+
+  /** 화면 한가운데 아래의 점과 거기까지의 거리. `terrain` 이면 지형을, 아니면 타원체를 짚는다(가볍다). */
+  function pivot(terrain) {
+    var cv = scene.canvas, mid = new Cesium.Cartesian2(cv.clientWidth / 2, cv.clientHeight / 2);
+    var pos = null;
+    if (terrain) {
+      var ray = viewer.camera.getPickRay(mid);
+      pos = ray && scene.globe.pick(ray, scene);
+    }
+    if (!pos) pos = viewer.camera.pickEllipsoid(mid, MOON);
+    return pos ? { pos: pos, range: Cesium.Cartesian3.distance(viewer.camera.positionWC, pos) } : null;
+  }
+  /** 점 `pos` 의 수평면에서 본 카메라의 방위·기울기(도). `cesium` 이면 Cesium 의 동-북-위를 쓴다 —
+   *  `lookAt` 에 넘길 값이다. 아니면 위의 기준(극 가까이는 지구 쪽)이다. */
+  function anglesAt(pos, cesium) {
+    var up = MOON.geodeticSurfaceNormal(pos, new Cesium.Cartesian3());
+    var north, east;
+    if (cesium) {
+      var m = Cesium.Transforms.eastNorthUpToFixedFrame(pos, MOON);
+      east = Cesium.Matrix4.getColumn(m, 0, new Cesium.Cartesian4());
+      north = Cesium.Matrix4.getColumn(m, 1, new Cesium.Cartesian4());
+      east = new Cesium.Cartesian3(east.x, east.y, east.z);
+      north = new Cesium.Cartesian3(north.x, north.y, north.z);
+    } else {
+      var lat = Cesium.Math.toDegrees(MOON.cartesianToCartographic(pos).latitude);
+      var ref = Math.abs(lat) > 89.5 ? X_AXIS : Z_AXIS;
+      north = Cesium.Cartesian3.subtract(ref, Cesium.Cartesian3.multiplyByScalar(up, Cesium.Cartesian3.dot(ref, up),
+                                                                                   new Cesium.Cartesian3()), new Cesium.Cartesian3());
+      Cesium.Cartesian3.normalize(north, north);
+      east = Cesium.Cartesian3.cross(north, up, new Cesium.Cartesian3());
+    }
+    var d = viewer.camera.directionWC;
+    // 곧장 내려다보면 시선이 수평면에 그림자를 남기지 않는다 — 그때는 화면의 위쪽(카메라 up)이 향한 쪽이 방위다
+    var f = Math.abs(Cesium.Cartesian3.dot(d, up)) > 0.999 ? viewer.camera.upWC : d;
+    var heading = Cesium.Math.toDegrees(Math.atan2(Cesium.Cartesian3.dot(f, east), Cesium.Cartesian3.dot(f, north)));
+    return { heading: (heading + 360) % 360,
+             pitch: Cesium.Math.toDegrees(Math.asin(Math.max(-1, Math.min(1, Cesium.Cartesian3.dot(d, up))))) };
+  }
+  /** 가운데 점 둘레로 돈다 — 방위(위의 기준)·기울기(수평면 기준, −90 이 곧장 내려다봄)·거리는 그대로. */
+  function orbit(p, heading, pitch, duration) {
+    // 우리 방위와 Cesium 방위의 어긋남(극 가까이에서만 0 이 아니다)을 얹어 Cesium 의 값으로 바꾼다
+    var shift = anglesAt(p.pos, true).heading - anglesAt(p.pos, false).heading;
+    var hpr = new Cesium.HeadingPitchRange(Cesium.Math.toRadians(heading + shift), Cesium.Math.toRadians(pitch), p.range);
+    if (duration) {
+      viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(p.pos, 0), { offset: hpr, duration: duration });
+    } else {
+      viewer.camera.lookAt(p.pos, hpr);
+      viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+    }
+  }
+
+  // 방위 단추(나침반) — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다
+  var needle = $("compass-needle"), poseOut = $("pose");
+  $("tool-compass").addEventListener("click", function () {
+    var p = pivot(true);
+    if (!p) return;
+    orbit(p, 0, anglesAt(p.pos, false).pitch, 0.6);
+  });
+  var lastView = new Cesium.Matrix4();
+  scene.postRender.addEventListener(function () {
+    if (mode !== "globe" || Cesium.Matrix4.equalsEpsilon(lastView, viewer.camera.viewMatrix, 1e-9)) return;
+    Cesium.Matrix4.clone(viewer.camera.viewMatrix, lastView);
+    syncAxisNear();
+    var p = pivot(false);
+    if (!p) { poseOut.textContent = ""; return; }
+    var a = anglesAt(p.pos, false);
+    needle.setAttribute("transform", "rotate(" + (-a.heading).toFixed(1) + " 12 12)");
+    poseOut.textContent = T("기울기 {tilt}° · 방위 {heading}°", { tilt: Math.round(90 + a.pitch), heading: Math.round(a.heading) % 360 });
+  });
+
+  // 평면에서 오른쪽 단추·Ctrl 로 끌면 — 구로 넘어가며 기울인다. 넘어간 뒤의 끌기는 우리가 받는다
+  // (누르는 순간 구는 숨어 있어 Cesium 이 그 끌기를 모른다). 위로 끌면 눕고, 옆으로 끌면 돈다
+  var flatEl = $("map");
+  flatEl.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  flatEl.addEventListener("pointerdown", function (e) {
+    if (mode !== "flat" || !(e.button === 2 || (e.button === 0 && e.ctrlKey))) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var v = flat.getView(), ll = wrapLon(toLL(v.getCenter())), h = resToHeight(v.getResolution());
+    var ground = scene.globe.getHeight(Cesium.Cartographic.fromDegrees(ll[0], ll[1])) || 0;
+    tilting = true;
+    setMode("globe", { h: h });
+    var p = { pos: Cesium.Cartesian3.fromDegrees(ll[0], ll[1], ground, MOON), range: h - ground };
+    var x0 = e.clientX, y0 = e.clientY, heading = 0, pitch = -90;
+    function move(ev) {
+      heading = ((ev.clientX - x0) * 0.4 % 360 + 360) % 360;
+      pitch = Math.max(-90, Math.min(-8, -90 + (y0 - ev.clientY) * 0.35));
+      orbit(p, heading, pitch);
+    }
+    function up() {
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+      tilting = false;
+      viewer.camera.moveEnd.raiseEvent();       // 거의 안 기울였으면 다시 평면으로
+    }
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+  }, true);
 
   // ══ 패널 ══════════════════════════════════════════════════════════
   document.querySelectorAll(".tab").forEach(function (tab) {
@@ -1132,30 +1257,55 @@
     if (found.length) choose(found[Math.max(0, picked)]);
   });
 
-  // ══ 자전축 — 구에서 방향을 잡는 헛선 (041) ═══════════════════════
+  // ══ 자전축 — 구에서 방향을 잡는 꼬챙이 (041·045) ═════════════════
   //
-  // 구를 돌리고 기울이다 보면 어느 쪽이 북인지 놓친다. 달 고정 좌표의 Z 축이 곧 자전축이라, 극을
-  // 뚫고 반지름의 0.45 배씩 밖으로 뻗은 선을 긋고 끝에 북극점·남극점을 적는다. 달 속을 지나는 토막은
-  // 깊이 검사로 가려진다. 평면은 늘 북쪽이 위라 구에서만 보인다. 켜고 끈 것을 기억한다
-  var AXIS_OUT = R * 1.45;
-  var axisOn = saved("gsm.moon.axis", "on") !== "off";
+  // 구를 돌리고 기울이다 보면 어느 쪽이 북인지 놓친다. 달 고정 좌표의 Z 축이 곧 자전축이다.
+  //
+  // 041 은 달 밖으로 나온 두 토막만 그렸다 — 달 속은 가려져서, 돌려 보면 두 토막이 따로 노는 것처럼
+  // 보였다(사람이 "달과 함께 눕지 않는다" 고 했다). 그래서 **달 속을 지나는 토막도 흐린 끊은 선으로
+  // 비쳐 보이게** 했다(`depthFailMaterial`). 남극점 → 중심 → 북극점이 한 막대로 읽힌다. 중심에 점,
+  // 극점(표면)에 점을 찍고, 밖으로 뻗은 끝에 이름을 적는다.
+  //
+  // **가까이 가면 치운다**(카메라 높이 1 200 km 밑). 달 속의 선이 땅 위로 비쳐 어지럽고, 그 거리에서는
+  // 방위 바늘이 같은 일을 한다. 평면은 늘 북쪽이 위라 구에서만 보인다. 켜고 끈 것을 기억한다
+  var AXIS_OUT = R * 1.45, AXIS_NEAR = 1200000;
+  var axisOn = saved("gsm.moon.axis", "on") !== "off", axisFar = true;
+  var WHITE_A = Cesium.Color.WHITE;
   var axisEntities = [
     viewer.entities.add({
       polyline: { positions: [new Cesium.Cartesian3(0, 0, -AXIS_OUT), new Cesium.Cartesian3(0, 0, AXIS_OUT)],
-                  arcType: Cesium.ArcType.NONE, width: 2,
-                  material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.WHITE.withAlpha(0.8), dashLength: 18 }) },
+                  arcType: Cesium.ArcType.NONE, width: 2.5, material: WHITE_A.withAlpha(0.95),
+                  depthFailMaterial: new Cesium.PolylineDashMaterialProperty({ color: WHITE_A.withAlpha(0.5), dashLength: 12 }) },
     }),
-  ].concat([[1, T("북극점")], [-1, T("남극점")]].map(function (end) {
-    return viewer.entities.add({
+    // 중심 — 늘 비쳐 보인다
+    viewer.entities.add({
+      position: Cesium.Cartesian3.ZERO,
+      point: { pixelSize: 6, color: WHITE_A.withAlpha(0.7), outlineColor: Cesium.Color.BLACK, outlineWidth: 1,
+               disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    }),
+  ].concat([[1, T("북극점")], [-1, T("남극점")]].reduce(function (all, end) {
+    // 표면의 극점 — 뒤로 돌면 가려진다
+    all.push(viewer.entities.add({
+      position: new Cesium.Cartesian3(0, 0, end[0] * MOON.maximumRadius),
+      point: { pixelSize: 8, color: WHITE_A, outlineColor: Cesium.Color.BLACK, outlineWidth: 2 },
+    }));
+    // 밖으로 뻗은 끝의 이름 — 극점이 뒤에 있어도 어느 쪽이 북인지 보인다
+    all.push(viewer.entities.add({
       position: new Cesium.Cartesian3(0, 0, end[0] * AXIS_OUT),
-      point: { pixelSize: 6, color: Cesium.Color.WHITE },
-      label: { text: end[1], font: "600 12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+      label: { text: end[1], font: "600 12px system-ui, sans-serif", fillColor: WHITE_A,
                outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-               pixelOffset: new Cesium.Cartesian2(0, end[0] > 0 ? -14 : 14) },
-    });
-  }));
+               verticalOrigin: end[0] > 0 ? Cesium.VerticalOrigin.BOTTOM : Cesium.VerticalOrigin.TOP,
+               pixelOffset: new Cesium.Cartesian2(0, end[0] > 0 ? -4 : 4),
+               disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    }));
+    return all;
+  }, []));
+  function syncAxisNear() {
+    var c = cameraLL(), far = !c || c.h > AXIS_NEAR;
+    if (far !== axisFar) { axisFar = far; applyAxis(); }
+  }
   function applyAxis() {
-    axisEntities.forEach(function (e) { e.show = axisOn; });
+    axisEntities.forEach(function (e) { e.show = axisOn && axisFar; });
     $("tool-axis").classList.toggle("on", axisOn);
     $("tool-axis").setAttribute("aria-pressed", axisOn ? "true" : "false");
   }
