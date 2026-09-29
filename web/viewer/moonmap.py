@@ -420,6 +420,83 @@ def render_tile(layer: str, z: int, x: int, y: int) -> bytes:
     return buf.getvalue()
 
 
+def render_polar_tile(layer: str, pole: str, z: int, x: int, y: int) -> bytes:
+    """극 격자 한 장(`trek.polar_tile_bbox`, 052) — 256 px 투명 PNG.
+
+    경위도로 옮겨 둔 모양을 다시 극 평사도법으로 옮겨 그린다. 극을 두른 고리는 `_unwrap` 이 극점으로
+    닫아 두었으므로 옮기면 극점(0, 0)을 지나 제대로 닫힌다. 묻는 네모는 타일 둘레를 경위도로 되짚은
+    것이다 — 극을 품거나 날짜 변경선에 걸치면 경도를 다 묻는다."""
+    if layer not in LAYERS:
+        raise MoonMapError("원도 레이어가 아니다")
+    w, s, e, n = trek.polar_tile_bbox(z, x, y)
+    ss = SUPERSAMPLE
+    size = TILE * ss
+    k = size / (e - w)
+    # 둘레를 경위도로 — 한 변에 16 점
+    edge = [(w + (e - w) * i / 16, n) for i in range(17)] + [(w + (e - w) * i / 16, s) for i in range(17)]
+    edge += [(w, s + (n - s) * i / 16) for i in range(17)] + [(e, s + (n - s) * i / 16) for i in range(17)]
+    lls = [trek.polar_to_lonlat(px, py, pole) for px, py in edge]
+    lats = [ll[1] for ll in lls]
+    inside_pole = w <= 0 <= e and s <= 0 <= n
+    lat_lo, lat_hi = (min(lats), 90.0) if pole == "n" else (-90.0, max(lats))
+    lons = [ll[0] for ll in lls]
+    # 날짜 변경선(극 아래로 뻗는 반직선)에 걸치거나 극을 품으면 경도를 다 묻는다
+    crosses = inside_pole or (w <= 0 <= e and (n > 0 if pole == "n" else s < 0))
+    lon_lo, lon_hi = (-180.0, 180.0) if crosses else (min(lons), max(lons))
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    conn = _conn()
+    table = "units" if layer == "orig-units" else "lines"
+    cols = "t.color, t.draw" if table == "units" else "t.kind, 0"
+    seen = set()
+    tr = (w, n, k, k)
+
+    def project(flat):
+        out = []
+        for i in range(0, len(flat), 2):
+            out += trek.lonlat_to_polar(flat[i], flat[i + 1], pole)
+        return out
+
+    rows = []
+    for shift in (0.0, -360.0, 360.0):
+        rows += conn.execute(
+            f"SELECT t.id, {cols}, t.geom FROM {table}_rtree r "
+            f"JOIN {table} t ON t.id = r.id WHERE r.maxx >= ? AND r.minx <= ? AND r.maxy >= ? AND r.miny <= ?",
+            (lon_lo + shift, lon_hi + shift, lat_lo, lat_hi)).fetchall()
+    rows.sort(key=lambda row: (row[2], row[0]))          # 세 번 물은 것을 그리는 차례(원도, 번호)로
+    for row_id, style, _, blob in rows:
+        if row_id in seen:
+            continue
+        seen.add(row_id)
+        parts = [[project(list(r)) for r in rings] for rings in unpack(blob)]
+        xs = [v for rings in parts for r in rings for v in r[0::2]]
+        ys = [v for rings in parts for r in rings for v in r[1::2]]
+        if not xs or max(xs) < w or min(xs) > e or max(ys) < s or min(ys) > n:
+            continue
+        size_px = max(max(xs) - min(xs), max(ys) - min(ys)) * k
+        if table == "units":
+            color = _hex(style)
+            if size_px < 1.5 * ss:
+                cx, cy = ((min(xs) + max(xs)) / 2 - w) * k, (n - (min(ys) + max(ys)) / 2) * k
+                draw.rectangle((cx - ss / 2, cy - ss / 2, cx + ss / 2 - 1, cy + ss / 2 - 1), fill=color)
+                continue
+            outline = (0, 0, 0, 90) if z >= 3 else None
+            rule = {"fill": color, "outline": outline, "width": 1}
+            for rings in parts:
+                geomap._fill_polygon(img, draw, rings, rule, tr, size_px, ss)
+        else:
+            rule = line_style(style)
+            strokes = [{"color": _hex(rule["color"]), "width": rule.get("width", 1), "dash": rule.get("dash")}]
+            for lines in parts:
+                for flat in lines:
+                    for run in geomap._clip_runs(geomap._to_px(flat, tr, size_px), size, size, 8 * ss):
+                        geomap._stroke(draw, run, strokes, ss)
+    out = img.resize((TILE, TILE), Image.Resampling.BOX)
+    buf = io.BytesIO()
+    out.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 # ── 속성 ────────────────────────────────────────────────────────────
 
 def identify(lon: float, lat: float) -> dict | None:

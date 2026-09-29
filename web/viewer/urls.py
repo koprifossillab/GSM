@@ -11,6 +11,9 @@ urlpatterns = [
     path("moon/", views.moon_view, name="moon"),
     re_path(r"^moon/tiles/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.moon_tile, name="moon-tile"),
+    # 달 극 평면 — 극 평사도법 격자 (052)
+    re_path(r"^moon/ptiles/(?P<pole>[ns])/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.moon_polar_tile, name="moon-polar-tile"),
     re_path(r"^moon/dem/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$", views.moon_dem, name="moon-dem"),
     path("moon/info/", views.moon_info, name="moon-info"),
     path("moon/legend/", views.moon_legend, name="moon-legend"),

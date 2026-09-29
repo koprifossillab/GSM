@@ -249,6 +249,43 @@ def _moon_original_tile(request, layer, z, x, y):
 
 
 @require_GET
+def moon_polar_tile(request, pole, layer, z, x, y):
+    """극 평면의 달 지질도 타일 — `moon/ptiles/<n|s>/<레이어>/<z>/<x>/<y>.png` (052).
+
+    격자는 Trek 극 WMTS 의 것(`trek.polar_tile_bbox`)이다. 통합 지질도는 Trek 의 극지 판(`…_NP`·`…_SP`)이
+    그리고, 원도는 우리가 극 평사도법으로 굽는다."""
+    z, x, y = int(z), int(x), int(y)
+    lang = i18n.lang_of(request)
+    if not trek.polar_valid(z, x, y) or not (layer in trek.LAYERS or moonmap.knows(layer)):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
+    if moonmap.knows(layer):
+        if not moonmap.available():
+            return _tile(tiles.notice_tile(256, 256, tiles.NO_MOON), store=False)
+        key = tilecache.key_text("moonmap", f"{moonmap.RENDERER}/{pole}p/{layer}/{z}/{x}/{y}")
+        fetch = lambda: moonmap.render_polar_tile(layer, pole, z, x, y)     # noqa: E731
+        errors = (moonmap.MoonMapError, OSError)
+    else:
+        key = tilecache.key_text("trek", f"{pole}p/{layer}/{z}/{x}/{y}")
+        fetch = lambda: trek.get_polar_tile(layer, pole, z, x, y)           # noqa: E731
+        errors = (trek.TrekError,)
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = fetch()
+    except errors as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("달 극 지질도 타일을 받지 못했다 (%s %s %s/%s/%s): %s", pole, layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
 def moon_dem(request, z, x, y):
     """달 표고 격자 — `moon/dem/<z>/<x>/<y>.png`, 65×65 Terrarium (LOLA).
 

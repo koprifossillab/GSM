@@ -241,6 +241,9 @@ EN = {
     "그림으로 내려받기 — 지금 보는 화면을 PNG 한 장으로. 배경·레이어·가운데·출처를 아래에 적는다":
         "Download as image — the current view as one PNG, with basemap, layers, centre and sources noted below",
     "음영": "hillshade",
+    # 달 극 평면 (052)
+    "북극 평사도법": "north polar stereographic",
+    "남극 평사도법": "south polar stereographic",
     # 달 자세 (045)
     "방위": "Heading",
     "방위 — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":

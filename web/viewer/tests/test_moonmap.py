@@ -123,6 +123,9 @@ class Read(TestCase):
             ("I-1047", "Nc", "Crater Material", "Nectarian System", "#97922e", [[square(170, -10, 190, 10)]]),
             # 극지 원도가 밑에, 앞면 원도가 위에 — 겹치는 곳은 앞면이 이긴다
             ("I-1062", "pNc", "Subdued Crater", "pre-Nectarian System", "#97922e", [[square(-30, 5, 0, 35)]]),
+            # 남극을 두른 모자 — 경도 한 바퀴를 극으로 닫았다 (052)
+            ("I-1162", "Ip", "Plains Material", "Imbrian System", "#123456",
+             [[moonmap._unwrap([(lon, -88.0) for lon in range(-180, 181, 10)], pole=-1)]]),
         ], lines=[("I-1034", "Rille", [-100.0, 0.0, -90.0, 5.0])])
 
     def test_누른_자리의_단위(self):
@@ -147,6 +150,25 @@ class Read(TestCase):
         self.assertEqual(image.getpixel((5, 250))[3], 0)                 # 남쪽 끝은 비었다
         lines = Image.open(io.BytesIO(moonmap.render_tile("orig-lines", 0, 0, 0))).convert("RGBA")
         self.assertGreater(sum(1 for p in lines.getdata() if p[3]), 0)
+
+    def test_극_타일을_굽는다(self):
+        """극 평면(052) — 경위도로 옮겨 둔 모양을 극 평사도법으로 다시 옮긴다. 극을 두른 고리는 극점을 채운다."""
+        image = Image.open(io.BytesIO(moonmap.render_polar_tile("orig-units", "s", 0, 0, 0))).convert("RGBA")
+        self.assertEqual(image.getpixel((128, 128))[:3], (0x12, 0x34, 0x56))    # 남극점
+        rho = 2 * moonmap.R * math.tan(math.radians(0.5))                       # 남위 89°
+        px = 128 + rho / (2 * 1095930.0) * 256
+        self.assertEqual(image.getpixel((int(px), 128))[:3], (0x12, 0x34, 0x56))
+        self.assertEqual(image.getpixel((5, 5))[3], 0)                          # 모자 밖
+        north = Image.open(io.BytesIO(moonmap.render_polar_tile("orig-units", "n", 0, 0, 0))).convert("RGBA")
+        self.assertEqual(north.getpixel((128, 128))[3], 0)                      # 북극에는 없다
+
+    def test_극_타일_경로(self):
+        tile = self.client.get(reverse("viewer:moon-polar-tile", args=["s", "orig-units", 0, 0, 0]))
+        self.assertEqual((tile.status_code, tile["X-GSM-Cache"]), (200, "miss"))
+        again = self.client.get(reverse("viewer:moon-polar-tile", args=["s", "orig-units", 0, 0, 0]))
+        self.assertEqual(again["X-GSM-Cache"], "hit")
+        self.assertEqual(self.client.get("/GSM/moon/ptiles/s/orig-units/0/1/0.png").status_code, 404)
+        self.assertEqual(self.client.get("/GSM/moon/ptiles/s/nope/0/0/0.png").status_code, 404)
 
     def test_경로(self):
         tile = self.client.get(reverse("viewer:moon-tile", args=["orig-units", 0, 0, 0]))

@@ -52,6 +52,41 @@ class Grid(SimpleTestCase):
         self.assertFalse(trek.valid_tile(trek.MAX_ZOOM + 1, 0, 0))
 
 
+class Polar(SimpleTestCase):
+    """극 격자 (052) — Trek 극 WMTS 의 것. 줌 0 이 한 장, 가운데가 극점. 경도 0 은 남극이 위, 북극이 아래."""
+
+    def test_줌_0_은_한_장(self):
+        h = trek.POLAR_HALF
+        self.assertEqual(trek.polar_tile_bbox(0, 0, 0), (-h, -h, h, h))
+        self.assertEqual(trek.polar_tile_bbox(1, 1, 0), (0.0, 0.0, h, h))
+        self.assertTrue(trek.polar_valid(1, 1, 1))
+        self.assertFalse(trek.polar_valid(0, 1, 0))
+
+    def test_투영을_오가면_제자리(self):
+        for pole, lat in (("n", 84.0), ("s", -87.5)):
+            for lon in (-170.0, 0.0, 45.0, 179.0):
+                x, y = trek.lonlat_to_polar(lon, lat, pole)
+                back = trek.polar_to_lonlat(x, y, pole)
+                self.assertAlmostEqual(back[0], lon, places=7)
+                self.assertAlmostEqual(back[1], lat, places=7)
+
+    def test_경도_0_의_쪽(self):
+        self.assertGreater(trek.lonlat_to_polar(0, -80, "s")[1], 0)
+        self.assertLess(trek.lonlat_to_polar(0, 80, "n")[1], 0)
+        # 극에서 축척 1 — 남위 60° 는 931 km 남짓(Trek 극지 판의 범위)
+        self.assertAlmostEqual(trek.lonlat_to_polar(90, -60, "s")[0], 931066, delta=10)
+
+    def test_극지_판에_제_투영으로_묻는다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/png", content=b"png")) as get:
+            self.assertEqual(trek.get_polar_tile("units", "s", 1, 1, 0), b"png")
+        url, params = get.call_args[0][0], get.call_args[1]["params"]
+        self.assertTrue(url.endswith("/Unified_Global_Geologic_Map_of_the_Moon_Geologic_Units_SP/MapServer/export"))
+        self.assertNotIn("bboxSR", params)
+        self.assertEqual(params["bbox"], f"0.0,0.0,{trek.POLAR_HALF},{trek.POLAR_HALF}")
+        with self.assertRaises(trek.TrekError):
+            trek.get_polar_tile("units", "x", 0, 0, 0)
+
+
 class Upstream(SimpleTestCase):
 
     def test_지질도는_달_경위도로_묻는다(self):

@@ -96,6 +96,50 @@ def tile_bbox(z: int, x: int, y: int) -> tuple:
     return west, north - step, west + step, north
 
 
+# ── 극 격자 (052) ───────────────────────────────────────────────────
+#
+# 극은 달 극 평사도법이다 — 구(반지름 1737.4 km), 극에서 축척 1, 가짜 동거 0. 우리 이름은 PSDI 의
+# `IAU_2015:30130`(북)·`30135`(남)이고, Trek 은 제 극지 서비스(`…_NP`·`…_SP`)가 이 투영을 WKT 로 적는다
+# (wkid 가 없다 — `bboxSR` 을 적지 않으면 서비스의 것으로 읽는다). 격자는 Trek 극 WMTS 의 것 그대로다 —
+# 왼쪽 위가 (−1 095 930, 1 095 930) m, 줌 0 이 한 장, 한 장이 줌마다 반씩. 영상 배경(브라우저가 곧장
+# 부른다)과 한 칸도 어긋나지 않게 같은 격자를 쓴다.
+
+POLAR_HALF = 1095930.0
+POLAR_MAX_ZOOM = 12
+POLES = {"n": "_NP", "s": "_SP"}
+
+
+def polar_valid(z: int, x: int, y: int) -> bool:
+    return 0 <= z <= POLAR_MAX_ZOOM and 0 <= x < 2 ** z and 0 <= y < 2 ** z
+
+
+def polar_tile_bbox(z: int, x: int, y: int) -> tuple:
+    """극 격자 한 장의 (서, 남, 동, 북) — 극 평사도법 미터."""
+    span = 2 * POLAR_HALF / 2 ** z
+    west = -POLAR_HALF + x * span
+    north = POLAR_HALF - y * span
+    return west, north - span, west + span, north
+
+
+def polar_to_lonlat(x: float, y: float, pole: str) -> tuple:
+    """극 평사도법 → 경위도 (`moonmap.stereo_to_lonlat` 과 같은 식)."""
+    rho = math.hypot(x, y)
+    c = 2 * math.atan2(rho, 2 * RADIUS)
+    lat = 90.0 - math.degrees(c)
+    if pole == "n":
+        return math.degrees(math.atan2(x, -y)), lat
+    return math.degrees(math.atan2(x, y)), -lat
+
+
+def lonlat_to_polar(lon: float, lat: float, pole: str) -> tuple:
+    phi, lam = math.radians(lat), math.radians(lon)
+    if pole == "n":
+        rho = 2 * RADIUS * math.tan(math.pi / 4 - phi / 2)
+        return rho * math.sin(lam), -rho * math.cos(lam)
+    rho = 2 * RADIUS * math.tan(math.pi / 4 + phi / 2)
+    return rho * math.sin(lam), rho * math.cos(lam)
+
+
 # ── 부르기 ──────────────────────────────────────────────────────────
 
 def _get(path: str, params: dict, base: str = ""):
@@ -145,6 +189,17 @@ def get_tile(layer: str, z: int, x: int, y: int) -> bytes:
     w, s, e, n = tile_bbox(z, x, y)
     return _image(_get(_map(layer, "export"), {
         "bbox": f"{w},{s},{e},{n}", "bboxSR": SR, "imageSR": SR, "size": f"{TILE},{TILE}",
+        "format": "png32", "transparent": "true", "f": "image",
+    }))
+
+
+def get_polar_tile(layer: str, pole: str, z: int, x: int, y: int) -> bytes:
+    """극 격자의 지질도 타일 (052). Trek 의 극지 판(`…_NP`·`…_SP`)이 제 투영으로 그린다."""
+    if pole not in POLES:
+        raise TrekError("극이 아니다")
+    w, s, e, n = polar_tile_bbox(z, x, y)
+    return _image(_get(_map(layer, "export").replace("/MapServer/", f"{POLES[pole]}/MapServer/"), {
+        "bbox": f"{w},{s},{e},{n}", "size": f"{TILE},{TILE}",
         "format": "png32", "transparent": "true", "f": "image",
     }))
 
