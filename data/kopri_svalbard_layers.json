@@ -1,0 +1,25 @@
+{
+ "_주석": "극지연구소(KOPRI)의 씨앗이다. 2026-09-29 에 암석 시료 DB·KPDC 목록·KPDC 지도 서버를 받아 보고 넣었다. 한글 제목과 레이어군은 사람이 붙였다. 무엇을 어디서 받는지는 web/viewer/kopri.py 의 LAYERS·WMS 에 있다.",
+ "_뽑은날": "2026-09-29",
+ "_출처": "https://rock.kopri.re.kr/rock",
+ "_지역": "svalbard",
+ "_상류": "kopri",
+ "_레이어군차례": 20,
+ "레이어군순서": [
+  "극지연구소 시료"
+ ],
+ "레이어": [
+  {
+   "name": "kopri:rock_svalbard",
+   "title": "암석 시료 (KOPRI)",
+   "group": "극지연구소 시료",
+   "abstract": "KOPRI rock sample DB — sample no., rock type, formation, age",
+   "bbox": [
+    11.5,
+    78.09,
+    16.68,
+    79.39
+   ]
+  }
+ ]
+}

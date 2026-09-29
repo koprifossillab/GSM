@@ -51,3 +51,5 @@ geo3al.dbf
 /.claude/
 # 남극 해저·빙저 지형 IBCSO v2 — 기본 자리 <DB 옆>/ibcso/. 340 MB 라 올리지 않는다 (devlog 047)
 /ibcso/
+# 극지연구소에서 모아 둔 것 — 기본 자리 <DB 옆>/kopri/. 우리 자료가 아니다 (devlog 053)
+/kopri/

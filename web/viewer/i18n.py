@@ -636,6 +636,28 @@ EN = {
     "암맥 {n}건 · 줌 {z} 아래에서는 도폭 {m}곳의 로즈": "{n} dikes · below zoom {z}, rose diagrams for {m} map sheets",
     "갈래는 적힌 암석 이름에서 GSM 이 가른 것이다": "Classes are GSM's grouping of the recorded rock names",
     "원본 기록 — phyloserver": "Original records — phyloserver",
+    # 극지연구소 (053–057)
+    "극지연구소 자료를 아직 모으지 않았다 (fetch_kopri)": "KOPRI data has not been harvested yet (fetch_kopri)",
+    "극지연구소 자료를 읽지 못했다": "Could not read the KOPRI data",
+    "남극 전체처럼 넓은 범위의 자료 {n}건은 그리지 않았다": "{n} datasets with continent-wide extents are not drawn",
+    "원본 자료 — 극지연구소 KPDC": "Source — Korea Polar Data Center (KOPRI)",
+    "퇴적암": "Sedimentary",
+    "화산암": "Volcanic",
+    "화성암·심성암": "Igneous / plutonic",
+    "변성암": "Metamorphic",
+    "해양 퇴적물·코어": "Marine sediments & cores",
+    "고체지구": "Solid Earth",
+    "고기후": "Paleoclimate",
+    "빙권": "Cryosphere",
+    "해양": "Oceans",
+    "대기": "Atmosphere",
+    "생물": "Biosphere",
+    "그 밖": "Other",
+    "운석 발견 지점": "Meteorite find",
+    "대한민국 기지": "Korean station",
+    "상주 기지": "Year-round station",
+    "하계 기지": "Seasonal station",
+    "그 밖 시설": "Other facility",
 }
 
 
@@ -812,6 +834,26 @@ PROP_EN = {
     "phyloserver 기록": "phyloserver record",
     "암맥 수": "Dikes",
     "평균 주향": "Mean strike",
+    # 극지연구소 (053–056)
+    "제목": "Title",
+    "자료 번호": "Entry ID",
+    "과학 키워드": "Science keywords",
+    "연구 기간": "Research period",
+    "고기후 시기": "Paleo age",
+    "장비": "Platform / instrument",
+    "KPDC 자료 페이지": "KPDC entry",
+    "DOI": "DOI",
+    "운석": "Meteorite",
+    "찾은 날": "Found",
+    "운석 기록 (KoreaMet)": "Meteorite record (KoreaMet)",
+    "기지": "Station",
+    "나라": "Country",
+    "운영": "Operation",
+    "처음 연 해": "Opened",
+    "월동 인원": "Winter population",
+    "여름 최대 인원": "Peak population",
+    "고도": "Altitude",
+    "다른 이름": "Other names",
 }
 
 
@@ -1153,6 +1195,9 @@ GROUP_EN = {
     "중국·동아시아 지질 (USGS)": "China & East Asia geology (USGS)",
     # 우리가 모은 자료로 그린 레이어 — 첫째가 phyloserver 의 암맥 (devlog 026)
     "커스텀 지질도": "Custom geological maps",
+    "극지연구소 시료": "KOPRI samples",
+    "KPDC 자료": "KPDC datasets",
+    "KPDC 기본도": "KPDC base map",
 }
 
 LAYER_EN = {
@@ -1286,4 +1331,21 @@ LAYER_EN = {
     # 한반도 지질도 음영판·민판 (devlog 027·028)
     "peninsula:shaded": "Korean Peninsula geology (shaded relief)",
     "peninsula:plain": "Korean Peninsula geology (no relief)",
+    "kopri:rock_antarctica": "Rock samples (KOPRI)",
+    "kopri:rock_svalbard": "Rock samples (KOPRI)",
+    "kopri:rock_greenland": "Rock samples (KOPRI)",
+    "kopri:meteorites": "Meteorite finds (KoreaMet)",
+    "kopri:kpdc_sediment": "Marine sediments & cores",
+    "kopri:kpdc_solid": "Solid Earth",
+    "kopri:kpdc_paleo": "Paleoclimate",
+    "kopri:kpdc_cryo": "Cryosphere",
+    "kopri:kpdc_ocean": "Oceans",
+    "kopri:kpdc_atmo": "Atmosphere",
+    "kopri:kpdc_bio": "Biosphere",
+    "kopri:kpdc_other": "Other topics",
+    "kopri:stations": "Antarctic stations (COMNAP)",
+    "kopri:coast_change": "Coastline change (Antarctic Peninsula)",
+    "kopri:lakes": "Lakes",
+    "kopri:streams": "Streams (Antarctic Peninsula)",
+    "kopri:moraines": "Moraines",
 }

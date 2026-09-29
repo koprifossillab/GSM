@@ -438,6 +438,8 @@
     janmayen: { source: null, info: null },
     geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
+    // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
+    kopri: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
@@ -2314,6 +2316,8 @@
             layer.set("gsmLinks", data.links || ["link"]);
             layer.set("gsmLegend", data.legend || null);
             layer.set("gsmCount", features.length);
+            // 극지연구소(055) — 남극 전체를 덮는 넓은 범위라 그리지 않은 자료의 수
+            layer.set("gsmWide", data.wide || 0);
             source.addFeatures(features);
             // 암맥(026) — 멀리서 볼 도폭별 로즈를 같은 자료에서 세어 곁들인다
             if (row.style === "dike") source.addFeatures(dikeRoses(features));
@@ -2570,12 +2574,13 @@
   // 서버가 `legend` 에 geo_code 마다 색·굵기·끊음·모양을 적어 보내고, 그리는 것과
   // 범례가 같은 표를 읽는다 — 둘이 어긋날 수 없다. 면의 색은 feature 의 `color`
   // (자료의 `rgb` 열)다.
-  var LEGEND_STYLED = { unit: true, line: true, vent: true };
+  var LEGEND_STYLED = { unit: true, line: true, vent: true, "class": true };
 
   function legendStyle(kind, getLayer) {
     var cache = {};
-    return function (feature) {
+    return function (feature, resolution) {
       var code = feature.get("code");
+      if (kind === "class") return classStyle(feature, resolution, getLayer, cache);
       if (cache[code]) return cache[code];
       var table = {};
       (getLayer().get("gsmLegend") || []).forEach(function (r) { table[r.code] = r; });
@@ -2605,7 +2610,43 @@
     };
   }
 
-  /** 범례 — 서버가 보낸 표(`legend`)를 그대로. 이름은 자료의 영어 이름이라 옮기지 않는다. */
+  /** 극지연구소(053–056) — 서버가 갈래(`code`)마다 색·모양을 준다. 점은 모양대로, 범위(면·선)는
+   *  같은 색의 테두리와 옅은 속으로 그린다. 멀리서는 점을 작게 — 암석 시료가 빅토리아랜드에 몰려 있다. */
+  function classStyle(feature, resolution, getLayer, cache) {
+    var code = feature.get("code");
+    var type = feature.getGeometry().getType();
+    var far = mercZoom(resolution) < 5;
+    var key = code + "|" + type + (far ? "f" : "n");
+    if (cache[key]) return cache[key];
+    var spec = {};
+    (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
+    var color = spec.color || "#888888";
+    var style;
+    if (type === "Polygon" || type === "MultiPolygon" || type === "LineString") {
+      var rgb = ol.color.asArray(color);
+      style = new ol.style.Style({
+        fill: new ol.style.Fill({ color: [rgb[0], rgb[1], rgb[2], 0.08] }),
+        stroke: new ol.style.Stroke({ color: color, width: 1.4 }),
+      });
+    } else {
+      var r = spec.shape === "star" ? 8 : far ? 3 : 4.5;
+      var fill = new ol.style.Fill({ color: color });
+      var stroke = new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: far ? 0.6 : 1 });
+      var image = spec.shape === "star"
+        ? new ol.style.RegularShape({ points: 5, radius: r, radius2: r * 0.45, angle: 0, fill: fill, stroke: stroke })
+        : spec.shape === "diamond"
+        ? new ol.style.RegularShape({ points: 4, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
+        : spec.shape === "square"
+        ? new ol.style.RegularShape({ points: 4, radius: r + 1, angle: Math.PI / 4, fill: fill, stroke: stroke })
+        : new ol.style.Circle({ radius: r, fill: fill, stroke: stroke });
+      style = new ol.style.Style({ image: image });
+    }
+    cache[key] = style;
+    return style;
+  }
+
+  /** 범례 — 서버가 보낸 표(`legend`)를 그대로. 이름은 자료의 영어 이름이라 옮기지 않는다
+   *  (극지연구소의 갈래 이름만은 우리가 붙인 한국어라 옮긴다). */
   function dataLegend(entry, row, box) {
     var rows = entry.layer.get("gsmLegend") || [];
     rows.forEach(function (r) {
@@ -2618,19 +2659,26 @@
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.6) + '"' +
           (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
+      } else if (row.style === "class") {
+        sw = document.createElement("span");
+        sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond" }[r.shape] || "dot");
+        sw.style.background = r.color || "#888";
       } else {
         sw = document.createElement("span");
         sw.className = "sw " + (row.style === "unit" ? "box" : r.shape === "star" ? "star" : "triangle");
         sw.style.background = r.color || "#888";
       }
       var label = document.createElement("span");
-      label.textContent = r.label + "  (" + r.count + ")";
+      label.textContent = (row.style === "class" ? T(r.label) : r.label) + "  (" + r.count + ")";
       line.append(sw, label);
       box.appendChild(line);
     });
     var err = entry.layer.get("gsmError");
     if (!rows.length) {
       box.appendChild(note(entry.layer.get("gsmFailed") ? (err || T("점을 받지 못했다")) : T("받는 중…")));
+    }
+    if (entry.layer.get("gsmWide")) {
+      box.appendChild(note(T("남극 전체처럼 넓은 범위의 자료 {n}건은 그리지 않았다", { n: entry.layer.get("gsmWide") })));
     }
     if (row.source) {
       var a = document.createElement("a");
@@ -2640,6 +2688,7 @@
       a.rel = "noopener noreferrer";
       a.textContent = row.upstream === "geo3al"
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
+        : row.upstream === "kopri" ? T("원본 자료 — 극지연구소 KPDC")
         : T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
       box.appendChild(a);
     }

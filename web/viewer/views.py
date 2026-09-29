@@ -23,8 +23,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, npolar, patchnotes,
-               elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
+from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
+               patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -411,7 +411,8 @@ def moon_places(request):
 
 #: 연구실 안에서만 보는 상류. 밖에 열면(`settings.PUBLIC`) 목록에서 빠지고 길도
 #: 닫힌다. 레이어 이름이 `<상류>:…` 꼴이라 이름만 보고 가른다.
-LAB_ONLY = ("geo3al", "phyloserver", "peninsula")
+#: 극지연구소(`kopri`, 053–057)는 KPDC 의 공개 정책을 사람이 읽기 전까지 여기 둔다
+LAB_ONLY = ("geo3al", "phyloserver", "peninsula", "kopri")
 
 
 def _lab_only(name: str) -> bool:
@@ -429,7 +430,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -473,6 +474,11 @@ def _point_fields(layer) -> dict:
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
                 "source": phyloserver.source_url(layer.name), "attribution": phyloserver.ATTRIBUTION}
+    if layer.upstream == "kopri" and kopri.knows(layer.name):
+        # 극지연구소(053–056) — 암석 시료·운석·KPDC 자료는 모아 둔 파일에서, 기지는 WFS 에서.
+        # 색과 범례는 서버가 한 표(`legend`)로 준다
+        return {"kind": "points", "queryable": False, "style": "class",
+                "source": kopri.source_url(layer.name), "attribution": kopri.ATTRIBUTION}
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
@@ -491,6 +497,9 @@ def _layer_extra(layer) -> dict:
         spec = npolar.TILES[layer.name]
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "kopri" and kopri.knows_wms(layer.name):
+        # KPDC 지도 서버(057) — 3031 을 그대로 받는다(NPI 드로닝모드랜드와 같다)
+        return {"attribution": kopri.ATTRIBUTION, "projection": "EPSG:3031"}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -540,7 +549,7 @@ def catalog_json(request):
 # 타일은 셋이 같이 쓴다.
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
-                   npolar.NpolarError)
+                   npolar.NpolarError, kopri.KopriError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -563,14 +572,14 @@ class _Door:
     판을 갈면 곧바로 새 것이 보인다.
     """
 
-    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar}
+    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar"):             # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -1171,6 +1180,8 @@ _POINT_DOORS = (
     ("grportal", grportal.knows, grportal, grportal.PortalError),
     ("npolar", npolar.knows_points, npolar, npolar.NpolarError),
     ("phyloserver", phyloserver.knows, phyloserver, phyloserver.PhyloserverError),
+    # 남극 기지(054) — KPDC 지도 서버의 WFS 를 통째로
+    ("kopri", kopri.knows_points, kopri, kopri.KopriError),
 )
 POINT_ERRORS = tuple(door[3] for door in _POINT_DOORS)
 
@@ -1231,6 +1242,8 @@ def point_layer(request):
         return _janmayen_layer(name, lang)
     if geo3al.knows(name):
         return _geo3al_layer(name, lang)
+    if kopri.knows_file(name):
+        return _kopri_layer(name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name == PLACE_NAMES:
@@ -1295,6 +1308,23 @@ def _geo3al_layer(name, lang):
         log.warning("geo3al 을 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("중국 지질도 자료(USGS geo3al)를 읽지 못했다"), lang)},
                             status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _kopri_layer(name, lang):
+    """극지연구소에서 모아 둔 것(053·055·056) — 꼴과 까닭은 `_janmayen_layer` 와 같다.
+    파일은 `manage.py fetch_kopri` 가 쓴다."""
+    try:
+        content = kopri.file_body(name, lang)
+    except FileNotFoundError:
+        return JsonResponse({"error": i18n.t(msg("극지연구소 자료를 아직 모으지 않았다 (fetch_kopri)"), lang)},
+                            status=503)
+    except (OSError, ValueError) as exc:
+        log.warning("극지연구소 자료를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("극지연구소 자료를 읽지 못했다"), lang)}, status=500)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

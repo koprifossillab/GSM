@@ -62,7 +62,10 @@ class Command(BaseCommand):
                 # 연구실의 암맥 기록 — phyloserver (026)
                 (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver"),
                 # 한반도 지질도 음영판 — 우리 디스크의 PDF 를 잘라 둔 타일 (027)
-                (settings.PENINSULA_CATALOG_SEED, "한반도 음영판", "korea", "peninsula")):
+                (settings.PENINSULA_CATALOG_SEED, "한반도 음영판", "korea", "peninsula"),
+                # 극지연구소 — 암석 시료·운석·KPDC 자료·기지·해안선 (053–057). 지역은 씨앗이 적는다
+                *((path, f"극지연구소 ({path.stem})", "antarctica", "kopri")
+                  for path in settings.KOPRI_CATALOG_SEEDS)):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))

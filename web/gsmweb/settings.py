@@ -120,6 +120,10 @@ GRPORTAL_URL = env("GSM_GRPORTAL_URL",
 #: 지도 서버(MapServer — 지질도 타일·속성·범례)와, NPI 가 ArcGIS Online 에 올린
 #: 점(FeatureServer — 시료·지명) 둘이다.
 NPOLAR_URL = env("GSM_NPOLAR_URL", "https://geodata.npolar.no/arcgis/rest/services")
+# 극지연구소 — 암석 시료 DB, KPDC 자료 목록, KPDC 지도 서버(GeoServer). 문은 `kopri.py` 하나다
+KOPRI_ROCK_URL = env("GSM_KOPRI_ROCK_URL", "https://rock.kopri.re.kr/rock")
+KOPRI_KPDC_URL = env("GSM_KOPRI_KPDC_URL", "https://kpdc.kopri.re.kr")
+KOPRI_GEO_URL = env("GSM_KOPRI_GEO_URL", "https://kpdcgeo.kopri.re.kr/geoserver/kpdc")
 NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
                           "https://services3.arcgis.com/CflNQ7lugha7SFIt/arcgis/rest/services")
 #: 일본 산업기술종합연구소 지질조사종합센터(GSJ)의 심리스 지질도 V2 Web API
@@ -159,6 +163,10 @@ PENINSULA_DIR = env("GSM_PENINSULA_DIR") or str(_data_dir() / "peninsula")
 #: `<여기>/IBCSO_v2_{bed,ice-surface}_RGB.tif` 를 `manage.py build_ibcso` 가 `<여기>/tiles-{bed,ice}/`
 #: 로 자른다. 340 MB 라 저장소·이미지에 두지 않는다. 없으면 안내 타일이 뜰 뿐 뷰어는 돈다.
 IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
+#: 극지연구소(KOPRI)에서 모아 둔 것 — 암석 시료 목록(`rock.json`)과 KPDC 자료 목록·상세(`kpdc.json`).
+#: `manage.py fetch_kopri` 가 천천히 모아 여기 쓴다(두 시간 남짓, 다음부터는 새 것만). 저장소·이미지에
+#: 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (devlog 053·055). 기본은 `<DB 옆>/kopri/`.
+KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
@@ -269,6 +277,9 @@ GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 #: 한반도 지질도 음영판 — 우리 디스크의 PDF (devlog 027)
 PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
+#: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료) (053–057)
+KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
+                       for region in ("antarctica", "svalbard", "greenland")]
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

@@ -206,7 +206,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·phyloserver·geomap·janmayen·geo3al). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -227,7 +227,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
   재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025).
   내리는 스위치는 `GSM_PUBLIC=1`(또는 `<DB 옆>/public`)이다 — geo3al·phyloserver·peninsula 를
-  목록에서 빼고 그 길도 닫는다(`views.LAB_ONLY`). 연구실 내부용 상류가 새로 오면 거기 더한다 (029)
+  목록에서 빼고 그 길도 닫는다(`views.LAB_ONLY`). 연구실 내부용 상류가 새로 오면 거기 더한다 (029).
+  극지연구소(`kopri`)도 KPDC 공개 정책을 사람이 읽기 전까지 거기 있다 (053)
 - GEUS 는 부르는 이를 `whoami` 로 밝혀 달라고 한다. 이메일이라 **저장소에
   적지 않는다** — `GSM_GEUS_WHOAMI` 나 `<DB 옆>/geus_whoami`
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
@@ -240,6 +241,10 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
+- **극지연구소(053–057)는 모아 두고 그린다** — 암석 시료 목록과 KPDC 자료·운석의 상세(3 500 쪽)를
+  `manage.py fetch_kopri` 가 2 초 간격으로 받아 `GSM_KOPRI_DIR`(기본 `<DB 옆>/kopri`)에 적는다. 처음 세 시간 남짓,
+  다음부터는 새 것만. 화면이 부를 때 상류를 타지 않는다. 기지(WFS)와 해안선 변화 따위(3031 WMS)는 다른 상류처럼
+  그때그때 받아 캐시에 보탠다. 저장소에 두지 않는다
 - **phyloserver(026)는 같은 서버의 연구실 자료다** — 캐시는 하루만 믿는다(`FRESH_SECONDS`).
   한반도 지질도는 카카오 격자(EPSG:5181)를 다시 굽지 않고 화면이 옮겨 그린다. 캐시에 담지 않는다
 - **한반도 지질도 음영판(027)·민판(028)은 원본의 좌표를 고쳐 쓴다** — 음영판 PDF 는 해안선보다
@@ -290,6 +295,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
+  kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
   trek.py         NASA Moon Trek 으로 나가는 문 (달 지질도·LOLA 표고·지명). 달 화면(Cesium)만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
@@ -314,8 +320,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/t
 devlog/           왜 그렇게 했는지
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`.**
-이 아홉 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`.**
+이 열 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
