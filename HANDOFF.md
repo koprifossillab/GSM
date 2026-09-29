@@ -192,7 +192,7 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
   (이제 NPI 점·지명·도폭 경계까지 받는다)
 - 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --probe-info`
   (`/openapi/wms` 가 속성을 열었는지. 이 서버에는 키가 없어 못 보았다)
-- 운영에서 볼 것 — VWorld 배경을 깐 채 "그림" 을 한 번 (캔버스가 더럽혀지지 않는지)
+- 올렸다(2026-09-29). VWorld 배경을 깐 "그림" 도 된다. `/openapi/wms` 의 속성은 아직 500 이다
 
 ## VWorld 로 더 할 수 있는 것
 
