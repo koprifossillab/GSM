@@ -40,8 +40,15 @@
   var R = 1737400;                                   // 달 반지름 (IAU 2015, 구)
   var M_PER_DEG = Math.PI * R / 180;
   var TREK = "https://trek.nasa.gov/tiles/Moon/EQ/";
-  // 줌 끝은 2026-09-29 에 한 장씩 받아 보았다 — WAC 는 8, LOLA 음영은 6 (7 은 404)
+  // 줌 끝은 2026-09-29 에 한 장씩 받아 보았다 — WAC 는 8, LOLA 음영은 6 (7 은 404), Kaguya 는 10 (11 은 404)
+  //
+  // 고해상(`kaguya`)은 **WAC 위에 Kaguya 지형 카메라 정사 모자이크를 얹은 것**이다 (043). Kaguya 는 줌 10
+  // (한 픽셀 약 21 m)까지라 WAC(약 100 m)보다 다섯 배 촘촘하지만 틈이 있다 — 위도 75° 안쪽도 곳곳이 비고
+  // (0–2 %), 극 둘레는 40 % 넘게 빈다. 넓게 볼 때는 해가 낮은 WAC 쪽이 지형이 산다. 그래서 `under` 로 WAC 를
+  // 늘 밑에 깔고 Kaguya 는 줌 `min`(8, WAC 가 원자료를 다 쓰는 줌)부터 얹는다 — 틈에는 WAC 가 비친다
   var BASES = {
+    kaguya: { url: TREK + "Kaguya_TCortho_Mosaic_Global_4096ppd/1.0.0/default/default028mm/{z}/{y}/{x}.png",
+              max: 10, min: 8, under: "wac", credit: "SELENE (Kaguya) TC · JAXA" },
     wac: { url: TREK + "LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
            max: 8, credit: "LRO LROC WAC · NASA/GSFC/Arizona State University" },
     lola: { url: TREK + "LRO_LOLA_Shade_Global_256ppd_v06/1.0.0/default/default028mm/{z}/{y}/{x}.png",
@@ -74,11 +81,11 @@
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
-    base: saved("gsm.moon.base", "wac"),
+    base: saved("gsm.moon.base", "kaguya"),
     terrain: saved("gsm.moon.terrain", "on") !== "off",
     exag: +saved("gsm.moon.exag", "20"),
   };
-  if (!BASES[look.base]) look.base = "wac";
+  if (!BASES[look.base]) look.base = "kaguya";
   // 켠 지질 레이어 — 맨 앞이 위다. `[{name, opacity}]`. 처음이면 지질 단위 하나를 반쯤 비치게
   var active = (function () {
     try {
@@ -99,11 +106,13 @@
   // 타원체를 넘기지 않는 곳(카메라 기본 범위·좌표 풀이)이 지구로 여기지 않게 기본값부터 바꾼다
   Cesium.Ellipsoid.default = MOON;
   function scheme() { return new Cesium.GeographicTilingScheme({ ellipsoid: MOON }); }
+  // `min` 은 제공자의 minimumLevel 이 아니라 레이어의 minimumTerrainLevel 로 건다 — minimumLevel 은 그 줌의
+  // 타일이 네 장을 넘으면 그리기가 흐트러진다(Cesium 문서). 구의 격자와 영상 격자가 같아 줌이 맞는다
   function cesiumBase(key) {
     var b = BASES[key];
     return new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({
       url: b.url, tilingScheme: scheme(), maximumLevel: b.max, credit: b.credit,
-    }));
+    }), b.min ? { minimumTerrainLevel: b.min } : {});
   }
 
   // 지형 — LOLA 표고, 서버가 65×65 Terrarium 으로 옮겨 준다 (036)
@@ -162,9 +171,14 @@
   });
   var flatTerrain = new Cesium.EllipsoidTerrainProvider({ ellipsoid: MOON });
 
+  // 배경은 두 겹이다 — 맨 밑의 WAC(`cUnder`, 고해상일 때만 보인다)와 고른 배경(`cBase`). 영상 보정·배경 바꾸기는
+  // 차례(`get(0)`)가 아니라 이 둘을 잡고 한다
+  var cUnder = cesiumBase("wac");
+  cUnder.show = !!BASES[look.base].under;
+  var cBase = cesiumBase(look.base);
   var viewer = new Cesium.Viewer("globe", {
     globe: new Cesium.Globe(MOON),
-    baseLayer: cesiumBase(look.base),
+    baseLayer: cUnder,
     terrainProvider: look.terrain ? lolaTerrain : flatTerrain,
     // 달에는 대기가 없다. 지구 전용 단추(주소 찾기·지도 고르개·시간 막대)도 뺀다
     skyAtmosphere: false,
@@ -172,6 +186,7 @@
     navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
     infoBox: false, selectionIndicator: false,
   });
+  viewer.imageryLayers.add(cBase, 1);
   var scene = viewer.scene;
   scene.globe.showGroundAtmosphere = false;
   scene.globe.enableLighting = false;
@@ -240,12 +255,23 @@
   // 배경은 WebGL 타일이다 — 영상 보정(밝기·대비·감마·채도)을 GPU 셰이더로 건다(042). 셰이더가 영상을 읽으려면
   // CORS 로 받아야 한다(Trek 은 `*`)
   function baseSource(key) { var b = BASES[key]; return tileSource(b.url, b.max, b.credit, "anonymous"); }
-  var oBase = new ol.layer.WebGLTile({
-    className: "moon-base", source: baseSource(look.base),
-    style: { variables: { exposure: 0, contrast: 0, gamma: 1, saturation: 0 },
-             exposure: ["var", "exposure"], contrast: ["var", "contrast"],
-             gamma: ["var", "gamma"], saturation: ["var", "saturation"] },
-  });
+  function baseLayer(className, key) {
+    return new ol.layer.WebGLTile({
+      className: className, source: baseSource(key),
+      style: { variables: { exposure: 0, contrast: 0, gamma: 1, saturation: 0 },
+               exposure: ["var", "exposure"], contrast: ["var", "contrast"],
+               gamma: ["var", "gamma"], saturation: ["var", "saturation"] },
+    });
+  }
+  // 구처럼 두 겹 — 밑의 WAC 는 고해상일 때만, 고른 배경은 `min` 줌부터 (평면의 줌은 타일 줌과 같다)
+  var oUnder = baseLayer("moon-base-under", "wac");
+  var oBase = baseLayer("moon-base", look.base);
+  function placeBase() {
+    var b = BASES[look.base];
+    oUnder.setVisible(!!b.under);
+    oBase.setMinZoom(b.min ? b.min - 0.5 : -Infinity);
+  }
+  placeBase();
   var SHADE = BASES.lola;
   var oShade = new ol.layer.Tile({ className: "moon-shade", visible: false, opacity: 0.7,
                                    source: tileSource(SHADE.url, SHADE.max, SHADE.credit) });
@@ -257,7 +283,7 @@
   var oPoints = new ol.layer.Group({ layers: [] });
   var flat = new ol.Map({
     target: "map",
-    layers: [oBase, oShade].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oPoints]),
+    layers: [oUnder, oBase, oShade].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oPoints]),
     view: new ol.View({ projection: EQC, center: [0, 0], resolution: 500, maxResolution: 180 * M_PER_DEG / 256,
                         constrainResolution: false }),
     controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }).extend([
@@ -383,9 +409,12 @@
     look.base = baseSelect.value;
     save("gsm.moon.base", look.base);
     var layers = viewer.imageryLayers;
-    layers.remove(layers.get(0), true);
-    layers.add(cesiumBase(look.base), 0);
+    layers.remove(cBase, true);
+    cBase = cesiumBase(look.base);
+    layers.add(cBase, layers.indexOf(cUnder) + 1);
+    cUnder.show = !!BASES[look.base].under;
     oBase.setSource(baseSource(look.base));
+    placeBase();
     applyTune();
   });
 
@@ -410,22 +439,26 @@
   })();
   var cShade = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
     url: SHADE.url, tilingScheme: scheme(), maximumLevel: SHADE.max, credit: SHADE.credit,
-  }), 1);
+  }), viewer.imageryLayers.indexOf(cBase) + 1);
   cShade.alpha = 0.4;
   var TUNES = ["bright", "contrast", "gamma", "sat"];
   function tuneText(key, v) { return key === "gamma" ? (v / 100).toFixed(2) : v + "%"; }
   function applyTune() {
-    var base = viewer.imageryLayers.get(0);
-    base.brightness = tune.bright / 100;
-    base.contrast = tune.contrast / 100;
-    base.gamma = tune.gamma / 100;
-    base.saturation = tune.sat / 100;
+    // 밑의 WAC 에도 같게 건다 — 고해상의 틈으로 비치는 WAC 가 따로 놀지 않게
+    [cUnder, cBase].forEach(function (base) {
+      base.brightness = tune.bright / 100;
+      base.contrast = tune.contrast / 100;
+      base.gamma = tune.gamma / 100;
+      base.saturation = tune.sat / 100;
+    });
     // 음영을 음영 위에 겹칠 까닭은 없다 — 배경이 LOLA 음영이면 끈다
     var shade = tune.shade && look.base !== "lola";
     cShade.show = shade;
     oShade.setVisible(shade);
-    oBase.updateStyleVariables({ exposure: tune.bright / 100 - 1, contrast: tune.contrast / 100 - 1,
-                                 gamma: tune.gamma / 100, saturation: tune.sat / 100 - 1 });
+    [oUnder, oBase].forEach(function (layer) {
+      layer.updateStyleVariables({ exposure: tune.bright / 100 - 1, contrast: tune.contrast / 100 - 1,
+                                   gamma: tune.gamma / 100, saturation: tune.sat / 100 - 1 });
+    });
     TUNES.forEach(function (k) {
       $("tune-" + k).value = tune[k];
       $("tune-" + k + "-num").textContent = tuneText(k, tune[k]);

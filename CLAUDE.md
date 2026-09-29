@@ -193,7 +193,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 
 - **달은 지역이 아니다** — 대돌여지도 아이콘의 숨은 차림에서 들어가는 따로 화면(`/GSM/moon/`)이다.
   CesiumJS 의 둥근 달(극까지 온전하다)에 USGS 달 통합 지질도와 LOLA 지형을 얹고, 테마는 늘 흑백이다
-  (036, P05). 지질도·표고·속성·범례는 `trek.py` 를 거치고, 영상 배경(LRO WAC·LOLA 음영)만 브라우저가
+  (036, P05). 지질도·표고·속성·범례는 `trek.py` 를 거치고, 영상 배경(LRO WAC·Kaguya TC·LOLA 음영)만 브라우저가
   Trek 을 곧장 부른다. 좌표는 달 경위도다 — 지구의 `toLL`·좌표계를 타지 않는다. 달 지명은
   `data/moon_places.json`(`manage.py fetch_moon_places`). 원도 6 장(1971–1979)은 우리가 굽는다 — 아래 "파일을 받아"
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`, 037). 지구 화면은 `earth` 만, 달 화면은

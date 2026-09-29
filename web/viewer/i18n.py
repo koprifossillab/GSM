@@ -124,6 +124,7 @@ EN = {
     "지질 경계": "Geologic contacts",
     "선 구조 (능선·열구·단층)": "Linear features (ridges, rilles, faults)",
     "LRO 광각 카메라 영상": "LRO Wide Angle Camera mosaic",
+    "고해상 영상 (Kaguya 지형 카메라 + LRO 광각)": "High-resolution imagery (Kaguya Terrain Camera + LRO WAC)",
     "LOLA 표고 음영": "LOLA hillshade",
     "LOLA 표고로 세운다": "Raise with LOLA elevation",
     "앞면 한가운데로": "Back to the centre of the near side",
