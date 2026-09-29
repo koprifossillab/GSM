@@ -55,14 +55,33 @@
   // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위, 남극이면 GeoMAP).
   // 3D 목록에 없으면 그 지역의 첫 레이어, 그것도 없으면 25만
   var asked = new URLSearchParams(location.search).get("layer");
-  var mine = select.querySelector('optgroup[data-region="' + REGION + '"] option');
+  // 목록은 **지금 지역의 레이어군만** 남긴다 (050). 서버는 모든 지역의 것을 싣는다 — 남극을 보는데 한국
+  // 지질도가 뜨지 않게. 묶음 탭은 품은 지역들이다(2D 의 `REGIONS.*.includes` 와 같다)
+  var BUNDLES = { arctic: ["greenland", "svalbard", "jan_mayen"], eastasia: ["korea", "japan", "china"] };
+  var ALLOWED = BUNDLES[REGION] || [REGION];
+  [].slice.call(select.querySelectorAll("optgroup")).forEach(function (g) {
+    if (ALLOWED.indexOf(g.getAttribute("data-region")) < 0) g.remove();
+  });
+  if (!select.options.length) {
+    // 일본·중국처럼 3D 로 얹을 지질 레이어가 없는 지역 — 지형만 본다
+    var none = document.createElement("option");
+    none.value = "";
+    none.textContent = T("이 지역에는 3D 로 얹을 지질 레이어가 없다");
+    select.appendChild(none);
+    select.disabled = true;
+  }
+  // 2D 가 넘긴 레이어가 목록에 있으면 그것, 없으면 이 지역의 첫 레이어
   select.value = asked && select.querySelector('option[value="' + asked.replace(/"/g, "") + '"]')
-    ? asked : mine ? mine.value : "L_250K_Geology_Map";
+    ? asked : select.options[0].value;
 
   /** "지질 레이어" 의 소스. 대개 `wms/` 의 3857 타일이고, 남극 GeoMAP 은 우리가 굽는 3031 타일을
    *  서버가 3857 로 다시 편 것(`warp/geomap/`, 040)이다. GeoMAP 은 남위 60° 남쪽만 덮고, 대륙을
    *  한눈에 볼 줌 3 부터 받는다. 출처는 목록이 적은 것(`data-attribution`)을 쓴다 */
   function geologySource(name) {
+    if (!name) {
+      // 얹을 것이 없다 — 아무 데도 닿지 않는 네모라 타일을 묻지 않는다
+      return { type: "raster", tiles: [BASE + "wms/"], tileSize: 512, bounds: [0, 0, 0.000001, 0.000001] };
+    }
     var opt = [].filter.call(select.options, function (o) { return o.value === name; })[0];
     var attribution = (opt && opt.getAttribute("data-attribution")) || "© 한국지질자원연구원";
     if (opt && opt.getAttribute("data-upstream") === "geomap") {

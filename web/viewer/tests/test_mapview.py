@@ -132,3 +132,16 @@ class AntarcticStations(TestCase):
         self.assertIsNotNone(group)
         self.assertIn('data-goto="jangbogo"', group.group(1))
         self.assertIn('data-goto="sejong"', group.group(1))
+
+
+class Map3dRegions(TestCase):
+    """3D 의 레이어 목록은 지역을 따른다 (050) — 화면이 거를 수 있게 레이어군마다 지역을 싣는다."""
+
+    def test_레이어군마다_지역이_붙는다(self):
+        korea = LayerGroup.objects.create(name="지질도", region="korea")
+        south = LayerGroup.objects.create(name="GeoMAP", region="antarctica")
+        Layer.objects.create(name="L_250K_Geology_Map", title="25만", group=korea, upstream="kigam")
+        Layer.objects.create(name="npolar:dml_units", title="DML", group=south, upstream="npolar")
+        html = self.client.get(reverse("viewer:map3d"), {"region": "antarctica"}).content.decode()
+        self.assertIn('data-region="korea"', html)
+        self.assertIn('data-region="antarctica"', html)

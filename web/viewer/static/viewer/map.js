@@ -2100,8 +2100,13 @@
       var ll = toLL(view.getCenter());
       // 극 평사도법의 줌은 3857 보다 두세 단계 낮게 읽는다 — 되짚은 줌을 넘긴다(`mercZoom`)
       var top = active.filter(function (e) { return e.layer.getVisible(); })[0];
-      this.href = "3d/?lat=" + ll[1].toFixed(5) + "&lon=" + ll[0].toFixed(5) +
-        "&z=" + Math.max(8, mercZoom(view.getResolution())).toFixed(2) +
+      // 3D(메르카토르)는 위도 ±85° 너머가 없다. 극지 탭의 가운데가 극점이면 3D 가 한 귀퉁이만 보인다 —
+      // 80° 안으로 끌어온다. 가장 작은 줌도 한국(8)에 묶지 않는다 — 극지는 5 다. 남위 78°·줌 5 면
+      // 경도 140° 폭(남극횡단산맥 하나)이 한 화면에 든다. 더 낮추면 메르카토르의 세계 전체와 85° 의 끝이
+      // 절벽처럼 드러난다 (2026-09-29, 050)
+      var lat = Math.max(-80, Math.min(80, ll[1]));
+      this.href = "3d/?lat=" + lat.toFixed(5) + "&lon=" + ll[0].toFixed(5) +
+        "&z=" + Math.max(isMercator() ? 8 : 5, mercZoom(view.getResolution())).toFixed(2) +
         "&region=" + region +                    // 3D 도 이 지역의 색으로 뜬다
         (top ? "&layer=" + encodeURIComponent(top.name) : "");
     });

@@ -115,6 +115,7 @@ EN = {
     "다 여물지 않은 기능을 먼저 써 본다. 지금은 3D 보기(지도 오른쪽 도구 막대).":
         "Try features that are not finished yet. For now: 3D view (map toolbar on the right).",
     "3D 로 본다 (실험) — 지금 보던 자리를 연다": "View in 3D (experimental) — opens where you are",
+    "이 지역에는 3D 로 얹을 지질 레이어가 없다": "No geology layer for 3D in this region",
     # 남극 탭의 "자세" — 우리 기지로 (049)
     "장보고": "Jang Bogo",
     "세종": "Sejong",
