@@ -1426,6 +1426,7 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
 .tool.labs { text-decoration: none; }
 .tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */
 :root[data-labs="on"] .tool.labs[hidden] { display: flex; }
+:root[data-labs="on"] .tool.labs.off-region { display: none; }   /* 극지 탭 — 3D 는 메르카토르뿐 */
 .tool.labs::after { content: "β"; position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--hi-ink); }
 .tool.labs { position: relative; }
 

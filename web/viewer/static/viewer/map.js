@@ -1981,6 +1981,14 @@
     });
     document.getElementById("tool-clear").addEventListener("click", clearDrawn);
     document.getElementById("tool-export").addEventListener("click", exportPng);
+    // 3D 는 한국의 `gsm.view` 만 읽는다. 일본·중국·동아시아 탭에서도 지금 자리를 열게
+    // 누르는 순간 주소에 가운데와 줌을 싣는다
+    document.getElementById("tool-3d").addEventListener("click", function () {
+      var view = map.getView();
+      var ll = toLL(view.getCenter());
+      this.href = "3d/?lat=" + ll[1].toFixed(5) + "&lon=" + ll[0].toFixed(5) +
+        "&z=" + Math.max(8, view.getZoom()).toFixed(2);
+    });
     document.getElementById("save-temp").addEventListener("click", saveTemp);
     document.getElementById("clear-temp").addEventListener("click", clearDrawn);
     renderTemp();
@@ -3292,6 +3300,9 @@
     var labelled = BASEMAPS[select.value] && BASEMAPS[select.value].labels;
     document.getElementById("basemap-labels-wrap").style.display = labelled ? "" : "none";
     document.getElementById("crs-pick").hidden = !spec.vworld;
+    // 3D 는 메르카토르 하나뿐이다 — 극지 탭에서는 단추를 숨긴다(P02 §7). 그린란드가
+    // 부풀고 남극은 남위 85° 안쪽이 없어, 눌러서 엉뚱한 곳이 열리는 것보다 낫다
+    document.getElementById("tool-3d").classList.toggle("off-region", regionProj() !== "EPSG:3857");
     if (syncGotoHint) syncGotoHint();
     var note = document.getElementById("region-note");
     note.hidden = !spec.pending;

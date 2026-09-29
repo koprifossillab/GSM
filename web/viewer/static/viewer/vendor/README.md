@@ -37,3 +37,15 @@ https://cdn.jsdelivr.net/npm/proj4@2.22.0/dist/proj4.js
 https://cdn.jsdelivr.net/npm/proj4@2.22.0/LICENSE.md
 ```
 af7df653d91ea591f33d26fb958990bbd3071b2db644a4edaba441cc9861a474  proj4.js
+
+**글꼴 조각 — Noto Sans Regular 0–511** — `maplibre/glyphs/` (SIL OFL 1.1, `glyphs/LICENSE.txt`).
+3D 화면의 점묶음 이름표가 로마자·숫자를 그리는 데 쓴다(P02 §7). 한글·한자는 조각 없이
+브라우저 글꼴이 그린다(`localIdeographFontFamily`). OpenMapTiles 가 미리 구운 것이다.
+
+```
+https://raw.githubusercontent.com/openmaptiles/fonts/gh-pages/Klokantech%20Noto%20Sans%20Regular/0-255.pbf
+https://raw.githubusercontent.com/openmaptiles/fonts/gh-pages/Klokantech%20Noto%20Sans%20Regular/256-511.pbf
+https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/LICENSE
+```
+2b5324d3fcaa58f93c71d4e6ee70eba532f15585401d764daf99efc427a62693  0-255.pbf
+052e7e11d0420e7a6772478413f5d2bb910d150f76830bdf17dfabcabe87aaf1  256-511.pbf

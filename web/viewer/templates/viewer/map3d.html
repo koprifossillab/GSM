@@ -67,6 +67,7 @@
 <script id="vworld-key" type="application/json">"{{ vworld_key|escapejs }}"</script>
 <script id="i18n-data" type="application/json">{{ i18n_json|safe }}</script>
 <script id="pointset-data" type="application/json">{{ pointsets|safe }}</script>
+<script id="glyphs-url" type="application/json">"{% static 'viewer/vendor/maplibre/glyphs/' %}"</script>
 <script src="{% static 'viewer/vendor/maplibre/maplibre-gl.js' %}"></script>
 <script src="{% static 'viewer/map3d.js' %}?v={{ stamp|default:version }}"></script>
 </body>

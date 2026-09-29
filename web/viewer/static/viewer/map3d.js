@@ -61,9 +61,15 @@
                 paint: { "hillshade-exaggeration": 0.5, "hillshade-shadow-color": "#3f2712" } });
   layers.push({ id: "kigam", type: "raster", source: "kigam", paint: { "raster-opacity": 0.7 } });
 
+  // 이름표의 글꼴 조각 — 로마자·숫자(0–511)만 담았다(`vendor/maplibre/glyphs/`, OFL).
+  // 한글·한자는 조각 없이 브라우저 글꼴이 그린다(`localIdeographFontFamily`). P02 §7
+  var GLYPHS = JSON.parse((document.getElementById("glyphs-url") || {}).textContent || '""');
+
   var map = new maplibregl.Map({
     container: "map3d",
-    style: { version: 8, sources: sources, layers: layers },
+    style: { version: 8, sources: sources, layers: layers,
+             glyphs: GLYPHS ? location.origin + GLYPHS + "{fontstack}/{range}.pbf" : undefined },
+    localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif",
     center: start.center, zoom: start.zoom, pitch: 60, bearing: -20, maxPitch: 80,
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
@@ -121,9 +127,13 @@
   }
   function isOn(ps) { return offIds().indexOf(ps.id) < 0; }
 
+  //: 이름표를 다는 줌 — 2D 의 `LABEL_MIN_ZOOM` 과 같다. 멀리서는 글자가 점을 덮는다
+  var LABEL_MIN_ZOOM = 11;
+
   function layerIds(ps) {
     var p = "ps-" + ps.id + "-";
-    return [p + "fill", p + "edge", p + "line", p + "point"];
+    var ids = [p + "fill", p + "edge", p + "line", p + "point"];
+    return GLYPHS ? ids.concat([p + "label", p + "lname"]) : ids;
   }
 
   function addPointSet(ps) {
@@ -151,6 +161,20 @@
                    paint: { "circle-radius": 5, "circle-color": ps.color,
                             "circle-stroke-color": "#fff", "circle-stroke-width": 1.5,
                             "circle-pitch-alignment": "viewport" } });
+    if (!GLYPHS) return;
+    // 이름표 — 점·면은 곁에, 선은 선을 따라. 2D 와 같은 먹색에 흰 테
+    var text = { "text-color": "#1f1409", "text-halo-color": "#ffffff", "text-halo-width": 1.5 };
+    map.addLayer({ id: id + "-label", type: "symbol", source: id, minzoom: LABEL_MIN_ZOOM,
+                   filter: ["all", ["has", "이름표"], ["!", line]],
+                   layout: { "text-field": ["to-string", ["get", "이름표"]], "text-font": ["Noto Sans Regular"],
+                             "text-size": 12, "text-anchor": "left", "text-offset": [0.8, 0],
+                             "text-optional": true },
+                   paint: text });
+    map.addLayer({ id: id + "-lname", type: "symbol", source: id, minzoom: LABEL_MIN_ZOOM,
+                   filter: ["all", ["has", "이름표"], line],
+                   layout: { "text-field": ["to-string", ["get", "이름표"]], "text-font": ["Noto Sans Regular"],
+                             "text-size": 12, "symbol-placement": "line" },
+                   paint: text });
   }
 
   function hidePointSet(ps) {
