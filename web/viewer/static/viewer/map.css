@@ -1443,8 +1443,9 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(251, 253, 252, .95); --glass-line: #cfddd5;
 }
 
-/* 실험 기능 — 설정에서 켠 사람에게만 보인다 */
-.tool.labs { text-decoration: none; }
+a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
+
+/* 실험 기능 — 설정에서 켠 사람에게만 보인다. 3D 가 059 에서 벗어나 지금은 붙은 것이 없다 */
 .tool.labs[hidden] { display: none; }          /* .tool 의 display 가 hidden 을 덮지 않게 */
 :root[data-labs="on"] .tool.labs[hidden] { display: flex; }
 .tool.labs::after { content: "β"; position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--hi-ink); }

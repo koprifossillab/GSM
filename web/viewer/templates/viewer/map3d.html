@@ -29,8 +29,6 @@
              color: var(--ink); background: var(--panel); border: 1px solid var(--line);
              border-radius: var(--radius); box-shadow: var(--shadow); font-size: 12.5px; }
   .panel3d h1 { margin: 0 0 2px; font-size: 16px; color: var(--hi-ink); }
-  .panel3d .tag { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 10.5px;
-                  color: var(--on-hi); background: var(--hi); border-radius: 999px; vertical-align: 2px; }
   .panel3d label { display: block; margin-top: 10px; color: var(--ink-soft); }
   .panel3d select, .panel3d input[type=range] { width: 100%; margin-top: 4px; }
   .panel3d select { padding: 5px 6px; font: inherit; color: var(--ink); background: var(--panel-tint);
@@ -64,7 +62,7 @@
 <body>
 <div id="map3d"></div>
 <aside class="panel3d">
-  <h1>{% t "대돌여지도" %} 3D <span class="tag">{% t "실험" %}</span></h1>
+  <h1>{% t "대돌여지도" %} 3D</h1>
   <label>{% t "지질 레이어" %}
     <select id="layer3d">
       {% for group in catalog_groups %}<optgroup label="{{ group.name }}" data-region="{{ group.region }}">

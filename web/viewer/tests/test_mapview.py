@@ -134,6 +134,17 @@ class AntarcticStations(TestCase):
         self.assertIn('data-goto="sejong"', group.group(1))
 
 
+class Map3dGraduated(TestCase):
+    """3D 는 실험을 벗었다 (059) — 단추가 늘 보이고, 실험 토글은 남는다."""
+
+    def test_3D_단추가_늘_보인다(self):
+        html = self.client.get(reverse("viewer:map")).content.decode()
+        button = re.search(r'<a [^>]*id="tool-3d"[^>]*>', html).group(0)
+        self.assertNotIn("hidden", button)
+        self.assertNotIn("labs", button)
+        self.assertIn('id="opt-labs"', html)
+
+
 class Map3dRegions(TestCase):
     """3D 의 레이어 목록은 지역을 따른다 (050) — 화면이 거를 수 있게 레이어군마다 지역을 싣는다."""
 

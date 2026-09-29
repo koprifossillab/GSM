@@ -142,7 +142,7 @@ def map_view(request):
 
 @require_GET
 def map3d_view(request):
-    """3D — 실험 (devlog 015). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
+    """3D (devlog 015, 059 에서 실험을 벗었다). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
     # 3D 는 3857 WMS 타일만 얹는다(`map3d.js` 의 `wmsTiles`). 모양·점 레이어와, 우리가
     # 굽거나(음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —

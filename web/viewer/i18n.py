@@ -109,12 +109,11 @@ EN = {
     "이 레이어가 있는 곳으로 범위를 맞춘다": "Zoom to this layer's extent",
     "끈다": "Turn off",
     "끌어서 차례를 바꾼다": "Drag to reorder",
-    "실험": "experimental",
     "실험 기능": "Experimental features",
     "켬": "On",
-    "다 여물지 않은 기능을 먼저 써 본다. 지금은 3D 보기(지도 오른쪽 도구 막대).":
-        "Try features that are not finished yet. For now: 3D view (map toolbar on the right).",
-    "3D 로 본다 (실험) — 지금 보던 자리를 연다": "View in 3D (experimental) — opens where you are",
+    "다 여물지 않은 기능을 먼저 써 본다. 지금은 실험 중인 기능이 없다 — 3D 보기는 상시 기능이 되었다.":
+        "Try features that are not finished yet. Nothing is experimental right now — 3D view is now a regular feature.",
+    "3D 로 본다 — 지금 보던 자리를 연다": "View in 3D — opens where you are",
     "이 지역에는 3D 로 얹을 지질 레이어가 없다": "No geology layer for 3D in this region",
     # 남극 탭의 "자세" — 우리 기지로 (049)
     "장보고": "Jang Bogo",
