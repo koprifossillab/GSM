@@ -173,10 +173,11 @@ EN = {
         "<b>Antarctic geology is coming soon.</b> For now the map opens in a South-Pole-centred polar stereographic view with basemaps. GeoMAP layers will follow.",
     # 극지 투영·배경 (017)
     "Sentinel-2 위성 (EOX)": "Sentinel-2 satellite (EOX)",
-    "EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다":
-        "EOX · Copernicus Sentinel-2 (2023). Non-commercial use only",
+    "EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다":
+        "EOX · Copernicus Sentinel-2 (2023). Non-commercial use only. The coastline is rough north of 82°N — use ArcticDEM",
     "지형 음영 (EOX)": "Terrain shading (EOX)",
-    "EOX · OpenStreetMap. 비상업 이용만 된다": "EOX · OpenStreetMap. Non-commercial use only",
+    "EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다":
+        "EOX · OpenStreetMap. Non-commercial use only. The coastline is rough north of 82°N — use ArcticDEM",
     "ArcticDEM 음영": "ArcticDEM hillshade",
     "REMA 음영": "REMA hillshade",
     "Polar Geospatial Center. 2 m 표고에서 그린 음영":

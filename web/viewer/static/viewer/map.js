@@ -709,6 +709,9 @@
   // - EOX 는 3857 뿐이다(WMS 도 3413·3031 을 400 으로 돌려보낸다). 그린란드는
   //   OpenLayers 가 옮겨 그리면 되지만, 남극은 3857 이 남위 85° 에서 끊겨
   //   극이 비므로 남극에는 두지 않는다
+  // - **EOX 는 북위 약 82.5° 위에서 틀린다.** 위성 영상이 거기서 끝나고, 그 위는
+  //   흰 바탕에 거친 바다 경계뿐이라 피어리랜드의 피오르가 엉뚱한 자리에 선다.
+  //   지형 음영도 같다. GEUS 지질도는 ArcticDEM 과 맞는다 (2026-09-29 대조)
   var EOX_S2 = 'Sentinel-2 cloudless by <a href="https://s2maps.eu" target="_blank" rel="noopener">EOX IT Services GmbH</a> (contains modified Copernicus Sentinel data 2023, CC BY-NC-SA 4.0)';
   var EOX_TERRAIN = 'Terrain Light © <a href="https://maps.eox.at" target="_blank" rel="noopener">EOX IT Services GmbH</a>, data © OpenStreetMap contributors and others (CC BY-NC-SA 4.0)';
   var GIBS = 'Blue Marble © <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA EOSDIS GIBS</a>';
@@ -717,13 +720,13 @@
 
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
-    note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다"),
+    note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
-    note: T("EOX · OpenStreetMap. 비상업 이용만 된다"),
+    note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
