@@ -295,6 +295,7 @@
   function setMode(next, at) {
     if (next === mode) return;
     closePopup();
+    cancelSketch();                         // 끝내지 않은 선은 넘어가지 않는다. 끝낸 것은 둘 다 그린다
     if (next === "flat") {
       var c = at || cameraLL();
       if (!c) return;
@@ -327,12 +328,13 @@
     if (mode !== "globe") return;
     if (c.h > TO_FLAT_H) { autoFlat = true; return; }
     var straight = viewer.camera.pitch < Cesium.Math.toRadians(-80);
-    if (autoFlat && straight && Math.abs(c.lat) <= POLE_LIMIT) setMode("flat", c);
+    if (autoFlat && straight && Math.abs(c.lat) <= POLE_LIMIT && !drawing()) setMode("flat", c);
   });
   flat.on("moveend", function () {
     if (mode !== "flat") return;
     var v = flat.getView(), ll = toLL(v.getCenter());
     save("gsm.moon.flat", JSON.stringify({ lon: +ll[0].toFixed(5), lat: +ll[1].toFixed(5), res: Math.round(v.getResolution()) }));
+    if (drawing()) return;                // 그리던 선이 끊기지 않게 (041)
     if (v.getResolution() > heightToRes(TO_GLOBE_H) || Math.abs(ll[1]) > POLE_LIMIT + 3) setMode("globe");
   });
 
@@ -599,7 +601,7 @@
   // ══ 팝업 — 누른 자리에 뜬다 ═══════════════════════════════════════
   var popup = $("popup"), popupBody = $("popup-body");
   var asked = 0;
-  function closePopup() { popup.classList.remove("on"); ++asked; }
+  function closePopup() { popup.classList.remove("on"); ++asked; markAt(null); }
   $("popup-close").addEventListener("click", closePopup);
   function showPopup(html, pixel) {
     popupBody.innerHTML = html;
@@ -608,15 +610,25 @@
     var pw = popup.offsetWidth, ph = popup.offsetHeight;
     var left = Math.min(Math.max(8, pixel[0] + 14), w - pw - 8);
     var top = Math.min(Math.max(8, pixel[1] - ph / 2), h - ph - 64);
+    // 오른쪽 위 손잡이(도구·자세 두 묶음)를 덮지 않게 그 왼쪽으로 비킨다 — 팝업이 위라 덮으면 못 누른다 (041)
+    var bar = $("toolbar");
+    if (top < bar.offsetTop + bar.offsetHeight + 8 && left + pw > bar.offsetLeft - 8) {
+      left = Math.max(8, Math.min(pixel[0] - pw - 14, bar.offsetLeft - pw - 8));
+    }
     popup.style.left = left + "px";
     popup.style.top = Math.max(8, top) + "px";
   }
+  // 첫 줄은 누른 자리의 달 위경도 — 2D 처럼 누르면 "위도, 경도" 로 복사한다(아래 `popupBody` 의 click, 041)
   function coordHead(ll) {
-    return '<div class="popup-coord"><span class="k">' + esc(T("달 위경도")) + '</span><span class="v">' +
-           ll[1].toFixed(5) + ", " + ll[0].toFixed(5) + "</span></div>";
+    var lat = ll[1].toFixed(6), lon = ll[0].toFixed(6);
+    return '<button type="button" class="popup-coord" title="' + esc(T("눌러서 복사한다")) + '" data-copy="' +
+           lat + ", " + lon + '"><span class="k">' + esc(T("달 위도")) + '</span><span class="v">' + lat +
+           '</span><span class="k">' + esc(T("달 경도")) + '</span><span class="v">' + lon +
+           '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
   // 켠 레이어 가운데 읽을 수 있는 것(통합·원도)을 위에서부터 다 묻는다 — 둘을 켜 두면 견줘 읽는다
   function askUnit(ll, pixel) {
+    markAt(ll);
     var head = coordHead(ll);
     var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
     if (!layers.length) { showPopup(head, pixel); return; }
@@ -650,6 +662,7 @@
   // 점묶음의 점·모양 — 2D 의 팝업과 같이 딸린 속성을 받은 차례 그대로
   function showFeature(props, ps, ll, pixel) {
     ++asked;
+    markAt(ll);
     var title = props["이름표"] || ps.name || "";
     var rows = Object.keys(props).filter(function (k) {
       return k !== "이름표" && k.charAt(0) !== "_" && props[k] !== "" && props[k] != null && typeof props[k] !== "object";
@@ -661,6 +674,7 @@
               }).join("") + "</table>" : ""), pixel);
   }
   handler.setInputAction(function (click) {
+    if (tool) { drawClick(globeLL(click.position)); return; }     // 도구가 켜져 있으면 도구가 받는다 (041)
     var picked = scene.pick(click.position);
     var entity = picked && picked.id;
     var px = [click.position.x, click.position.y];
@@ -675,6 +689,8 @@
     if (at) askUnit(at, px);
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   flat.on("singleclick", function (e) {
+    // 도구가 켜져 있으면 도구가 받는다. 선·면·범위는 평면의 Draw·DragBox 가 따로 받는다 (041)
+    if (tool) { if (tool === "point") addTemp(toLL(e.coordinate)); return; }
     var hit = flat.forEachFeatureAtPixel(e.pixel, function (f, layer) { return [f, layer]; }, { hitTolerance: 4 });
     if (hit && hit[1] && hit[1].get("gsmSet")) {
       var g = hit[0].getGeometry();
@@ -1071,6 +1087,602 @@
     if (ll) { results.hidden = true; goTo(ll.lon, ll.lat, 60000); return; }
     if (found.length) choose(found[Math.max(0, picked)]);
   });
+
+  // ══ 자전축 — 구에서 방향을 잡는 헛선 (041) ═══════════════════════
+  //
+  // 구를 돌리고 기울이다 보면 어느 쪽이 북인지 놓친다. 달 고정 좌표의 Z 축이 곧 자전축이라, 극을
+  // 뚫고 반지름의 0.45 배씩 밖으로 뻗은 선을 긋고 끝에 북극점·남극점을 적는다. 달 속을 지나는 토막은
+  // 깊이 검사로 가려진다. 평면은 늘 북쪽이 위라 구에서만 보인다. 켜고 끈 것을 기억한다
+  var AXIS_OUT = R * 1.45;
+  var axisOn = saved("gsm.moon.axis", "on") !== "off";
+  var axisEntities = [
+    viewer.entities.add({
+      polyline: { positions: [new Cesium.Cartesian3(0, 0, -AXIS_OUT), new Cesium.Cartesian3(0, 0, AXIS_OUT)],
+                  arcType: Cesium.ArcType.NONE, width: 2,
+                  material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.WHITE.withAlpha(0.8), dashLength: 18 }) },
+    }),
+  ].concat([[1, T("북극점")], [-1, T("남극점")]].map(function (end) {
+    return viewer.entities.add({
+      position: new Cesium.Cartesian3(0, 0, end[0] * AXIS_OUT),
+      point: { pixelSize: 6, color: Cesium.Color.WHITE },
+      label: { text: end[1], font: "600 12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+               outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+               pixelOffset: new Cesium.Cartesian2(0, end[0] > 0 ? -14 : 14) },
+    });
+  }));
+  function applyAxis() {
+    axisEntities.forEach(function (e) { e.show = axisOn; });
+    $("tool-axis").classList.toggle("on", axisOn);
+    $("tool-axis").setAttribute("aria-pressed", axisOn ? "true" : "false");
+  }
+  $("tool-axis").addEventListener("click", function () {
+    axisOn = !axisOn;
+    save("gsm.moon.axis", axisOn ? "on" : "off");
+    applyAxis();
+  });
+  applyAxis();
+
+  // ══ 누른 자리 — 속성을 읽은 곳에 표를 꽂는다 (041) ═══════════════
+  //
+  // 팝업만 뜨면 "어디를 읽었나" 가 모호하다 — 팝업은 누른 자리 옆으로 비켜 서고, 구를 돌리면 더
+  // 멀어진다. 속이 빈 고리를 누른 자리에 꽂고, 팝업을 닫으면 뽑는다. 찍은 점(속이 찬 번호 점)과
+  // 헷갈리지 않게 꼴을 달리했다
+  var MARK_URL = (function () {
+    var c = document.createElement("canvas"), s = 28;
+    c.width = c.height = s;
+    var g = c.getContext("2d");
+    g.lineWidth = 5; g.strokeStyle = "rgba(0,0,0,.85)";
+    g.beginPath(); g.arc(s / 2, s / 2, 9, 0, 2 * Math.PI); g.stroke();
+    g.lineWidth = 2.5; g.strokeStyle = "#fff";
+    g.beginPath(); g.arc(s / 2, s / 2, 9, 0, 2 * Math.PI); g.stroke();
+    g.fillStyle = "#000"; g.beginPath(); g.arc(s / 2, s / 2, 3.2, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(s / 2, s / 2, 2, 0, 2 * Math.PI); g.fill();
+    return c.toDataURL();
+  })();
+  var markC = viewer.entities.add({
+    show: false, position: Cesium.Cartesian3.fromDegrees(0, 0, 0, MOON),
+    billboard: { image: MARK_URL, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                 disableDepthTestDistance: NO_DEPTH },
+  });
+  var markO = new ol.Feature();
+  markO.setStyle(new ol.style.Style({ image: new ol.style.Icon({ src: MARK_URL }) }));
+  var oMark = new ol.layer.Vector({ source: new ol.source.Vector({ features: [markO] }), zIndex: 300 });
+  flat.addLayer(oMark);
+  function markAt(ll) {
+    markC.show = !!ll;
+    markO.setGeometry(ll ? new ol.geom.Point(fromLL(ll)) : undefined);
+    if (ll) markC.position = Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MOON);
+  }
+
+  // ══ 도구 — 점 찍기·거리·넓이·범위 (041) ═══════════════════════════
+  //
+  // 2D 의 그리기 도구와 같은 넷이다. **찍고 잰 것은 달 경위도로 한 곳에 들고, 구와 평면이 저마다
+  // 그린다** — 켠 레이어·점묶음처럼 넘어가도 그대로 남는다. 그리던 것(끝내지 않은 선)만 넘어갈 때
+  // 버리므로, 그리는 동안은 저절로 넘어가지 않는다(`drawing()`).
+  //
+  // 길이·넓이는 **달의 구면**(반지름 1737.4 km)으로 잰다. 평면의 가로는 위도만큼 늘어나 있어 평면
+  // 좌표로 재면 틀린다. 넓이는 OpenLayers 의 `ol.sphere.getArea` 와 같은 식이고 반지름만 달의 것이다
+  var tool = "";                           // "" 이면 누르면 속성을 읽는다
+  var temps = [], ranges = [], measured = null;
+  var tempSeq = 0, rangeSeq = 0, lastMeasure = "";
+  var sketch = [], hover = null, boxFrom = null, boxTo = null;   // 구에서 그리는 중인 것
+  var flatSketching = false;
+
+  function rad(d) { return d * Math.PI / 180; }
+  function arc(a, b) {
+    var dLat = rad(b[1] - a[1]), dLon = rad(b[0] - a[0]);
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(rad(a[1])) * Math.cos(rad(b[1])) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function lengthOf(coords) {
+    var m = 0;
+    for (var i = 1; i < coords.length; i++) m += arc(coords[i - 1], coords[i]);
+    return m;
+  }
+  function areaOf(ring) {
+    var sum = 0, n = ring.length;
+    for (var i = 0; i < n; i++) {
+      var p = ring[i], q = ring[(i + 1) % n];
+      sum += rad(q[0] - p[0]) * (2 + Math.sin(rad(p[1])) + Math.sin(rad(q[1])));
+    }
+    return Math.abs(sum * R * R / 2);
+  }
+  // 경도를 앞 꼭짓점에서 180° 안쪽으로 — 날짜변경선(±180°)을 건너도 선이 달을 한 바퀴 돌지 않게
+  function unwrap(prev, ll) {
+    if (!prev) return ll;
+    var lon = ll[0];
+    while (lon - prev[0] > 180) lon -= 360;
+    while (prev[0] - lon > 180) lon += 360;
+    return [lon, ll[1]];
+  }
+  function asLength(m) { return m >= 1000 ? (m / 1000).toFixed(2) + " km" : m.toFixed(1) + " m"; }
+  function asArea(m2) {
+    return m2 >= 1e6 ? Math.round(m2 / 1e6).toLocaleString() + " km²" : Math.round(m2).toLocaleString() + " m²";
+  }
+  function pair(ll) { var w = wrapLon(ll); return w[1].toFixed(5) + ", " + w[0].toFixed(5); }
+  function measureOf(m) {
+    return m.kind === "area" ? { kind: T("넓이"), text: asArea(areaOf(m.coords)) }
+                             : { kind: T("거리"), text: asLength(lengthOf(m.coords)) };
+  }
+
+  // 범위 — 경위도 네모. 등거리 원통에서 끈 네모가 곧 경위도 네모다. 구에서는 두 귀를 잇는다
+  function rangeFacts(r) {
+    var mid = (r.s + r.n) / 2;
+    return {
+      nw: [r.w, r.n], ne: [r.e, r.n], se: [r.e, r.s], sw: [r.w, r.s],
+      center: [(r.w + r.e) / 2, mid],
+      area: R * R * rad(r.e - r.w) * (Math.sin(rad(r.n)) - Math.sin(rad(r.s))),
+      // 가로는 가운데 위도에서 잰다 — 위아래 변은 위도가 달라 길이가 다르다
+      width: R * rad(r.e - r.w) * Math.cos(rad(mid)),
+      height: R * rad(r.n - r.s),
+    };
+  }
+  function rangeRows(f) {
+    var rows = {};
+    rows[T("북서")] = pair(f.nw); rows[T("북동")] = pair(f.ne);
+    rows[T("남동")] = pair(f.se); rows[T("남서")] = pair(f.sw);
+    rows[T("중앙")] = pair(f.center);
+    rows[T("넓이")] = asArea(f.area);
+    rows[T("가로 × 세로")] = asLength(f.width) + " × " + asLength(f.height);
+    return rows;
+  }
+  function rangeText(r) {
+    var rows = rangeRows(rangeFacts(r));
+    return [T("범위 {n}", { n: r.no })].concat(Object.keys(rows).map(function (k) { return k + "\t" + rows[k]; })).join("\n");
+  }
+  function rangeOf(a, b) {
+    b = unwrap(a, b);
+    return { w: Math.min(a[0], b[0]), e: Math.max(a[0], b[0]), s: Math.min(a[1], b[1]), n: Math.max(a[1], b[1]) };
+  }
+
+  // ── 그리기 — 평면 ──
+  var drawSource = new ol.source.Vector();
+  var sketchSource = new ol.source.Vector();
+  var LABEL_FONT = "600 12px ui-monospace, Menlo, monospace";
+  function olLabel(text, offsetY) {
+    return new ol.style.Text({ text: text, font: LABEL_FONT, offsetY: offsetY || 0, overflow: true,
+                               fill: new ol.style.Fill({ color: "#fff" }), stroke: new ol.style.Stroke({ color: "#000", width: 4 }) });
+  }
+  function drawStyle(feature) {
+    var kind = feature.get("kind"), label = feature.get("label");
+    if (kind === "temp") {
+      return new ol.style.Style({
+        image: new ol.style.Circle({ radius: 5.5, fill: new ol.style.Fill({ color: "#fff" }),
+                                     stroke: new ol.style.Stroke({ color: "#000", width: 2 }) }),
+        text: olLabel(String(feature.get("no")), -14),
+      });
+    }
+    if (kind === "range") {
+      return new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,.10)" }),
+        stroke: new ol.style.Stroke({ color: "#e4e4e4", width: 2 }),
+        text: olLabel(label),
+      });
+    }
+    // 잰 선·면, 그리는 중인 것 — 검은 테두리 위에 흰 끊은 선
+    return [
+      new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,.7)", width: 4.5 }) }),
+      new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(255,255,255,.14)" }),
+        stroke: new ol.style.Stroke({ color: "#fff", width: 2.5, lineDash: [7, 5] }),
+        image: new ol.style.Circle({ radius: 4, fill: new ol.style.Fill({ color: "#fff" }),
+                                     stroke: new ol.style.Stroke({ color: "#000", width: 1.5 }) }),
+        text: label ? olLabel(label) : undefined,
+      }),
+    ];
+  }
+  var oDraw = new ol.layer.Vector({ source: drawSource, style: drawStyle, zIndex: 200 });
+  flat.addLayer(oDraw);
+  var flatInteraction = null;
+  function eqc(coords) { return coords.map(fromLL); }
+
+  function installFlat() {
+    if (flatInteraction) { flat.removeInteraction(flatInteraction); flatInteraction = null; }
+    flatSketching = false;
+    sketchSource.clear();
+    if (tool === "box") {
+      flatInteraction = new ol.interaction.DragBox({ condition: ol.events.condition.always, className: "range-box" });
+      flatInteraction.on("boxend", function () {
+        var x = flatInteraction.getGeometry().getExtent();
+        if (ol.extent.getWidth(x) === 0 || ol.extent.getHeight(x) === 0) return;
+        addRange(rangeOf(toLL([x[0], x[1]]), toLL([x[2], x[3]])));
+      });
+    } else if (tool === "line" || tool === "area") {
+      flatInteraction = new ol.interaction.Draw({
+        source: sketchSource, type: tool === "line" ? "LineString" : "Polygon", style: drawStyle,
+      });
+      var kind = tool;
+      flatInteraction.on("drawstart", function (evt) {
+        flatSketching = true;
+        var geometry = evt.feature.getGeometry();
+        geometry.on("change", function () {
+          var coords = kind === "area" ? geometry.getCoordinates()[0] : geometry.getCoordinates();
+          var got = measureOf({ kind: kind, coords: coords.map(toLL) });
+          evt.feature.set("label", got.text);
+          showMeasure(got);
+        });
+      });
+      flatInteraction.on("drawend", function (evt) {
+        var g = evt.feature.getGeometry();
+        var coords = (kind === "area" ? g.getCoordinates()[0].slice(0, -1) : g.getCoordinates()).map(toLL);
+        flatSketching = false;
+        setTimeout(function () { sketchSource.clear(); });    // Draw 가 제 것을 넣은 뒤에 치운다
+        finishMeasure(kind, coords);
+      });
+      flatInteraction.on("drawabort", function () { flatSketching = false; });
+    }
+    if (flatInteraction) flat.addInteraction(flatInteraction);
+  }
+
+  // ── 그리기 — 구 ──
+  var cDraw = new Cesium.CustomDataSource("draw");
+  viewer.dataSources.add(cDraw);
+  var WHITE = Cesium.Color.WHITE, BLACK = Cesium.Color.BLACK;
+  function dash() { return new Cesium.PolylineDashMaterialProperty({ color: WHITE, gapColor: BLACK.withAlpha(0.55), dashLength: 14 }); }
+  function cLabel(text, offsetY) {
+    return { text: text, font: LABEL_FONT, fillColor: WHITE, outlineColor: BLACK, outlineWidth: 4,
+             style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, offsetY || 0),
+             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: NO_DEPTH };
+  }
+  function positions(coords) { return ringPositions(coords); }
+  function rangeRing(r) {
+    // 위아래 변은 위선을 따라야 한다 — 대권으로 이으면 극 쪽으로 휜다. 촘촘히 찍어 위선을 따른다
+    var out = [], steps = Math.max(2, Math.ceil((r.e - r.w) / 2));
+    for (var i = 0; i <= steps; i++) out.push([r.w + (r.e - r.w) * i / steps, r.n]);
+    for (i = steps; i >= 0; i--) out.push([r.w + (r.e - r.w) * i / steps, r.s]);
+    out.push([r.w, r.n]);
+    return out;
+  }
+  // 그리는 중인 선 — 누른 꼭짓점과 누르개 자리를 잇는다
+  var sketchLine = cDraw.entities.add({
+    polyline: { positions: new Cesium.CallbackProperty(function () {
+      var pts = sketch.slice();
+      if (hover && pts.length) pts.push(unwrap(pts[pts.length - 1], hover));
+      if (tool === "area" && pts.length > 2) pts.push(pts[0]);
+      return pts.length > 1 ? positions(pts) : [];
+    }, false), width: 2.5, clampToGround: true, material: dash() },
+  });
+  var sketchBox = cDraw.entities.add({
+    show: false,
+    polyline: { positions: new Cesium.CallbackProperty(function () {
+      return boxFrom && boxTo ? positions(rangeRing(rangeOf(boxFrom, boxTo))) : [];
+    }, false), width: 2, clampToGround: true, material: WHITE },
+  });
+  var drawnEntities = [];
+  function renderDrawn() {
+    drawnEntities.forEach(function (e) { cDraw.entities.remove(e); });
+    drawnEntities = [];
+    drawSource.clear();
+    function add(opts) { drawnEntities.push(cDraw.entities.add(opts)); }
+    temps.forEach(function (t) {
+      add({ position: Cesium.Cartesian3.fromDegrees(t.lon, t.lat, 0, MOON),
+            point: { pixelSize: 10, color: WHITE, outlineColor: BLACK, outlineWidth: 2,
+                     heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: NO_DEPTH },
+            label: cLabel(String(t.no), -15) });
+      drawSource.addFeature(new ol.Feature({ geometry: new ol.geom.Point(fromLL([t.lon, t.lat])), kind: "temp", no: t.no }));
+    });
+    ranges.forEach(function (r) {
+      var ring = rangeRing(r), label = T("범위 {n}", { n: r.no });
+      add({ polygon: { hierarchy: positions(ring), material: WHITE.withAlpha(0.1) } });
+      add({ polyline: { positions: positions(ring), width: 2, clampToGround: true, material: Cesium.Color.fromCssColorString("#e4e4e4") } });
+      add({ position: Cesium.Cartesian3.fromDegrees((r.w + r.e) / 2, (r.s + r.n) / 2, 0, MOON), label: cLabel(label) });
+      drawSource.addFeature(new ol.Feature({ geometry: new ol.geom.Polygon([eqc(ring)]), kind: "range", label: label }));
+    });
+    if (measured) {
+      var got = measureOf(measured), c = measured.coords;
+      var line = measured.kind === "area" ? c.concat([c[0]]) : c;
+      if (measured.kind === "area") add({ polygon: { hierarchy: positions(line), material: WHITE.withAlpha(0.14) } });
+      add({ polyline: { positions: positions(line), width: 2.5, clampToGround: true, material: dash() } });
+      var at = measured.kind === "area" ? centroid(c) : c[c.length - 1];
+      add({ position: Cesium.Cartesian3.fromDegrees(at[0], at[1], 0, MOON), label: cLabel(got.text, measured.kind === "area" ? 0 : -16) });
+      var geom = measured.kind === "area" ? new ol.geom.Polygon([eqc(line)]) : new ol.geom.LineString(eqc(line));
+      drawSource.addFeature(new ol.Feature({ geometry: geom, kind: "measure", label: got.text }));
+    }
+    renderTemp();
+  }
+  function centroid(coords) {
+    var x = 0, y = 0;
+    coords.forEach(function (c) { x += c[0]; y += c[1]; });
+    return [x / coords.length, y / coords.length];
+  }
+
+  // 구에서 누르고 끄는 것 — 읽는 처리기(LEFT_CLICK)와 따로 둔다
+  var drawHandler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+  // Cesium 의 기본 두 번 누르기(개체를 따라가기)는 선을 끝내는 손과 부딪힌다
+  viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+  drawHandler.setInputAction(function (movement) {
+    if (!tool) return;
+    var ll = globeLL(movement.endPosition);
+    if (tool === "box" && boxFrom) {
+      if (ll) boxTo = ll;
+      return;
+    }
+    hover = ll;
+    if (sketch.length && ll) {
+      var pts = sketch.concat([unwrap(sketch[sketch.length - 1], ll)]);
+      showMeasure(measureOf({ kind: tool, coords: pts }));
+    }
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  drawHandler.setInputAction(function () { finishGlobeSketch(); }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+  drawHandler.setInputAction(function (e) {
+    if (tool !== "box") return;
+    boxFrom = globeLL(e.position);
+    boxTo = null;
+    sketchBox.show = !!boxFrom;
+  }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
+  drawHandler.setInputAction(function () {
+    if (tool !== "box" || !boxFrom) return;
+    var a = boxFrom, b = boxTo;
+    boxFrom = boxTo = null;
+    sketchBox.show = false;
+    if (b && (a[0] !== b[0] || a[1] !== b[1])) addRange(rangeOf(a, b));
+  }, Cesium.ScreenSpaceEventType.LEFT_UP);
+
+  /** 도구가 켜져 있으면 누른 것을 도구가 받는다. 받았으면 true — 그때는 속성을 읽지 않는다. */
+  function drawClick(ll) {
+    if (!tool) return false;
+    if (!ll) return true;
+    if (tool === "point") addTemp(ll);
+    else if (tool === "line" || tool === "area") {
+      if (!sketch.length) { measured = null; lastMeasure = ""; renderDrawn(); }
+      sketch.push(unwrap(sketch[sketch.length - 1], ll));
+    }
+    return true;
+  }
+  function finishGlobeSketch() {
+    // 두 번 누르면 LEFT_CLICK 이 두 번 먼저 온다 — 겹친 꼭짓점을 걷어낸다
+    var pts = sketch.filter(function (p, i) { return !i || arc(sketch[i - 1], p) > 1; });
+    sketch = []; hover = null;
+    if (pts.length >= (tool === "area" ? 3 : 2)) finishMeasure(tool, pts);
+    else updateToolOut();
+  }
+  function cancelSketch() {
+    sketch = []; hover = null; boxFrom = boxTo = null; sketchBox.show = false;
+    if (flatInteraction && flatInteraction.abortDrawing) flatInteraction.abortDrawing();
+    flatSketching = false;
+    updateToolOut();
+  }
+  /** 무엇이든 그리는 중인가 — 그동안은 구와 평면을 저절로 넘지 않는다. */
+  function drawing() { return sketch.length > 0 || !!boxFrom || flatSketching; }
+
+  // ── 찍고 잰 것 ──
+  // 재는 것은 한 번에 하나만 둔다 — 여럿이 겹치면 어느 수가 어느 선의 것인지 모른다. 범위는 여럿을 둔다
+  function finishMeasure(kind, coords) {
+    measured = { kind: kind, coords: coords };
+    var got = measureOf(measured);
+    renderDrawn();
+    showMeasure(got, true);
+  }
+  function addTemp(ll) {
+    var w = wrapLon(ll);
+    tempSeq += 1;
+    temps.push({ no: tempSeq, lon: w[0], lat: w[1] });
+    renderDrawn();
+  }
+  function addRange(r) {
+    rangeSeq += 1;
+    r.no = rangeSeq;
+    ranges.push(r);
+    renderDrawn();
+    showRange(r);
+  }
+  // 지금 보는 높이 — 점으로 옮겨 갈 때 당기거나 물리지 않는다
+  function hereHeight() {
+    if (mode === "flat") return resToHeight(flat.getView().getResolution());
+    var c = cameraLL();
+    return c ? Math.min(c.h, 200000) : 200000;
+  }
+  function pixelOf(ll) {
+    if (mode === "flat") return flat.getPixelFromCoordinate(fromLL(ll));
+    var p = scene.cartesianToCanvasCoordinates(Cesium.Cartesian3.fromDegrees(ll[0], ll[1], 0, MOON));
+    return p ? [p.x, p.y] : [wrap.clientWidth / 2, wrap.clientHeight / 2];
+  }
+  function showRange(r) {
+    var f = rangeFacts(r);
+    lastMeasure = T("범위 {n}", { n: r.no }) + " " + asArea(f.area);
+    var out = $("measure-out");
+    out.textContent = lastMeasure;
+    out.classList.add("done");
+    updateToolOut();
+    ++asked;
+    markAt(null);
+    showPopup("<h3>" + esc(T("범위 {n}", { n: r.no })) + "</h3><table>" + Object.keys(rangeRows(f)).map(function (k) {
+      return "<tr><th>" + esc(k) + "</th><td>" + esc(rangeRows(f)[k]) + "</td></tr>";
+    }).join("") + "</table>", pixelOf(f.center));
+  }
+  function showMeasure(got, done) {
+    var out = $("measure-out");
+    out.textContent = got.kind + " " + got.text;
+    out.classList.toggle("done", !!done);
+    lastMeasure = got.kind + " " + got.text;
+    updateToolOut();
+  }
+  /** 손잡이 옆의 알림 — 누른 곳 가까이에서 답이 나와야 한다(2D 와 같다). */
+  function updateToolOut() {
+    var out = $("tool-out"), bits = [];
+    if (lastMeasure) bits.push(lastMeasure);
+    if (temps.length) bits.push(T("점 {n}개", { n: temps.length }));
+    if (tool === "point" && !temps.length) bits.push(T("지도를 눌러 점을 찍는다"));
+    if (tool === "line" && !lastMeasure) bits.push(T("눌러 가며 잇는다 · 두 번 누르면 끝"));
+    if (tool === "area" && !lastMeasure) bits.push(T("눌러 가며 두른다 · 두 번 누르면 끝"));
+    if (tool === "box" && !ranges.length) bits.push(T("누른 채 끌어 네모를 그린다"));
+    out.textContent = bits.join("  ·  ");
+    out.hidden = !bits.length;
+  }
+  // 복사 — 운영이 http 로 열리는 자리가 있어 clipboard API 가 없으면 옛 길(textarea)로 (2D 와 같다)
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        return legacyCopy(text) ? undefined : Promise.reject();
+      });
+    }
+    return legacyCopy(text) ? Promise.resolve() : Promise.reject();
+  }
+  function legacyCopy(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    area.remove();
+    return ok;
+  }
+  popupBody.addEventListener("click", function (e) {
+    var head = e.target.closest(".popup-coord");
+    if (!head) return;
+    var mark = head.querySelector(".copy");
+    copyText(head.dataset.copy).then(function () {
+      head.classList.add("copied");
+      mark.textContent = T("복사했다");
+      setTimeout(function () { head.classList.remove("copied"); mark.textContent = T("복사"); }, 900);
+    }, function () {});
+  });
+  function copyButton(text, copied, title) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "temp-coord";
+    b.title = title;
+    b.textContent = text;
+    b.addEventListener("click", function () {
+      var done = function () { b.textContent = T("복사했다"); setTimeout(function () { b.textContent = text; }, 700); };
+      copyText(copied).then(done, function () {});
+    });
+    return b;
+  }
+  function renderTemp() {
+    var host = $("temp-list");
+    $("count-temp").textContent = temps.length + ranges.length;
+    updateToolOut();
+    host.innerHTML = "";
+    if (!temps.length && !ranges.length) {
+      host.innerHTML = '<li class="empty">' + T("지도 오른쪽 위 <b>점</b> 도구로 찍는다") + "</li>";
+      return;
+    }
+    ranges.forEach(function (r) {
+      var li = document.createElement("li");
+      li.className = "range-item";
+      var no = document.createElement("span");
+      no.className = "temp-no range";
+      no.textContent = r.no;
+      var f = rangeFacts(r);
+      li.append(no,
+        copyButton(asArea(f.area) + " · " + pair(f.center), rangeText(r), T("눌러서 꼭짓점·중앙·넓이를 복사한다")),
+        iconButton("⊙", T("이 범위로 가서 수치를 본다"), false, function () {
+          var span = Math.max((r.e - r.w) * Math.cos(rad(f.center[1])), r.n - r.s);
+          goTo(f.center[0], f.center[1], Math.max(30000, span * M_PER_DEG * 1.6));
+          setTimeout(function () { showRange(r); }, 1600);
+        }),
+        iconButton("×", T("지운다"), false, function () {
+          ranges = ranges.filter(function (x) { return x !== r; });
+          closePopup();
+          renderDrawn();
+        }));
+      host.appendChild(li);
+    });
+    temps.forEach(function (t) {
+      var li = document.createElement("li");
+      var no = document.createElement("span");
+      no.className = "temp-no";
+      no.textContent = t.no;
+      var text = pair([t.lon, t.lat]);
+      li.append(no, copyButton(text, text, T("눌러서 복사한다")),
+        iconButton("⊙", T("이 점으로 이동"), false, function () { goTo(t.lon, t.lat, hereHeight()); }),
+        iconButton("×", T("지운다"), false, function () {
+          temps = temps.filter(function (x) { return x !== t; });
+          renderDrawn();
+        }));
+      host.appendChild(li);
+    });
+  }
+  function clearDrawn() {
+    cancelSketch();
+    temps = []; ranges = []; measured = null;
+    tempSeq = rangeSeq = 0;
+    lastMeasure = "";
+    var out = $("measure-out");
+    out.textContent = T("아직 잰 것이 없다");
+    out.classList.remove("done");
+    closePopup();
+    renderDrawn();
+  }
+
+  // 점묶음으로 저장 — 2D 와 같은 길(`pointsets/create/`)이고 몸만 달이다. 좌표는 ±180° 로 되돌려 싣는다
+  function lonlat(coords) { return coords.map(wrapLon); }
+  function saveTemp() {
+    var msg = $("save-msg");
+    if (!temps.length && !ranges.length && !measured) {
+      msg.className = "msg bad";
+      msg.textContent = T("저장할 점이 없다.");
+      return;
+    }
+    var name = prompt(T("목록 이름"), T("찍은 점 {date}", { date: new Date().toLocaleDateString(LANG === "en" ? "en-GB" : "ko-KR") }));
+    if (name === null) return;
+    var shapes = ranges.map(function (r) {
+      return { geometry: { type: "Polygon", coordinates: [lonlat(rangeRing(r))] },
+               label: T("범위 {n}", { n: r.no }), props: rangeRows(rangeFacts(r)) };
+    });
+    if (measured) {
+      var got = measureOf(measured), c = lonlat(measured.coords);
+      shapes.push({ geometry: measured.kind === "area" ? { type: "Polygon", coordinates: [c.concat([c[0]])] }
+                                                      : { type: "LineString", coordinates: c },
+                    label: got.kind + " " + got.text, props: {} });
+    }
+    msg.className = "msg";
+    msg.textContent = T("저장하는 중…");
+    fetch(BASE + "pointsets/create/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+      body: JSON.stringify({
+        name: name, color: "#f2f2f2", body: "moon", shapes: shapes,
+        points: temps.map(function (t) { return { lat: t.lat, lon: t.lon, label: T("점 {n}", { n: t.no }) }; }),
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || "");
+        pointsets.unshift(res.d.pointset);
+        setOff(res.d.pointset.id, false);
+        renderSets();
+        // 저장했으니 임시 표시는 치운다 — 같은 점이 두 겹으로 남으면 헷갈린다
+        clearDrawn();
+        msg.className = "msg good";
+        msg.textContent = T("'{name}' 으로 저장했다.", { name: res.d.pointset.name });
+      })
+      .catch(function (e) {
+        msg.className = "msg bad";
+        msg.textContent = (e && e.message) || T("저장하지 못했다");
+      });
+  }
+
+  function setTool(next) {
+    cancelSketch();
+    tool = next;
+    document.querySelectorAll(".tool[data-draw]").forEach(function (b) { b.classList.toggle("on", b.dataset.draw === next); });
+    $("globe").style.cursor = $("map").style.cursor = next ? "crosshair" : "";
+    // 구에서 범위를 끄는 동안은 구가 끌려 돌지 않는다. 휠로 당기는 것은 된다
+    var cam = scene.screenSpaceCameraController, still = next === "box";
+    cam.enableRotate = cam.enableTranslate = cam.enableTilt = cam.enableLook = !still;
+    if (next) { closePopup(); }
+    installFlat();
+    updateToolOut();
+  }
+  document.querySelectorAll(".tool[data-draw]").forEach(function (b) {
+    // 누른 손잡이를 다시 누르면 꺼진다 — 아무것도 안 켜져 있으면 누르면 속성을 읽는다
+    b.addEventListener("click", function () { setTool(tool === b.dataset.draw ? "" : b.dataset.draw); });
+  });
+  $("tool-clear").addEventListener("click", clearDrawn);
+  $("clear-temp").addEventListener("click", clearDrawn);
+  $("save-temp").addEventListener("click", saveTemp);
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if (drawing()) cancelSketch();
+    else if (tool) setTool("");
+  });
+  renderTemp();
 
   // ══ 처음 자리 — 기억한 것. 처음이면 앞면 한가운데를 멀리서 ═══════
   // 맨 끝에 둔다 — 평면으로 여는 길이 팝업·목록을 다 만든 뒤라야 한다
