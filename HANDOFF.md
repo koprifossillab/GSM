@@ -70,6 +70,10 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 **v0.14.0 — 달을 2D 의 틀로** (038). `moon.html` 이 `map.css` 를 그대로 싣고 `data-region="moon"` 흑백.
 구(Cesium)와 평면(OpenLayers, IAU_2015:30110)을 한 화면에 두고 250 km·400 km 문턱으로 오간다. 지질은 오버레이 카드.
 
+**v0.15.0 — 세 세션을 모은 판** (039–043). 달 원도 6 장(`moonmap.py`, 우리가 굽는다 — 운영 `db/moon/moon_originals.sqlite`,
+원본 NAS `sources/moon/`), 가구야 고해상 배경, 영상 보정(평면 배경은 WebGLTile), 도구·자세 손잡이, 남극 Esri 위성·3D GeoMAP.
+**판은 한 세션이 모아 붙인다** — 다른 세션은 커밋만 하고 커밋 번호·요지를 넘긴다.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 

@@ -358,8 +358,12 @@ svg .fill { fill: currentColor; }
   font-size: 12px;
   color: var(--ink-faint);
 }
+.basemap-row > span { flex: 0 0 auto; white-space: nowrap; }
+/* 이름이 긴 배경(달의 "고해상 영상 (…)")이 이름표를 꺾고 상자를 밀어내지 않게 — 고르개가 줄어든다 */
 .basemap-row select, .compare-pick select {
   flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
   padding: 6px 8px;
   font: inherit;
   font-size: 12.5px;
