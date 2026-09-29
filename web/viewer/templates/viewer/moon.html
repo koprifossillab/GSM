@@ -61,6 +61,27 @@
           <option value="lola">{% t "LOLA 표고 음영" %}</option>
         </select>
       </label>
+      {% comment %}영상 보정 — 배경 영상만 고친다(지질도·점묶음은 그대로). 구는 Cesium 의 레이어 속성으로,
+      평면은 WebGL 타일의 셰이더로 — 두 공식이 같다 (042){% endcomment %}
+      <details class="tune" id="tune">
+        <summary>{% t "영상 보정" %} <span class="hint" id="tune-state"></span></summary>
+        <div class="tune-body">
+          <label class="tune-row"><span>{% t "밝기" %}</span>
+            <input type="range" id="tune-bright" min="50" max="200" value="100"><output id="tune-bright-num">100%</output></label>
+          <label class="tune-row"><span>{% t "대비" %}</span>
+            <input type="range" id="tune-contrast" min="50" max="250" value="100"><output id="tune-contrast-num">100%</output></label>
+          <label class="tune-row"><span>{% t "감마" %}</span>
+            <input type="range" id="tune-gamma" min="40" max="250" value="100"><output id="tune-gamma-num">1.00</output></label>
+          <label class="tune-row"><span>{% t "채도" %}</span>
+            <input type="range" id="tune-sat" min="0" max="200" value="100"><output id="tune-sat-num">100%</output></label>
+          <label class="tune-check"><input type="checkbox" id="tune-shade"> {% t "LOLA 음영 겹치기 — 영상 위에 지형의 그늘을 곱한다" %}</label>
+          <div class="tune-acts">
+            <button type="button" class="btn quiet" data-preset="crisp">{% t "선명하게" %}</button>
+            <button type="button" class="btn quiet" data-preset="relief">{% t "지형 강조" %}</button>
+            <button type="button" class="btn quiet" id="tune-reset">{% t "되돌리기" %}</button>
+          </div>
+        </div>
+      </details>
 
       <h3 class="sub-head">{% t "켠 지질 레이어" %} <span class="count" id="count-layers">0</span>
         <span class="hint">{% t "위가 앞이다" %}</span></h3>

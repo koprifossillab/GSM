@@ -170,6 +170,17 @@ EN = {
     "원도 구조선": "Original map structures",
     "원도 — 29 갈래로 묶은 색": "Original maps — 29 colour groups",
     "구조선": "Structures",
+    # 달 영상 보정 (042)
+    "영상 보정": "Image adjustment",
+    "밝기": "Brightness",
+    "대비": "Contrast",
+    "감마": "Gamma",
+    "채도": "Saturation",
+    "고침": "adjusted",
+    "선명하게": "Crisp",
+    "지형 강조": "Relief",
+    "되돌리기": "Reset",
+    "LOLA 음영 겹치기 — 영상 위에 지형의 그늘을 곱한다": "Overlay LOLA hillshade — multiply terrain shading onto the image",
     # 달 점묶음 (037)
     "올리기": "Upload",
     "올리는 중": "Uploading…",

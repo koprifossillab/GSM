@@ -226,9 +226,9 @@
     return new ol.tilegrid.TileGrid({ extent: EQC.getExtent(), origin: [-180 * M_PER_DEG, 90 * M_PER_DEG],
                                       resolutions: res, tileSize: 256 });
   }
-  function tileSource(template, maxZoom, attribution) {
+  function tileSource(template, maxZoom, attribution, crossOrigin) {
     return new ol.source.TileImage({
-      projection: EQC, tileGrid: grid(maxZoom), attributions: attribution, wrapX: true,
+      projection: EQC, tileGrid: grid(maxZoom), attributions: attribution, wrapX: true, crossOrigin: crossOrigin,
       tileUrlFunction: function (coord) {
         var z = coord[0], x = coord[1], y = coord[2], n = Math.pow(2, z + 1);
         if (y < 0 || y >= n / 2) return undefined;
@@ -237,7 +237,18 @@
       },
     });
   }
-  var oBase = new ol.layer.Tile({ source: tileSource(BASES[look.base].url, BASES[look.base].max, BASES[look.base].credit) });
+  // 배경은 WebGL 타일이다 — 영상 보정(밝기·대비·감마·채도)을 GPU 셰이더로 건다(042). 셰이더가 영상을 읽으려면
+  // CORS 로 받아야 한다(Trek 은 `*`)
+  function baseSource(key) { var b = BASES[key]; return tileSource(b.url, b.max, b.credit, "anonymous"); }
+  var oBase = new ol.layer.WebGLTile({
+    className: "moon-base", source: baseSource(look.base),
+    style: { variables: { exposure: 0, contrast: 0, gamma: 1, saturation: 0 },
+             exposure: ["var", "exposure"], contrast: ["var", "contrast"],
+             gamma: ["var", "gamma"], saturation: ["var", "saturation"] },
+  });
+  var SHADE = BASES.lola;
+  var oShade = new ol.layer.Tile({ className: "moon-shade", visible: false, opacity: 0.7,
+                                   source: tileSource(SHADE.url, SHADE.max, SHADE.credit) });
   var oGeo = {};
   GEO_NAMES.forEach(function (name) {
     oGeo[name] = new ol.layer.Tile({ source: tileSource(geoUrl(name), GEO_MAX, creditOf(name)),
@@ -246,7 +257,7 @@
   var oPoints = new ol.layer.Group({ layers: [] });
   var flat = new ol.Map({
     target: "map",
-    layers: [oBase].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oPoints]),
+    layers: [oBase, oShade].concat(GEO_NAMES.map(function (n) { return oGeo[n]; }), [oPoints]),
     view: new ol.View({ projection: EQC, center: [0, 0], resolution: 500, maxResolution: 180 * M_PER_DEG / 256,
                         constrainResolution: false }),
     controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }).extend([
@@ -293,11 +304,14 @@
       view.setRotation(0);
       mode = "flat";
       wrap.className = "moon-flat";
+      // 숨은 구는 그리기를 멈춘다 — 안 보이는데 GPU 를 먹고, 평면의 WebGL 배경과 다툰다 (042)
+      viewer.useDefaultRenderLoop = false;
       flat.updateSize();
     } else {
       var v = flat.getView(), ll = toLL(v.getCenter());
       flyGlobe(ll[0], ll[1], (at && at.h) || resToHeight(v.getResolution()));
       mode = "globe";
+      viewer.useDefaultRenderLoop = true;
       wrap.className = "moon-globe";
     }
     save("gsm.moon.mode", mode);
@@ -369,9 +383,65 @@
     var layers = viewer.imageryLayers;
     layers.remove(layers.get(0), true);
     layers.add(cesiumBase(look.base), 0);
-    var b = BASES[look.base];
-    oBase.setSource(tileSource(b.url, b.max, b.credit));
+    oBase.setSource(baseSource(look.base));
+    applyTune();
   });
+
+  // ── 영상 보정 (042) ──
+  //
+  // 배경 영상만 고친다 — 지질도의 색은 약속이라 건드리지 않는다. 구는 Cesium 의 ImageryLayer 속성을,
+  // 평면은 WebGL 타일의 셰이더 변수를 쓴다. **둘의 공식이 같다** — 밝기는 곱(OL 의 exposure = 밝기 − 1),
+  // 대비는 0.5 를 축으로 늘이기(OL 의 contrast = 대비 − 1), 감마는 색^(1/감마), 채도는 OL 의 saturation = 채도 − 1.
+  // 처음에는 평면에 CSS 필터와 SVG 감마(feComponentTransfer)를 걸었는데, 캔버스의 SVG 필터는 CPU 로 그려
+  // 헤드리스 크롬에서 화면이 멎었다 — 그래서 셰이더로 옮겼다
+  //
+  // "음영 겹치기" 는 WAC 영상 위에 LOLA 음영을 얹어 지형의 그늘을 살린다. 평면은 곱하기(multiply)로 섞고
+  // (Lutz 가 색 지질도를 음영에 곱한 것과 같은 수, CP 94), 구는 섞는 법이 없어 반투명으로 얹는다
+  var TUNE_DEFAULT = { bright: 100, contrast: 100, gamma: 100, sat: 100, shade: false };
+  var PRESETS = {
+    crisp: { bright: 105, contrast: 160, gamma: 90, sat: 100, shade: false },
+    relief: { bright: 110, contrast: 130, gamma: 110, sat: 100, shade: true },
+  };
+  var tune = (function () {
+    try { return Object.assign({}, TUNE_DEFAULT, JSON.parse(saved("gsm.moon.tune", "{}")) || {}); }
+    catch (e) { return Object.assign({}, TUNE_DEFAULT); }
+  })();
+  var cShade = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+    url: SHADE.url, tilingScheme: scheme(), maximumLevel: SHADE.max, credit: SHADE.credit,
+  }), 1);
+  cShade.alpha = 0.4;
+  var TUNES = ["bright", "contrast", "gamma", "sat"];
+  function tuneText(key, v) { return key === "gamma" ? (v / 100).toFixed(2) : v + "%"; }
+  function applyTune() {
+    var base = viewer.imageryLayers.get(0);
+    base.brightness = tune.bright / 100;
+    base.contrast = tune.contrast / 100;
+    base.gamma = tune.gamma / 100;
+    base.saturation = tune.sat / 100;
+    // 음영을 음영 위에 겹칠 까닭은 없다 — 배경이 LOLA 음영이면 끈다
+    var shade = tune.shade && look.base !== "lola";
+    cShade.show = shade;
+    oShade.setVisible(shade);
+    oBase.updateStyleVariables({ exposure: tune.bright / 100 - 1, contrast: tune.contrast / 100 - 1,
+                                 gamma: tune.gamma / 100, saturation: tune.sat / 100 - 1 });
+    TUNES.forEach(function (k) {
+      $("tune-" + k).value = tune[k];
+      $("tune-" + k + "-num").textContent = tuneText(k, tune[k]);
+    });
+    $("tune-shade").checked = tune.shade;
+    var changed = TUNES.some(function (k) { return tune[k] !== TUNE_DEFAULT[k]; }) || tune.shade;
+    $("tune-state").textContent = changed ? T("고침") : "";
+    save("gsm.moon.tune", JSON.stringify(tune));
+  }
+  TUNES.forEach(function (k) {
+    $("tune-" + k).addEventListener("input", function () { tune[k] = +this.value; applyTune(); });
+  });
+  $("tune-shade").addEventListener("change", function () { tune.shade = this.checked; applyTune(); });
+  $("tune-reset").addEventListener("click", function () { tune = Object.assign({}, TUNE_DEFAULT); applyTune(); });
+  document.querySelectorAll("#tune [data-preset]").forEach(function (b) {
+    b.addEventListener("click", function () { tune = Object.assign({}, PRESETS[b.dataset.preset]); applyTune(); });
+  });
+  applyTune();
 
   // ── 지질 레이어 — 2D 처럼 목록에서 켜고, 켠 것은 카드로 쌓는다 ──
   //

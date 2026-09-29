@@ -1529,6 +1529,18 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
 /* Cesium 의 출처 줄 — 좌표 막대에 가리지 않게 위로 */
 .cesium-viewer-bottom { left: 12px !important; bottom: 58px !important; opacity: .7; }
 :root[data-region="moon"] .popup { z-index: 8; }
+/* 영상 보정 (042) — 배경 줄 밑에 접어 둔다 */
+.tune { margin: -2px 0 10px; }
+.tune > summary { cursor: pointer; font-size: 12px; color: var(--ink-soft); }
+.tune > summary .hint { margin-left: 6px; color: var(--hi-ink); }
+.tune-body { margin-top: 6px; padding: 8px 10px; background: var(--panel-tint); border: 1px solid var(--line-soft); border-radius: 8px; }
+.tune-row { display: grid; grid-template-columns: 34px 1fr 38px; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+.tune-row output { font-family: var(--font-mono); font-size: 10.5px; text-align: right; color: var(--ink-faint); }
+.tune-check { display: flex; gap: 6px; align-items: flex-start; margin: 6px 0 2px; font-size: 12px; color: var(--ink-soft); }
+.tune-acts { display: flex; gap: 4px; margin-top: 6px; }
+.tune-acts .btn { height: 28px; font-size: 11.5px; }
+/* 음영 겹치기 — 평면에서는 배경 위에 곱한다. 레이어의 캔버스가 나중에 생겨도 먹게 규칙으로 둔다 */
+#map .moon-shade { mix-blend-mode: multiply; }
 .popup .swatch-img { width: 14px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 2px; }
 .popup .from { display: flex; align-items: center; gap: 6px; margin: -2px 0 8px; font-size: 12px; color: var(--ink-soft); }
 @media (max-width: 760px) {
