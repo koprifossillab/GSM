@@ -38,6 +38,9 @@ urlpatterns = [
     # 한반도 지질도 음영판 — 우리가 잘라 둔 EPSG:5179 타일 (peninsula.py, devlog 027)
     re_path(r"^peninsula/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.webp$",
             views.peninsula_tile, name="peninsula-tile"),
+    # 남극 해저·빙저 지형 IBCSO v2 — 우리가 잘라 둔 EPSG:3031 타일 (ibcso.py, devlog 047)
+    re_path(r"^ibcso/(?P<layer>bed|ice)/(?P<z>\d{1,2})/(?P<x>\d{1,3})/(?P<y>\d{1,3})\.webp$",
+            views.ibcso_tile, name="ibcso-tile"),
     # 3D 가 쓰는 것 — 평면 격자(5179·5181·3031) 타일을 3857 로 다시 편다 (warp.py, 040)
     re_path(r"^warp/(?P<upstream>peninsula|phyloserver|geomap)/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})(?P<retina>@2x)?\.png$",
             views.warp_tile, name="warp-tile"),

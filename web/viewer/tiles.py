@@ -28,6 +28,8 @@ NO_MAP = "GSM: upstream gave no map"
 NO_DATA = "GSM: no GeoMAP data file"
 #: 한반도 지질도 음영판·민판을 아직 잘라 두지 않았다 — peninsula.py
 NO_PENINSULA = "GSM: no peninsula tiles"
+#: 남극 IBCSO 판을 아직 잘라 두지 않았다 — ibcso.py (047)
+NO_IBCSO = "GSM: no IBCSO tiles"
 #: 달 지질도 원도 6 장을 아직 굽지 않았다 — moonmap.py (039)
 NO_MOON = "GSM: no lunar original maps file"
 

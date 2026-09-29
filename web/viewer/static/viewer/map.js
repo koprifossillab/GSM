@@ -757,6 +757,18 @@
     regions: ["antarctica"], needs: "EPSG:3031",
     make: esriAntarcticLayer,
   };
+  BASEMAPS.ibcso_bed = {
+    title: T("IBCSO 해저·빙저 지형"),
+    note: T("IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return ibcsoLayer("bed"); },
+  };
+  BASEMAPS.ibcso_ice = {
+    title: T("IBCSO 해저·얼음 위 지형"),
+    note: T("IBCSO v2 (500 m). 빙붕·빙상의 윗면과 해저. CC BY 4.0"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return ibcsoLayer("ice"); },
+  };
   BASEMAPS.rema = {
     title: T("REMA 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
@@ -904,6 +916,28 @@
         }),
         crossOrigin: "anonymous",
         attributions: ESRI_ANTARCTIC,
+      }),
+    });
+  }
+
+  /** 남극 해저·빙저 지형 IBCSO v2 — 우리 서버가 GeoMAP 과 같은 3031 격자로 잘라 둔 것 (047).
+   *  원본이 500 m 라 줌 6 까지 자르고, 그 위는 OpenLayers 가 늘려 그린다. 출처는 CC BY 라 늘 적는다 */
+  var IBCSO = 'IBCSO v2 (Dorschel et al., 2022, <a href="https://doi.org/10.1594/PANGAEA.937574" target="_blank" rel="noopener">PANGAEA</a>, CC BY 4.0)';
+  function ibcsoLayer(which) {
+    var resolutions = [];
+    var width = GEOMAP_GRID.extent[2] - GEOMAP_GRID.extent[0];
+    for (var z = 0; z <= 6; z++) resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
+    return new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: BASE + "ibcso/" + which + "/{z}/{x}/{y}.webp",
+        projection: "EPSG:3031",
+        tileGrid: new ol.tilegrid.TileGrid({
+          extent: GEOMAP_GRID.extent,
+          origin: [GEOMAP_GRID.extent[0], GEOMAP_GRID.extent[3]],
+          resolutions: resolutions,
+          tileSize: GEOMAP_GRID.tileSize,
+        }),
+        attributions: IBCSO,
       }),
     });
   }

@@ -285,6 +285,12 @@ EN = {
         "EOX · OpenStreetMap. Non-commercial use only. The coastline is rough north of 82°N — use ArcticDEM",
     "ArcticDEM 음영": "ArcticDEM hillshade",
     "REMA 음영": "REMA hillshade",
+    "IBCSO 해저·빙저 지형": "IBCSO seafloor and subglacial bed",
+    "IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0":
+        "IBCSO v2 (500 m). Seafloor and the bed beneath ice shelves and the ice sheet. CC BY 4.0",
+    "IBCSO 해저·얼음 위 지형": "IBCSO seafloor and ice surface",
+    "IBCSO v2 (500 m). 빙붕·빙상의 윗면과 해저. CC BY 4.0":
+        "IBCSO v2 (500 m). Seafloor and the top of ice shelves and the ice sheet. CC BY 4.0",
     "Polar Geospatial Center. 2 m 표고에서 그린 음영":
         "Polar Geospatial Center. Hillshade drawn from 2 m elevation",
     "Blue Marble 위성 (NASA)": "Blue Marble satellite (NASA)",

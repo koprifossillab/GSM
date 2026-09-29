@@ -23,7 +23,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
+from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, npolar, patchnotes,
                elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -790,6 +790,25 @@ def peninsula_tile(request, layer, z, x, y):
                             status=404)
     if not sheet.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
+    data = sheet.read_tile(z, x, y)
+    if data is None:
+        return _tile(tiles.blank_tile(256, 256))
+    return _tile(data, content_type="image/webp")
+
+
+@require_GET
+def ibcso_tile(request, layer, z, x, y):
+    """남극 해저·빙저 지형 타일 — `ibcso/<bed|ice>/<z>/<x>/<y>.webp` (047). 격자는 GeoMAP 의 3031.
+
+    `manage.py build_ibcso` 가 잘라 둔 파일을 내주기만 한다. 캐시에 담지 않는다 — 이미 우리
+    디스크의 타일이다. 잘라 둔 것이 없으면 안내 타일, 자료 밖(남위 50° 북쪽)은 빈 타일이다."""
+    z, x, y = int(z), int(x), int(y)
+    sheet = ibcso.SHEETS.get(f"ibcso:{layer}")
+    if sheet is None or not ibcso.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    if not sheet.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_IBCSO), store=False)
     data = sheet.read_tile(z, x, y)
     if data is None:
         return _tile(tiles.blank_tile(256, 256))

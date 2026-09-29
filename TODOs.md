@@ -20,6 +20,16 @@ v0.7.0 에서 그린란드·스발바르·얀마옌·북극·남극이 다 섰�
       3857 이라 북위 85° 위가 둥글게 빈다 (017)
 - [x] 남극 고해상 위성 배경 — Esri Antarctic Imagery(Earthstar TerraColor, 타일은 z13·29 m 까지)를 기본으로 (040)
 - [ ] Esri Antarctic Imagery 는 Esri 이용 조건(Master License Agreement)이다 — EOX 처럼 밖에 열 때 다시 본다 (040)
+- [x] 남극 배경에 IBCSO v2 해저·빙저 지형(500 m) — 칠한 GeoTIFF 둘을 3031 에 잘라 둔다, `manage.py build_ibcso` (047)
+- [ ] 운영에 IBCSO 를 둔다 — `/srv/GSM/db/ibcso/` 에 원본 둘(NAS `sources/ibcso/`, 340 MB)을 두고 `build_ibcso`
+      (1 분 45 초·메모리 3.7 GB, 타일 27 MB) (047)
+- [ ] IBCSO 수치 격자로 **누른 자리의 수심·표고 읽기** — `bed`·`ice-surface` GeoTIFF(float, 160 MB 안팎)를
+      잘라 두고 팝업에 한 줄. 점묶음의 ⛰ 처럼 시료 지점에 수심을 붙이는 데도 쓴다 (하루 품, 047)
+- [ ] IBCSO 자료 출처(TID) 레이어 — 측심이 있는 곳과 보간한 곳을 가른다. 칠해서 잘라 두면 된다 (반나절, 047)
+- [ ] 3D 남극에 IBCSO — 배경은 `warp.py` 의 3031 격자로 펴서 깔고(반나절), 해저 지형은 수치 격자를
+      Terrarium 으로 바꿔 REMA 와 잇는다(하루 남짓) (047)
+- [ ] (검토) DiaRUGA·ForGIA 의 남극·남빙양 지점과 잇기 — CLAUDE.md 대로 DB 는 나누지 않고 `Locality.lat/lon` 을
+      내보내 점묶음으로 받는다. 위의 수심 읽기가 서야 값이 있다 (사람, 2026-09-29, 047)
 - [x] 극지 줌 문턱 — 해상도를 3857 줌으로 되짚는다(`mercZoom`, v0.10.0, 029)
 - [x] **스발바르 1:10만 도폭 스캔** (P01 6단계) — 스캔 전부·도폭 경계·"이 도폭만 켜기" (v0.10.0, 029)
 - [x] 스발바르 지질시대의 절(Age) 이름 — 국제지질연대층서표 한글판(ICS v2024/12)을 따른다 (v0.10.0, 029)

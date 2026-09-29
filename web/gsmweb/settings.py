@@ -155,6 +155,10 @@ USGS_DIR = env("GSM_USGS_DIR") or str(_data_dir() / "usgs")
 #: `<여기>/*.pdf` 를 `manage.py build_peninsula` 가 `<여기>/tiles/` 로 자른다. 출처를 몰라
 #: 저장소·이미지에 두지 않는다. 없으면 안내 타일이 뜰 뿐 뷰어는 돈다. 기본은 `<DB 옆>/peninsula/`.
 PENINSULA_DIR = env("GSM_PENINSULA_DIR") or str(_data_dir() / "peninsula")
+#: 남극 해저·빙저 지형 IBCSO v2 — PANGAEA 의 칠한 GeoTIFF 둘과 그것을 잘라 둔 타일 (devlog 047).
+#: `<여기>/IBCSO_v2_{bed,ice-surface}_RGB.tif` 를 `manage.py build_ibcso` 가 `<여기>/tiles-{bed,ice}/`
+#: 로 자른다. 340 MB 라 저장소·이미지에 두지 않는다. 없으면 안내 타일이 뜰 뿐 뷰어는 돈다.
+IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
