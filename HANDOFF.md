@@ -67,6 +67,9 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 **v0.13.0 — 달 점묶음** (037). `PointSet.body`(이주 0012). 지구 화면은 `earth`, 달 화면은 `moon` 만 읽는다.
 달 점묶음의 ⛰ 는 LOLA `getSamples`(GET, 100 점씩 — POST 는 Trek 이 403).
 
+**v0.14.0 — 달을 2D 의 틀로** (038). `moon.html` 이 `map.css` 를 그대로 싣고 `data-region="moon"` 흑백.
+구(Cesium)와 평면(OpenLayers, IAU_2015:30110)을 한 화면에 두고 250 km·400 km 문턱으로 오간다. 지질은 오버레이 카드.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
