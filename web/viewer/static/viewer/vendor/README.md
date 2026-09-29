@@ -49,3 +49,13 @@ https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/LICENSE
 ```
 2b5324d3fcaa58f93c71d4e6ee70eba532f15585401d764daf99efc427a62693  0-255.pbf
 052e7e11d0420e7a6772478413f5d2bb910d150f76830bdf17dfabcabe87aaf1  256-511.pbf
+
+**CesiumJS 1.145.0** — `cesium/` (Apache-2.0, `LICENSE.md` 동봉). 달 시험 화면(`/GSM/moon/`)만
+쓴다 (P05). 달 타원체(`Ellipsoid.MOON`)를 갖고 극까지 온전한 구를 그린다. npm 묶음의
+`Build/Cesium/` 에서 `Cesium.js`·`Workers/`·`ThirdParty/`·`Assets/`·`Widgets/` 만 담았다 (14 MB,
+`index.js`·`index.cjs` 는 뺐다). 템플릿이 `window.CESIUM_BASE_URL` 을 이 자리로 알린다.
+
+```
+https://registry.npmjs.org/cesium/-/cesium-1.145.0.tgz
+```
+dbb7a1606ef2150c7266eee6eb10bfeba1bd1351cdce1df85787a45491f482e3  cesium/Cesium.js
