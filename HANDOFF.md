@@ -49,6 +49,9 @@ z/x/y 타일로 중계하고, 한국·일본을 한 화면에 모은 동아시�
 **v0.10.1 — 3D 에 커스텀 지질도** (030). 한반도 지질도 셋(5179·5181 격자)을 서버가 3857 로
 다시 펴고(`warp.py`, `/GSM/warp/`), 암맥은 그대로 얹는다. 3D 점묶음에 이름표(글꼴 조각을 담았다).
 
+**v0.11.0 — 시료 고도, 3D 의 일본 지형** (031). 표고로 나가는 문 `elevation.py` — AWS 표고 타일·
+국토지리원 표고 타일·PGC. 문이 여덟이다. `Point` 에 표고 칸 셋(이주 0011).
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
@@ -88,7 +91,7 @@ GSM_DEV_DIRECT_WMS=0
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 470 개 다 돈다 (`manage.py test viewer`, 2026-09-29) |
+| 시험 | 483 개 다 돈다 (`manage.py test viewer`, 2026-09-29) |
 | 오픈API | 키로 61 개 전부 그려진다. 범례도 된다. **속성은 막혀 있다** (006) |
 | 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 | 배경지도 | VWorld `Base`·`Satellite`·`Hybrid` 200. 자리 차례는 `z/y/x` (003) |
@@ -196,6 +199,12 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 - 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --probe-info`
   (`/openapi/wms` 가 속성을 열었는지. 이 서버에는 키가 없어 못 보았다)
 - 올렸다(2026-09-29). VWorld 배경을 깐 "그림" 도 된다. `/openapi/wms` 의 속성은 아직 500 이다
+
+### v0.11.0 을 올릴 때
+
+- 기동할 때 이주 0011(점의 표고 칸 셋)이 들어간다. 씨앗·파일은 없다
+- 운영 장비에서 `s3.amazonaws.com`·`cyberjapandata.gsi.go.jp`·`di-pgc.img.arcgis.com` 으로 나갈 수
+  있어야 한다 — 이제 서버도 부른다(전에는 브라우저만)
 
 ## VWorld 로 더 할 수 있는 것
 
