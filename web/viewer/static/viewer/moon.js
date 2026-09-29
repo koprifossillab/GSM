@@ -744,6 +744,13 @@
   var dock = $("legend-dock");
   dock.open = saved("gsm.moon.legend", "open") !== "closed";
   dock.addEventListener("toggle", function () { save("gsm.moon.legend", dock.open ? "open" : "closed"); });
+  // 달의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.AGES_KO`)
+  var AGE_ORDER = [["코페르니쿠스기", "Copernican"], ["에라토스테네스기", "Eratosthenian"], ["임브리움기", "Imbrian"],
+                   ["넥타리스기", "Nectarian"], ["선넥타리스기", "Pre-Nectarian"]];
+  function ageRank(age) {
+    for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
+    return AGE_ORDER.length;
+  }
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
     var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
@@ -751,7 +758,8 @@
       var html = "";
       if (kind === "units") {
         // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
-        // 처음 나온 차례대로 시대를 모아 한 번씩만 머리를 단다
+        // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는
+        // 처음 나온 차례대로 그 밑에 선다 (044)
         var ages = [], byAge = {};
         (data.items || []).forEach(function (item) {
           if (item.unit) swatches[item.unit] = item.image;
@@ -759,11 +767,14 @@
           if (!byAge[age]) { byAge[age] = []; ages.push(age); }
           byAge[age].push(item);
         });
+        ages.sort(function (a, b) { return ageRank(a) - ageRank(b); });   // sort 는 안정이라 같은 순위는 나온 차례
         ages.forEach(function (age) {
-          if (age) html += '<li class="age">' + esc(age) + "</li>";
+          html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
+                  '<span class="age-n">' + byAge[age].length + "</span></div><ul>";
           byAge[age].forEach(function (item) {
             html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
           });
+          html += "</ul></li>";
         });
       } else if (kind === "orig") {
         (data.units || []).forEach(function (c) {

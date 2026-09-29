@@ -1522,7 +1522,16 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
 .legend-list { max-height: 42vh; overflow-y: auto; padding: 2px 12px 10px; border-top: 1px solid var(--line-soft); }
 .legend-list li { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 11.5px; color: var(--ink-soft); }
 .legend-list img { width: 18px; height: 14px; flex: 0 0 auto; border-radius: 2px; }
-.legend-list .age { margin-top: 6px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint); }
+/* 시대마다 상자 하나 (044) — 머리에 시대와 단위 수 */
+.legend-list li.age-box { display: block; margin-top: 8px; padding: 0 8px 4px; border: 1px solid var(--line);
+                          border-radius: 7px; background: var(--panel-tint); }
+.legend-list li.age-box:first-child { margin-top: 6px; }
+.legend-list .age-head { display: flex; align-items: baseline; gap: 6px; margin: 0 -8px 3px; padding: 4px 8px;
+                         font-size: 10.5px; font-weight: 700; letter-spacing: .08em; color: var(--ink);
+                         background: var(--gold-wash); border-bottom: 1px solid var(--line-soft);
+                         border-radius: 6px 6px 0 0; }
+.legend-list .age-n { margin-left: auto; font-family: var(--font-mono); font-weight: 400; letter-spacing: 0;
+                      color: var(--ink-faint); }
 .legend-list li.empty { padding: 6px 0; }
 .legend-list .layer { margin-top: 8px; padding-bottom: 2px; font-size: 11.5px; font-weight: 700; color: var(--ink);
                      border-bottom: 1px solid var(--line-soft); }

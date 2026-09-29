@@ -186,6 +186,7 @@ EN = {
     "자세": "View",
     "달 위도": "Lunar lat", "달 경도": "Lunar lon",
     "자전축": "Axis",
+    "시대 모름": "Age unknown",
     "북극점": "North pole", "남극점": "South pole",
     "달의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다": "The Moon's spin axis — show or hide the line through the poles",
     # 달 점묶음 (037)
