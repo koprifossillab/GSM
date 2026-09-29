@@ -61,6 +61,9 @@ VWorld 배경은 곧장 닿지 못하면 서버를 거친다(033).
 
 **v0.11.4 — 남극 3D** (035). REMA 지형에 드로닝모드랜드 지질. GeoMAP 은 아직 3D 에 없다.
 
+**v0.12.0 — 달** (036, P05). 아이콘의 숨은 차림 → `/GSM/moon/`. CesiumJS(`vendor/cesium/`, 14 MB)의 둥근 달에
+USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, NASA Moon Trek). 운영 설정은 없다.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
