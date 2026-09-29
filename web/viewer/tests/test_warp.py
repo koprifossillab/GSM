@@ -79,3 +79,42 @@ class WarpView(TestCase):
     def test_모르는_레이어와_먼_줌은_404(self):
         self.assertEqual(self.client.get("/GSM/warp/peninsula/nope/10/873/396.png").status_code, 404)
         self.assertEqual(self.client.get("/GSM/warp/peninsula/shaded/3/1/1.png").status_code, 404)
+
+
+class GeomapGrid(SimpleTestCase):
+    """남극 GeoMAP(040) — 3031 격자를 3857 로. 512 px 로도 편다."""
+
+    def test_한_점이_제_3031_타일의_색을_받는다(self):
+        from viewer import geomap
+
+        def fetch(level, tx, ty):
+            return solid(((tx * 40) % 256, (ty * 40) % 256, 90, 255))
+
+        lat, lon, z = -74.62, 164.23, 8          # 장보고기지
+        fx, fy = lonlat_tile(lat, lon, z)
+        x, y = int(fx), int(fy)
+        png = warp.render(warp.geomap_grid(fetch), z, x, y, 512)
+        image = Image.open(io.BytesIO(png)).convert("RGBA")
+        self.assertEqual(image.size, (512, 512))
+        # 고른 단계를 되짚어 그 점이 드는 3031 타일을 센다
+        meters = 40075016.686 / 2 ** z / 512 * math.cos(math.radians(lat))
+        level = warp.geomap_grid(fetch).pick(meters)
+        tx, ty = geomap.tile_of(level, *geomap.lonlat_to_3031(lon, lat))
+        px, py = int((fx - x) * 512), int((fy - y) * 512)
+        self.assertEqual(image.getpixel((px, py))[:2], ((tx * 40) % 256, (ty * 40) % 256))
+
+    def test_남쪽_끝_위도(self):
+        self.assertAlmostEqual(warp.south_of(0, 0), -85.0511, places=3)
+        self.assertAlmostEqual(warp.south_of(1, 0), 0.0, places=6)
+
+
+class GeomapWarpView(TestCase):
+    def test_남위_60도_북쪽은_그리지_않고_빈_타일(self):
+        r = self.client.get("/GSM/warp/geomap/geomap_simple_geology/5/27/20@2x.png")   # 남위 40° 언저리
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Image.open(io.BytesIO(r.content)).size, (512, 512))
+        self.assertIsNone(Image.open(io.BytesIO(r.content)).convert("RGBA").getbbox())
+
+    def test_모르는_레이어와_먼_줌은_404(self):
+        self.assertEqual(self.client.get("/GSM/warp/geomap/nope/5/27/28.png").status_code, 404)
+        self.assertEqual(self.client.get("/GSM/warp/geomap/geomap_faults/2/1/3.png").status_code, 404)

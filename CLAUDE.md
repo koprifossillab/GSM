@@ -220,9 +220,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - 카탈로그 씨앗은 상류마다 `data/*_layers.json` 이다. KIGAM 씨앗처럼 사람이
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일)과 일본 배경(국토지리원 지리원 타일)은 VWorld 처럼
+- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일)은 VWorld 처럼
   브라우저가 곧장 부른다.
-  EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이다 — 밖에 열 때 다시 본다
+  EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
   재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025).
@@ -298,7 +298,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
   moonmap.py      달 지질도 원도 6 장 셰이프파일 -> sqlite(R*Tree) -> 달 경위도 타일. 문이 아니다
   peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
-  warp.py         평면 격자(5179·5181) 타일 -> 3857 타일. 3D 가 한반도 지질도를 얹는 길. 문이 아니다
+  warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
   crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트) <-> 위경도. pyproj 없이

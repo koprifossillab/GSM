@@ -56,7 +56,7 @@
                  first: "grl_g500_lithostr_search" },
     antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
                   home: [-2800000, -2400000, 2900000, 2500000],
-                  basemap: "gibs_bm_s", forgetOldView: true,
+                  basemap: "esri_antarctic", forgetOldView: true,
                   // 좌표 칸의 예 — 남극점(가운데)은 예로 쓸모가 없어 세종기지를 든다 (021)
                   example: "-62.223, -58.787",
                   base: ["geomap_simple_geology", "geomap_chronostratigraphic",
@@ -701,11 +701,13 @@
   }
   // ── 극지 배경 (017) ──
   //
-  // VWorld 처럼 **브라우저가 곧장 부른다.** 셋 다 열쇠가 없고 CORS 를 열어
-  // 두었다(2026-09-27). `regions` 에 적은 지역에서만 고르개에 오른다.
+  // VWorld 처럼 **브라우저가 곧장 부른다.** 넷 다 열쇠가 없고 CORS 를 열어
+  // 두었다(2026-09-27, Esri 는 09-29). `regions` 에 적은 지역에서만 고르개에 오른다.
   //
   // - **제 투영으로 주는 것을 먼저 쓴다.** NASA GIBS 는 3413·3031 WMTS 를,
-  //   PGC 는 REMA·ArcticDEM 을 3031·3413 그대로 준다
+  //   PGC 는 REMA·ArcticDEM 을 3031·3413 그대로 준다. 남극의 고해상 위성은
+  //   Esri 가 3031 로 구워 둔 것이다 — GIBS Blue Marble(500 m)은 기지 축척에서 흐리다 (040)
+  // - Esri 는 **Esri 이용 조건**(Master License Agreement)을 따른다 — EOX 처럼 밖에 열 때 다시 본다
   // - EOX 는 3857 뿐이다(WMS 도 3413·3031 을 400 으로 돌려보낸다). 그린란드는
   //   OpenLayers 가 옮겨 그리면 되지만, 남극은 3857 이 남위 85° 에서 끊겨
   //   극이 비므로 남극에는 두지 않는다
@@ -717,6 +719,7 @@
   var GIBS = 'Blue Marble © <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA EOSDIS GIBS</a>';
   var PGC_REMA = 'REMA © <a href="https://www.pgc.umn.edu/data/rema/" target="_blank" rel="noopener">Polar Geospatial Center</a>, Byrd Polar (CC BY 4.0)';
   var PGC_ARCTICDEM = 'ArcticDEM © <a href="https://www.pgc.umn.edu/data/arcticdem/" target="_blank" rel="noopener">Polar Geospatial Center</a> (CC BY 4.0)';
+  var ESRI_ANTARCTIC = 'Antarctic Imagery: Earthstar Geographics · <a href="https://www.arcgis.com/home/item.html?id=6553466517dd4d5e8b0c518b8d6b64cb" target="_blank" rel="noopener">Powered by Esri</a>';
 
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
@@ -747,6 +750,12 @@
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
     regions: ["antarctica"], needs: "EPSG:3031",
     make: function () { return gibsLayer("3031", "BlueMarble_ShadedRelief_Bathymetry", 4); },
+  };
+  BASEMAPS.esri_antarctic = {
+    title: T("남극 위성 (Esri)"),
+    note: T("Esri · Earthstar Geographics TerraColor 15 m. 줌 13 까지 영상이 있고 그 위는 늘려 보인다. Esri 이용 조건을 따른다"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: esriAntarcticLayer,
   };
   BASEMAPS.rema = {
     title: T("REMA 음영"),
@@ -872,6 +881,29 @@
         }),
         crossOrigin: "anonymous",
         attributions: GIBS,
+      }),
+    });
+  }
+
+  /** Esri 의 남극 위성 모자이크(Earthstar Geographics TerraColor, 15 m) — 3031 로 구워 둔 타일이라
+   *  옮겨 그리지 않는다 (040). 격자는 서비스의 `tileInfo` 그대로다 — 원점 (-33699550.99203,
+   *  33699551.01703), 256 픽셀, 줌 0 이 238810.81 m. **영상은 줌 13(29 m)까지다** — 그 위는
+   *  "Map data not yet available" 타일을 주므로 격자를 13 에서 끊어 OpenLayers 가 늘려 그리게 한다 */
+  function esriAntarcticLayer() {
+    var resolutions = [];
+    for (var z = 0; z <= 13; z++) resolutions.push(238810.813354 / Math.pow(2, z));
+    return new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://services.arcgisonline.com/arcgis/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}",
+        projection: "EPSG:3031",
+        tileGrid: new ol.tilegrid.TileGrid({
+          origin: [-33699550.99203, 33699551.01703],
+          extent: [-4524537.46, -4524537.92, 4524539.62, 4524539.16],
+          resolutions: resolutions,
+          tileSize: 256,
+        }),
+        crossOrigin: "anonymous",
+        attributions: ESRI_ANTARCTIC,
       }),
     });
   }
@@ -3362,7 +3394,7 @@
     document.getElementById("crs-pick").hidden = !spec.vworld;
     // 3D 는 메르카토르 하나뿐이라 남위 85° 안쪽은 없다(P02 §7). 그래도 남극도 연다 — 기지와
     // 산맥은 거의 그 바깥이고, 지형은 REMA·ArcticDEM 을 서버가 옮겨 준다 (032). 지질은 3857 로도
-    // 그려 주는 NPI 드로닝모드랜드뿐이다 — GeoMAP 은 우리가 3031 로 굽는 것이라 3D 에 없다
+    // 그려 주는 NPI 드로닝모드랜드와, 3031 로 굽는 것을 서버가 3857 로 다시 펴 주는 GeoMAP 이다 (040)
     if (syncGotoHint) syncGotoHint();
     var note = document.getElementById("region-note");
     note.hidden = !spec.pending;

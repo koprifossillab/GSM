@@ -249,6 +249,9 @@ EN = {
         "Polar Geospatial Center. Hillshade drawn from 2 m elevation",
     "Blue Marble 위성 (NASA)": "Blue Marble satellite (NASA)",
     "NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다": "NASA GIBS. 500 m resolution, for wide views",
+    "남극 위성 (Esri)": "Antarctic satellite (Esri)",
+    "Esri · Earthstar Geographics TerraColor 15 m. 줌 13 까지 영상이 있고 그 위는 늘려 보인다. Esri 이용 조건을 따른다":
+        "Esri · Earthstar Geographics TerraColor 15 m. Imagery up to zoom 13, stretched beyond. Esri terms of use apply",
     "왼쪽 위": "Top left",
     "오른쪽 위": "Top right",
     "오른쪽 아래": "Bottom right",

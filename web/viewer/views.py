@@ -144,12 +144,14 @@ def map3d_view(request):
     """3D — 실험 (devlog 015). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
     # 3D 는 3857 WMS 타일만 얹는다(`map3d.js` 의 `wmsTiles`). 모양·점 레이어와, 우리가
-    # 굽거나(GeoMAP·음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —
+    # 굽거나(음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —
     # 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
+    # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
                               and (l.get("upstream") in ("kigam", "geus", "vworld")
-                                   or (l.get("upstream") == "npolar" and npolar.knows(l["name"])))])
+                                   or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
+                                   or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -631,23 +633,34 @@ def geomap_tile(request, layer, z, x, y, retina=None):
                             status=404)
     if not geomap.available():
         return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
+    try:
+        png, cached = _geomap_png(layer, z, x, y, size)
+    except (geomap.GeomapError, OSError, ValueError) as exc:
+        log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+    response = _tile(png, cached=cached)
+    if not cached:
+        response["X-GSM-Cache"] = "miss"
+    return response
 
+
+def _geomap_png(layer, z, x, y, size=geomap.TILE):
+    """GeoMAP 타일 한 장과 캐시에서 왔는지. 캐시에 없으면 그려 담는다 — 2D 의 타일과
+    3D 가 다시 펴는 원본(`warp/geomap/`)이 같은 것을 쓴다. 못 그리면 옛것을, 그것도 없으면
+    그리지 못한 까닭을 그대로 올린다."""
     key = geomap_tile_key(layer, z, x, y, size)
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return hit, True
     try:
         png = geomap.render(layer, geomap.tile_bbox(z, x, y), size, size)
-    except (geomap.GeomapError, OSError, ValueError) as exc:
+    except (geomap.GeomapError, OSError, ValueError):
         old = tilecache.get(key, stale=True)
         if old is not None:
-            return _tile(old, cached=True)
-        log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
-        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+            return old, True
+        raise
     tilecache.put(key, png)
-    response = _tile(png)
-    response["X-GSM-Cache"] = "miss"
-    return response
+    return png, False
 
 
 # ── 일본 — GSJ 심리스 지질도 (gsj.py, devlog 024) ─────────────────────
@@ -746,35 +759,51 @@ def peninsula_tile(request, layer, z, x, y):
 
 #: 3D 가 다시 편 타일을 받는 줌. 멀리서는 원본을 수십 장 모아야 해 묻지 않는다
 WARP_ZOOMS = (5, 17)
+#: GeoMAP 은 대륙 전체를 한눈에 볼 때도 얹는다 — 3D 의 "지질 레이어" 로 고르기 때문이다 (040).
+#: 줌 3 이면 타일 한 장이 경도 45° 라 원본 몇 장이면 된다
+GEOMAP_WARP_ZOOMS = (3, 17)
+#: GeoMAP 이 덮는 것은 남위 60° 남쪽이다(`data/geomap_layers.json` 의 bbox) — 그 북쪽은 그리지 않는다
+GEOMAP_NORTH = -60.0
 
 
 @require_GET
-def warp_tile(request, upstream, layer, z, x, y):
+def warp_tile(request, upstream, layer, z, x, y, retina=None):
     """평면 격자 타일을 3857 로 다시 편 것 — `warp/<상류>/<레이어>/<z>/<x>/<y>.png` (3D 가 쓴다).
+    `@2x` 면 512 px — 3D 의 "지질 레이어" 는 512 px 타일로 받는다.
 
-    3D(MapLibre)는 3857 만 받아 5179(음영판·민판)·5181(스캔판) 격자를 못 얹는다.
-    요청마다 원본을 모아 편다(`warp.py`, 0.1 초 남짓). 캐시에 담지 않는다 — 원본이 우리
-    디스크(음영판)거나 같은 서버의 파일(스캔판, 026 이 캐시를 두지 않은 까닭 그대로)이다."""
-    name, z, x, y = f"{upstream}:{layer}", int(z), int(x), int(y)
+    3D(MapLibre)는 3857 만 받아 5179(음영판·민판)·5181(스캔판)·3031(GeoMAP) 격자를 못 얹는다.
+    요청마다 원본을 모아 편다(`warp.py`, 0.1 초 남짓). 편 것은 캐시에 담지 않는다 — 원본이 우리
+    디스크(음영판)거나 같은 서버의 파일(스캔판, 026 이 캐시를 두지 않은 까닭 그대로)이거나,
+    2D 와 함께 쓰는 GeoMAP 타일 캐시다."""
+    z, x, y = int(z), int(x), int(y)
+    size = 512 if retina else 256
+    name = layer if upstream == "geomap" else f"{upstream}:{layer}"
     lang = i18n.lang_of(request)
-    if _lab_only(name) or not (WARP_ZOOMS[0] <= z <= WARP_ZOOMS[1]) or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
+    zooms = GEOMAP_WARP_ZOOMS if upstream == "geomap" else WARP_ZOOMS
+    if _lab_only(name) or not (zooms[0] <= z <= zooms[1]) or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     if name in peninsula.SHEETS:
         sheet = peninsula.SHEETS[name]
         if not sheet.available():
-            return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
+            return _tile(tiles.notice_tile(size, size, tiles.NO_PENINSULA), store=False)
         grid = warp.peninsula_grid(sheet)
     elif phyloserver.knows_scan(name):
         grid = warp.kakao_grid(phyloserver.SCAN_LEVELS, phyloserver.SCAN_ORIGIN, phyloserver.SCAN_TOP,
                                lambda level, tx, ty: phyloserver.get_scan_tile(name, level, tx, ty))
+    elif upstream == "geomap" and name in geomap.LAYERS:
+        if warp.south_of(z, y) > GEOMAP_NORTH:
+            return _tile(tiles.blank_tile(size, size))
+        if not geomap.available():
+            return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
+        grid = warp.geomap_grid(lambda level, tx, ty: _geomap_png(name, level, tx, ty)[0])
     else:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     try:
-        png = warp.render(grid, z, x, y)
-    except (phyloserver.PhyloserverError, OSError, ValueError) as exc:
+        png = warp.render(grid, z, x, y, size)
+    except (phyloserver.PhyloserverError, geomap.GeomapError, OSError, ValueError) as exc:
         log.warning("다시 펴지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
-    return _tile(png or tiles.blank_tile(256, 256))
+        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+    return _tile(png or tiles.blank_tile(size, size))
 
 
 def _float(value):

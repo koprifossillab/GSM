@@ -52,12 +52,25 @@
 
   var start = startView();
   var select = document.getElementById("layer3d");
-  // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위). 3D 목록에 없으면
-  // 그 지역의 첫 레이어(남극의 GeoMAP 이면 드로닝모드랜드), 그것도 없으면 25만
+  // 2D 에서 켜 둔 맨 위 레이어를 주소로 받는다(스발바르면 NPI 지질 단위, 남극이면 GeoMAP).
+  // 3D 목록에 없으면 그 지역의 첫 레이어, 그것도 없으면 25만
   var asked = new URLSearchParams(location.search).get("layer");
   var mine = select.querySelector('optgroup[data-region="' + REGION + '"] option');
   select.value = asked && select.querySelector('option[value="' + asked.replace(/"/g, "") + '"]')
     ? asked : mine ? mine.value : "L_250K_Geology_Map";
+
+  /** "지질 레이어" 의 소스. 대개 `wms/` 의 3857 타일이고, 남극 GeoMAP 은 우리가 굽는 3031 타일을
+   *  서버가 3857 로 다시 편 것(`warp/geomap/`, 040)이다. GeoMAP 은 남위 60° 남쪽만 덮고, 대륙을
+   *  한눈에 볼 줌 3 부터 받는다. 출처는 목록이 적은 것(`data-attribution`)을 쓴다 */
+  function geologySource(name) {
+    var opt = [].filter.call(select.options, function (o) { return o.value === name; })[0];
+    var attribution = (opt && opt.getAttribute("data-attribution")) || "© 한국지질자원연구원";
+    if (opt && opt.getAttribute("data-upstream") === "geomap") {
+      return { type: "raster", tileSize: 512, minzoom: 3, maxzoom: 17, bounds: [-180, -85.06, 180, -60],
+               tiles: [BASE + "warp/geomap/" + name + "/{z}/{x}/{y}@2x.png"], attribution: attribution };
+    }
+    return { type: "raster", tiles: wmsTiles(name), tileSize: 512, attribution: attribution };
+  }
 
   var sources = {
     // 표고는 256 px 타일을 512 로 여겨 **한 단계 거칠게** 부른다 — 타일 수가 4 분의 1 이다.
@@ -66,8 +79,7 @@
     dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15,
            attribution: "Terrain: Mapzen/AWS Terrain Tiles · 국토지리원 · ArcticDEM/REMA © PGC (CC BY 4.0)" },
     shade: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15 },
-    kigam: { type: "raster", tiles: wmsTiles(select.value), tileSize: 512,
-             attribution: "© 한국지질자원연구원" },
+    kigam: geologySource(select.value),
   };
   var layers = [{ id: "bg", type: "background", paint: { "background-color": "#e8e0d2" } }];
   // VWorld 를 곧장 받지 못하면(사내 VPN 이 끊는다) 서버를 거친다 — 평면 지도와 같다 (033)
@@ -151,8 +163,16 @@
   }
   window.__gsm3d = map;
 
+  // 레이어를 바꾸면 소스째 새로 얹는다 — 받는 곳(`wms/`·`warp/`)과 줌 범위·출처가 레이어마다 달라
+  // `setTiles` 로는 모자란다. 쌓인 차례와 투명도는 그대로 둔다
   select.addEventListener("change", function () {
-    map.getSource("kigam").setTiles(wmsTiles(select.value));
+    var order = map.getStyle().layers.map(function (l) { return l.id; });
+    var before = order[order.indexOf("kigam") + 1];
+    map.removeLayer("kigam");
+    map.removeSource("kigam");
+    map.addSource("kigam", geologySource(select.value));
+    map.addLayer({ id: "kigam", type: "raster", source: "kigam",
+                   paint: { "raster-opacity": document.getElementById("opacity3d").value / 100 } }, before);
   });
   document.getElementById("opacity3d").addEventListener("input", function () {
     map.setPaintProperty("kigam", "raster-opacity", this.value / 100);
