@@ -140,6 +140,29 @@ EN = {
     "여기에는 지질 단위가 없다": "No geologic unit here",
     "속성을 받지 못했다": "Could not get the attributes",
     "닫기": "Close",
+    # 달 화면을 2D 의 틀로 (038)
+    "지구": "Earth",
+    "구": "Globe",
+    "평면": "Flat",
+    "앞면": "Near side",
+    "북쪽 위": "North up",
+    "도구": "Tools",
+    "이동": "Go",
+    "구에서만": "globe only",
+    "구와 평면을 오간다": "Switch between globe and flat map",
+    "기울기와 방위를 풀고 곧장 내려다본다": "Reset tilt and heading and look straight down",
+    "곧장 내려다보며 가까이 가면 평면으로, 멀어지면 다시 구로 넘어간다. 기울이면 구에 머문다.":
+        "Zoom in looking straight down to switch to the flat map; zoom out to return to the globe. Tilting keeps the globe.",
+    "달 위경도": "Lunar lat, lon",
+    "달 지질 단위": "Lunar geologic units",
+    "달 지질 (USGS 1:500만, 2020)": "Lunar geology (USGS 1:5M, 2020)",
+    "달에 얹은 내 것": "My data on the Moon",
+    "바깥 자료를 달에": "Outside data onto the Moon",
+    "좌표·지명·착륙지로 이동 — -43.31, -11.36 · Tycho · Apollo 11":
+        "Go to coordinates, a place or a landing site — -43.31, -11.36 · Tycho · Apollo 11",
+    "좌표는 달의 위도·경도(도)다. 평면 좌표계는 받지 않는다.":
+        "Coordinates are lunar latitude and longitude in degrees. Projected coordinate systems are not accepted.",
+    "{n}점을 올렸다": "Uploaded {n} points",
     # 달 점묶음 (037)
     "올리기": "Upload",
     "올리는 중": "Uploading…",

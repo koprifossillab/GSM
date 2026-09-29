@@ -295,7 +295,14 @@ def moon_legend(request):
                                      "items": []}, status=502)
         else:
             tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
-    return JsonResponse(data)
+    # 시대 머리 — 한국어판만 옮긴다. 캐시에는 옮기기 전의 것을 둔다. 옛 캐시에 `age` 가 없으면 여기서 채운다
+    ko = i18n.lang_of(request) != "en"
+    items = []
+    for item in data.get("items") or []:
+        unit = item.get("unit") or trek._unit_of(item.get("label", ""))
+        age = item.get("age") or trek.age_of_unit(unit)
+        items.append(dict(item, unit=unit, age=trek.AGES_KO.get(age, age) if ko else age))
+    return JsonResponse({"items": items})
 
 
 @functools.lru_cache(maxsize=1)

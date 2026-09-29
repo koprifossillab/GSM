@@ -187,3 +187,25 @@ class MoonViews(TestCase):
         got = self.client.get(reverse("viewer:moon-places"), {"q": "apollo 11"}).json()["results"]
         self.assertEqual(got[0]["name"], "Apollo 11")
         self.assertEqual(got[0]["kind"], "Landing site")
+
+
+class Legend(SimpleTestCase):
+    """범례 49 칸 — 기호의 머리글자로 시대를 붙인다 (038)."""
+
+    def test_기호와_시대(self):
+        self.assertEqual(trek._unit_of("Copernican Crater, Secondary (Csc)"), "Csc")
+        self.assertEqual(trek.age_of_unit("Csc"), "Copernican")
+        self.assertEqual(trek.age_of_unit("EIp"), "Eratosthenian")     # 둘에 걸친 것은 앞 글자
+        self.assertEqual(trek.age_of_unit("pNbm"), "Pre-Nectarian")
+        self.assertEqual(trek.age_of_unit(""), "")
+
+    def test_한국어판은_시대_머리를_옮긴다(self):
+        body = {"layers": [{"legend": [
+            {"label": "Imbrian Mare, Upper (Im2)", "imageData": "AAAA", "contentType": "image/png"},
+            {"label": "pre-Nectarian Crater (pNc)", "imageData": "BBBB", "contentType": "image/png"}]}]}
+        with override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-trek-")), \
+                mock.patch("viewer.trek.requests.get", return_value=response(body)):
+            from django.test import Client
+            items = Client().get(reverse("viewer:moon-legend")).json()["items"]
+        self.assertEqual([(i["unit"], i["age"]) for i in items], [("Im2", "임브리움기"), ("pNc", "선넥타리스기")])
+        self.assertTrue(items[0]["image"].startswith("data:image/png;base64,"))

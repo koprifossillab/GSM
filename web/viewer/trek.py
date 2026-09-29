@@ -26,6 +26,7 @@ import io
 import json
 import logging
 import math
+import re
 
 import requests
 from django.conf import settings
@@ -173,9 +174,28 @@ def legend() -> list:
             image = item.get("imageData")
             if not image:
                 continue
-            out.append({"label": item.get("label") or "",
+            label = item.get("label") or ""
+            unit = _unit_of(label)
+            out.append({"label": label, "unit": unit, "age": age_of_unit(unit),
                         "image": f"data:{item.get('contentType') or 'image/png'};base64,{image}"})
     return out
+
+
+_UNIT = re.compile(r"\(([^()]+)\)\s*$")
+#: 단위 기호의 머리글자 → 시대. `EIp`·`INt` 처럼 둘에 걸친 것은 앞 글자(더 젊은 쪽)로 묶는다
+_AGE_HEAD = {"C": "Copernican", "E": "Eratosthenian", "I": "Imbrian", "N": "Nectarian"}
+
+
+def _unit_of(label: str) -> str:
+    """범례 이름 끝의 기호 — "Copernican Crater (Cc)" → "Cc"."""
+    m = _UNIT.search(label)
+    return m.group(1).strip() if m else ""
+
+
+def age_of_unit(unit: str) -> str:
+    if unit.startswith("pN"):
+        return "Pre-Nectarian"
+    return _AGE_HEAD.get(unit[:1], "")
 
 
 # ── 표고 ────────────────────────────────────────────────────────────
