@@ -49,15 +49,20 @@ class UploadError(ValueError):
     """올린 것을 점묶음으로 읽지 못했을 때. 메시지는 사람에게 그대로 보인다."""
 
 
-def parse(filename: str, raw: bytes, crs_code: str = "4326"):
+def parse(filename: str, raw: bytes, crs_code: str = "4326", *, lunar: bool = False):
     """(점 목록, 알림 목록) 을 돌려준다. 점 하나는 dict 다.
 
     `crs_code` 는 사람이 고른 좌표계다. GeoJSON 이 스스로 `crs` 를 밝히면
     그쪽이 이긴다.
+
+    `lunar` 면 달 경위도로만 읽는다(devlog 037) — 평면 좌표계(TM·UTM-K …)는 지구의 것이라
+    고른 것도 GeoJSON 이 밝힌 것도 듣지 않는다.
     """
     text = _decode(raw)
+    if lunar:
+        crs_code = "4326"
     if filename.lower().endswith((".geojson", ".json")) or text.lstrip().startswith("{"):
-        return _from_geojson(text, crs_code)
+        return _from_geojson(text, crs_code, ignore_declared=lunar)
     if crs.is_planar(crs_code):
         return _from_csv_planar(text, crs_code)
     return _from_csv(text)
@@ -314,12 +319,13 @@ def _reproject(coords, code):
     return coords
 
 
-def _from_geojson(text: str, crs_code: str = "4326"):
+def _from_geojson(text: str, crs_code: str = "4326", *, ignore_declared: bool = False):
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
         raise UploadError(msg("GeoJSON 이 깨져 있다: {err}", err=exc)) from exc
-    code = (_declared_crs(data) if isinstance(data, dict) else None) or crs_code
+    declared = None if ignore_declared or not isinstance(data, dict) else _declared_crs(data)
+    code = declared or crs_code
 
     features = data.get("features") if isinstance(data, dict) else None
     if features is None:
@@ -377,7 +383,9 @@ def _from_geojson(text: str, crs_code: str = "4326"):
 
 #: 출처 → 높이 기준 (`elevation.SOURCES` 와 같다). 이 파일은 상류를 모르게 두려고 옮겨 적었다
 ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
-               "pgc-arcticdem-2m": "pgc-orthometric", "pgc-rema-2m": "pgc-orthometric"}
+               "pgc-arcticdem-2m": "pgc-orthometric", "pgc-rema-2m": "pgc-orthometric",
+               # 달 — `trek.ELEV_SOURCE`. 반지름 1 737.4 km 구에서 잰 높이 (037)
+               "lola-128ppd": "moon-sphere"}
 
 
 def restore(gone):
@@ -394,7 +402,7 @@ def restore(gone):
     feats = (gone.snapshot or {}).get("features") or []
     with transaction.atomic():
         ps = PointSet.objects.create(name=gone.name, color=gone.color or "#e4572e",
-                                     source_filename=gone.source_filename)
+                                     source_filename=gone.source_filename, body=gone.body or "earth")
         points = shapes = 0
         for f in feats:
             geom = f.get("geometry") or {}

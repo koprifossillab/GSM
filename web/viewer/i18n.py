@@ -140,6 +140,16 @@ EN = {
     "여기에는 지질 단위가 없다": "No geologic unit here",
     "속성을 받지 못했다": "Could not get the attributes",
     "닫기": "Close",
+    # 달 점묶음 (037)
+    "올리기": "Upload",
+    "올리는 중": "Uploading…",
+    "올릴 파일": "File to upload",
+    "이름 (비우면 파일 이름)": "Name (the file name if empty)",
+    "아직 없다 — 아래에서 CSV·GeoJSON 을 올린다": "None yet — upload a CSV or GeoJSON below",
+    "CSV(위도·경도 열) 또는 GeoJSON. 좌표는 달의 위도·경도(도)다.":
+        "CSV (latitude and longitude columns) or GeoJSON. Coordinates are lunar latitude and longitude in degrees.",
+    "표고 채우기 — LOLA 표고에서 점마다 높이를 읽는다 (달 기준구 1737.4 km)":
+        "Fill elevation — read each point's height from LOLA (lunar reference sphere 1737.4 km)",
     "지질 레이어": "Geology layer",
     "투명도": "Opacity",
     "지형 과장": "Terrain exaggeration",

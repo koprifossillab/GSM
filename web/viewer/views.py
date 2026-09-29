@@ -178,6 +178,7 @@ def moon_view(request):
     lang = i18n.lang_of(request)
     return render(request, "viewer/moon.html", {
         "lang": lang,
+        "pointsets": _script_json(_pointset_list("moon")),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("moon", 1)[0],
         "version": VERSION,
@@ -1178,6 +1179,7 @@ def _pointset_summary(ps):
     return {
         "id": ps.id,
         "name": ps.name,
+        "body": ps.body,
         "color": ps.color,
         "visible": ps.visible,
         "count": ps.points.count(),
@@ -1187,13 +1189,19 @@ def _pointset_summary(ps):
     }
 
 
-def _pointset_list():
-    return [_pointset_summary(ps) for ps in PointSet.objects.all()]
+def _body(value) -> str:
+    """요청이 적은 몸. 모르는 값은 지구다 — 지구 화면은 몸을 적지 않는다 (037)."""
+    return value if value in dict(PointSet.BODIES) else "earth"
+
+
+def _pointset_list(body: str = "earth"):
+    """한 몸의 점묶음만. 지구 화면(2D·3D)은 지구 것만, 달 화면은 달 것만 그린다 (037)."""
+    return [_pointset_summary(ps) for ps in PointSet.objects.filter(body=body)]
 
 
 @require_GET
 def pointset_index(request):
-    return JsonResponse({"pointsets": _pointset_list()})
+    return JsonResponse({"pointsets": _pointset_list(_body(request.GET.get("body")))})
 
 
 @require_POST
@@ -1203,10 +1211,12 @@ def pointset_upload(request):
     if not upload:
         return JsonResponse({"error": i18n.t(msg("올린 파일이 없다"), lang)}, status=400)
 
+    body = _body(request.POST.get("body"))
     try:
         code = request.POST.get("crs") or "4326"
         points, notes = pointsets.parse(upload.name, upload.read(),
-                                        crs_code=code if code in crs.SYSTEMS else "4326")
+                                        crs_code=code if code in crs.SYSTEMS else "4326",
+                                        lunar=body == "moon")
     except pointsets.UploadError as exc:
         return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
 
@@ -1215,7 +1225,7 @@ def pointset_upload(request):
 
     with transaction.atomic():
         pointset = PointSet.objects.create(
-            name=name[:120], source_filename=upload.name[:255], color=color[:7])
+            name=name[:120], source_filename=upload.name[:255], color=color[:7], body=body)
         Point.objects.bulk_create([
             Point(pointset=pointset, lat=p["lat"], lon=p["lon"],
                   label=p["label"][:200], props=p["props"])
@@ -1292,7 +1302,7 @@ def pointset_create(request):
 
     with transaction.atomic():
         pointset = PointSet.objects.create(
-            name=name[:120], source_filename="", color=color[:7])
+            name=name[:120], source_filename="", color=color[:7], body=_body(payload.get("body")))
         Point.objects.bulk_create([
             Point(pointset=pointset, lat=lat, lon=lon, label=label)
             for lat, lon, label in points
@@ -1366,7 +1376,7 @@ def pointset_delete(request, pk):
     client = _client(request)
     with transaction.atomic():
         PointSetDeletion.objects.create(
-            name=pointset.name, color=pointset.color,
+            name=pointset.name, body=pointset.body, color=pointset.color,
             source_filename=pointset.source_filename, created_at=pointset.created_at,
             client=client, points=summary["count"], lines=summary["lines"],
             polygons=summary["polygons"], snapshot=_pointset_features(pointset))
@@ -1380,7 +1390,7 @@ def pointset_delete(request, pk):
 def pointset_deleted(request):
     """최근 지운 점묶음 20 개. 설정의 "지금 상태" 가 부른다. 사본은 싣지 않는다."""
     return JsonResponse({"deleted": [{
-        "id": d.id, "name": d.name, "deleted_at": d.deleted_at.isoformat(),
+        "id": d.id, "name": d.name, "body": d.body, "deleted_at": d.deleted_at.isoformat(),
         "client": d.client, "points": d.points, "lines": d.lines, "polygons": d.polygons,
         "restored": bool(d.restored_at),
     } for d in PointSetDeletion.objects.all()[:20]]})
@@ -1406,11 +1416,20 @@ ELEV_POLAR_IN_REQUEST = 100
 
 def fill_elevation(pointset, *, only_missing: bool = False, pause: float = elevation.PGC_PAUSE) -> tuple:
     """점묶음의 점마다 표고를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
-    다시 부르면 덮는다 — 원천이 판을 올리면 출처 칸이 달라져 알아볼 수 있다(P03 §3)."""
+    다시 부르면 덮는다 — 원천이 판을 올리면 출처 칸이 달라져 알아볼 수 있다(P03 §3).
+
+    달 점묶음은 LOLA 로 간다(`trek.lola_values`, 037) — 지구의 표고 원천을 타지 않는다."""
     points = pointset.points.all()
     if only_missing:
         points = points.filter(elev__isnull=True)
     rows = {p.id: p for p in points}
+    if pointset.body == "moon":
+        got = trek.lola_values({pid: (p.lat, p.lon) for pid, p in rows.items()})
+        for pid, value in got.items():
+            p = rows[pid]
+            p.elev, p.elev_source, p.elev_datum = round(value, 1), trek.ELEV_SOURCE, trek.ELEV_DATUM
+        Point.objects.bulk_update([rows[pid] for pid in got], ["elev", "elev_source", "elev_datum"])
+        return len(got), len(rows) - len(got)
     got = elevation.elevations({pid: (p.lat, p.lon) for pid, p in rows.items()}, pause=pause)
     for pid, (value, source) in got.items():
         p = rows[pid]
@@ -1427,14 +1446,16 @@ def pointset_elevation(request, pk):
     if ps is None:
         return JsonResponse({"error": i18n.t(msg("그런 점묶음이 없다"), lang)}, status=404)
     total = ps.points.count()
-    polar = ps.points.filter(Q(lat__gte=elevation.POLAR_LAT) | Q(lat__lte=-elevation.POLAR_LAT)).count()
+    # 극지의 한 점씩 묻기(PGC)는 지구의 일이다. 달은 한 번에 100 점씩이라 극지를 가르지 않는다
+    polar = 0 if ps.body == "moon" else ps.points.filter(
+        Q(lat__gte=elevation.POLAR_LAT) | Q(lat__lte=-elevation.POLAR_LAT)).count()
     if total > ELEV_IN_REQUEST or polar > ELEV_POLAR_IN_REQUEST:
         return JsonResponse({"error": i18n.t(msg("점이 많아 화면에서 채우지 않는다 — 서버에서 "
                                                  "manage.py fill_elevation {id} 를 부른다", id=ps.id), lang)},
                             status=400)
     try:
         filled, missed = fill_elevation(ps)
-    except elevation.ElevationError as exc:
+    except (elevation.ElevationError, trek.TrekError) as exc:
         log.warning("표고를 채우지 못했다 (%s): %s", ps.id, exc)
         return JsonResponse({"error": i18n.t(msg("표고를 받지 못했다"), lang)}, status=502)
     return JsonResponse({"filled": filled, "missed": missed, "pointset": _pointset_summary(ps)})

@@ -133,7 +133,11 @@ class Stored(TestCase):
         self.assertIn(f"fill_elevation {self.ps.id}", r.json()["error"])
 
     def test_높이_기준표가_두_곳에서_같다(self):
-        self.assertEqual(pointsets.ELEV_DATUMS, {k: v[1] for k, v in elevation.SOURCES.items()})
+        # 지구의 원천(`elevation.SOURCES`)과 달의 LOLA(`trek`, 037)를 합친 것이다
+        from viewer import trek
+        expected = {k: v[1] for k, v in elevation.SOURCES.items()}
+        expected[trek.ELEV_SOURCE] = trek.ELEV_DATUM
+        self.assertEqual(pointsets.ELEV_DATUMS, expected)
 
 
 class DemView(SimpleTestCase):

@@ -6,11 +6,11 @@
 
 화면의 "표고 채우기" 는 점이 2 000 개(극지는 100 개)를 넘으면 이 명령으로 넘긴다.
 극지는 PGC 에 한 점에 한 번 묻고 사이를 둔다(`elevation.PGC_PAUSE`). 출처는
-`elevation.py` 머리글.
+`elevation.py` 머리글. 달 점묶음은 LOLA(`trek.lola_values`, devlog 037)로 간다.
 """
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import elevation, views
+from viewer import elevation, trek, views
 from viewer.models import PointSet
 
 
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         for ps in sets:
             try:
                 filled, missed = views.fill_elevation(ps, only_missing=o["missing"])
-            except elevation.ElevationError as exc:
+            except (elevation.ElevationError, trek.TrekError) as exc:
                 self.stderr.write(self.style.ERROR(f"{ps.id} {ps.name}: {exc}"))
                 continue
             self.stdout.write(f"{ps.id} {ps.name}: {filled}점 채움, {missed}점은 자료 밖")

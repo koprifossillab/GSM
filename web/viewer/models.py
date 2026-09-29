@@ -102,7 +102,12 @@ class Layer(models.Model):
 class PointSet(models.Model):
     """올린 좌표 묶음 하나. CSV 한 장이 점묶음 하나가 된다."""
 
+    #: 어느 몸의 위경도인가 (devlog 037). 달 좌표를 지구 화면에 그리면 엉뚱한 곳에 뜬다 —
+    #: 지구 화면은 `earth` 만, 달 화면은 `moon` 만 읽는다
+    BODIES = (("earth", "지구"), ("moon", "달"))
+
     name = models.CharField("이름", max_length=120)
+    body = models.CharField("몸", max_length=10, choices=BODIES, default="earth", db_index=True)
     source_filename = models.CharField("올린 파일", max_length=255, blank=True)
     color = models.CharField("색", max_length=7, default="#e4572e")
     created_at = models.DateTimeField("올린 때", auto_now_add=True)
@@ -117,7 +122,8 @@ class PointSet(models.Model):
 
 
 class Point(models.Model):
-    """점 하나. 위경도는 언제나 EPSG:4326 이다 — 화면이 3857 이어도 그렇다."""
+    """점 하나. 위경도는 지구면 EPSG:4326 이다 — 화면이 3857 이어도 그렇다. 달 점묶음이면
+    달 경위도(IAU_2015:30100)다 (`PointSet.body`)."""
 
     pointset = models.ForeignKey(PointSet, on_delete=models.CASCADE,
                                  related_name="points", verbose_name="점묶음")
@@ -177,6 +183,7 @@ class PointSetDeletion(models.Model):
     """
 
     name = models.CharField("이름", max_length=120)
+    body = models.CharField("몸", max_length=10, choices=PointSet.BODIES, default="earth")
     color = models.CharField("색", max_length=7, blank=True)
     source_filename = models.CharField("올린 파일", max_length=255, blank=True)
     created_at = models.DateTimeField("올린 때", null=True, blank=True)

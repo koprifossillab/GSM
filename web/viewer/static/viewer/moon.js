@@ -238,6 +238,14 @@
     attrs.querySelector(".close").addEventListener("click", function () { attrs.hidden = true; });
   }
   handler.setInputAction(function (click) {
+    // 점묶음의 점·모양을 눌렀으면 그 속성을 낸다. 지질 단위는 그 밖을 눌렀을 때
+    var picked = scene.pick(click.position);
+    var entity = picked && picked.id;
+    if (entity && entity.gsmProps) {
+      ++asked;
+      showFeature(entity);
+      return;
+    }
     var ll = lonLatAt(click.position);
     if (!ll) return;
     var head = "<h3>" + esc(fmt(ll)) + "</h3>";
@@ -277,6 +285,240 @@
       list.innerHTML = "<li>" + esc(T("범례를 받지 못했다")) + "</li>";
     });
   })();
+
+  // ── 내 자료 — 달 점묶음 (037) ──
+  //
+  // 지구의 점묶음과 같은 틀(`PointSet`)이고 `body: "moon"` 만 다르다. 좌표는 달 경위도(도)다.
+  // 올리기·지우기·표고 채우기·내려받기는 2D 와 같은 주소를 쓴다. 켜고 끈 것은 이 브라우저에 둔다
+  var pointsets = JSON.parse((document.getElementById("pointset-data") || {}).textContent || "[]");
+  var sources = {};
+  var PS_OFF = "gsm.moon.pointsets.off";
+  function offList() {
+    try { return JSON.parse(saved(PS_OFF, "[]")) || []; } catch (e) { return []; }
+  }
+  function setOff(id, off) {
+    var list = offList().filter(function (x) { return x !== id; });
+    if (off) list.push(id);
+    save(PS_OFF, JSON.stringify(list));
+  }
+  function csrf() {
+    var input = document.querySelector("#moon-upload [name=csrfmiddlewaretoken]");
+    return input ? input.value : "";
+  }
+  function post(url, body) {
+    return fetch(url, { method: "POST", headers: { "X-CSRFToken": csrf() }, body: body || new FormData() })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) throw new Error(d.error || String(r.status));
+          return d;
+        });
+      });
+  }
+  function countText(ps) {
+    var bits = [T("{n}점", { n: ps.count || 0 })];
+    if (ps.lines) bits.push(T("선 {n}", { n: ps.lines }));
+    if (ps.polygons) bits.push(T("면 {n}", { n: ps.polygons }));
+    if (!ps.count && (ps.lines || ps.polygons)) bits.shift();
+    if (ps.elevated) bits.push(T("고도 {n}", { n: ps.elevated }));
+    return bits.join(" · ");
+  }
+
+  function ringPositions(ring) {
+    var flat = [];
+    ring.forEach(function (c) { flat.push(c[0], c[1]); });
+    return Cesium.Cartesian3.fromDegreesArray(flat, MOON);
+  }
+  // 점·이름표를 지형에 묻히지 않게 깊이 검사를 끄되, **가까울 때만**이다. 끝없이 끄면 뒷면의 점
+  // (창어 4 호)이 달을 뚫고 앞면에 비친다. 1 500 km 는 달 반지름보다 짧다
+  var NO_DEPTH = 1500000;
+  function addFeature(source, ps, feature) {
+    var g = feature.geometry || {}, props = feature.properties || {};
+    var color = Cesium.Color.fromCssColorString(ps.color || "#e4572e");
+    var label = props["이름표"] || "";
+    var base = { gsmProps: props, gsmSet: ps };
+    function add(opts) {
+      var e = source.entities.add(opts);
+      e.gsmProps = base.gsmProps;
+      e.gsmSet = base.gsmSet;
+      return e;
+    }
+    if (g.type === "Point") {
+      add({
+        position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, MOON),
+        point: { pixelSize: 8, color: color, outlineColor: Cesium.Color.BLACK, outlineWidth: 1.5,
+                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                 disableDepthTestDistance: NO_DEPTH },
+        // 이름표는 가까이 가야 뜬다 — 멀리서는 수천 개가 겹친다
+        label: label ? { text: label, font: "12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+                         outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+                         style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -14),
+                         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                         distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 400000),
+                         disableDepthTestDistance: NO_DEPTH } : undefined,
+      });
+    } else if (g.type === "LineString" || g.type === "MultiLineString") {
+      (g.type === "LineString" ? [g.coordinates] : g.coordinates).forEach(function (line) {
+        add({ polyline: { positions: ringPositions(line), width: 2.5, clampToGround: true, material: color } });
+      });
+    } else if (g.type === "Polygon" || g.type === "MultiPolygon") {
+      (g.type === "Polygon" ? [g.coordinates] : g.coordinates).forEach(function (rings) {
+        add({ polygon: { hierarchy: new Cesium.PolygonHierarchy(ringPositions(rings[0]),
+                           rings.slice(1).map(function (r) { return new Cesium.PolygonHierarchy(ringPositions(r)); })),
+                         material: color.withAlpha(0.25) } });
+        add({ polyline: { positions: ringPositions(rings[0]), width: 2, clampToGround: true, material: color } });
+      });
+    }
+  }
+  function loadSet(ps) {
+    if (sources[ps.id]) { sources[ps.id].show = ps.visible; return Promise.resolve(sources[ps.id]); }
+    var source = new Cesium.CustomDataSource("ps-" + ps.id);
+    source.show = ps.visible;
+    sources[ps.id] = source;
+    viewer.dataSources.add(source);
+    return fetch(BASE + "pointsets/" + ps.id + "/geojson/").then(function (r) { return r.json(); }).then(function (data) {
+      source.gsmExtent = extentOf(data.features || []);
+      (data.features || []).forEach(function (f) { addFeature(source, ps, f); });
+      return source;
+    });
+  }
+  function reloadSet(ps) {
+    if (sources[ps.id]) { viewer.dataSources.remove(sources[ps.id], true); delete sources[ps.id]; }
+    return loadSet(ps);
+  }
+  function extentOf(features) {
+    var w = 180, s = 90, e = -180, n = -90;
+    function walk(c) {
+      if (typeof c[0] === "number") {
+        w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]);
+      } else c.forEach(walk);
+    }
+    features.forEach(function (f) { if (f.geometry) walk(f.geometry.coordinates); });
+    return w <= e ? [w, s, e, n] : null;
+  }
+  function flyToSet(ps) {
+    loadSet(ps).then(function (source) {
+      var x = source.gsmExtent;
+      if (!x) return;
+      var span = Math.max(x[2] - x[0], x[3] - x[1]);
+      if (span < 0.5) {
+        // 점 하나거나 아주 좁으면 가운데를 내려다본다
+        viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees((x[0] + x[2]) / 2, (x[1] + x[3]) / 2,
+                                                                          Math.max(30000, span * 120000), MOON),
+                              orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 }, duration: 1.5 });
+      } else {
+        var pad = span * 0.15;
+        viewer.camera.flyTo({ destination: Cesium.Rectangle.fromDegrees(x[0] - pad, Math.max(-90, x[1] - pad),
+                                                                         x[2] + pad, Math.min(90, x[3] + pad)),
+                              duration: 1.5 });
+      }
+    });
+  }
+  function iconButton(text, title, disabled, onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "icon";
+    b.textContent = text;
+    b.title = title;
+    b.setAttribute("aria-label", title);
+    b.disabled = !!disabled;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function renderSets() {
+    var host = document.getElementById("moon-ps-list");
+    host.innerHTML = "";
+    if (!pointsets.length) {
+      host.innerHTML = '<li class="empty">' + esc(T("아직 없다 — 아래에서 CSV·GeoJSON 을 올린다")) + "</li>";
+      return;
+    }
+    var off = offList();
+    pointsets.forEach(function (ps) {
+      ps.visible = off.indexOf(ps.id) < 0;
+      loadSet(ps);
+      var li = document.createElement("li");
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = ps.visible;
+      box.setAttribute("aria-label", ps.name);
+      box.addEventListener("change", function () {
+        ps.visible = box.checked;
+        setOff(ps.id, !ps.visible);
+        if (sources[ps.id]) sources[ps.id].show = ps.visible;
+      });
+      var swatch = document.createElement("span");
+      swatch.className = "dot";
+      swatch.style.background = ps.color;
+      var text = document.createElement("span");
+      text.className = "ps-text";
+      text.innerHTML = '<span class="ps-name">' + esc(ps.name) + '</span><span class="ps-count">' +
+                       esc(countText(ps)) + "</span>";
+      var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () { flyToSet(ps); });
+      var elev = iconButton("⛰", T("표고 채우기 — LOLA 표고에서 점마다 높이를 읽는다 (달 기준구 1737.4 km)"),
+                            !ps.count, function () {
+        elev.disabled = true;
+        post(BASE + "pointsets/" + ps.id + "/elevation/").then(function (d) {
+          if (d.pointset) Object.assign(ps, d.pointset);
+          alert(T("{n}점 채움 · {m}점은 자료 밖", { n: d.filled, m: d.missed }));
+          reloadSet(ps);
+          renderSets();
+        }).catch(function (e) {
+          elev.disabled = false;
+          alert((e && e.message) || T("표고를 받지 못했다"));
+        });
+      });
+      var down = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
+        location.href = BASE + "pointsets/" + ps.id + "/geojson/?download=1";
+      });
+      var del = iconButton("×", T("지운다"), false, function () {
+        if (!confirm(T("'{name}' 을 지운다.", { name: ps.name }))) return;
+        post(BASE + "pointsets/" + ps.id + "/delete/").then(function () {
+          if (sources[ps.id]) { viewer.dataSources.remove(sources[ps.id], true); delete sources[ps.id]; }
+          pointsets = pointsets.filter(function (x) { return x.id !== ps.id; });
+          renderSets();
+        }).catch(function (e) { alert((e && e.message) || ""); });
+      });
+      li.append(box, swatch, text, zoom, elev, down, del);
+      host.appendChild(li);
+    });
+  }
+  renderSets();
+
+  // 점·모양을 누르면 — 2D 의 팝업과 같이 딸린 속성을 받은 차례 그대로
+  function showFeature(entity) {
+    var props = entity.gsmProps || {}, ps = entity.gsmSet || {};
+    var title = props["이름표"] || ps.name || "";
+    var rows = Object.keys(props).filter(function (k) { return k !== "이름표" && props[k] !== "" && props[k] != null; });
+    showAttrs("<h3>" + esc(title) + '</h3><p class="from"><span class="dot" style="background:' + esc(ps.color) +
+              '"></span>' + esc(ps.name) + "</p>" +
+              (rows.length ? "<table>" + rows.map(function (k) {
+                return "<tr><th>" + esc(T(k)) + "</th><td>" + esc(props[k]) + "</td></tr>";
+              }).join("") + "</table>" : ""));
+  }
+
+  // 올리기
+  var PALETTE = ["#f2c14e", "#e4572e", "#4ea5d9", "#7bc47f", "#c879ff", "#ff8fab", "#f5f5f5"];
+  var form = document.getElementById("moon-upload");
+  var note = document.getElementById("moon-upload-note");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var file = form.querySelector("[name=file]").files[0];
+    if (!file) return;
+    var data = new FormData(form);
+    data.set("body", "moon");
+    data.set("color", PALETTE[pointsets.length % PALETTE.length]);
+    note.textContent = T("올리는 중");
+    post(BASE + "pointsets/upload/", data).then(function (d) {
+      pointsets.unshift(d.pointset);
+      setOff(d.pointset.id, false);
+      renderSets();
+      flyToSet(d.pointset);
+      form.reset();
+      note.textContent = (d.notes || []).join(" ");
+    }).catch(function (err) {
+      note.textContent = (err && err.message) || T("올리지 못했다");
+    });
+  });
 
   // ── 지명 찾기 ──
   var findInput = document.getElementById("moon-find");

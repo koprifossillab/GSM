@@ -220,6 +220,41 @@ def dem_tile(z: int, x: int, y: int) -> bytes:
     return buf.getvalue()
 
 
+# ── 점의 표고 (037) ──────────────────────────────────────────────────
+#
+# 달 점묶음의 ⛰. 지구의 `elevation.elevations` 와 같은 자리다. `getSamples` 가 여러 점을 한 번에
+# 받는다. **POST 는 403 이다**(2026-09-29 — Trek 앞의 방화벽) — GET 으로, 주소가 길어지지 않게
+# 한 번에 `SAMPLE_CHUNK` 점씩(100 점이 3 KB 남짓).
+
+#: 출처 이름과 높이 기준. `pointsets.ELEV_DATUMS` 에도 적는다
+ELEV_SOURCE = "lola-128ppd"
+ELEV_DATUM = "moon-sphere"
+SAMPLE_CHUNK = 100
+
+
+def lola_values(points: dict) -> dict:
+    """`{id: (lat, lon)}` → `{id: 표고 m}`. 반지름 1 737.4 km 구에서 잰 높이다. 못 읽은 점은 빠진다."""
+    ids = list(points)
+    out = {}
+    for start in range(0, len(ids), SAMPLE_CHUNK):
+        chunk = ids[start:start + SAMPLE_CHUNK]
+        geometry = {"points": [[round(points[i][1], 6), round(points[i][0], 6)] for i in chunk],
+                    "spatialReference": {"wkid": SR}}
+        data = _json(_get(f"trekarcgis/rest/services/{DEM_SERVICE}/ImageServer/getSamples", {
+            "geometry": json.dumps(geometry), "geometryType": "esriGeometryMultipoint",
+            "returnFirstValueOnly": "true", "interpolation": "RSP_BilinearInterpolation", "f": "json",
+        }))
+        for sample in data.get("samples") or []:
+            try:
+                value = float(sample.get("value"))
+                index = int(sample.get("locationId"))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= index < len(chunk) and -20000 < value < 20000:
+                out[chunk[index]] = value
+    return out
+
+
 # ── 지명 ────────────────────────────────────────────────────────────
 
 def fetch_places() -> list:
