@@ -81,6 +81,11 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 
 **v0.17.1 — 달 그림 내려받기, 남극 기지 단추** (048·049). 이주·운영 파일 없음.
 
+**v0.18.0 — 화성, 3D 상시, 극지연구소 자료, 3D 남극 IBCSO, 달 극 평면** (050–059). 세 세션을 모았다. 이주 0013
+(`PointSet.body` 에 `mars`). 화성은 `/GSM/mars/`(`mars.js`·`mars.html` — `moon.*` 을 옮긴 것, 문은 `trek.py` 의 `mars_*`).
+새 문 `kopri.py`(연구실 내부용) — 운영 `db/kopri/` 를 `manage.py fetch_kopri` 가 채운다. 3D 남극은 운영
+`db/ibcso/{dem,wide}-{bed,ice}/`(460 MB, 판 전에 옮겨 두었다).
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
