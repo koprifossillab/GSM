@@ -76,6 +76,7 @@
   map.addControl(new maplibregl.ScaleControl(), "bottom-left");
   map.on("load", function () {
     map.setTerrain({ source: "dem", exaggeration: 1.5 });
+    renderCustom();
     renderPointSets();
     window.__gsm3dReady = true;
   });
@@ -104,6 +105,99 @@
                                                         zoom: +map.getZoom().toFixed(2) }));
     } catch (e) { /* 사생활 모드 */ }
   });
+
+  // ── 커스텀 지질도 ────────────────────────────────────────────────
+  //
+  // 한반도 지질도(스캔·음영·민판)는 5179·5181 격자라 MapLibre 가 못 받는다 — 서버가
+  // 3857 로 다시 편 타일(`warp/`)을 얹는다. 암맥(026)은 모양 한 덩이를 받아 암석 갈래로
+  // 칠한다. 지질 레이어 위, 점묶음 아래에 둔다. 켠 것은 이 브라우저에 기억한다.
+
+  var custom = JSON.parse((document.getElementById("custom-data") || {}).textContent || "[]");
+  var CUSTOM_KEY = "gsm.3d.custom";
+  //: 암맥의 색 — 2D(`map.js` 의 DIKE_CLASSES)와 같게 둔다
+  var DIKE_COLORS = ["match", ["get", "cls"], "acid", "#c2185b", "intermediate", "#ef6c00",
+                     "basic", "#1b5e20", "vein", "#1565c0", "#616161"];
+  var customLabels = {};     // 레이어 → 팝업 이름표 (서버가 `labels` 로 준다)
+
+  function customOn() {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || "[]") || []; } catch (e) { return []; }
+  }
+  function setCustomOn(name, on) {
+    var names = customOn().filter(function (n) { return n !== name; });
+    if (on) names.push(name);
+    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(names)); } catch (e) { /* 사생활 모드 */ }
+  }
+  function customId(row) { return "cu-" + row.name.replace(/[^\w]/g, "-"); }
+  function customLayerIds(row) {
+    var id = customId(row);
+    return row.kind === "points" ? [id + "-line", id + "-point"] : [id];
+  }
+  /** 점묶음보다 밑에 깐다 — 먼저 생긴 점묶음 레이어가 있으면 그 앞에 끼운다. */
+  function beneathPointSets() {
+    var first = map.getStyle().layers.filter(function (l) { return l.id.indexOf("ps-") === 0; })[0];
+    return first ? first.id : undefined;
+  }
+
+  function showCustom(row) {
+    var id = customId(row);
+    if (map.getSource(id)) {
+      customLayerIds(row).forEach(function (l) { map.setLayoutProperty(l, "visibility", "visible"); });
+      return;
+    }
+    var before = beneathPointSets();
+    if (row.kind === "points") {
+      map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          customLabels[row.name] = d.labels || {};
+          map.getSource(id).setData({ type: "FeatureCollection", features: d.features || [] });
+        });
+      map.addLayer({ id: id + "-line", type: "line", source: id,
+                     filter: ["==", ["geometry-type"], "LineString"],
+                     paint: { "line-color": DIKE_COLORS, "line-width": 2.5 } }, before);
+      map.addLayer({ id: id + "-point", type: "circle", source: id,
+                     filter: ["==", ["geometry-type"], "Point"],
+                     paint: { "circle-radius": 3.5, "circle-color": DIKE_COLORS,
+                              "circle-stroke-color": "#fff", "circle-stroke-width": 1,
+                              "circle-pitch-alignment": "viewport" } }, before);
+      return;
+    }
+    map.addSource(id, { type: "raster", tileSize: 256, minzoom: 5, maxzoom: 17,
+                        tiles: [BASE + "warp/" + row.name.replace(":", "/") + "/{z}/{x}/{y}.png"] });
+    map.addLayer({ id: id, type: "raster", source: id, paint: { "raster-opacity": 0.8 } }, before);
+  }
+
+  function hideCustom(row) {
+    if (!map.getSource(customId(row))) return;
+    customLayerIds(row).forEach(function (l) { map.setLayoutProperty(l, "visibility", "none"); });
+  }
+
+  function renderCustom() {
+    var host = document.getElementById("custom3d");
+    if (!host || !custom.length) return;
+    document.getElementById("custom3d-head").hidden = false;
+    host.innerHTML = "";
+    var on = customOn();
+    custom.forEach(function (row) {
+      var shown = on.indexOf(row.name) >= 0;
+      if (shown) showCustom(row); else hideCustom(row);
+      var li = document.createElement("li");
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = shown;
+      box.addEventListener("change", function () {
+        setCustomOn(row.name, box.checked);
+        renderCustom();
+      });
+      var name = document.createElement("span");
+      name.className = "ps-name";
+      name.textContent = row.title;
+      name.title = row.title;
+      li.append(box, name);
+      host.appendChild(li);
+    });
+  }
 
   // ── 내 자료(점묶음) — P02 ────────────────────────────────────────
   //
@@ -281,14 +375,46 @@
     return ids;
   }
 
+  /** 누를 수 있는 커스텀 레이어(암맥) — 지금 얹혀 있는 것만. */
+  function customPickLayers() {
+    var ids = [];
+    custom.forEach(function (row) {
+      if (row.kind === "points" && map.getSource(customId(row))) ids = ids.concat(customLayerIds(row));
+    });
+    return ids;
+  }
+
+  /** 암맥 하나의 팝업 — 서버가 준 이름표(`labels`)대로. 링크는 http·https 만 잇는다. */
+  function customPopup(row, props) {
+    var labels = customLabels[row.name] || {};
+    var html = '<div class="popup3d"><h3>' + esc(row.title) + "</h3><table>";
+    Object.keys(labels).forEach(function (k) {
+      var v = props[k];
+      if (v === undefined || v === null || v === "") return;
+      var cell = /^https?:\/\//i.test(String(v))
+        ? '<a href="' + esc(v) + '" target="_blank" rel="noopener noreferrer">' + esc(T("열기")) + "</a>"
+        : esc(v);
+      html += "<tr><th>" + esc(T(labels[k])) + "</th><td>" + cell + "</td></tr>";
+    });
+    return html + "</table></div>";
+  }
+
   map.on("click", function (e) {
-    var layers = psLayers();
+    var layers = psLayers().concat(customPickLayers());
     if (!layers.length) return;
     var pad = 4;
     var hits = map.queryRenderedFeatures([[e.point.x - pad, e.point.y - pad], [e.point.x + pad, e.point.y + pad]],
                                          { layers: layers });
     if (!hits.length) return;
     var f = hits[0];
+    if (f.layer.id.indexOf("cu-") === 0) {
+      var row = custom.filter(function (r) { return f.layer.id.indexOf(customId(r)) === 0; })[0];
+      if (row) {
+        new maplibregl.Popup({ maxWidth: "320px" }).setLngLat(e.lngLat)
+          .setHTML(customPopup(row, f.properties || {})).addTo(map);
+      }
+      return;
+    }
     var psId = +String(f.layer.id).split("-")[1];
     var ps = pointsets.filter(function (x) { return x.id === psId; })[0] || {};
     var props = f.properties || {};
@@ -304,7 +430,7 @@
     new maplibregl.Popup({ maxWidth: "320px" }).setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
   map.on("mousemove", function (e) {
-    var layers = psLayers();
+    var layers = psLayers().concat(customPickLayers());
     var hit = layers.length && map.queryRenderedFeatures(e.point, { layers: layers }).length;
     map.getCanvas().style.cursor = hit ? "pointer" : "";
   });

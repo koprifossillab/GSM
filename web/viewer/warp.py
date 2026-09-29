@@ -1,0 +1,156 @@
+"""평면 격자(5179·5181)로 잘린 타일을 3857 타일로 다시 편다 — 3D 가 쓴다.
+
+3D(MapLibre, devlog 015)는 3857 래스터만 얹는다. 2D 의 OpenLayers 는 한반도 지질도의
+5179(음영판·민판, 027·028)·5181(스캔판, 026) 격자를 그대로 받아 옮겨 그리지만 3D 는
+그러지 못한다. 그래서 3D 가 부르는 3857 타일 한 장마다 **그 자리를 덮는 원본 타일을 모아
+붙이고, Pillow 의 `MESH` 변환으로 편다.** numpy·GDAL 없이 된다(requirements-web.txt).
+
+- 타일을 가로세로 8 칸으로 나눠 칸마다 네 모서리를 원본 픽셀로 되짚는다. 칸 안은 선형이다.
+  256 px 타일의 한 칸은 32 px 이라, 줌 14 에서도 휨의 어긋남이 한 픽셀 밑이다
+- 원본 격자의 단계는 3857 타일의 땅 해상도보다 **한 단계 촘촘한 것 가운데 가장 거친 것**을
+  고른다. 너무 촘촘하면 타일을 많이 받고, 거칠면 흐리다
+- 이것은 문이 아니다 — 원본을 받는 것은 부르는 쪽이 넘긴 `fetch` 가 한다
+  (음영판은 우리 디스크, 스캔판은 `phyloserver.get_scan_tile`)
+"""
+import io
+import math
+
+from PIL import Image
+
+from . import crs, tilegrid
+
+TILE = 256
+#: 한 변을 몇 칸으로 나눠 휘나
+MESH = 8
+
+#: 5181 — 카카오 격자의 좌표계(중부원점, GRS80, 북가산 500 000). crs.SYSTEMS 에는 없다
+_TM_5181 = ("5181", crs.GRS80, 38, 127, 1.0, 200000, 500000, False)
+
+
+def to_5179(lat: float, lon: float) -> tuple:
+    return crs.from_latlon("5179", lat, lon)
+
+
+def to_5181(lat: float, lon: float) -> tuple:
+    return crs._ll_to_tm(lat, lon, _TM_5181)
+
+
+class Grid:
+    """원본 격자 하나.
+
+    levels      고를 수 있는 단계들
+    res(l)      단계 l 의 한 픽셀(m)
+    origin(l)   단계 l 의 왼쪽 위 (동, 북) — 타일 번호는 여기서 오른쪽·아래로 센다
+    size        타일 한 변의 픽셀
+    project     (위도, 경도) → (동, 북)
+    fetch(l, x, y)  타일 한 장(그림 바이트). 없으면(바다) None
+    """
+
+    def __init__(self, levels, res, origin, project, fetch, size=256, valid=None):
+        self.levels, self.res, self.origin = list(levels), res, origin
+        self.project, self.fetch, self.size = project, fetch, size
+        self.valid = valid or (lambda level, x, y: True)
+
+    def pick(self, meters_per_px: float):
+        """3857 타일의 땅 해상도에 맞는 단계 — 그보다 촘촘한 것 가운데 가장 거친 것."""
+        finer = [l for l in self.levels if self.res(l) <= meters_per_px]
+        if finer:
+            return max(finer, key=self.res)
+        return min(self.levels, key=self.res)
+
+
+def _lonlat(z: int, x: int, y: int, px: float, py: float) -> tuple:
+    """3857 타일 (z, x, y) 안의 픽셀 (px, py) → (경도, 위도)."""
+    n = 2 ** z
+    lon = (x + px / TILE) / n * 360.0 - 180.0
+    merc = math.pi * (1 - 2 * (y + py / TILE) / n)
+    return lon, math.degrees(math.atan(math.sinh(merc)))
+
+
+def render(grid: Grid, z: int, x: int, y: int):
+    """3857 타일 한 장(PNG 바이트). 원본이 하나도 걸리지 않으면 None."""
+    # 칸의 꼭짓점을 원본 좌표로
+    step = TILE / MESH
+    corners = {}
+    for i in range(MESH + 1):
+        for j in range(MESH + 1):
+            lon, lat = _lonlat(z, x, y, i * step, j * step)
+            corners[i, j] = grid.project(lat, lon)
+    # 땅 해상도 — 타일 가운데 위도에서
+    _, mid_lat = _lonlat(z, x, y, TILE / 2, TILE / 2)
+    meters = tilegrid.resolution(z) * 2 * math.cos(math.radians(mid_lat))   # tilegrid 는 512 px 기준
+    level = grid.pick(meters)
+    res, (ox, oy), span = grid.res(level), grid.origin(level), grid.size * grid.res(level)
+
+    xs = [c[0] for c in corners.values()]
+    ys = [c[1] for c in corners.values()]
+    tx0, tx1 = int((min(xs) - ox) // span), int((max(xs) - ox) // span)
+    ty0, ty1 = int((oy - max(ys)) // span), int((oy - min(ys)) // span)
+    if (tx1 - tx0 + 1) * (ty1 - ty0 + 1) > 36:
+        return None                    # 너무 멀리서 본다 — 원본을 수십 장 모으지 않는다
+
+    mosaic = Image.new("RGBA", ((tx1 - tx0 + 1) * grid.size, (ty1 - ty0 + 1) * grid.size), (0, 0, 0, 0))
+    got = False
+    for tx in range(tx0, tx1 + 1):
+        for ty in range(ty0, ty1 + 1):
+            if not grid.valid(level, tx, ty):
+                continue
+            data = grid.fetch(level, tx, ty)
+            if not data:
+                continue
+            piece = Image.open(io.BytesIO(data)).convert("RGBA")
+            mosaic.paste(piece, ((tx - tx0) * grid.size, (ty - ty0) * grid.size))
+            got = True
+    if not got:
+        return None
+
+    left, top = ox + tx0 * span, oy - ty0 * span
+
+    def src(key):
+        e, n = corners[key]
+        return (e - left) / res, (top - n) / res
+
+    mesh = []
+    for i in range(MESH):
+        for j in range(MESH):
+            box = (round(i * step), round(j * step), round((i + 1) * step), round((j + 1) * step))
+            # QUAD 의 차례 — 왼쪽 위, 왼쪽 아래, 오른쪽 아래, 오른쪽 위
+            quad = src((i, j)) + src((i, j + 1)) + src((i + 1, j + 1)) + src((i + 1, j))
+            mesh.append((box, quad))
+    out = mosaic.transform((TILE, TILE), Image.MESH, mesh, resample=Image.BILINEAR)
+    if not out.getbbox():
+        return None
+    buf = io.BytesIO()
+    out.save(buf, "PNG", optimize=True)
+    return buf.getvalue()
+
+
+# ── 원본 격자 둘 ────────────────────────────────────────────────────
+
+def peninsula_grid(sheet) -> Grid:
+    """음영판·민판(027·028) — 우리가 잘라 둔 5179 타일. 원점은 범위의 왼쪽 위다."""
+    x0, _, _, y1 = sheet.extent
+    return Grid(levels=range(sheet.max_zoom + 1), res=sheet.resolution,
+                origin=lambda level: (x0, y1), project=to_5179,
+                fetch=sheet.read_tile, size=TILE, valid=sheet.valid_tile)
+
+
+def kakao_grid(levels, origin, top, fetch_tile) -> Grid:
+    """스캔판(026) — phyloserver 의 카카오 격자(5181). 레벨 L 의 한 픽셀은 2^(L-3) m 이고
+    **번호를 아래에서 위로 센다.** 여기서는 위에서 아래로 센 번호를 받아 뒤집어 넘긴다."""
+    lo, hi = levels
+    ox, oy = origin
+    height = top[1] * 256 * 2 ** (hi - 3)           # 격자 전체의 높이(m) — 레벨과 상관없다
+
+    def rows(level):
+        return top[1] * 2 ** (hi - level)
+
+    def fetch(level, x, y):
+        return fetch_tile(level, x, rows(level) - 1 - y)
+
+    def valid(level, x, y):
+        return 0 <= x < top[0] * 2 ** (hi - level) and 0 <= y < rows(level)
+
+    return Grid(levels=range(lo, hi + 1), res=lambda level: 2.0 ** (level - 3),
+                origin=lambda level: (ox, oy + height), project=to_5181,
+                fetch=fetch, size=256, valid=valid)

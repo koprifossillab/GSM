@@ -287,6 +287,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
   peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
+  warp.py         평면 격자(5179·5181) 타일 -> 3857 타일. 3D 가 한반도 지질도를 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
   crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트) <-> 위경도. pyproj 없이
@@ -303,7 +304,7 @@ devlog/           왜 그렇게 했는지
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`.**
 이 일곱 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py` 는
-상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. 문은 서로를 타지 않는다 —
+상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
 VWorld 배경지도(WMTS)만은 문을 거치지 않고 브라우저가 곧장 부른다 — 타일이

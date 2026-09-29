@@ -133,6 +133,7 @@ EN = {
     "도폭 {code} {name}": "Sheet {code} {name}",
     "스캔": "Scan",
     "이 도폭만 켜기": "Show only this sheet",
+    "커스텀 지질도": "Custom geological maps",
     "음영 보이기": "Show hillshade",
     "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
         "Drag with the right button (or Ctrl+drag) to tilt and rotate.",

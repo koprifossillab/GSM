@@ -21,7 +21,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               peninsula, phyloserver, pointsets, tilecache, tiles, vworld)
+               peninsula, phyloserver, pointsets, tilecache, tiles, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -147,10 +147,15 @@ def map3d_view(request):
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
                               and l.get("upstream") in ("kigam", "geus", "vworld")])
               for g in _catalog(lang)]
+    # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
+    # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
+    custom = [{"name": l["name"], "title": l["title"], "kind": l.get("kind"), "group": g["name"]}
+              for g in _catalog(lang) for l in g["layers"] if l.get("upstream") in ("peninsula", "phyloserver")]
     return render(request, "viewer/map3d.html", {
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "catalog_groups": [g for g in groups if g["layers"]],
+        "custom_layers": _script_json(custom),
         # 점묶음 요약 — 2D 와 같은 것이다. 모양은 `pointsets/<번호>/geojson/` 으로 받는다 (P02)
         "pointsets": _script_json(_pointset_list()),
         "vworld_key": settings.VWORLD_KEY,
@@ -517,6 +522,39 @@ def peninsula_tile(request, layer, z, x, y):
     if data is None:
         return _tile(tiles.blank_tile(256, 256))
     return _tile(data, content_type="image/webp")
+
+
+#: 3D 가 다시 편 타일을 받는 줌. 멀리서는 원본을 수십 장 모아야 해 묻지 않는다
+WARP_ZOOMS = (5, 17)
+
+
+@require_GET
+def warp_tile(request, upstream, layer, z, x, y):
+    """평면 격자 타일을 3857 로 다시 편 것 — `warp/<상류>/<레이어>/<z>/<x>/<y>.png` (3D 가 쓴다).
+
+    3D(MapLibre)는 3857 만 받아 5179(음영판·민판)·5181(스캔판) 격자를 못 얹는다.
+    요청마다 원본을 모아 편다(`warp.py`, 0.1 초 남짓). 캐시에 담지 않는다 — 원본이 우리
+    디스크(음영판)거나 같은 서버의 파일(스캔판, 026 이 캐시를 두지 않은 까닭 그대로)이다."""
+    name, z, x, y = f"{upstream}:{layer}", int(z), int(x), int(y)
+    lang = i18n.lang_of(request)
+    if _lab_only(name) or not (WARP_ZOOMS[0] <= z <= WARP_ZOOMS[1]) or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
+    if name in peninsula.SHEETS:
+        sheet = peninsula.SHEETS[name]
+        if not sheet.available():
+            return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
+        grid = warp.peninsula_grid(sheet)
+    elif phyloserver.knows_scan(name):
+        grid = warp.kakao_grid(phyloserver.SCAN_LEVELS, phyloserver.SCAN_ORIGIN, phyloserver.SCAN_TOP,
+                               lambda level, tx, ty: phyloserver.get_scan_tile(name, level, tx, ty))
+    else:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
+    try:
+        png = warp.render(grid, z, x, y)
+    except (phyloserver.PhyloserverError, OSError, ValueError) as exc:
+        log.warning("다시 펴지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    return _tile(png or tiles.blank_tile(256, 256))
 
 
 def _float(value):
