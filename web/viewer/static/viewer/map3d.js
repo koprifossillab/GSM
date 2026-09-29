@@ -52,9 +52,11 @@
              attribution: "© 한국지질자원연구원" },
   };
   var layers = [{ id: "bg", type: "background", paint: { "background-color": "#e8e0d2" } }];
+  // VWorld 를 곧장 받지 못하면(사내 VPN 이 끊는다) 서버를 거친다 — 평면 지도와 같다 (033)
+  var VWORLD = "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey);
   if (vworldKey) {
     sources.base = { type: "raster", tileSize: 256, maxzoom: 19, attribution: "© VWorld",
-      tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey) + "/white/{z}/{y}/{x}.png"] };
+      tiles: [VWORLD + "/white/{z}/{y}/{x}.png"] };
     layers.push({ id: "base", type: "raster", source: "base" });
   }
   layers.push({ id: "shade", type: "hillshade", source: "shade",
@@ -101,7 +103,25 @@
     renderCustom();
     renderPointSets();
     window.__gsm3dReady = true;
+    if (vworldKey) probeVworld();
   });
+
+  /** 한 장을 곧장 받아 보고, 연결이 끊기면 배경을 `vworld/` 로 돌린다 (`map.js` 와 같다). */
+  function probeVworld() {
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 8000);
+    fetch(VWORLD + "/Base/7/50/109.png", { cache: "no-store", signal: ctl.signal })
+      .then(function () { clearTimeout(timer); }, function () {
+        clearTimeout(timer);
+        // `setTiles` 는 주소만 바꾸고 끊겼던 타일을 다시 받지 않는다 — 소스째 새로 얹는다
+        var spec = sources.base;
+        spec.tiles = [location.origin + BASE + "vworld/white/{z}/{y}/{x}.png"];
+        map.removeLayer("base");
+        map.removeSource("base");
+        map.addSource("base", spec);
+        map.addLayer({ id: "base", type: "raster", source: "base" }, "shade");
+      });
+  }
   window.__gsm3d = map;
 
   select.addEventListener("change", function () {

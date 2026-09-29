@@ -35,6 +35,9 @@ urlpatterns = [
     # 한반도 지질도 — phyloserver 의 카카오 격자 타일 (phyloserver.py, devlog 026)
     re_path(r"^phyloserver/(?P<layer>[\w-]+)/(?P<level>\d{1,2})/(?P<x>\d{1,5})_(?P<y>\d{1,5})\.png$",
             views.phyloserver_tile, name="phyloserver-tile"),
+    # VWorld 배경지도 — 브라우저가 곧장 못 받을 때만 거친다 (사내 VPN, devlog 033)
+    re_path(r"^vworld/(?P<layer>\w+)/(?P<z>\d{1,2})/(?P<y>\d{1,7})/(?P<x>\d{1,7})\.(?:png|jpeg)$",
+            views.vworld_tile, name="vworld-tile"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
 

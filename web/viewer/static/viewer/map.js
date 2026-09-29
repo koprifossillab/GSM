@@ -648,6 +648,7 @@
   // **브라우저가 곧장 부른다.** 상류 지질도와 다른 점이다 — VWorld 는
   // 브라우저가 직접 부르는 것을 전제로 하고 열쇠에 도메인 제한을 걸어
   // 지킨다. 서버가 중계하면 그 제한이 뜻을 잃고 타일을 전부 우리가 짊어진다.
+  // **곧장 닿지 못할 때만**(사내 VPN) 서버를 거친다 — 아래 `vworldSource` (033).
   //
   // WMTS 의 자리 차례가 **z/y/x** 다. z/x/y 로 적으면 엉뚱한 곳이 그려진다.
   if (vworldKey) {
@@ -657,11 +658,7 @@
       make: function () {
         return new ol.layer.Tile({
           opacity: 0.85,
-          source: new ol.source.XYZ({
-            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
-                 + "/Base/{z}/{y}/{x}.png",
-            crossOrigin: "anonymous",
-            maxZoom: 19,
+          source: vworldSource("Base", "png", {
             attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
           }),
         });
@@ -689,19 +686,12 @@
       labels: true,
       make: function () {
         var labels = new ol.layer.Tile({
-          source: new ol.source.XYZ({
-            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
-                 + "/Hybrid/{z}/{y}/{x}.png",
-            crossOrigin: "anonymous", maxZoom: 19,
-          }),
+          source: vworldSource("Hybrid", "png"),
           visible: labelsOn(),
         });
         labels.set("gsmLabels", true);
         return new ol.layer.Group({ layers: [
-          new ol.layer.Tile({ source: new ol.source.XYZ({
-            url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
-                 + "/Satellite/{z}/{y}/{x}.jpeg",
-            crossOrigin: "anonymous", maxZoom: 19,
+          new ol.layer.Tile({ source: vworldSource("Satellite", "jpeg", {
             attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
           })}),
           labels,
@@ -902,15 +892,55 @@
 
   var baseLayer = null;
 
+  // ── VWorld 를 곧장 받지 못하면 서버를 거친다 (033) ──
+  //
+  // 배경지도는 브라우저가 `api.vworld.kr` 에서 곧장 받는다(003). 그런데 **사내
+  // VPN 이 그 연결을 끊는다**(`ERR_CONNECTION_RESET`) — VPN 은 이 서버만
+  // 통과시킨다. 그래서 VWorld 배경을 처음 깔 때 한 장을 곧장 받아 보고,
+  // **연결이 끊기면** 그 뒤로는 VWorld 타일을 전부 `vworld/` 로 받는다.
+  //
+  // 받아 보는 한 장은 `no-store` 다 — 브라우저가 들고 있던 것이 나오면
+  // 끊긴 길을 붙은 줄로 안다. VWorld 가 오류를 **답한** 것은 끊긴 것이 아니라
+  // 곧장 받기를 그대로 둔다. 서버를 거쳐도 같은 오류가 올 뿐이다.
+  var vworldRelay = false;
+  var vworldProbed = false;
+  var vworldSources = [];
+
+  function vworldUrl(layer, ext) {
+    if (vworldRelay) return BASE + "vworld/" + layer + "/{z}/{y}/{x}." + ext;
+    return "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+           + "/" + layer + "/{z}/{y}/{x}." + ext;
+  }
+
+  /** VWorld WMTS 한 겹의 소스. 자리 차례가 z/y/x 다. */
+  function vworldSource(layer, ext, extra) {
+    var opts = { url: vworldUrl(layer, ext), crossOrigin: "anonymous", maxZoom: 19 };
+    Object.keys(extra || {}).forEach(function (k) { opts[k] = extra[k]; });
+    var source = new ol.source.XYZ(opts);
+    vworldSources.push({ source: source, layer: layer, ext: ext });
+    probeVworld();
+    return source;
+  }
+
+  function probeVworld() {
+    if (vworldProbed || vworldRelay) return;
+    vworldProbed = true;
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 8000);
+    fetch("https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+          + "/Base/7/50/109.png", { cache: "no-store", signal: ctl.signal })
+      .then(function () { clearTimeout(timer); }, function () {
+        clearTimeout(timer);
+        vworldRelay = true;
+        vworldSources.forEach(function (s) { s.source.setUrl(vworldUrl(s.layer, s.ext)); });
+      });
+  }
+
   /** VWorld 의 한 장짜리 배경(`white`·`midnight`). */
   function vworldPlain(name) {
     return new ol.layer.Tile({
       opacity: 0.85,
-      source: new ol.source.XYZ({
-        url: "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
-             + "/" + name + "/{z}/{y}/{x}.png",
-        crossOrigin: "anonymous",
-        maxZoom: 19,
+      source: vworldSource(name, "png", {
         attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
       }),
     });

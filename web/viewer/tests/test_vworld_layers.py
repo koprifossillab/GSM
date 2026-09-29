@@ -192,3 +192,48 @@ class Seed(TestCase):
             self.assertIn(row["name"], i18n.LAYER_EN)
         for name in seed["레이어군순서"]:
             self.assertIn(name, i18n.GROUP_EN)
+
+
+@override_settings(VWORLD_KEY="SECRET")
+class Basemap(SimpleTestCase):
+    """배경지도(WMTS) 중계 — 브라우저가 곧장 못 받을 때만 온다 (033)."""
+
+    def test_열쇠는_경로에_붙고_로그에는_적지_않는다(self):
+        with mock.patch.object(vworld.requests, "get", return_value=resp(PNG)) as get, \
+                self.assertLogs("viewer.vworld", "INFO") as logs:
+            content, ctype = vworld.get_wmts_tile("white", 10, 402, 874)
+        self.assertEqual(get.call_args.args[0],
+                         "https://api.vworld.kr/req/wmts/1.0.0/SECRET/white/10/402/874.png")
+        self.assertEqual((content, ctype), (PNG, "image/png"))
+        self.assertNotIn("SECRET", "\n".join(logs.output))
+
+    def test_위성은_jpeg(self):
+        with mock.patch.object(vworld.requests, "get",
+                               return_value=resp(b"\xff\xd8", "image/jpeg")) as get:
+            vworld.get_wmts_tile("Satellite", 10, 402, 874)
+        self.assertTrue(get.call_args.args[0].endswith("/Satellite/10/402/874.jpeg"))
+
+    def test_자료_밖의_XML_은_빈_자리(self):
+        with mock.patch.object(vworld.requests, "get",
+                               return_value=resp(b"<xml/>", "application/xml;charset=UTF-8")):
+            self.assertIsNone(vworld.get_wmts_tile("Base", 15, 1000, 1000))
+
+    def test_닿지_못한_오류에도_열쇠가_없다(self):
+        boom = vworld.requests.ConnectionError("https://api.vworld.kr/req/wmts/1.0.0/SECRET/Base/1/1/1.png reset")
+        with mock.patch.object(vworld.requests, "get", side_effect=boom):
+            with self.assertRaises(vworld.VWorldError) as ctx:
+                vworld.get_wmts_tile("Base", 1, 1, 1)
+        self.assertNotIn("SECRET", str(ctx.exception))
+
+    def test_뷰는_모르는_레이어를_묻지_않는다(self):
+        with mock.patch.object(vworld.requests, "get") as get:
+            r = self.client.get("/GSM/vworld/Bogus/7/50/109.png")
+        self.assertEqual(r.status_code, 404)
+        get.assert_not_called()
+
+    def test_뷰는_자료_밖을_투명_타일로_낸다(self):
+        with mock.patch.object(vworld.requests, "get",
+                               return_value=resp(b"<xml/>", "application/xml")):
+            r = self.client.get("/GSM/vworld/Base/15/1000/1000.png")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["Content-Type"], "image/png")

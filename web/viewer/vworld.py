@@ -5,7 +5,8 @@
 타지 않는다.
 
 배경지도(WMTS)는 여기를 거치지 않는다. 그것은 브라우저가 곧장 부른다
-(`settings.VWORLD_KEY` 의 설명). 여기로 오는 것은 사람이 검색 칸에 넣고
+(`settings.VWORLD_KEY` 의 설명). 곧장 닿지 못할 때만 — 사내 VPN — 거친다 (아래 WMTS, 033).
+여기로 오는 것은 사람이 검색 칸에 넣고
 누른 한 번, 팝업을 연 한 번, 그리고 "지질 참고" 레이어의 타일·속성·단층
 모양이다 (아래 WMS·WFS, devlog 020).
 
@@ -354,3 +355,53 @@ def friendly(props: dict, layer: str = "") -> dict:
                 pass
         out.setdefault(name, value)
     return out or dict(props)
+
+
+# ── WMTS 배경지도 — 브라우저가 곧장 못 받을 때만 (devlog 033) ──────────
+#
+# 배경지도는 브라우저가 `api.vworld.kr` 에서 곧장 받는다(003). 그런데 **사내
+# VPN 이 그 연결을 끊는다**(`ERR_CONNECTION_RESET`, 2026-09-29) — VPN 은 사내
+# 주소만 통과시키고, 이 서버는 VWorld 에 닿는다. 그래서 브라우저가 곧장 받아
+# 보다가 끊기면 **그때만** 여기를 거친다. 사내에서는 여전히 여기를 타지 않는다.
+#
+# 열쇠가 URL 의 **경로에** 든다(`…/1.0.0/<열쇠>/Base/…`). 로그에는 레이어·자리만
+# 적는다. 받은 것을 디스크 캐시에 담지 않는다 — 곧장 받을 때도 우리 것이 아니고,
+# 브라우저가 들고 있으면(`Cache-Control`) 된다.
+
+WMTS_URL = "https://api.vworld.kr/req/wmts/1.0.0/{key}/{layer}/{z}/{y}/{x}.{ext}"
+
+#: 중계하는 레이어와 그 확장자. 브라우저가 쓰는 것뿐이다 (`map.js`·`map3d.js`)
+WMTS_LAYERS = {"Base": "png", "white": "png", "midnight": "png", "Hybrid": "png", "Satellite": "jpeg"}
+
+
+def get_wmts_tile(layer: str, z: int, y: int, x: int):
+    """배경지도 타일 한 장. (바이트, content-type). 자료가 없는 자리는 `None`.
+
+    **자료 밖은 200 에 XML 이 온다**(`Base/15/1000/1000` 이 436 바이트의 XML).
+    그것은 빈 자리라 `None` 을 돌려주고, 부르는 쪽이 투명 타일을 낸다."""
+    if not enabled():
+        raise VWorldError("VWorld 열쇠가 없다")
+    left = usage.paused()
+    if left:
+        raise VWorldError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
+    url = WMTS_URL.format(key=settings.VWORLD_KEY, layer=layer, z=z, y=y, x=x,
+                          ext=WMTS_LAYERS[layer])
+    where = f"{layer}/{z}/{y}/{x}"
+    try:
+        r = requests.get(url, timeout=settings.UPSTREAM_TIMEOUT,
+                         verify=settings.CA_BUNDLE or True,
+                         headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("vworld", ok=False)
+        # 예외 문구에 URL 이 실려 온다 — 경로의 열쇠를 지운다
+        raise VWorldError(f"VWorld 에 닿지 못했다 ({where}): "
+                          f"{str(exc).replace(settings.VWORLD_KEY, '…')}") from exc
+    log.info("VWorld WMTS %s -> %s", where, r.status_code)
+    ctype = r.headers.get("content-type", "")
+    usage.record("vworld", ok=r.status_code == 200,
+                 blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    if r.status_code == 200 and ctype.startswith("image/"):
+        return r.content, ctype
+    if r.status_code == 200:
+        return None
+    raise VWorldError(f"배경지도 타일을 받지 못했다 ({where}, status={r.status_code})")

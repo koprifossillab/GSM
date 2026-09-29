@@ -487,6 +487,25 @@ def gsj_tile(request, layer, z, x, y):
 
 
 @require_GET
+def vworld_tile(request, layer, z, y, x):
+    """VWorld 배경지도 타일 — `vworld/<레이어>/<z>/<y>/<x>`. 자리 차례는 WMTS 대로 z/y/x.
+
+    **브라우저가 `api.vworld.kr` 에 곧장 닿지 못할 때만 온다** — 사내 VPN 이
+    그 연결을 끊는다 (033). 캐시에 담지 않는다. 자료 밖은 투명한 빈 타일이다."""
+    if layer not in vworld.WMTS_LAYERS:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    try:
+        got = vworld.get_wmts_tile(layer, int(z), int(y), int(x))
+    except vworld.VWorldError as exc:
+        log.warning("VWorld 배경지도를 받지 못했다: %s", exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    if got is None:
+        return _tile(tiles.blank_tile(256, 256))
+    return _tile(got[0], content_type=got[1])
+
+
+@require_GET
 def phyloserver_tile(request, layer, level, x, y):
     """한반도 지질도 타일 — `phyloserver/<레이어>/<레벨>/<x>_<y>.png` (026).
 
