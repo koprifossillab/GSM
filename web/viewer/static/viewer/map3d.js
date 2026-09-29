@@ -96,7 +96,8 @@
     // 스발바르를 z13 으로 열면 PGC 타일이 96 장, 빈 캐시에서 55 초였다(2026-09-29). 한 픽셀이
     // 땅 수 m–수십 m 라 지형에는 넉넉하다
     dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15,
-           attribution: "Terrain: Mapzen/AWS Terrain Tiles · 국토지리원 · ArcticDEM/REMA © PGC (CC BY 4.0)" },
+           attribution: "Terrain: Mapzen/AWS Terrain Tiles · 국토지리원 · ArcticDEM/REMA © PGC (CC BY 4.0) · " +
+                        "IBCSO v2 (Dorschel et al., 2022, CC BY 4.0)" },
     shade: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15 },
     kigam: geologySource(select.value),
   };
@@ -111,6 +112,31 @@
       bounds: [120, 30, 134, 44] };
     layers.push({ id: "base", type: "raster", source: "base" });
   }
+  // 남극은 IBCSO v2 를 배경으로 깐다(051) — 우리가 잘라 둔 3031 타일을 서버가 3857 로 편 것(`warp/ibcso/`).
+  // 판은 500 m 라 줌 8 넘어서는 브라우저가 늘린다. 고른 판은 지형도 따른다(아래 `demRequest`)
+  var baseSel = document.getElementById("base3d");
+  var IBCSO_KEY = "gsm.3d.ibcso";
+  var ibcsoKind = "";
+  if (REGION === "antarctica" && baseSel) {
+    try { ibcsoKind = localStorage.getItem(IBCSO_KEY); } catch (e) { ibcsoKind = null; }
+    if (ibcsoKind === null || !baseSel.querySelector('option[value="' + ibcsoKind.replace(/"/g, "") + '"]')) {
+      ibcsoKind = "ice";
+    }
+    baseSel.value = ibcsoKind;
+  }
+  function ibcsoSource(kind) {
+    return { type: "raster", tileSize: 512, minzoom: 2, maxzoom: 8, bounds: [-180, -85.06, 180, -50],
+             tiles: [BASE + "warp/ibcso/" + kind + "/{z}/{x}/{y}@2x.png"],
+             attribution: "IBCSO v2 (Dorschel et al., 2022, doi:10.1594/PANGAEA.937574, CC BY 4.0)" };
+  }
+  if (ibcsoKind) {
+    sources.ibcso = ibcsoSource(ibcsoKind);
+    layers.push({ id: "ibcso", type: "raster", source: "ibcso" });
+  }
+  // 지형의 판 — 빙저를 고르면 표고 타일 주소에 `?bed` 를 달아 `demRequest` 가 `dem/bed/` 로 돌린다.
+  // 주소가 바뀌어야 MapLibre 가 받아 둔 타일을 버리고 새로 받는다
+  function demTiles() { return [DEM + (ibcsoKind === "bed" ? "?bed" : "")]; }
+  sources.dem.tiles = sources.shade.tiles = demTiles();
   layers.push({ id: "shade", type: "hillshade", source: "shade",
                 paint: { "hillshade-exaggeration": 0.5, "hillshade-shadow-color": "#3f2712" } });
   layers.push({ id: "kigam", type: "raster", source: "kigam", paint: { "raster-opacity": 0.7 } });
@@ -132,16 +158,23 @@
     if (lon >= 130.7 && lon <= 131.95 && lat >= 37.1 && lat <= 37.6) return false;   // 울릉도·독도
     return true;
   }
+  var IBCSO_NORTH = -50;      // 서버의 `elevation.IBCSO_NORTH`
   function demRequest(url) {
-    var m = /\/terrarium\/(\d+)\/(\d+)\/(\d+)\.png$/.exec(url);
+    var m = /\/terrarium\/(\d+)\/(\d+)\/(\d+)\.png(\?bed)?$/.exec(url);
     if (!m) return undefined;
-    var z = +m[1], x = +m[2], y = +m[3], n = Math.pow(2, z);
+    var z = +m[1], x = +m[2], y = +m[3], n = Math.pow(2, z), bed = !!m[4];
     var lon = (x + 0.5) / n * 360 - 180;
     var lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 0.5) / n))) * 180 / Math.PI;
-    // 위도 60° 너머는 PGC ArcticDEM·REMA 2 m 를 서버가 옮겨 준다(032). AWS 는 여기서 이음매가
+    var path = z + "/" + x + "/" + y + ".png";
+    // 남위 50° 남쪽은 줌과 상관없이 서버다 — IBCSO 500 m 해저(051), 가까이서는 REMA 2 m(032). AWS 는
+    // 남빙양이 옛 GEBCO 라 해저가 뭉개지고, 빙붕 밑을 모른다
+    if (lat <= IBCSO_NORTH) return { url: location.origin + BASE + "dem/" + (bed ? "bed/" : "") + path };
+    // 위도 60° 너머는 PGC ArcticDEM 2 m 를 서버가 옮겨 준다(032). AWS 는 여기서 이음매가
     // 계단처럼 드러나고 결이 뭉개진다
-    var ours = (Math.abs(lat) >= POLAR_LAT && z >= POLAR_MIN_ZOOM) || (z <= GSI_MAX_ZOOM && inJapan(lat, lon));
-    return ours ? { url: location.origin + BASE + "dem/" + z + "/" + x + "/" + y + ".png" } : undefined;
+    var ours = (lat >= POLAR_LAT && z >= POLAR_MIN_ZOOM) || (z <= GSI_MAX_ZOOM && inJapan(lat, lon));
+    if (ours) return { url: location.origin + BASE + "dem/" + path };
+    // 빙저를 골랐어도 남극 밖은 AWS 그대로다 — 붙여 둔 `?bed` 를 떼고 보낸다
+    return bed ? { url: url.replace(/\?bed$/, "") } : undefined;
   }
 
   var map = new maplibregl.Map({
@@ -197,6 +230,24 @@
     map.setPaintProperty("kigam", "raster-opacity", this.value / 100);
     document.getElementById("op-num").textContent = this.value + "%";
   });
+  // 배경을 바꾸면 지형도 같은 판으로 — 얼음 위 배경에 기반암 땅이 서거나 그 거꾸로면 둘이 어긋난다
+  function setIbcso(kind) {
+    ibcsoKind = kind;
+    try { localStorage.setItem(IBCSO_KEY, kind); } catch (e) { /* 사생활 모드 */ }
+    if (map.getLayer("ibcso")) map.removeLayer("ibcso");
+    if (map.getSource("ibcso")) map.removeSource("ibcso");
+    if (kind) {
+      map.addSource("ibcso", ibcsoSource(kind));
+      map.addLayer({ id: "ibcso", type: "raster", source: "ibcso" }, "shade");
+    }
+    map.getSource("dem").setTiles(demTiles());
+    map.getSource("shade").setTiles(demTiles());
+    document.getElementById("base3d-hint").hidden = kind !== "bed";
+  }
+  if (baseSel) {
+    baseSel.addEventListener("change", function () { setIbcso(baseSel.value); });
+    document.getElementById("base3d-hint").hidden = ibcsoKind !== "bed";
+  }
   document.getElementById("exag3d").addEventListener("input", function () {
     var x = this.value / 10;
     map.setTerrain({ source: "dem", exaggeration: x });
@@ -632,6 +683,7 @@
     var credits = (attrib ? attrib.textContent : "").split("|")
       .map(function (t) { return t.trim(); }).filter(Boolean);
     var out = [T("대돌여지도") + " 3D · " + stampText()];
+    if (ibcsoKind) out.push(T("배경") + ": " + baseSel.options[baseSel.selectedIndex].text);
     out.push(T("레이어") + ": " + shown.join(" / "));
     if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
     out.push(T("가운데") + ": " + Math.abs(c.lat).toFixed(5) + "°" + (c.lat < 0 ? "S" : "N") + " " +

@@ -10,6 +10,7 @@
   줌 3 에서 보아도(한 칸이 경도 5.6°) 한 픽셀 남짓이다 (040)
 - 원본 격자의 단계는 3857 타일의 땅 해상도보다 **한 단계 촘촘한 것 가운데 가장 거친 것**을
   고른다. 너무 촘촘하면 타일을 많이 받고, 거칠면 흐리다
+- 수치 격자(IBCSO 표고, 051)는 `render_values` 로 편다 — 색이 아니라 값을 섞는다
 - 이것은 문이 아니다 — 원본을 받는 것은 부르는 쪽이 넘긴 `fetch` 가 한다
   (음영판은 우리 디스크, 스캔판은 `phyloserver.get_scan_tile`, GeoMAP 은 2D 와 같은 타일 캐시)
 """
@@ -73,8 +74,8 @@ def south_of(z: int, y: int) -> float:
     return _lonlat(z, 0, y, 0, TILE)[1]
 
 
-def render(grid: Grid, z: int, x: int, y: int, size: int = TILE):
-    """3857 타일 한 장(PNG 바이트, 한 변 `size` px). 원본이 하나도 걸리지 않으면 None."""
+def _plan(grid: Grid, z: int, x: int, y: int, size: int):
+    """3857 타일 한 장을 펴는 채비 — (단계, 원본 타일 네모, 칸마다의 원본 픽셀 네모). 너무 멀면 None."""
     # 칸의 꼭짓점을 원본 좌표로
     cells = max(1, size // MESH_PX)
     step = size / cells
@@ -96,6 +97,28 @@ def render(grid: Grid, z: int, x: int, y: int, size: int = TILE):
     if (tx1 - tx0 + 1) * (ty1 - ty0 + 1) > 36:
         return None                    # 너무 멀리서 본다 — 원본을 수십 장 모으지 않는다
 
+    left, top = ox + tx0 * span, oy - ty0 * span
+
+    def src(key):
+        e, n = corners[key]
+        return (e - left) / res, (top - n) / res
+
+    mesh = []
+    for i in range(cells):
+        for j in range(cells):
+            box = (round(i * step), round(j * step), round((i + 1) * step), round((j + 1) * step))
+            # QUAD 의 차례 — 왼쪽 위, 왼쪽 아래, 오른쪽 아래, 오른쪽 위
+            quad = src((i, j)) + src((i, j + 1)) + src((i + 1, j + 1)) + src((i + 1, j))
+            mesh.append((box, quad))
+    return level, (tx0, tx1, ty0, ty1), mesh
+
+
+def render(grid: Grid, z: int, x: int, y: int, size: int = TILE):
+    """3857 타일 한 장(PNG 바이트, 한 변 `size` px). 원본이 하나도 걸리지 않으면 None."""
+    plan = _plan(grid, z, x, y, size)
+    if plan is None:
+        return None
+    level, (tx0, tx1, ty0, ty1), mesh = plan
     mosaic = Image.new("RGBA", ((tx1 - tx0 + 1) * grid.size, (ty1 - ty0 + 1) * grid.size), (0, 0, 0, 0))
     got = False
     for tx in range(tx0, tx1 + 1):
@@ -110,26 +133,43 @@ def render(grid: Grid, z: int, x: int, y: int, size: int = TILE):
             got = True
     if not got:
         return None
-
-    left, top = ox + tx0 * span, oy - ty0 * span
-
-    def src(key):
-        e, n = corners[key]
-        return (e - left) / res, (top - n) / res
-
-    mesh = []
-    for i in range(cells):
-        for j in range(cells):
-            box = (round(i * step), round(j * step), round((i + 1) * step), round((j + 1) * step))
-            # QUAD 의 차례 — 왼쪽 위, 왼쪽 아래, 오른쪽 아래, 오른쪽 위
-            quad = src((i, j)) + src((i, j + 1)) + src((i + 1, j + 1)) + src((i + 1, j))
-            mesh.append((box, quad))
     out = mosaic.transform((size, size), Image.MESH, mesh, resample=Image.BILINEAR)
     if not out.getbbox():
         return None
     buf = io.BytesIO()
     out.save(buf, "PNG", optimize=True)
     return buf.getvalue()
+
+
+def render_values(grid: Grid, z: int, x: int, y: int, decode, size: int = TILE):
+    """수치 격자를 3857 로 편다 — (값 F, 채움 F) 한 벌. 원본이 하나도 걸리지 않으면 None.
+
+    `decode(바이트)` 가 원본 타일 한 장을 (값, 채움)으로 푼다. **섞는 것은 값이다** — 색 타일처럼
+    Terrarium 을 띠마다 섞으면 값이 튄다. 빈 곳이 섞인 픽셀은 채움이 1 보다 작아 부르는 쪽이
+    가려 쓴다(051)."""
+    plan = _plan(grid, z, x, y, size)
+    if plan is None:
+        return None
+    level, (tx0, tx1, ty0, ty1), mesh = plan
+    shape = ((tx1 - tx0 + 1) * grid.size, (ty1 - ty0 + 1) * grid.size)
+    value, fill = Image.new("F", shape, 0.0), Image.new("F", shape, 0.0)
+    got = False
+    for tx in range(tx0, tx1 + 1):
+        for ty in range(ty0, ty1 + 1):
+            if not grid.valid(level, tx, ty):
+                continue
+            data = grid.fetch(level, tx, ty)
+            if not data:
+                continue
+            v, f = decode(data)
+            at = ((tx - tx0) * grid.size, (ty - ty0) * grid.size)
+            value.paste(v, at)
+            fill.paste(f, at)
+            got = True
+    if not got:
+        return None
+    return (value.transform((size, size), Image.MESH, mesh, resample=Image.BILINEAR),
+            fill.transform((size, size), Image.MESH, mesh, resample=Image.BILINEAR))
 
 
 # ── 원본 격자 셋 ────────────────────────────────────────────────────
@@ -170,3 +210,21 @@ def geomap_grid(fetch_tile) -> Grid:
                 origin=lambda level: (geomap.ORIGIN_X, geomap.ORIGIN_Y),
                 project=lambda lat, lon: geomap.lonlat_to_3031(lon, lat),
                 fetch=fetch_tile, size=geomap.TILE, valid=geomap.valid_tile)
+
+
+def ibcso_grid(sheet) -> Grid:
+    """남극 해저·빙저 지형 IBCSO(047·051) 의 3D 배경 — 원본의 9354 격자 그대로 잘라 둔 WebP."""
+    from . import ibcso
+    half = ibcso.SOURCE_HALF
+    return Grid(levels=range(ibcso.DEM_MAX_LEVEL + 1), res=ibcso.dem_res,
+                origin=lambda level: (-half, half), project=ibcso.to_9354,
+                fetch=sheet.read_wide, size=ibcso.TILE, valid=ibcso.dem_valid)
+
+
+def ibcso_dem_grid(sheet) -> Grid:
+    """IBCSO 수치 격자(051) — 원본의 9354 격자 그대로 잘라 둔 16 비트 타일."""
+    from . import ibcso
+    half = ibcso.SOURCE_HALF
+    return Grid(levels=range(ibcso.DEM_MAX_LEVEL + 1), res=ibcso.dem_res,
+                origin=lambda level: (-half, half), project=ibcso.to_9354,
+                fetch=sheet.read_tile, size=ibcso.TILE, valid=ibcso.dem_valid)

@@ -70,6 +70,15 @@
       </optgroup>{% endfor %}
     </select>
   </label>
+  {% comment %}남극만 — IBCSO 를 깔고, 지형도 같은 판을 따른다(빙저를 고르면 얼음을 걷어 낸 땅이 선다, 051){% endcomment %}
+  <label class="antarctica-only">{% t "배경" %}
+    <select id="base3d">
+      <option value="ice">{% t "IBCSO 해저·얼음 위 지형" %}</option>
+      <option value="bed">{% t "IBCSO 해저·빙저 지형" %}</option>
+      <option value="">{% t "없음" %}</option>
+    </select>
+  </label>
+  <p id="base3d-hint" class="hint antarctica-only" hidden>{% t "빙저 지형을 고르면 3D 의 땅도 얼음을 걷어 낸 기반암이 된다." %}</p>
   <label>{% t "투명도" %} <span id="op-num">70%</span>
     <input type="range" id="opacity3d" min="0" max="100" value="70">
   </label>
@@ -86,7 +95,7 @@
   <ul id="ps3d" class="ps3d"></ul>
   <p id="ps3d-warn" class="hint" hidden></p>
   <p class="hint">{% t "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다." %}</p>
-  <p class="hint">{% t "표고: AWS Terrain Tiles (SRTM 등, 약 30 m) · 일본 국토지리원 (10 m) · 극지 PGC ArcticDEM·REMA (2 m). 지질도: 한국지질자원연구원 등." %}</p>
+  <p class="hint">{% t "표고: AWS Terrain Tiles (SRTM 등, 약 30 m) · 일본 국토지리원 (10 m) · 극지 PGC ArcticDEM·REMA (2 m) · 남빙양 IBCSO v2 (500 m). 지질도: 한국지질자원연구원 등." %}</p>
   <p class="hint"><a id="back2d" href="{{ base }}">{% t "2D 로 돌아간다" %}</a></p>
 </aside>
 <script id="vworld-key" type="application/json">"{{ vworld_key|escapejs }}"</script>

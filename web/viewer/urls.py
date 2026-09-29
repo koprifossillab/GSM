@@ -51,7 +51,7 @@ urlpatterns = [
     re_path(r"^ibcso/(?P<layer>bed|ice)/(?P<z>\d{1,2})/(?P<x>\d{1,3})/(?P<y>\d{1,3})\.webp$",
             views.ibcso_tile, name="ibcso-tile"),
     # 3D 가 쓰는 것 — 평면 격자(5179·5181·3031) 타일을 3857 로 다시 편다 (warp.py, 040)
-    re_path(r"^warp/(?P<upstream>peninsula|phyloserver|geomap)/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})(?P<retina>@2x)?\.png$",
+    re_path(r"^warp/(?P<upstream>peninsula|phyloserver|geomap|ibcso)/(?P<layer>[\w-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})(?P<retina>@2x)?\.png$",
             views.warp_tile, name="warp-tile"),
     # 한반도 지질도 — phyloserver 의 카카오 격자 타일 (phyloserver.py, devlog 026)
     re_path(r"^phyloserver/(?P<layer>[\w-]+)/(?P<level>\d{1,2})/(?P<x>\d{1,5})_(?P<y>\d{1,5})\.png$",
@@ -75,6 +75,9 @@ urlpatterns = [
     path("pointsets/<int:pk>/elevation/", views.pointset_elevation, name="pointset-elevation"),
     # 3D 의 촘촘한 지형 — 극지 PGC·일본 국토지리원을 Terrarium 꼴로 (elevation.py, 031·032)
     re_path(r"^dem/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.dem_tile, name="dem-tile"),
+    # 얼음을 걷어 낸 남극 — IBCSO 해저·빙저 (051)
+    re_path(r"^dem/(?P<kind>bed)/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.dem_tile,
+            name="dem-bed-tile"),
 
     path("coords/parse/", views.coord_parse, name="coord-parse"),
     path("coords/project/", views.coord_project, name="coord-project"),

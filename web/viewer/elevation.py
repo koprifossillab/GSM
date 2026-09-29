@@ -13,6 +13,9 @@
 McMurdo 가 −39 m 와 14 m 로 갈렸다. `getSamples` 는 여러 점을 한 번에 받지만 이 함수를
 듣지 않아 쓰지 않는다. 한 점에 한 번이고, 사이를 둔다.
 
+3D 의 남극 바다·빙저는 IBCSO v2 수치 격자(우리가 잘라 둔 것, `ibcso.py`)를 Terrarium 으로 펴서 낸다(051) —
+상류가 아니지만 AWS 로 메우는 일이 여기 있어 이 파일에 둔다.
+
 받은 타일은 `tilecache` 에 담고 스스로 지우지 않는다(007). 자료가 없다는 대답(404)도
 담는다 — 한국 자리를 국토지리원에 거듭 묻지 않게.
 """
@@ -358,9 +361,9 @@ def _terrarium_png(piece, z, x, y):
     out = []
     for index, v in enumerate(values):
         if v < _FLOOR:
-            # 모자이크의 구멍(바다·자료 밖) — 같은 자리의 AWS 값
+            # 모자이크의 구멍(바다·자료 밖) — 남극은 IBCSO(051), 그 밖은 같은 자리의 AWS 값
             if fill is None:
-                aws = terrarium_tile(z, x, y)
+                aws = _hole_tile(z, x, y)
                 fill = list(_pixels(Image.open(io.BytesIO(aws)).convert("RGB"))) if aws else []
             out.append(fill[index] if fill else (128, 0, 0))
             continue
@@ -370,6 +373,78 @@ def _terrarium_png(piece, z, x, y):
     buf = io.BytesIO()
     image.save(buf, "PNG")
     return buf.getvalue()
+
+
+# ── 3D 의 남극 해저 지형 (051) ─────────────────────────────────────────
+#
+# 남위 50° 남쪽은 IBCSO v2 의 수치 격자(`ibcso.DEMS`, 500 m)를 Terrarium 으로 편다. AWS 는 여기서
+# 바다가 GEBCO 옛 판(수 km)이라 해저가 뭉개지고, 빙붕 밑이 비어 있다. IBCSO 는 두 판이다 —
+# **얼음 위**(`ice`)는 REMA 와 같은 면이라 가까이서 REMA 로 넘어가도 땅이 튀지 않고(REMA 의 구멍인
+# 바다를 IBCSO 가 메운다), **해저·빙저**(`bed`)는 빙상과 빙붕을 걷어 낸 기반암이다. 높이는 둘 다
+# 해발이다 — REMA 도 `Height Orthometric` 으로 받는다.
+#
+# 격자 밖(남위 50° 언저리의 네모 밖)과 빈 곳이 섞인 픽셀은 같은 자리의 AWS 로 메운다.
+
+IBCSO_NORTH = -50.0
+#: 편 타일을 담는 열쇠의 판. 수치 타일을 새로 자르면 올린다
+IBCSO_TERRAIN_VERSION = 1
+
+
+def _tile_lat(z, y):
+    return _merc_lonlat(z, 0, y, 128, 128)[1]
+
+
+def _hole_tile(z, x, y):
+    """REMA 의 구멍을 메울 Terrarium 타일 — 남극 바다는 IBCSO 얼음 위, 그 밖은 AWS."""
+    if _tile_lat(z, y) <= IBCSO_NORTH:
+        png = ibcso_terrarium("ice", z, x, y)
+        if png:
+            return png
+    return terrarium_tile(z, x, y)
+
+
+def terrarium_encode(value):
+    """해발(F) → Terrarium RGB. 한 픽셀씩 돌지 않고 띠마다 셈한다(ImageMath)."""
+    from PIL import ImageMath
+    code = ImageMath.lambda_eval(lambda a: a["int"]((a["v"] + 32768) * 256 + 0.5), v=value)
+    bands = [ImageMath.lambda_eval(fn, c=code).convert("L") for fn in (
+        lambda a: a["c"] / 65536, lambda a: (a["c"] / 256) % 256, lambda a: a["c"] % 256)]
+    return Image.merge("RGB", bands)
+
+
+def ibcso_terrarium(kind: str, z: int, x: int, y: int):
+    """IBCSO 수치 격자를 편 3857 Terrarium 타일(PNG). 격자에 하나도 걸리지 않으면 None(→ AWS)."""
+    from . import ibcso, warp
+    sheet = ibcso.DEMS[kind]
+    if not sheet.available():
+        return None
+    key = tilecache.key_text("elev", f"ibcso-terrarium/{kind}/v{IBCSO_TERRAIN_VERSION}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return None if hit == _NONE else hit
+    got = warp.render_values(warp.ibcso_dem_grid(sheet), z, x, y, ibcso.decode_dem)
+    png = None
+    if got is not None and got[1].getextrema()[1] > 0:
+        value, fill = got
+        # 채움이 1 이 아니면 빈 곳이 섞인 값이다 — 값을 채움으로 나눠 되살리지 않고 AWS 로 간다
+        full = _full_mask(fill)
+        image = terrarium_encode(value)
+        if full.getextrema()[0] < 255:
+            aws = terrarium_tile(z, x, y)
+            under = (Image.open(io.BytesIO(aws)).convert("RGB") if aws
+                     else Image.new("RGB", image.size, (128, 0, 0)))     # AWS 도 없다 — 해수면
+            image = Image.composite(image, under, full)
+        buf = io.BytesIO()
+        image.save(buf, "PNG")
+        png = buf.getvalue()
+    tilecache.put(key, png or _NONE)
+    return png
+
+
+def _full_mask(fill):
+    """채움(F) → 빈 곳이 하나도 섞이지 않은 픽셀만 255 인 L."""
+    from PIL import ImageMath
+    return ImageMath.lambda_eval(lambda a: a["float"](a["f"] >= 0.999) * 255, f=fill).convert("L")
 
 
 # ── 3D 의 일본 지형 ──────────────────────────────────────────────────

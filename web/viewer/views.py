@@ -1007,6 +1007,8 @@ WARP_ZOOMS = (5, 17)
 GEOMAP_WARP_ZOOMS = (3, 17)
 #: GeoMAP 이 덮는 것은 남위 60° 남쪽이다(`data/geomap_layers.json` 의 bbox) — 그 북쪽은 그리지 않는다
 GEOMAP_NORTH = -60.0
+#: 3D 의 남극 배경 IBCSO(051) — 대륙을 한눈에 보는 줌 2 부터. 남위 50° 남쪽만 덮는다
+IBCSO_WARP_ZOOMS = (2, 17)
 
 
 @require_GET
@@ -1014,7 +1016,7 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
     """평면 격자 타일을 3857 로 다시 편 것 — `warp/<상류>/<레이어>/<z>/<x>/<y>.png` (3D 가 쓴다).
     `@2x` 면 512 px — 3D 의 "지질 레이어" 는 512 px 타일로 받는다.
 
-    3D(MapLibre)는 3857 만 받아 5179(음영판·민판)·5181(스캔판)·3031(GeoMAP) 격자를 못 얹는다.
+    3D(MapLibre)는 3857 만 받아 5179(음영판·민판)·5181(스캔판)·3031(GeoMAP·IBCSO) 격자를 못 얹는다.
     요청마다 원본을 모아 편다(`warp.py`, 0.1 초 남짓). 편 것은 캐시에 담지 않는다 — 원본이 우리
     디스크(음영판)거나 같은 서버의 파일(스캔판, 026 이 캐시를 두지 않은 까닭 그대로)이거나,
     2D 와 함께 쓰는 GeoMAP 타일 캐시다."""
@@ -1022,7 +1024,7 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
     size = 512 if retina else 256
     name = layer if upstream == "geomap" else f"{upstream}:{layer}"
     lang = i18n.lang_of(request)
-    zooms = GEOMAP_WARP_ZOOMS if upstream == "geomap" else WARP_ZOOMS
+    zooms = {"geomap": GEOMAP_WARP_ZOOMS, "ibcso": IBCSO_WARP_ZOOMS}.get(upstream, WARP_ZOOMS)
     if _lab_only(name) or not (zooms[0] <= z <= zooms[1]) or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     if name in peninsula.SHEETS:
@@ -1039,6 +1041,13 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
         if not geomap.available():
             return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
         grid = warp.geomap_grid(lambda level, tx, ty: _geomap_png(name, level, tx, ty)[0])
+    elif upstream == "ibcso" and name in ibcso.SHEETS:
+        if warp.south_of(z, y) > elevation.IBCSO_NORTH:
+            return _tile(tiles.blank_tile(size, size))
+        sheet = ibcso.SHEETS[name]
+        if not sheet.wide_available():
+            return _tile(tiles.notice_tile(size, size, tiles.NO_IBCSO), store=False)
+        grid = warp.ibcso_grid(sheet)
     else:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     try:
@@ -1816,11 +1825,13 @@ def pointset_elevation(request, pk):
 
 
 @require_GET
-def dem_tile(request, z, x, y):
-    """3D 의 촘촘한 지형 — Terrarium 꼴 표고 타일 (`dem/<z>/<x>/<y>.png`).
+def dem_tile(request, z, x, y, kind="ice"):
+    """3D 의 촘촘한 지형 — Terrarium 꼴 표고 타일 (`dem/<z>/<x>/<y>.png`, `dem/bed/…`).
 
-    위도 60° 너머는 PGC ArcticDEM·REMA(2 m, 032), 일본은 국토지리원(10 m, 031)을 옮긴다.
-    그 밖이거나 못 만들면 AWS 로 넘긴다(302). 3D 는 그 두 자리의 타일만 여기로 부른다."""
+    남위 50° 남쪽은 IBCSO v2 수치 격자(500 m, 051)이고, 그 가운데 남위 60° 너머 줌 11 부터는 PGC
+    REMA(2 m, 032)다 — REMA 의 구멍(바다)은 IBCSO 가 메운다. `bed` 는 얼음을 걷어 낸 IBCSO 해저·빙저라
+    REMA(얼음 윗면)로 넘어가지 않는다. 북위 60° 너머는 PGC ArcticDEM, 일본은 국토지리원(10 m, 031).
+    그 밖이거나 못 만들면 AWS 로 넘긴다(302). 3D 는 이 자리들의 타일만 여기로 부른다."""
     z, x, y = int(z), int(x), int(y)
     if not (0 <= x < 2 ** z and 0 <= y < 2 ** z) or z > elevation.POLAR_MAX_ZOOM:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
@@ -1829,7 +1840,12 @@ def dem_tile(request, z, x, y):
     lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 0.5) / n))))
     png = None
     try:
-        if abs(lat) >= elevation.POLAR_LAT:
+        if lat <= elevation.IBCSO_NORTH:
+            if kind == "ice" and lat <= -elevation.POLAR_LAT and z >= elevation.POLAR_MIN_ZOOM:
+                png = elevation.polar_terrarium(z, x, y)
+            if png is None:
+                png = elevation.ibcso_terrarium(kind, z, x, y)
+        elif abs(lat) >= elevation.POLAR_LAT:
             if z >= elevation.POLAR_MIN_ZOOM:
                 png = elevation.polar_terrarium(z, x, y)
         elif z <= elevation.GSI_ZOOM and elevation.in_japan(lat, lon):

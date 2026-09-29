@@ -88,6 +88,19 @@ class Sheet:
         except FileNotFoundError:
             return None
 
+    # 3D 가 쓰는 것 — 원본의 9354 격자 그대로 자른 판(051, 아래 "수치 격자" 머리글)
+    def wide_dir(self) -> Path:
+        return root() / self.folder.replace("tiles-", "wide-")
+
+    def wide_available(self) -> bool:
+        return self.wide_dir().is_dir()
+
+    def read_wide(self, level: int, x: int, y: int):
+        try:
+            return (self.wide_dir() / str(level) / str(x) / f"{y}.{FORMAT}").read_bytes()
+        except FileNotFoundError:
+            return None
+
 
 BED = Sheet(name="ibcso:bed", source="IBCSO_v2_bed_RGB.tif", folder="tiles-bed")
 ICE = Sheet(name="ibcso:ice", source="IBCSO_v2_ice-surface_RGB.tif", folder="tiles-ice")
@@ -169,3 +182,144 @@ def encode(tile) -> bytes:
 
 class IbcsoError(RuntimeError):
     pass
+
+
+# ── 수치 격자 — 3D 의 지형 (051) ──────────────────────────────────────
+#
+# 3D 는 표고를 Terrarium 타일로 받는다. 칠한 판은 색이라 표고로 되돌릴 수 없어, PANGAEA 의 **수치
+# 격자**(`IBCSO_v2_bed.tif`·`IBCSO_v2_ice-surface.tif`, int16 미터, 빈 곳 −32768)를 따로 자른다.
+#
+# 이것은 3031 이 아니라 **원본의 9354 격자 그대로** 자른다. 2D 의 3031 격자(GeoMAP)는 ±3 333 km 라
+# 남위 60° 언저리에서 끊기는데, 3D 는 남위 50° 까지를 한 번에 본다. 3D 는 어차피 서버가 3857 로
+# 다시 펴므로(`warp.py`) 2D 의 격자를 따를 까닭이 없다. 단계 6 이 원본 그대로(500 m, 75×75 장)이고
+# 한 단계 내려갈 때마다 두 배씩 거칠다. 줄일 때 빈 곳은 평균에서 뺀다.
+#
+# **3D 의 배경(칠한 판)도 같은 격자로 한 벌 더 자른다**(`wide-bed/`·`wide-ice/`, WebP). 2D 의 것을 펴면
+# 남위 60° 언저리의 네모에서 배경이 끊기고 그 밖은 지형만 남는다.
+#
+# 타일은 16 비트 흑백 PNG 다 — 값은 `미터 + 32768`, **0 이 빈 곳**이다. 한 장에 30 KB 남짓이고
+# 두 판을 합쳐 400 MB 쯤이다. Terrarium 으로 구워 두지 않은 것은 3857 로 펼 때 값을 섞어야 하기
+# 때문이다 — 섞는 것은 미터여야 한다(Terrarium 의 세 띠를 따로 섞으면 값이 튄다).
+
+DEM_FORMAT = "png"
+DEM_MAX_LEVEL = 6
+DEM_OFFSET = 32768
+DEM_NODATA = -32768
+
+
+def dem_res(level: int) -> float:
+    """단계 `level` 의 한 화소 (9354 미터)."""
+    return SOURCE_RES * 2 ** (DEM_MAX_LEVEL - level)
+
+
+def dem_tiles(level: int) -> int:
+    """단계 `level` 의 한 변 타일 수."""
+    return math.ceil(SOURCE_SIZE / 2 ** (DEM_MAX_LEVEL - level) / TILE)
+
+
+def dem_valid(level: int, x: int, y: int) -> bool:
+    return 0 <= level <= DEM_MAX_LEVEL and 0 <= x < dem_tiles(level) and 0 <= y < dem_tiles(level)
+
+
+def to_9354(lat: float, lon: float) -> tuple:
+    """위경도 → EPSG:9354. 3031 을 배율로 나눈다(머리글)."""
+    x, y = geomap.lonlat_to_3031(lon, lat)
+    return x / SCALE, y / SCALE
+
+
+@dataclass(frozen=True)
+class DemSheet:
+    kind: str           # bed | ice
+    source: str
+    folder: str
+
+    def tiles_dir(self) -> Path:
+        return root() / self.folder
+
+    def available(self) -> bool:
+        return self.tiles_dir().is_dir()
+
+    def source_file(self):
+        path = root() / self.source
+        return path if path.is_file() else None
+
+    def tile_path(self, level: int, x: int, y: int) -> Path:
+        return self.tiles_dir() / str(level) / str(x) / f"{y}.{DEM_FORMAT}"
+
+    def read_tile(self, level: int, x: int, y: int):
+        try:
+            return self.tile_path(level, x, y).read_bytes()
+        except FileNotFoundError:
+            return None
+
+
+DEM_BED = DemSheet(kind="bed", source="IBCSO_v2_bed.tif", folder="dem-bed")
+DEM_ICE = DemSheet(kind="ice", source="IBCSO_v2_ice-surface.tif", folder="dem-ice")
+DEMS = {s.kind: s for s in (DEM_BED, DEM_ICE)}
+
+
+def open_dem(path):
+    """수치 원본 → (값 F, 채움 F). 빈 곳은 값 0·채움 0 이다 — 줄일 때 평균에서 빼려고 나눠 둔다."""
+    from PIL import Image, ImageMath
+    image = Image.open(path)
+    if image.size != (SOURCE_SIZE, SOURCE_SIZE):
+        raise IbcsoError(f"격자가 {image.size} 다 — {SOURCE_SIZE}×{SOURCE_SIZE} 를 기다렸다")
+    image.load()
+    if image.mode not in ("I", "I;16S"):
+        raise IbcsoError(f"뜻밖의 격자다 ({image.mode}) — int16 을 기다렸다")
+    image = image.convert("I")
+    fill = ImageMath.lambda_eval(lambda a: a["float"](a["notequal"](a["v"], DEM_NODATA)), v=image)
+    value = ImageMath.lambda_eval(lambda a: a["float"](a["v"]) * a["f"], v=image, f=fill)
+    return value, fill
+
+
+def halve(value, fill):
+    """한 단계 거칠게 — 2×2 를 평균하되 빈 곳은 빼고 센다. (값, 채움)을 낸다."""
+    from PIL import ImageMath
+    v, f = value.reduce(2), fill.reduce(2)             # 둘 다 넷의 평균
+    out = ImageMath.lambda_eval(lambda a: a["v"] / a["max"](a["f"], 1e-6) * a["float"](a["f"] > 0),
+                                v=v, f=f)
+    return out, ImageMath.lambda_eval(lambda a: a["float"](a["f"] > 0), f=f)
+
+
+def cut_dem(value, fill, x: int, y: int):
+    """한 단계의 (값, 채움) 에서 타일 한 장 — 16 비트 흑백(`I;16`). 다 비었으면 None."""
+    from PIL import Image, ImageMath
+    box = (x * TILE, y * TILE, (x + 1) * TILE, (y + 1) * TILE)   # 밖은 0(빈 곳)으로 채워진다
+    f = fill.crop(box)
+    if f.getextrema()[1] <= 0:
+        return None
+    v = value.crop(box)
+    # 0 은 빈 곳이다. 값은 −8 400 m ~ +4 800 m 라 부호 없는 16 비트 안에 들고 0 이 되지 않는다
+    code = ImageMath.lambda_eval(
+        lambda a: a["int"]((a["v"] + (DEM_OFFSET + 0.5)) * a["float"](a["f"] > 0)), v=v, f=f)
+    return code.convert("I;16")
+
+
+def encode_dem(tile) -> bytes:
+    buf = io.BytesIO()
+    tile.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+def decode_dem(data: bytes):
+    """16 비트 PNG → (값 F 미터, 채움 F 0·1)."""
+    from PIL import Image, ImageMath
+    raw = Image.open(io.BytesIO(data))
+    raw = raw.convert("I") if raw.mode != "I" else raw
+    fill = ImageMath.lambda_eval(lambda a: a["float"](a["c"] > 0), c=raw)
+    value = ImageMath.lambda_eval(lambda a: (a["float"](a["c"]) - DEM_OFFSET) * a["f"], c=raw, f=fill)
+    return value, fill
+
+
+def cut_wide(level_image, x: int, y: int):
+    """9354 격자 한 단계(RGBa, 미리 곱한 것)에서 3D 배경 타일 한 장(RGBA). 다 투명하면 None."""
+    from PIL import Image
+    box = (x * TILE, y * TILE, (x + 1) * TILE, (y + 1) * TILE)
+    piece = level_image.crop(box)                   # 밖은 투명으로 채워진다
+    tile = Image.new("RGBa", (TILE, TILE), (0, 0, 0, 0))
+    tile.paste(piece, (0, 0))
+    tile = tile.convert("RGBA")
+    if tile.getchannel("A").getbbox() is None:
+        return None
+    return tile
