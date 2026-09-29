@@ -23,7 +23,7 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, janmayen, kigam, npolar, patchnotes,
-               elevation, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
+               elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -197,8 +197,12 @@ def moon_tile_key(layer, z, x, y):
 
 @require_GET
 def moon_tile(request, layer, z, x, y):
-    """달 지질도 타일 — `moon/tiles/<units|contacts|linear>/<z>/<x>/<y>.png`."""
+    """달 지질도 타일 — `moon/tiles/<units|contacts|linear>/<z>/<x>/<y>.png`.
+
+    `orig-units`·`orig-lines` 는 원도 6 장이다 — Trek 이 아니라 우리 파일을 굽는다(`moonmap`, 039)."""
     z, x, y = int(z), int(x), int(y)
+    if moonmap.knows(layer):
+        return _moon_original_tile(request, layer, z, x, y)
     if layer not in trek.LAYERS or not trek.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     key = moon_tile_key(layer, z, x, y)
@@ -213,6 +217,27 @@ def moon_tile(request, layer, z, x, y):
             return _tile(old, cached=True)
         log.warning("달 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+def _moon_original_tile(request, layer, z, x, y):
+    if not moonmap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not moonmap.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MOON), store=False)
+    # 그리는 법(`RENDERER`)이 열쇠에 든다 — 올리면 옛 그림을 버린다
+    key = tilecache.key_text("moonmap", f"{moonmap.RENDERER}/{layer}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = moonmap.render_tile(layer, z, x, y)
+    except (moonmap.MoonMapError, OSError) as exc:
+        log.warning("달 원도 타일을 굽지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MOON), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -255,6 +280,8 @@ def moon_info(request):
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    if request.GET.get("layer") == "orig":
+        return _moon_original_info(lang, lon, lat)
     # 1e-3° 는 달에서 30 m 남짓이다 — 1:500만 지도에는 한 점이다
     key = tilecache.key_text("trek-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -279,9 +306,32 @@ def moon_info(request):
     return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
 
 
+def _moon_original_info(lang, lon, lat):
+    """원도의 단위 — 원도·단위·이름·무리·시대·설명. 시대만 한국어판에서 옮긴다 (039)."""
+    if not moonmap.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("원도 파일이 없다"), lang)})
+    try:
+        hit = moonmap.identify(lon, lat)
+    except (moonmap.MoonMapError, OSError) as exc:
+        log.warning("달 원도 속성을 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("원도 파일이 없다"), lang), "rows": []}, status=502)
+    if not hit:
+        return JsonResponse({"rows": []})
+    epoch = hit["epoch"] if lang == "en" else moonmap.epoch_ko(hit["epoch"])
+    source = hit["citation"] if lang == "en" else f"{hit['citation']} — {hit['map_ko']}"
+    rows = [("원도", source), ("단위", hit["unit"]), ("이름", hit["name"]), ("무리", hit["group"]),
+            ("시대", epoch), ("설명", hit["description"])]
+    rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+    return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
+
+
 @require_GET
 def moon_legend(request):
-    """달 지질 단위 49 가지의 범례. 이름은 상류의 것 그대로다(값이라 옮기지 않는다)."""
+    """달 지질 단위 49 가지의 범례. 이름은 상류의 것 그대로다(값이라 옮기지 않는다).
+
+    `?layer=orig` 면 원도의 29 갈래와 구조선 — 우리가 붙인 이름이라 한국어·영어가 따로 있다 (039)."""
+    if request.GET.get("layer") == "orig":
+        return JsonResponse(moonmap.legend(i18n.lang_of(request)))
     key = tilecache.key_text("trek-legend", "units")
     data = _cached_json(key)
     if data is None:

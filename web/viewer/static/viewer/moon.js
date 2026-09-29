@@ -49,11 +49,18 @@
   };
   // 지질 레이어 목록 — 2D 의 카탈로그처럼 골라 켜면 "켠 지질 레이어" 로 올라온다(오버레이).
   // 레이어군을 더하면(원소·광물 …) 목록에 저절로 선다. 이름은 서버 `trek.LAYERS` 의 열쇠다
+  //   info    누르면 읽는 갈래 (`moon/info/?layer=`)   legend  범례 칸의 갈래   src  카드 밑의 출처
   var CATALOG = [
     { group: "달 지질 (USGS 1:500만, 2020)", layers: [
-      { name: "units", title: "지질 단위", legend: true },
-      { name: "contacts", title: "지질 경계" },
-      { name: "linear", title: "선 구조 (능선·열구·단층)" },
+      { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS · NASA Moon Trek" },
+      { name: "contacts", title: "지질 경계", src: "USGS · NASA Moon Trek" },
+      { name: "linear", title: "선 구조 (능선·열구·단층)", src: "USGS · NASA Moon Trek" },
+    ] },
+    // 원도 6 장 — 통합 지질도가 다듬기 전의 원래 단위(195 가지). 우리가 파일을 굽는다 (`moonmap.py`, 039)
+    { group: "달 지질 원도 (USGS 1:500만, 1971–1979)", layers: [
+      { name: "orig-units", title: "원도 지질 단위", info: "orig", legend: "orig",
+        src: "USGS I-703·948·1034·1047·1062·1162 · colors E. Lutz" },
+      { name: "orig-lines", title: "원도 구조선", legend: "orig-lines", src: "USGS 1971–1979" },
     ] },
   ];
   var LAYER = {};
@@ -62,6 +69,8 @@
   var GEO_MAX = 12;
   function geoUrl(name) { return BASE + "moon/tiles/" + name + "/{z}/{x}/{y}.png"; }
   var GEO_CREDIT = "Unified Geologic Map of the Moon 1:5M (Fortezzo et al., 2020, USGS) via NASA Moon Trek";
+  var ORIG_CREDIT = "USGS 1:5M lunar geologic maps 1971–1979 (renovated by Fortezzo & Hare, 2013); colors after E. Lutz";
+  function creditOf(name) { return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : undefined; }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
@@ -180,7 +189,7 @@
   GEO_NAMES.forEach(function (name) {
     var layer = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
       url: geoUrl(name), tilingScheme: scheme(), maximumLevel: GEO_MAX, hasAlphaChannel: true,
-      credit: name === "units" ? GEO_CREDIT : undefined,
+      credit: creditOf(name),
     }));
     layer.show = false;
     cGeo[name] = layer;
@@ -231,7 +240,7 @@
   var oBase = new ol.layer.Tile({ source: tileSource(BASES[look.base].url, BASES[look.base].max, BASES[look.base].credit) });
   var oGeo = {};
   GEO_NAMES.forEach(function (name) {
-    oGeo[name] = new ol.layer.Tile({ source: tileSource(geoUrl(name), GEO_MAX, name === "units" ? GEO_CREDIT : undefined),
+    oGeo[name] = new ol.layer.Tile({ source: tileSource(geoUrl(name), GEO_MAX, creditOf(name)),
                                      visible: false });
   });
   var oPoints = new ol.layer.Group({ layers: [] });
@@ -384,7 +393,7 @@
   }
   function addLayer(name) {
     if (isOn(name)) return;
-    active.unshift({ name: name, opacity: name === "units" ? 0.6 : 1 });
+    active.unshift({ name: name, opacity: /units$/.test(name) ? 0.6 : 1 });
     saveLayers(); applyStack(); renderActive(); renderCatalog();
   }
   function removeLayer(name) {
@@ -437,7 +446,7 @@
       foot.append(range, num);
       var src = document.createElement("p");
       src.className = "active-src";
-      src.textContent = "USGS · NASA Moon Trek";
+      src.textContent = LAYER[e.name].src || "";
       li.append(head, foot, src);
       host.appendChild(li);
     });
@@ -536,26 +545,37 @@
     return '<div class="popup-coord"><span class="k">' + esc(T("달 위경도")) + '</span><span class="v">' +
            ll[1].toFixed(5) + ", " + ll[0].toFixed(5) + "</span></div>";
   }
+  // 켠 레이어 가운데 읽을 수 있는 것(통합·원도)을 위에서부터 다 묻는다 — 둘을 켜 두면 견줘 읽는다
   function askUnit(ll, pixel) {
     var head = coordHead(ll);
-    if (!isOn("units")) { showPopup(head, pixel); return; }
+    var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
+    if (!layers.length) { showPopup(head, pixel); return; }
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
-    fetch(BASE + "moon/info/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4))
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (mine !== asked) return;
-        if (data.error) throw new Error(data.error);
-        if (!data.rows.length) { showPopup(head + '<p class="none">' + esc(T("여기에는 지질 단위가 없다")) + "</p>", pixel); return; }
-        var sw = swatches[data.unit];
-        showPopup(head + "<h3>" + esc(T("지질 단위")) + "</h3><table>" + data.rows.map(function (row, i) {
-          var mark = i === 0 && sw ? '<img class="swatch-img" src="' + sw + '" alt="">' : "";
-          return "<tr><th>" + esc(row[0]) + "</th><td>" + mark + esc(row[1]) + "</td></tr>";
-        }).join("") + "</table>", pixel);
-      })
-      .catch(function () {
-        if (mine === asked) showPopup(head + '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>", pixel);
+    Promise.all(layers.map(function (l) {
+      var url = BASE + "moon/info/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
+                (l.info === "units" ? "" : "&layer=" + l.info);
+      return fetch(url).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
+    })).then(function (all) {
+      if (mine !== asked) return;
+      var html = head;
+      all.forEach(function (data, i) {
+        html += "<h3>" + esc(T(layers[i].title)) + "</h3>";
+        if (data.error) { html += '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>"; return; }
+        if (!data.rows || !data.rows.length) {
+          html += '<p class="none">' + esc(data.note || T("여기에는 지질 단위가 없다")) + "</p>";
+          return;
+        }
+        var sw = layers[i].info === "units" ? swatches[data.unit] : null;
+        var chip = sw ? '<img class="swatch-img" src="' + sw + '" alt="">'
+                 : data.color ? '<span class="swatch-img" style="display:inline-block;background:' + esc(data.color) + '"></span>' : "";
+        var unitRow = data.rows.map(function (r) { return r[1]; }).indexOf(data.unit);
+        html += "<table>" + data.rows.map(function (row, k) {
+          return "<tr><th>" + esc(row[0]) + "</th><td>" + (k === unitRow ? chip : "") + esc(row[1]) + "</td></tr>";
+        }).join("") + "</table>";
       });
+      showPopup(html, pixel);
+    });
   }
   // 점묶음의 점·모양 — 2D 의 팝업과 같이 딸린 속성을 받은 차례 그대로
   function showFeature(props, ps, ll, pixel) {
@@ -597,32 +617,66 @@
     askUnit(wrapLon(toLL(e.coordinate)), e.pixel);
   });
 
-  // ══ 범례 — 오른쪽 아래, 펼쳐 둔다. 시대별로 묶는다 ═══════════════
+  // ══ 범례 — 오른쪽 아래, 펼쳐 둔다 ═══════════════════════════════
+  //
+  // 켠 레이어마다 칸 하나 — 통합 지질도는 시대별 49 단위, 원도는 29 갈래와 구조선. 켠 차례(위가 앞)대로
   var swatches = {};
+  var legends = {};                // 갈래 → 그린 HTML (한 번 받는다)
   var dock = $("legend-dock");
   dock.open = saved("gsm.moon.legend", "open") !== "closed";
   dock.addEventListener("toggle", function () { save("gsm.moon.legend", dock.open ? "open" : "closed"); });
-  function syncLegend() { dock.hidden = !isOn("units"); }
-  fetch(BASE + "moon/legend/").then(function (r) { return r.json(); }).then(function (data) {
-    // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
-    // 처음 나온 차례대로 시대를 모아 한 번씩만 머리를 단다
-    var list = $("legend-list"), html = "", ages = [], byAge = {};
-    (data.items || []).forEach(function (item) {
-      if (item.unit) swatches[item.unit] = item.image;
-      var age = item.age || "";
-      if (!byAge[age]) { byAge[age] = []; ages.push(age); }
-      byAge[age].push(item);
+  function legendHtml(kind) {
+    if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
+    return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var html = "";
+      if (kind === "units") {
+        // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
+        // 처음 나온 차례대로 시대를 모아 한 번씩만 머리를 단다
+        var ages = [], byAge = {};
+        (data.items || []).forEach(function (item) {
+          if (item.unit) swatches[item.unit] = item.image;
+          var age = item.age || "";
+          if (!byAge[age]) { byAge[age] = []; ages.push(age); }
+          byAge[age].push(item);
+        });
+        ages.forEach(function (age) {
+          if (age) html += '<li class="age">' + esc(age) + "</li>";
+          byAge[age].forEach(function (item) {
+            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
+          });
+        });
+      } else if (kind === "orig") {
+        (data.units || []).forEach(function (c) {
+          html += '<li><span class="chip" style="background:' + esc(c.color) + '"></span>' + esc(c.label) + "</li>";
+        });
+      } else {
+        (data.lines || []).forEach(function (c) {
+          html += '<li><span class="chip line' + (c.dash ? " dash" : "") + '" style="border-color:' + esc(c.color) +
+                  '"></span>' + esc(c.label) + "</li>";
+        });
+      }
+      legends[kind] = html;
+      return html;
+    }).catch(function () { return '<li class="empty">' + esc(T("범례를 받지 못했다")) + "</li>"; });
+  }
+  var legendAsked = 0;
+  function syncLegend() {
+    var layers = active.filter(function (e) { return LAYER[e.name].legend; }).map(function (e) { return LAYER[e.name]; });
+    dock.hidden = !layers.length;
+    if (!layers.length) return;
+    var mine = ++legendAsked;
+    Promise.all(layers.map(function (l) { return legendHtml(l.legend); })).then(function (parts) {
+      if (mine !== legendAsked) return;
+      $("legend-list").innerHTML = parts.map(function (html, i) {
+        var head = parts.length > 1 ? '<li class="layer">' + esc(T(layers[i].title)) + "</li>" : "";
+        return head + html;
+      }).join("");
+      $("legend-sub").textContent = layers.length === 1 ? T(layers[0].title) : "";
     });
-    ages.forEach(function (age) {
-      if (age) html += '<li class="age">' + esc(age) + "</li>";
-      byAge[age].forEach(function (item) {
-        html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
-      });
-    });
-    list.innerHTML = html || '<li class="empty">' + esc(T("범례를 받지 못했다")) + "</li>";
-  }).catch(function () {
-    $("legend-list").innerHTML = '<li class="empty">' + esc(T("범례를 받지 못했다")) + "</li>";
-  });
+  }
+  // 팝업의 색 조각이 쓰므로 통합판 범례는 처음에 받아 둔다
+  legendHtml("units");
 
   // ══ 내 자료 — 달 점묶음 (037) ═════════════════════════════════════
   //

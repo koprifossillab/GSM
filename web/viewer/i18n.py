@@ -163,6 +163,13 @@ EN = {
     "좌표는 달의 위도·경도(도)다. 평면 좌표계는 받지 않는다.":
         "Coordinates are lunar latitude and longitude in degrees. Projected coordinate systems are not accepted.",
     "{n}점을 올렸다": "Uploaded {n} points",
+    # 달 지질도 원도 (039)
+    "원도 파일이 없다": "The original maps file is missing",
+    "달 지질 원도 (USGS 1:500만, 1971–1979)": "Lunar geology, original maps (USGS 1:5M, 1971–1979)",
+    "원도 지질 단위": "Original map units",
+    "원도 구조선": "Original map structures",
+    "원도 — 29 갈래로 묶은 색": "Original maps — 29 colour groups",
+    "구조선": "Structures",
     # 달 점묶음 (037)
     "올리기": "Upload",
     "올리는 중": "Uploading…",
@@ -669,6 +676,8 @@ PROP_EN = {
     "암석 갈래": "Rock type",
     "지괴": "Terrane",
     "단위": "Unit",
+    "원도": "Source map",
+    "무리": "Group",
     "문헌": "Reference",
     "GEUS 상세": "GEUS details",
     "이름": "Name",
