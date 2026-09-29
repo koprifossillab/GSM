@@ -27,6 +27,7 @@ import hashlib
 import logging
 import os
 import shutil
+import threading
 import time
 from pathlib import Path
 
@@ -147,8 +148,9 @@ def put(key: str, content: bytes, suffix: str = ".png") -> None:
         return
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        # 반쯤 쓰다 만 파일을 읽는 일이 없도록 옆에 쓰고 옮긴다
-        tmp = path.with_suffix(".part")
+        # 반쯤 쓰다 만 파일을 읽는 일이 없도록 옆에 쓰고 옮긴다. 임시 이름에 프로세스·스레드를
+        # 붙인다 — 워커가 스레드를 두면(034) 같은 타일을 둘이 한꺼번에 쓸 수 있다
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.part")
         tmp.write_bytes(content)
         tmp.replace(path)
     except OSError as exc:

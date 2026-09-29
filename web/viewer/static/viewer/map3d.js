@@ -27,15 +27,25 @@
             "&LAYERS=" + encodeURIComponent(layer) + "&BBOX={bbox-epsg-3857}"];
   }
 
+  // 지역 — 머리의 스크립트가 `<html data-region>` 에 달았다(2D 의 3D 단추가 넘긴다). 자리를
+  // 기억하는 열쇠도 2D 처럼 지역마다다(`map.js` 의 stateKey) — 한국만 예전 열쇠 그대로
+  var REGION = document.documentElement.getAttribute("data-region") || "korea";
+  var VIEW_KEY = REGION === "korea" ? "gsm.view" : "gsm.view." + REGION;
+
   /** 2D 에서 보던 자리. 같은 브라우저 저장소를 읽는다. 없으면 설악산. */
   function startView() {
     var q = new URLSearchParams(location.search);
+    // 2D(OpenLayers)의 줌은 256 px 타일 기준이고 MapLibre 는 512 px 기준이라 한 단계 작다.
+    // 주소·저장소의 줌은 2D 의 것이므로 1 을 빼서 쓰고, 적을 때 1 을 더한다
     if (q.get("lat") && q.get("lon")) {
-      return { center: [+q.get("lon"), +q.get("lat")], zoom: +(q.get("z") || 12) };
+      return { center: [+q.get("lon"), +q.get("lat")], zoom: +(q.get("z") || 13) - 1 };
     }
     try {
-      var v = JSON.parse(localStorage.getItem("gsm.view") || "null");
-      if (v && isFinite(v.lon)) return { center: [v.lon, v.lat], zoom: Math.max(8, v.zoom) };
+      var v = JSON.parse(localStorage.getItem(VIEW_KEY) || "null");
+      // 극지 탭이 적은 줌은 극 평사도법의 줌이라 3D(메르카토르)에 그대로 쓰지 않는다
+      if (v && isFinite(v.lon) && (!v.proj || v.proj === "EPSG:3857")) {
+        return { center: [v.lon, v.lat], zoom: Math.max(8, v.zoom) - 1 };
+      }
     } catch (e) { /* 사생활 모드 */ }
     return { center: [128.465, 38.119], zoom: 12 };
   }
@@ -48,9 +58,12 @@
     ? asked : "L_250K_Geology_Map";
 
   var sources = {
-    dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 15,
+    // 표고는 256 px 타일을 512 로 여겨 **한 단계 거칠게** 부른다 — 타일 수가 4 분의 1 이다.
+    // 스발바르를 z13 으로 열면 PGC 타일이 96 장, 빈 캐시에서 55 초였다(2026-09-29). 한 픽셀이
+    // 땅 수 m–수십 m 라 지형에는 넉넉하다
+    dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15,
            attribution: "Terrain: Mapzen/AWS Terrain Tiles · 국토지리원 · ArcticDEM/REMA © PGC (CC BY 4.0)" },
-    shade: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 15 },
+    shade: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 512, maxzoom: 15 },
     kigam: { type: "raster", tiles: wmsTiles(select.value), tileSize: 512,
              attribution: "© 한국지질자원연구원" },
   };
@@ -59,7 +72,10 @@
   var VWORLD = "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey);
   if (vworldKey) {
     sources.base = { type: "raster", tileSize: 256, maxzoom: 19, attribution: "© VWorld",
-      tiles: [VWORLD + "/white/{z}/{y}/{x}.png"] };
+      tiles: [VWORLD + "/white/{z}/{y}/{x}.png"],
+      // VWorld 는 한반도 둘레(대략 동경 120–134°, 북위 30–44°) 밖에서 그림 대신 XML 오류를 준다 —
+      // 스발바르에서 "소스 이미지를 디코드하지 못했다" 가 떴다(2026-09-29). 그 밖은 묻지 않는다
+      bounds: [120, 30, 134, 44] };
     layers.push({ id: "base", type: "raster", source: "base" });
   }
   layers.push({ id: "shade", type: "hillshade", source: "shade",
@@ -75,6 +91,7 @@
   // 경계는 서버의 `elevation.in_japan` 과 같다. 국토지리원 타일은 z14 가 끝이다
   var GSI_MAX_ZOOM = 14;
   var POLAR_LAT = 60;         // 서버의 `elevation.POLAR_LAT`
+  var POLAR_MIN_ZOOM = 11;    // 서버의 `elevation.POLAR_MIN_ZOOM` — 멀리서는 AWS(브라우저가 곧장, 빠르다)
   function inJapan(lat, lon) {
     if (!(lon >= 122.9 && lon <= 154.0 && lat >= 20.0 && lat <= 45.6)) return false;
     if (lon < 129.0) return false;
@@ -90,7 +107,7 @@
     var lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 0.5) / n))) * 180 / Math.PI;
     // 위도 60° 너머는 PGC ArcticDEM·REMA 2 m 를 서버가 옮겨 준다(032). AWS 는 여기서 이음매가
     // 계단처럼 드러나고 결이 뭉개진다
-    var ours = Math.abs(lat) >= POLAR_LAT || (z <= GSI_MAX_ZOOM && inJapan(lat, lon));
+    var ours = (Math.abs(lat) >= POLAR_LAT && z >= POLAR_MIN_ZOOM) || (z <= GSI_MAX_ZOOM && inJapan(lat, lon));
     return ours ? { url: location.origin + BASE + "dem/" + z + "/" + x + "/" + y + ".png" } : undefined;
   }
 
@@ -147,12 +164,14 @@
   document.getElementById("shade3d").addEventListener("change", function () {
     map.setLayoutProperty("shade", "visibility", this.checked ? "visible" : "none");
   });
-  // 2D 로 돌아갈 때 지금 자리를 가지고 간다
+  // 2D 로 돌아갈 때 지금 자리를 가지고 간다 — 그 지역의 열쇠에, 메르카토르 줌이라고 적어서.
+  // 전에는 늘 한국의 열쇠에 적어, 스발바르 3D 에서 돌아가면 한국 탭이 스발바르로 열렸다.
+  // 극지 탭은 적힌 투영을 보고 줌을 옮겨 센다(`map.js` 의 carryZoom)
   map.on("moveend", function () {
     var c = map.getCenter();
     try {
-      localStorage.setItem("gsm.view", JSON.stringify({ lon: +c.lng.toFixed(5), lat: +c.lat.toFixed(5),
-                                                        zoom: +map.getZoom().toFixed(2) }));
+      localStorage.setItem(VIEW_KEY, JSON.stringify({ lon: +c.lng.toFixed(5), lat: +c.lat.toFixed(5),
+                                                      zoom: +(map.getZoom() + 1).toFixed(2), proj: "EPSG:3857" }));
     } catch (e) { /* 사생활 모드 */ }
   });
 

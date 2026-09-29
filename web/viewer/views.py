@@ -1316,7 +1316,8 @@ def dem_tile(request, z, x, y):
     png = None
     try:
         if abs(lat) >= elevation.POLAR_LAT:
-            png = elevation.polar_terrarium(z, x, y)
+            if z >= elevation.POLAR_MIN_ZOOM:
+                png = elevation.polar_terrarium(z, x, y)
         elif z <= elevation.GSI_ZOOM and elevation.in_japan(lat, lon):
             png = elevation.japan_terrarium(z, x, y)
     except (elevation.ElevationError, OSError, ValueError) as exc:

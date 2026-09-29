@@ -19,6 +19,7 @@ McMurdo 가 −39 m 와 14 m 로 갈렸다. `getSamples` 는 여러 점을 한 �
 import io
 import logging
 import math
+import threading
 import time
 
 import requests
@@ -234,14 +235,19 @@ def _pixels(image):
 # 극 평사도법 네모를 받아, 칸마다 네 모서리를 되짚어 편다(`warp.py` 와 같은 `MESH`).
 
 PGC_EXPORT_URL = "https://di-pgc.img.arcgis.com/arcgis/rest/services/{service}/ImageServer/exportImage"
-#: 3D 가 극지 표고를 받는 줌. 2 m 모자이크라 z15 까지 값이 촘촘하다
+#: 3D 가 극지 표고를 받는 줌. 2 m 모자이크라 z15 까지 값이 촘촘하다. z11 밑은 AWS 로 둔다 —
+#: PGC 는 한 장에 3 초 남짓이고 브라우저는 한 서버에 연결을 여섯만 연다. 스발바르를 z8 로 기울여
+#: 열면 z9 타일이 89 장이라 빈 캐시에서 48 초 걸렸다(2026-09-29). 가까이 볼 때만 PGC 로 간다
 POLAR_MAX_ZOOM = 15
+POLAR_MIN_ZOOM = 11
 _NODATA = -9999.0
 #: 이보다 낮으면 자료 없음으로 본다 — 쌍선형이 빈 칸(−9999)과 섞인 가장자리까지 거른다.
 #: 모자이크의 가장 낮은 값이 −155 m 다
 _FLOOR = -500.0
 _MESH = 8
-_SRC = 512
+#: PGC 에 묻는 그림의 한 변. 512 면 한 장에 3.7 초, 256 이면 2.7 초다(2026-09-29). 3D 의 256 px
+#: 타일을 펴는 데는 256 으로 모자라지 않다
+_SRC = 256
 
 
 def _terrarium_rgb(value):
@@ -261,26 +267,56 @@ def _merc_lonlat(z, x, y, px, py):
     return lon, lat
 
 
+#: 한 번 물을 때 받는 네모 — 4×4 타일. 한 장씩이면 16 장에 45 초, 네모째면 5 초다(2026-09-29)
+POLAR_BLOCK = 4
+_block_locks = {}
+_block_locks_guard = threading.Lock()
+
+
+def _block_lock(key):
+    with _block_locks_guard:
+        return _block_locks.setdefault(key, threading.Lock())
+
+
 def polar_terrarium(z: int, x: int, y: int):
-    """PGC 해발을 Terrarium 으로 옮긴 3857 타일. 모자이크 밖이면 None(→ AWS)."""
-    from . import tilegrid
+    """PGC 해발을 Terrarium 으로 옮긴 3857 타일. 모자이크 밖이면 None(→ AWS).
+
+    타일 하나를 부르면 그 타일이 든 4×4 네모를 한 번에 받아 16 장을 다 담는다 — 3D 는 이웃
+    타일을 곧 부른다. 같은 네모를 여럿이 한꺼번에 부르면 하나만 묻고 나머지는 기다린다."""
     key = tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return None if hit == _NONE else hit
-    _, lat_mid = _merc_lonlat(z, x, y, 128, 128)
+    n = 2 ** z
+    block = min(POLAR_BLOCK, n)
+    bx, by = x // block * block, y // block * block
+    with _block_lock((z, bx, by)):
+        hit = tilecache.get(key)                       # 기다리는 사이 다른 스레드가 담았다
+        if hit is not None:
+            return None if hit == _NONE else hit
+        tiles = _polar_block(z, bx, by, block)
+    return tiles.get((x, y))
+
+
+def _polar_block(z: int, bx: int, by: int, block: int) -> dict:
+    """(bx, by) 에서 block×block 타일을 한 번에 만들어 담는다. {(x, y): PNG 또는 None}."""
+    from . import tilegrid
+    size = 256 * block
+    _, lat_mid = _merc_lonlat(z, bx, by, size / 2, size / 2)
     crs, service = ("EPSG:3413", "arcticdem_latest") if lat_mid > 0 else ("EPSG:3031", "rema_latest")
-    step = 256 / _MESH
-    corners = {(i, j): tilegrid.polar_forward(*_merc_lonlat(z, x, y, i * step, j * step), crs)
-               for i in range(_MESH + 1) for j in range(_MESH + 1)}
+    cells = _MESH * block
+    step = size / cells
+    corners = {(i, j): tilegrid.polar_forward(*_merc_lonlat(z, bx, by, i * step, j * step), crs)
+               for i in range(cells + 1) for j in range(cells + 1)}
     xs = [c[0] for c in corners.values()]
     ys = [c[1] for c in corners.values()]
     x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
     side = max(x1 - x0, y1 - y0)                       # 정사각으로 받아 픽셀이 반듯하게
     x1, y0 = x0 + side, y1 - side
+    src_px = _SRC * block
     r = _get(PGC_EXPORT_URL.format(service=service), "pgc", params={
         "bbox": f"{x0},{y0},{x1},{y1}", "bboxSR": crs.split(":")[1], "imageSR": crs.split(":")[1],
-        "size": f"{_SRC},{_SRC}", "format": "tiff", "compression": "LZ77", "pixelType": "F32",
+        "size": f"{src_px},{src_px}", "format": "tiff", "compression": "LZ77", "pixelType": "F32",
         "noData": _NODATA, "interpolation": "RSP_BilinearInterpolation",
         "renderingRule": '{"rasterFunction":"Height Orthometric"}', "f": "image"})
     if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
@@ -289,21 +325,34 @@ def polar_terrarium(z: int, x: int, y: int):
     src.load()
     if src.mode != "F":
         raise ElevationError(f"PGC 가 뜻밖의 그림을 주었다 ({src.mode})")
-    res = side / _SRC
+    res = side / src_px
 
-    def px(key):
-        e, n = corners[key]
-        return (e - x0) / res, (y1 - n) / res
+    def px(k):
+        e, north = corners[k]
+        return (e - x0) / res, (y1 - north) / res
 
     mesh = []
-    for i in range(_MESH):
-        for j in range(_MESH):
+    for i in range(cells):
+        for j in range(cells):
             box = (round(i * step), round(j * step), round((i + 1) * step), round((j + 1) * step))
             mesh.append((box, px((i, j)) + px((i, j + 1)) + px((i + 1, j + 1)) + px((i + 1, j))))
-    warped = src.transform((256, 256), Image.MESH, mesh, resample=Image.BILINEAR, fillcolor=_NODATA)
-    values = list(_pixels(warped))
+    warped = src.transform((size, size), Image.MESH, mesh, resample=Image.BILINEAR, fillcolor=_NODATA)
+
+    out = {}
+    for dx in range(block):
+        for dy in range(block):
+            x, y = bx + dx, by + dy
+            piece = warped.crop((dx * 256, dy * 256, dx * 256 + 256, dy * 256 + 256))
+            png = _terrarium_png(piece, z, x, y)
+            tilecache.put(tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}"), png or _NONE)
+            out[x, y] = png
+    return out
+
+
+def _terrarium_png(piece, z, x, y):
+    """해발(F) 256×256 → Terrarium PNG. 다 비었으면 None. 구멍은 같은 자리의 AWS 값으로."""
+    values = list(_pixels(piece))
     if all(v < _FLOOR for v in values):
-        tilecache.put(key, _NONE)
         return None
     fill = None
     out = []
@@ -320,9 +369,7 @@ def polar_terrarium(z: int, x: int, y: int):
     image.putdata(out)
     buf = io.BytesIO()
     image.save(buf, "PNG")
-    png = buf.getvalue()
-    tilecache.put(key, png)
-    return png
+    return buf.getvalue()
 
 
 # ── 3D 의 일본 지형 ──────────────────────────────────────────────────

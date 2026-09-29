@@ -7,6 +7,21 @@
 <link rel="icon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
 <link rel="stylesheet" href="{% static 'viewer/vendor/maplibre/maplibre-gl.css' %}">
 <link rel="stylesheet" href="{% static 'viewer/map.css' %}?v={{ stamp|default:version }}">
+{% comment %}2D 와 같은 테마·지역 색으로 뜬다. 지역은 2D 의 3D 단추가 `?region=` 으로 넘기고, 없으면
+2D 에서 마지막에 보던 지역이다. CSS 가 입혀지기 전에 달아야 깜빡이지 않는다.{% endcomment %}
+<script>
+(function () {
+  var root = document.documentElement, q = new URLSearchParams(location.search);
+  function saved(key, fallback) {
+    try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
+  }
+  root.setAttribute("data-theme", saved("gsm.theme", "brown"));
+  root.setAttribute("data-font", saved("gsm.font", "sans"));
+  root.setAttribute("data-size", saved("gsm.size", "m"));
+  var region = q.get("region") || saved("gsm.region", "korea");
+  if (/^[a-z_]+$/.test(region)) root.setAttribute("data-region", region);
+})();
+</script>
 <style>
   body { margin: 0; }
   #map3d { position: fixed; inset: 0; background: #e8e0d2; }
@@ -66,8 +81,9 @@
   <label><input type="checkbox" id="shade3d" checked> {% t "음영 보이기" %}</label>
   <button type="button" id="export3d" class="export3d"
           title="{% t "그림으로 내려받기 — 지금 보는 3D 화면을 PNG 한 장으로. 레이어·자리·출처를 아래에 적는다" %}">{% t "그림으로 내려받기" %}</button>
-  <h2 id="custom3d-head" hidden>{% t "커스텀 지질도" %}</h2>
-  <ul id="custom3d" class="ps3d"></ul>
+  {% comment %}한반도 지질도·암맥이라 한국·동아시아 밖에서는 숨긴다 (map.css 의 .korea-only){% endcomment %}
+  <h2 id="custom3d-head" class="korea-only" hidden>{% t "커스텀 지질도" %}</h2>
+  <ul id="custom3d" class="ps3d korea-only"></ul>
   <h2>{% t "내 자료" %}</h2>
   <ul id="ps3d" class="ps3d"></ul>
   <p id="ps3d-warn" class="hint" hidden></p>

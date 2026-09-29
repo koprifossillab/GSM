@@ -33,6 +33,7 @@ python manage.py seed_catalog || echo "씨앗을 넣지 못했다 — 화면은 
 exec gunicorn gsmweb.wsgi:application \
     --bind 0.0.0.0:9090 \
     --workers 3 \
+    --threads 8 \
     --timeout 60 \
     --access-logfile - \
     --error-logfile -

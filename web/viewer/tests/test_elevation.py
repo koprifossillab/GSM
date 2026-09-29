@@ -164,11 +164,10 @@ class PolarTerrarium(SimpleTestCase):
     """PGC 를 제 투영(3413)으로 받아 3857 타일로 편다 (032)."""
 
     def export(self, value, holes=False):
-        image = Image.new("F", (512, 512), value)
+        side = elevation._SRC * elevation.POLAR_BLOCK           # 4×4 타일을 한 번에 받는다
+        image = Image.new("F", (side, side), value)
         if holes:
-            for i in range(256):
-                for j in range(512):
-                    image.putpixel((i, j), -9999.0)          # 왼쪽 절반이 모자이크 밖
+            image.paste(-9999.0, (0, 0, side // 2, side))       # 왼쪽 절반이 모자이크 밖
         buf = io.BytesIO()
         image.save(buf, "TIFF")
         return mock.Mock(status_code=200, content=buf.getvalue(), headers={"content-type": "image/tiff"})

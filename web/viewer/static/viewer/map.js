@@ -2020,6 +2020,7 @@
       var top = active.filter(function (e) { return e.layer.getVisible(); })[0];
       this.href = "3d/?lat=" + ll[1].toFixed(5) + "&lon=" + ll[0].toFixed(5) +
         "&z=" + Math.max(8, mercZoom(view.getResolution())).toFixed(2) +
+        "&region=" + region +                    // 3D 도 이 지역의 색으로 뜬다
         (top ? "&layer=" + encodeURIComponent(top.name) : "");
     });
     document.getElementById("save-temp").addEventListener("click", saveTemp);
