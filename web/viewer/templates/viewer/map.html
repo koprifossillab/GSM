@@ -270,6 +270,8 @@
 
   <div id="toolbar" class="toolbar" role="toolbar" aria-label="{% t "그리기 도구" %}">
     <div class="tool-col">
+      {% comment %}남극 탭에서는 옆에 "자세" 묶음이 서므로 두 묶음에 이름표를 단다 (049){% endcomment %}
+      <div class="tool-cap antarctica-only">{% t "도구" %}</div>
       <button type="button" class="tool" data-mode="point" title="{% t "점 찍기 — 누른 자리에 점을 찍고 위경도를 적는다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11Z"/><circle class="fill" cx="12" cy="10" r="2.4"/></svg>
         <span>{% t "점" %}</span>
@@ -298,6 +300,18 @@
       <button type="button" class="tool danger" id="tool-clear" title="{% t "찍은 점과 잰 것을 모두 지운다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/></svg>
         <span>{% t "지우기" %}</span>
+      </button>
+    </div>
+    {% comment %}남극 탭의 "자세" — 우리 기지로 바로 간다. `row-reverse` 라 도구 묶음의 왼쪽에 선다 (049){% endcomment %}
+    <div class="tool-col antarctica-only" role="group" aria-label="{% t "자세" %}">
+      <div class="tool-cap">{% t "자세" %}</div>
+      <button type="button" class="tool" data-goto="jangbogo" title="{% t "장보고과학기지로 간다 — 74°37′26″S 164°13′44″E" %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M6 21V4"/><path class="stroke tint" d="M6 4h11l-2.5 3.5L17 11H6"/><path class="stroke" d="M3 21h8"/></svg>
+        <span>{% t "장보고" %}</span>
+      </button>
+      <button type="button" class="tool" data-goto="sejong" title="{% t "세종과학기지로 간다 — 62°13′22″S 58°47′18″W" %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M6 21V4"/><path class="stroke tint" d="M6 4h11l-2.5 3.5L17 11H6"/><path class="stroke" d="M3 21h8"/></svg>
+        <span>{% t "세종" %}</span>
       </button>
     </div>
     <output id="tool-out" class="tool-out" hidden></output>

@@ -115,6 +115,11 @@ EN = {
     "다 여물지 않은 기능을 먼저 써 본다. 지금은 3D 보기(지도 오른쪽 도구 막대).":
         "Try features that are not finished yet. For now: 3D view (map toolbar on the right).",
     "3D 로 본다 (실험) — 지금 보던 자리를 연다": "View in 3D (experimental) — opens where you are",
+    # 남극 탭의 "자세" — 우리 기지로 (049)
+    "장보고": "Jang Bogo",
+    "세종": "Sejong",
+    "장보고과학기지로 간다 — 74°37′26″S 164°13′44″E": "Go to Jang Bogo Station — 74°37′26″S 164°13′44″E",
+    "세종과학기지로 간다 — 62°13′22″S 58°47′18″W": "Go to King Sejong Station — 62°13′22″S 58°47′18″W",
     # 달 (devlog 036, P05). 대돌여지도 아이콘의 숨은 차림에서 들어간다
     "달": "Moon",
     "지질": "Geology",

@@ -2079,6 +2079,19 @@
       });
     });
     document.getElementById("tool-clear").addEventListener("click", clearDrawn);
+    // 남극 탭의 "자세" — 우리 기지로 바로 간다 (049). 좌표는 극지연구소·위키백과가 적은 기지 자리다.
+    // 해상도 12 m/px 면 기지와 둘레 10 km 남짓이 한 화면에 든다
+    var STATIONS = {
+      jangbogo: [164.22882, -74.62402],     // 장보고과학기지 74°37′26″S 164°13′44″E — 테라노바만
+      sejong: [-58.78833, -62.22278],       // 세종과학기지 62°13′22″S 58°47′18″W — 킹조지섬 바턴반도
+    };
+    document.querySelectorAll(".tool[data-goto]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var ll = STATIONS[button.dataset.goto];
+        if (!ll) return;
+        map.getView().animate({ center: fromLL(ll), resolution: 12, rotation: 0, duration: 900 });
+      });
+    });
     document.getElementById("tool-export").addEventListener("click", exportPng);
     // 3D 는 한국의 `gsm.view` 만 읽는다. 일본·중국·동아시아 탭에서도 지금 자리를 열게
     // 누르는 순간 주소에 가운데와 줌을 싣는다

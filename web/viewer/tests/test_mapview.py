@@ -121,3 +121,14 @@ class MoonView(TestCase):
     def test_달은_지역_탭이_아니다(self):
         from viewer.models import REGIONS
         self.assertNotIn("moon", dict(REGIONS))
+
+
+class AntarcticStations(TestCase):
+    """남극 탭의 "자세" — 장보고·세종 기지로 바로 가는 단추 (049)."""
+
+    def test_두_기지_단추가_남극에서만_서는_묶음에_있다(self):
+        html = self.client.get(reverse("viewer:map")).content.decode()
+        group = re.search(r'<div class="tool-col antarctica-only"[^>]*>(.*?)</div>\s*<output id="tool-out"', html, re.S)
+        self.assertIsNotNone(group)
+        self.assertIn('data-goto="jangbogo"', group.group(1))
+        self.assertIn('data-goto="sejong"', group.group(1))
