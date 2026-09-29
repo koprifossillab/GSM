@@ -286,7 +286,7 @@
   placeBase();
   var SHADE = BASES.lola;
   var oShade = new ol.layer.Tile({ className: "moon-shade", visible: false, opacity: 0.7,
-                                   source: tileSource(SHADE.url, SHADE.max, SHADE.credit) });
+                                   source: tileSource(SHADE.url, SHADE.max, SHADE.credit, "anonymous") });   // CORS — 그림으로 뽑으려면 (048)
   var oGeo = {};
   GEO_NAMES.forEach(function (name) {
     oGeo[name] = new ol.layer.Tile({ source: tileSource(geoUrl(name), GEO_MAX, creditOf(name)),
@@ -355,7 +355,8 @@
     oGeo.nac = new ol.layer.Group({ visible: false, layers: NAC.map(function (m) {
       return new ol.layer.Tile({
         extent: [m.bbox[0] * M_PER_DEG, m.bbox[1] * M_PER_DEG, m.bbox[2] * M_PER_DEG, m.bbox[3] * M_PER_DEG],
-        source: tileSource(TREK + m.layer + "/1.0.0/default/default028mm/{z}/{y}/{x}.png", m.max, NAC_CREDIT),
+        source: tileSource(TREK + m.layer + "/1.0.0/default/default028mm/{z}/{y}/{x}.png", m.max, NAC_CREDIT,
+                           "anonymous"),                                   // CORS — 그림으로 뽑으려면 (048)
       });
     }) });
     oExtra.getLayers().push(oGeo.nac);
@@ -2047,6 +2048,192 @@
     else if (tool) setTool("");
   });
   renderTemp();
+
+  // ══ 그림으로 내려받기 (048) ═══════════════════════════════════════
+  //
+  // 2D·지구 3D 의 "그림" 과 같은 꼴 — 지금 보는 화면 한 장에 밑의 띠를 붙여 **무엇을 봤는지** 적는다.
+  // 띠에는 구·평면, 배경(보정했으면 그 값), 켠 레이어, 점묶음, 가운데, 출처, 날짜가 들어간다.
+  //
+  // - 구는 Cesium 캔버스를 **그린 바로 그 프레임(`postRender`) 안에서** 옮겨 담는다. WebGL 은 그린 뒤 버퍼를
+  //   비우는데, `preserveDrawingBuffer` 를 켜면 늘 느려진다(지구 3D 와 같은 판단). 타일이 다 올 때까지
+  //   (`tilesLoaded`, 길어야 10 초) 기다린다. 기울인 화면은 앞뒤의 축척이 달라 **축척 막대를 넣지 않고**
+  //   기울기·방위를 적는다
+  // - 평면은 2D 처럼 레이어 캔버스들을 투명도·변환 그대로 겹친다. 배경이 WebGL 타일(042)이라 역시 그린
+  //   바로 뒤(`rendercomplete`)에 담는다. 음영 겹치기는 화면에서 CSS 의 곱하기(mix-blend-mode)라 합칠 때도
+  //   곱한다. 축척 막대를 넣는다 — 등거리 원통의 가운데 위도에서 잰다(`EQC.getPointResolution`)
+  //
+  // 팝업·패널은 HTML 이라 담기지 않는다. 찍고 잰 것·누른 자리의 고리·자전축은 캔버스에 있어 담긴다.
+  // Trek 에서 곧장 받는 타일은 모두 CORS 로 받는다 — 하나라도 아니면 캔버스가 더럽혀져 뽑히지 않는다
+  var exportBtn = $("tool-export");
+  exportBtn.addEventListener("click", function () {
+    exportBtn.disabled = true;
+    var finish = function (canvas) {
+      if (!canvas) { exportBtn.disabled = false; alert(T("그림을 만들지 못했다")); return; }
+      canvas.toBlob(function (blob) {
+        exportBtn.disabled = false;
+        if (!blob) { alert(T("그림을 만들지 못했다")); return; }
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "GSM-moon-" + stampText().replace(/[-: ]/g, "").slice(0, 12) + ".png";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      }, "image/png");
+    };
+    if (mode === "flat") captureFlat(finish); else captureGlobe(finish);
+  });
+
+  function captureGlobe(done) {
+    var t0 = Date.now();
+    var remove = scene.postRender.addEventListener(function () {
+      if (!scene.globe.tilesLoaded && Date.now() - t0 < 10000) return;
+      remove();
+      var gl = scene.canvas, w = gl.clientWidth, h = gl.clientHeight;
+      done(safely(function () { return compose(w, h, gl.width / w, function (ctx) { ctx.drawImage(gl, 0, 0); }); }));
+    });
+    scene.requestRender();
+  }
+
+  function captureFlat(done) {
+    flat.once("rendercomplete", function () {
+      var size = flat.getSize(), w = size[0], h = size[1], ratio = window.devicePixelRatio || 1;
+      done(safely(function () {
+        return compose(w, h, ratio, function (ctx) {
+          flat.getViewport().querySelectorAll(".ol-layers canvas").forEach(function (c) {
+            if (!c.width) return;
+            var holder = c.parentNode, opacity = holder.style.opacity || c.style.opacity;
+            ctx.globalAlpha = opacity === "" ? 1 : Number(opacity);
+            ctx.globalCompositeOperation = getComputedStyle(holder).mixBlendMode === "multiply" ? "multiply" : "source-over";
+            var m = /^matrix\(([^(]*)\)$/.exec(c.style.transform || "");
+            var t = m ? m[1].split(",").map(Number) : [w / c.width, 0, 0, h / c.height, 0, 0];
+            ctx.setTransform(t[0] * ratio, t[1] * ratio, t[2] * ratio, t[3] * ratio, t[4] * ratio, t[5] * ratio);
+            ctx.drawImage(c, 0, 0);
+          });
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+        });
+      }));
+    });
+    flat.renderSync();
+  }
+
+  /** 교차 출처 타일이 섞여 캔버스가 더럽혀지면 뽑을 때(`toBlob`) 막힌다 — 여기서 미리 걸러 null 을 낸다. */
+  function safely(make) {
+    try {
+      var canvas = make();
+      canvas.getContext("2d").getImageData(0, 0, 1, 1);
+      return canvas;
+    } catch (e) { return null; }
+  }
+
+  function stampText() {
+    var d = new Date();
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " +
+      two(d.getHours()) + ":" + two(d.getMinutes());
+  }
+
+  /** 화면 한 장(`paint` 가 그린다) + 밑의 띠. 달 화면처럼 흑백이다. */
+  function compose(w, h, ratio, paint) {
+    var lineH = 17, pad = 12, bar = mode === "flat" ? 170 : 0;
+    // 넘치는 줄은 " · " 에서 끊어 다음 줄로 잇는다 — 출처는 잘리면 안 된다(누가 만든 그림인지가 거기 있다)
+    var probe = document.createElement("canvas").getContext("2d");
+    var lines = [];
+    exportLines().forEach(function (line, i) {
+      probe.font = (i === 0 ? "bold 14px " : "12px ") + "sans-serif";
+      var max = w - pad * 2 - (i === 0 ? bar : 0), cur = "";
+      line.split(" · ").forEach(function (bit) {
+        var next = cur ? cur + " · " + bit : bit;
+        if (cur && probe.measureText(next).width > max) { lines.push(cur); cur = "   " + bit; }
+        else cur = next;
+      });
+      lines.push(i === 0 ? { head: cur } : cur);
+    });
+    var foot = pad * 2 + lineH * lines.length;
+    var out = document.createElement("canvas");
+    out.width = Math.round(w * ratio);
+    out.height = Math.round((h + foot) * ratio);
+    var ctx = out.getContext("2d");
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, out.width, out.height);
+    paint(ctx);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.fillStyle = "#f4f4f4";
+    ctx.fillRect(0, h, w, foot);
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, h, w, 1);
+    ctx.textBaseline = "top";
+    lines.forEach(function (line, i) {
+      var head = typeof line === "object";
+      ctx.font = (head ? "bold 14px " : "12px ") + "sans-serif";
+      ctx.fillStyle = head ? "#111" : "#333";
+      ctx.fillText(fitText(ctx, head ? line.head : line, w - pad * 2 - (head ? bar : 0)), pad, h + pad + i * lineH + (i ? 3 : 0));
+    });
+    if (bar) drawScaleBar(ctx, w - pad - 150, h + pad + 2, 150);
+    return out;
+  }
+
+  /** 띠에 적을 줄들. 첫 줄이 제목이다. */
+  function exportLines() {
+    var shown = active.map(function (e) { return T(LAYER[e.name].title); });
+    var mine = pointsets.filter(function (ps) { return ps.visible; });
+    var select = $("basemap"), base = select.options[select.selectedIndex].text;
+    var tuned = TUNES.filter(function (k) { return tune[k] !== TUNE_DEFAULT[k]; });
+    if (tuned.length || tune.shade) {
+      base += " · " + T("영상 보정") + " " + tuned.map(function (k) { return tuneText(k, tune[k]); }).join("/") +
+              (tune.shade ? (tuned.length ? " + " : "") + T("음영") : "");
+    }
+    var where;
+    if (mode === "flat") {
+      where = fmt(clean(wrapLon(toLL(flat.getView().getCenter()))));
+    } else {
+      var p = pivot(false);
+      if (p) {
+        var c = MOON.cartesianToCartographic(p.pos), a = anglesAt(p.pos, false);
+        where = fmt(clean([Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)])) + " · " +
+                T("기울기 {tilt}° · 방위 {heading}°", { tilt: Math.round(90 + a.pitch), heading: Math.round(a.heading) % 360 });
+      } else where = "—";
+      if (look.terrain) where += " · " + T("지형 과장") + " ×" + (look.exag / 10).toFixed(1);
+    }
+    var credits = [BASES[look.base].credit];
+    if (BASES[look.base].under) credits.push(BASES.wac.credit);
+    if (tune.shade && look.base !== "lola") credits.push(SHADE.credit);
+    active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
+    if (mode === "globe" && look.terrain) credits.push("LRO LOLA DEM (NASA/GSFC)");
+    credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
+    var out = [T("대돌여지도") + " · " + T("달") + " · " + T(mode === "flat" ? "평면" : "구") + " · " + stampText()];
+    out.push(T("배경") + ": " + base);
+    out.push(T("레이어") + ": " + (shown.length ? shown.join(" / ") : "—"));
+    if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
+    out.push(T("가운데") + ": " + where);
+    out.push(T("출처") + ": " + credits.join(" · "));
+    return out;
+  }
+
+  // 소수 넷째 자리에서 0 이 되는 값은 0 으로 — "-0.0000°" 가 찍히지 않게
+  function clean(ll) { return ll.map(function (v) { return Math.abs(v) < 5e-5 ? 0 : v; }); }
+  function fitText(ctx, text, max) {
+    if (ctx.measureText(text).width <= max) return text;
+    while (text.length > 1 && ctx.measureText(text + "…").width > max) text = text.slice(0, -1);
+    return text + "…";
+  }
+
+  /** 평면 가운데 위도의 땅 축척으로 막대를 그린다. 1·2·5 × 10ⁿ 로 반올림한다. */
+  function drawScaleBar(ctx, x, y, maxWidth) {
+    var v = flat.getView();
+    var metersPerPx = ol.proj.getPointResolution(EQC, v.getResolution(), v.getCenter(), "m");
+    if (!isFinite(metersPerPx) || metersPerPx <= 0) return;
+    var raw = metersPerPx * maxWidth;
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var nice = [5, 2, 1].map(function (k) { return k * pow; }).filter(function (n) { return n <= raw; })[0] || pow;
+    var px = nice / metersPerPx;
+    ctx.fillStyle = "#111";
+    ctx.fillRect(x, y + 14, px, 4);
+    ctx.fillRect(x, y + 10, 1.5, 8);
+    ctx.fillRect(x + px - 1.5, y + 10, 1.5, 8);
+    ctx.font = "12px sans-serif";
+    ctx.fillText(nice >= 1000 ? (nice / 1000) + " km" : nice + " m", x, y - 4);
+  }
 
   // ══ 처음 자리 — 기억한 것. 처음이면 앞면 한가운데를 멀리서 ═══════
   // 맨 끝에 둔다 — 평면으로 여는 길이 팝업·목록을 다 만든 뒤라야 한다
