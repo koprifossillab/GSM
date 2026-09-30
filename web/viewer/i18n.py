@@ -553,6 +553,7 @@ EN = {
     "아직 잰 것이 없다": "Nothing measured yet",
     # 달 — 높이 그래프 (wetherilli 100)
     "높이 그래프": "Elevation profile",
+    "여기에는 값이 없다": "No value here",
     "높이를 읽는 중…": "Reading elevations…",
     "높이를 읽지 못했다": "Could not read the elevations",
     "최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}": "low {lo} · high {hi} · ascent {up} · descent {down}",
@@ -885,6 +886,14 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 달 — 누른 자리의 값 (wetherilli 103)
+    "감람석": "Olivine",
+    "단사휘석": "Clinopyroxene",
+    "사방휘석": "Orthopyroxene",
+    "사장석": "Plagioclase",
+    "토륨": "Thorium",
+    "티타늄": "Titanium",
+    "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)
     "산지": "Collection",
     "퇴적 환경": "Environment",

@@ -134,4 +134,5 @@
 | wetherilli 100 | 2026-09-30 | [달 — 잰 선을 따라 높이 그래프](20260930_wetherilli_100_moon_elevation_profile.md) |
 | wetherilli 101 | 2026-09-30 | [온 지구 — 지각 두께, CRUST 2.0](20260930_wetherilli_101_crust_thickness.md) |
 | wetherilli 102 | 2026-09-30 | [온 지구 — 지명 찾기, 산맥·바다 이름, 강·호수, 빙하](20260930_wetherilli_102_natural_earth_places.md) |
+| wetherilli 103 | 2026-09-30 | [달 — 누른 자리의 광물·원소·지각 두께 값](20260930_wetherilli_103_moon_point_values.md) |
 | wetherilli 104 | 2026-09-30 | [온 지구 — 최근 빙기의 빙상 가장자리, 25–1 ka](20260930_wetherilli_104_ice_margins.md) |

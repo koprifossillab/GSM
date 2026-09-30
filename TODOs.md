@@ -134,9 +134,10 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 
 ### 달 — Trek ImageServer
 
-- [ ] 광물·원소·지각 두께 값 [실측] — Kaguya MI(FeO·감람석·휘석·사장석, 50°N–S)·LP Th·GRAIL 지각 두께·극지 광물·얼음 깊이.
-      `lola_values`·`mars_values` 를 `trek.samples()` 로 묶는다. ImageServer 는 씨앗에 없어 판마다 단위·배율·빈 값 표를 손으로.
-      한 번 누르면 판 6–8 개라 느리다(병렬, 켠 판만). 팝업만 하루, 점묶음 열까지 이틀(새 JSONField, 이주 0016). Kaguya 는 JAXA 조건(043)
+- [ ] 누른 자리의 값 — 남은 것. 팝업은 섰다(wetherilli 103 — 켠 판만, Kaguya MI 다섯·LP Th·Ti·GRAIL 지각 두께 넷).
+      극지 광물·얼음 깊이(`sp_feo_mlemelin_031417`·`*_ice_depth_*`)는 2026-09-30 에 502 라 뺐다. 다누리 KGRS 열중성자
+      (`KPLO_KGRS_Thermal_Neutron_2ppd`)는 씨앗에 판이 없어 못 켠다 — 단위를 확인하고 판을 세울지. 점묶음 열(새 JSONField,
+      이주)은 아직. Kaguya 는 JAXA 조건(043)
 - [ ] 달 극지 5 m·NAC DTM 40여 곳 — 온 달은 256 ppd 다(wetherilli 083). 장마다 원천을 고른다. 하루. 경계의 턱
 
 ### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)

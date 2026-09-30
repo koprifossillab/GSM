@@ -17,6 +17,7 @@ urlpatterns = [
     re_path(r"^moon/dem/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$", views.moon_dem, name="moon-dem"),
     path("moon/info/", views.moon_info, name="moon-info"),
     path("moon/profile/", views.moon_profile, name="moon-profile"),
+    path("moon/values/", views.moon_values, name="moon-values"),
     path("moon/legend/", views.moon_legend, name="moon-legend"),
     path("moon/places/", views.moon_places, name="moon-places"),
     path("moon/landings/", views.moon_landings, name="moon-landings"),
