@@ -47,7 +47,7 @@ class Command(BaseCommand):
         # 상류를 타지 않고 저장소의 표만 쓴다
         for path, label, region, upstream in (
                 (settings.GEUS_CATALOG_SEED, "그린란드", "greenland", "geus"),
-                (settings.VWORLD_CATALOG_SEED, "지질 참고 (VWorld)", "korea", "vworld"),
+                (settings.VWORLD_CATALOG_SEED, "VWorld", "korea", "vworld"),
                 (settings.GRPORTAL_CATALOG_SEED, "그린란드 정부 포털", "greenland", "grportal"),
                 (settings.GEOMAP_CATALOG_SEED, "남극", "antarctica", "geomap"),
                 # 얀마옌(NPI 지질도, 022) — GeoMAP 처럼 우리 디스크의 파일을 읽는다

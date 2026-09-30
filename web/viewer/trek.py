@@ -7,7 +7,7 @@
 
 - `trekarcgis3/rest/services/<지질도>/MapServer` — USGS 달 통합 지질도 1:500만(2020)을
   Trek 이 올려 둔 것. 타일(`export`)·속성(`identify`)·범례(`legend`)
-- `trekarcgis/rest/services/LRO_LOLA_DEM_Global_128ppd_v04/ImageServer` — LOLA 표고.
+- `trekarcgis/rest/services/LRO_LOLA_DEM_Global_256ppd_v06/ImageServer` — LOLA 표고.
   값(F32)을 TIFF 로 받아 Terrarium PNG 로 옮긴다 — 둥근 달의 지형이다
 - `TrekServices/ws/index/…` — 색인. 지명(IAU 행성 지명 사전을 옮긴 것)을 받는다.
   사람이 `manage.py fetch_moon_places` 를 부를 때만 간다
@@ -54,8 +54,8 @@ DEM_SIZE = 65
 #: 지질도는 1:500만이라 줌 9(한 픽셀 약 130 m) 너머는 같은 선을 크게 그릴 뿐이다.
 #: 그래도 가까이 가면 선이 흐려지지 않게 12 까지 받는다
 MAX_ZOOM = 12
-#: LOLA 128 ppd — 한 픽셀 0.0078°. 줌 8 에서 한 칸(0.7° ÷ 64)이 0.011° 로 그쯤이다
-DEM_MAX_ZOOM = 8
+#: LOLA 256 ppd — 한 픽셀 0.0039°(약 118 m). 줌 9 에서 한 칸(0.35° ÷ 64)이 0.0055° 로 그쯤이다 (wetherilli 083)
+DEM_MAX_ZOOM = 9
 
 #: 우리 이름 → Trek 의 MapServer. `units` 만 속성·범례가 있다
 LAYERS = {
@@ -63,7 +63,9 @@ LAYERS = {
     "contacts": "Unified_Global_Geologic_Map_of_the_Moon_Geologic_Contacts",
     "linear": "Unified_Global_Geologic_Map_of_the_Moon_Linear_Features",
 }
-DEM_SERVICE = "LRO_LOLA_DEM_Global_128ppd_v04"
+#: 표고 판. 바꾸면 캐시 열쇠(`views.moon_dem`)가 따라 바뀐다 — 옛 판의 격자가 섞이지 않는다.
+#: 128 ppd(`…_128ppd_v04`)에서 올렸다 — 높이 기준(1 737.4 km 구)이 같고 같은 자리 값이 수 m 안에서 맞다 (wetherilli 083)
+DEM_SERVICE = "LRO_LOLA_DEM_Global_256ppd_v06"
 
 #: `identify` 가 주는 열 → 팝업의 이름 (한국어 원문. 영어는 `i18n.PROP_EN`)
 FIELDS = (("FIRST_Unit", "단위"), ("FIRST_Un_1", "시대"), ("FIRST_Un_2", "이름"),
@@ -308,7 +310,7 @@ def dem_tile(z: int, x: int, y: int) -> bytes:
 # 한 번에 `SAMPLE_CHUNK` 점씩(100 점이 3 KB 남짓).
 
 #: 출처 이름과 높이 기준. `pointsets.ELEV_DATUMS` 에도 적는다
-ELEV_SOURCE = "lola-128ppd"
+ELEV_SOURCE = "lola-256ppd"
 ELEV_DATUM = "moon-sphere"
 SAMPLE_CHUNK = 100
 

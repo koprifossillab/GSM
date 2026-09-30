@@ -100,16 +100,7 @@
 
 ### 빨리 되는 것 — 씨앗·배경 한 줄
 
-- [ ] VWorld WMS 한 번에 — 아래 레이어 25 개 남짓을 `vworld_layers.json` 에 넣고 020 처럼 한 장·속성 한 번씩 받아 본다.
-      레이어군은 "채취·출입 제한"·"토양·산림"·"안전·공역"·"물" 쯤. 레이어마다 10–15 분이라 **하루**. 코드 수정 없음
-  - 보호구역 [실측: 데이터 API `LT_C_UO301`] — 국립·도립·군립공원(`lt_c_wgisnpgug`·`npdo`·`npgun`), 백두대간(`lt_c_uf901`),
-    산림보호구역(`lt_c_uf151`), 자연환경보전지역(`lt_c_uq114`), 습지(`lt_c_wgisarwet`·`lt_c_um901`), 해양보호구역(`lt_c_tfismpa`).
-    020 이 "지질 참고가 아니다" 로 뺀 것을 다른 레이어군으로. 천연기념물 화석산지처럼 허가가 드는 자리를 채취 전에 안다
-  - 토양·산림입지 [실측: `LT_C_ASITSOILDEP`·`LT_C_FSDIFRSTS`] — `lt_c_asitsoildep`·`asitsurston`·`asitdeepsoil`·`asitsoildra`·
-    `fsdifrsts`. 값이 코드로만 오면 코드→뜻 표가 든다
-  - 급경사재해예방지역·재해위험지구 [문서] `lt_c_up401`·`up201`, 드론 공역 [문서] `lt_c_aisprhc`·`aisresc`·`aisctrc`·`aisuac`·
-    `aisdronezone`(데이터 API 이름은 달라 `NOT_FOUND` 였다), 유역 [문서] `lt_c_wkmbbsn`·`wkmmbsn`·`wkmsbsn`, 지적 경계
-  - 측정망 점(`lt_p_weissite*`·`lt_p_sgisgwchg`)을 벡터로 받으려면 077 의 칸 조정이 들어 따로 뗀다 (+반나절)
+- [ ] VWorld 측정망 점(`lt_p_weissite*`·`lt_p_sgisgwchg`)을 벡터로 — 077 의 칸 조정이 든다. 반나절 (wetherilli 084)
 - [ ] 브라우저가 곧장 부르는 것 셋 — 한나절에 몰아서. map.js 만 고친다
   - AWS `normal` 타일 음영·경사 [실측] — 달 화면의 `WebGLTile` 스타일 식(moon.js)을 빌린다. 중국·동아시아 배경. 반나절
   - 국토지리원 경사량도 `slopemap` [실측]·토지조건도 `lcmfc2`·화산기본도 `vbm` [문서] — `gsiLayer()` 배경으로 1–2시간.
@@ -119,8 +110,6 @@
 - [ ] PGC 음영 변형(Multidirectional·Elevation Tinted) [실측] — 배경 `pgcHillshade` 에 함수 이름을 인자로. 1–2시간
 - [ ] 스발바르 빙하 전면 변화 [실측] NPI `Temadata/I_Glacier_Fronts_Svalbard` — `npolar.TILES` 한 줄. `npolar.FRIENDLY` 가 허용
       목록이라 연도·이름 열을 적는다. CC BY 4.0. 1–2시간–반나절(상류가 연도별로 칠하지 않으면 점 길로 가야 해 반나절 넘음)
-- [ ] 달 DEM 256ppd [실측] — `trek.DEM_SERVICE`·`DEM_MAX_ZOOM` 8→9. **캐시 열쇠(`trek-dem/…`)에 서비스 이름이 없어 올려야 한다.**
-      ⛰ 출처가 바뀐다. 1–2시간
 
 ### 그린란드 포털 면 틀 — 하루 (세 건 합쳐)
 
@@ -165,7 +154,7 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 - [ ] 광물·원소·지각 두께 값 [실측] — Kaguya MI(FeO·감람석·휘석·사장석, 50°N–S)·LP Th·GRAIL 지각 두께·극지 광물·얼음 깊이.
       `lola_values`·`mars_values` 를 `trek.samples()` 로 묶는다. ImageServer 는 씨앗에 없어 판마다 단위·배율·빈 값 표를 손으로.
       한 번 누르면 판 6–8 개라 느리다(병렬, 켠 판만). 팝업만 하루, 점묶음 열까지 이틀(새 JSONField, 이주 0016). Kaguya 는 JAXA 조건(043)
-- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 256ppd(위) 뒤에, 장마다 원천을 고른다. 하루. 경계의 턱
+- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 온 달은 256 ppd 다(wetherilli 083). 장마다 원천을 고른다. 하루. 경계의 턱
 
 ### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
 
@@ -222,12 +211,15 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
       Cache-Control 이 없다. 범례의 옛것 길·`dem/` 의 302 도 헤더가 없다
 - [ ] 브라우저가 곧장 받는 배경 가운데 조건이 허락하는 것을 서버에 담는다 — PGC 음영(요청마다 1–2 초)·NPI 타일·
       NASA GIBS·Trek 영상. EOX(비상업)·Esri 는 조건을 먼저 본다. VWorld 는 그대로 곧장 (003·033)
-- [ ] `prewarm` 이 모르는 것 — KOPRI WMS, Trek(지질·표고), 표고 타일(`dem/`)
+- [ ] `prewarm` 이 모르는 것 — KOPRI WMS, Trek(지질·표고). 극지 표고(`dem`)는 안다 (wetherilli 078)
 - [ ] **무엇을 미리 받을지 정한다.** 남한 전체 줌 12 까지는 싸다(5만 지질도
       7 천 장, 0.4 GB, 호출 450 번 남짓). 줌 13~14 는 10 만 장·5 GB 라 디스크
       상의(맨 위)와 함께 본다. 줌 15 위는 전국으로는 받지 않고 현장 권역만
 
 ## 더 나중에
+
+- [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
+      검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
 
 - [ ] 데이터셋 검색 API(`/openapi/data`) 붙이기 — 시료 자료를 지도에서 바로 찾기.
       이번 판은 WMS 만 쓴다

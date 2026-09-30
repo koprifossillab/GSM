@@ -385,7 +385,8 @@ def _from_geojson(text: str, crs_code: str = "4326", *, ignore_declared: bool = 
 ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
                "pgc-arcticdem-2m": "pgc-orthometric", "pgc-rema-2m": "pgc-orthometric",
                # 달 — `trek.ELEV_SOURCE`. 반지름 1 737.4 km 구에서 잰 높이 (037)
-               "lola-128ppd": "moon-sphere",
+               "lola-256ppd": "moon-sphere",
+               "lola-128ppd": "moon-sphere",   # 2026-09-30 전에 채운 점 (wetherilli 083)
                # 화성 — `trek.MARS_ELEV_SOURCE`. 화성 기준면(아레오이드)에서 잰 높이 (058)
                "mola-hrsc-200m": "mars-areoid"}
 

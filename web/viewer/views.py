@@ -298,7 +298,7 @@ def moon_dem(request, z, x, y):
     z, x, y = int(z), int(x), int(y)
     if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    key = tilecache.key_text("trek-dem", f"{z}/{x}/{y}")
+    key = tilecache.key_text("trek-dem", f"{trek.DEM_SERVICE}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)
@@ -1567,7 +1567,8 @@ def feature_info(request):
         if door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
-            props = vworld.friendly(props)        # riv_nm → 하천명 …
+            # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다
+            props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
