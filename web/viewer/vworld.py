@@ -429,6 +429,31 @@ def get_features(typename: str, west: float, south: float, east: float, north: f
     return {"type": "FeatureCollection", "features": features}
 
 
+def thin(data: dict, step: float) -> dict:
+    """선의 점을 솎는다 — 앞에 남긴 점에서 `step`(도) 안의 점은 버리고 끝점은 둔다. 좌표는 소수 여섯째 자리
+    (10 cm 남짓)까지. 지하수 등수심선은 5 m 마다 점이 있어 화면이 그릴 수 있는 것보다 촘촘하다 (077).
+    모양을 줄이는 도구(shapely)는 들이지 않는다 — 이것으로 넉넉하다."""
+    def line(pts):
+        if len(pts) < 3:
+            return [[round(x, 6), round(y, 6)] for x, y, *_ in pts]
+        kept = [pts[0]]
+        for p in pts[1:-1]:
+            if abs(p[0] - kept[-1][0]) >= step or abs(p[1] - kept[-1][1]) >= step:
+                kept.append(p)
+        kept.append(pts[-1])
+        return [[round(x, 6), round(y, 6)] for x, y, *_ in kept]
+
+    out = []
+    for f in data.get("features") or []:
+        geom = f.get("geometry") or {}
+        if geom.get("type") == "LineString":
+            geom = {"type": "LineString", "coordinates": line(geom["coordinates"])}
+        elif geom.get("type") == "MultiLineString":
+            geom = {"type": "MultiLineString", "coordinates": [line(part) for part in geom["coordinates"]]}
+        out.append(dict(f, geometry=geom))
+    return dict(data, features=out)
+
+
 # ── 팝업에 보일 이름 ────────────────────────────────────────────────
 #
 # VWorld 의 열 이름은 영문 약어다(`riv_nm`·`sig_kor_nm`). 사람이 읽을 것에만
@@ -472,6 +497,7 @@ FRIENDLY = {
 LAYER_FRIENDLY = {
     "lt_l_gimspoten": {"legend": "지하수위 표고 (m)", "info": None},
     "lt_l_gimsec": {"legend": "전기전도도 (µS/cm)"},
+    "lt_l_gimsdepth": {"legend": "지하수 등수심 (m)", "info": None},
 }
 
 

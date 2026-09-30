@@ -233,9 +233,12 @@ class Arctic(SimpleTestCase):
             # 남극과 스발바르 두 곳 — 스발바르 탭에는 스발바르의 것만 그린다
             "both": {"c": "KPDC", "title": "Both poles", "keywords": atmo,
                      "shapes": [["POINT", [(-62.22, -58.79)]], ["POINT", [(78.9, 11.9)]]]},
-            # 축치해 항해 — 어느 탭에도 들지 않는다
+            # 축치해 항해 — 북극해 탭에만 (076)
             "chukchi": {"c": "KPDC", "title": "ARAON Chukchi", "keywords": atmo,
                         "shapes": [["POINT", [(73.0, -168.0)]]]},
+            # 날짜변경선을 넘는 베링해 네모 — 3413 에서는 이어진 한 덩이다
+            "bering": {"c": "KPDC", "title": "Bering box", "keywords": atmo,
+                       "shapes": [["BOX", [(58.0, 175.0), (62.0, -175.0)]]]},
             # 그린란드 북부
             "nord": {"c": "KPDC", "title": "Sirius Passet", "keywords": ["EARTH SCIENCE > PALEOCLIMATE > X"],
                      "shapes": [["POINT", [(82.79, -42.23)]]]},
@@ -251,6 +254,15 @@ class Arctic(SimpleTestCase):
         self.assertEqual(both["geometry"]["coordinates"], [11.9, 78.9])     # 남극의 점은 싣지 않는다
         self.assertEqual(self.ids("kopri:kpdc_atmo_greenland"), [])
         self.assertEqual(self.ids("kopri:kpdc_paleo_greenland"), ["nord#0"])
+
+    def test_북극해는_두_탭을_뺀_북극(self):
+        # 다산기지(스발바르)·그린란드는 제 탭에 있어 여기 없다. 남극의 점도 없다
+        self.assertEqual(self.ids("kopri:kpdc_atmo_arctic_ocean"), ["bering#0", "chukchi#0"])
+        self.assertEqual(self.ids("kopri:kpdc_paleo_arctic_ocean"), [])
+        bering = [f for f in json.loads(kopri.file_body("kopri:kpdc_atmo_arctic_ocean"))["features"]
+                  if f["id"] == "bering#0"][0]
+        lons = {round(x) for x, _ in bering["geometry"]["coordinates"][0]}
+        self.assertTrue(lons <= set(range(175, 181)) | set(range(-180, -174)), lons)
 
     def test_남극은_그대로(self):
         south = json.loads(kopri.file_body("kopri:kpdc_atmo"))["features"]

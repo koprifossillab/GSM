@@ -854,7 +854,9 @@ def _catalog(lang="ko"):
             # 타일이 아니라 모양을 받아 그린다 (`map.js` 의 `vectorLayerFor`)
             "upstream": l.upstream,
             "kind": l.kind,
-            **({"cell": VECTOR_CELL} if l.kind == "vector" else {}),
+            **({"cell": vector_grid(l.name)["cell"],
+                **({"minZoom": vector_grid(l.name)["minZoom"]} if vector_grid(l.name)["minZoom"] else {})}
+               if l.kind == "vector" else {}),
             **_point_fields(l),
             **_layer_extra(l, lang),
         } for l in group.layers.filter(enabled=True)
@@ -1597,6 +1599,24 @@ def legend(request):
 
 #: 칸의 크기(도). 화면(`map.js`)은 카탈로그의 `cell` 로 이 값을 받는다
 VECTOR_CELL = 1
+#: 칸을 달리 두는 레이어 (077). 지하수 등수심선은 1° 칸에서 1000 줄(WFS 상한 — 더 달라면 오류를 준다)에 잘린다.
+#: 0.25° 칸도 김포·인천 둘레에서 잘려 0.125° 로 줄였다 — 그 칸을 넷으로 나누니 많은 것이 902 줄(2026-09-30). 선의 점이
+#: 5 m 마다 찍혀 무거워 솎아(`thin`, 도 — 50 m 남짓, 칸 하나가 절반 밑으로) 담고, 줌 11 부터 받는다(`minZoom`).
+#: 관정 자료로 그은 등치선이라 50 m 보다 정확하지 않다. 칸은 1 을 2 의 거듭제곱으로 나눈 것만 쓴다 — 브라우저가
+#: 더해 가며 칸 이름을 셈하는데 그래야 소수가 어긋나지 않는다
+VECTOR_GRIDS = {
+    "lt_l_gimsdepth": {"cell": 0.125, "thin": 0.0005, "minZoom": 11},
+}
+
+
+def vector_grid(name: str) -> dict:
+    """레이어의 칸 — {cell, thin, minZoom}. 적지 않은 것은 1° 칸, 솎지 않음, 줌 제한 없음."""
+    return {"cell": VECTOR_CELL, "thin": 0, "minZoom": 0, **VECTOR_GRIDS.get(name, {})}
+
+
+def _deg(value: float) -> str:
+    """칸 이름의 글자 — 127.0 은 `127`, 127.25 는 `127.25`. 1° 칸의 캐시 열쇠가 앞 판과 같다."""
+    return f"{value:g}"
 
 
 @require_GET
@@ -1604,11 +1624,14 @@ def vector(request):
     """`?layer=lt_l_gimsfault&lon=127&lat=36` — 칸 하나의 모양. 서남 모서리가 칸 이름이다."""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
+    grid = vector_grid(name)
+    cell = grid["cell"]
     try:
-        lon, lat = int(request.GET.get("lon", "")), int(request.GET.get("lat", ""))
+        lon, lat = float(request.GET.get("lon", "")), float(request.GET.get("lat", ""))
     except ValueError:
         return JsonResponse({"error": "lon·lat"}, status=400)
-    if not (-180 <= lon < 180 and -90 <= lat < 90) or lon % VECTOR_CELL or lat % VECTOR_CELL:
+    if (not (-180 <= lon < 180 and -90 <= lat < 90)
+            or not (lon / cell).is_integer() or not (lat / cell).is_integer()):
         return JsonResponse({"error": "lon·lat"}, status=400)
     layer = Layer.objects.filter(name=name, kind="vector", enabled=True).first()
     if layer is None or layer.upstream != "vworld":
@@ -1616,17 +1639,21 @@ def vector(request):
 
     empty = {"type": "FeatureCollection", "features": []}
     box = layer.bbox
-    if box and (lon + VECTOR_CELL <= box[0] or lon >= box[2]
-                or lat + VECTOR_CELL <= box[1] or lat >= box[3]):
+    if box and (lon + cell <= box[0] or lon >= box[2]
+                or lat + cell <= box[1] or lat >= box[3]):
         return _vector_response(empty)             # 레이어 범위 밖이다. 상류에 묻지 않는다
 
-    key = tilecache.key_text("vector", f"{name}|{lon}|{lat}|{VECTOR_CELL}")
+    # 솎은 것은 솎은 채 담는다 — 솎는 정도가 바뀌면 열쇠도 바뀐다
+    key = tilecache.key_text("vector", f"{name}|{_deg(lon)}|{_deg(lat)}|{_deg(cell)}"
+                             + (f"|thin={_deg(grid['thin'])}" if grid["thin"] else ""))
     data = _cache_get(key)
     if data is None:
         try:
             if not vworld.enabled():
                 raise vworld.VWorldError("VWorld 열쇠가 없다")
-            data = vworld.get_features(name, lon, lat, lon + VECTOR_CELL, lat + VECTOR_CELL)
+            data = vworld.get_features(name, lon, lat, lon + cell, lat + cell)
+            if grid["thin"]:
+                data = vworld.thin(data, grid["thin"])
         except vworld.VWorldError as exc:
             data = _cache_get(key, stale=True)     # 빈 자리보다 옛것이 낫다
             if data is None:

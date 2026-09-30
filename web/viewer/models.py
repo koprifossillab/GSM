@@ -18,7 +18,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 일본 — GSJ 심리스 지질도 (devlog 024). "동아시아" 탭도 북극처럼 묶음이라 여기 없다
            ("japan", "일본"),
            # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025). 동아시아 묶음에도 들어간다
-           ("china", "중국"))
+           ("china", "중국"),
+           # 북극해 — 스발바르·그린란드 밖의 북극. 지금은 KPDC 자료뿐이다 (devlog 076). 북극 묶음에도 들어간다
+           ("arctic_ocean", "북극해"))
 
 
 class LayerGroup(models.Model):

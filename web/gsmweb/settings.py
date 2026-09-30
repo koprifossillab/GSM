@@ -290,9 +290,10 @@ PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
 #: 남극 IBCSO 자료 출처(TID) — 우리가 잘라 둔 3031 타일 (071)
 IBCSO_CATALOG_SEED = REPO_DIR / "data" / "ibcso_layers.json"
-#: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료) (053–057)
+#: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료·KPDC 자료),
+#: 북극해(KPDC 자료) (053–057·075·076)
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
-                       for region in ("antarctica", "svalbard", "greenland")]
+                       for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────
