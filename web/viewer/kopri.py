@@ -311,6 +311,17 @@ LABELS = {
 }
 LINKS = ("page", "doi", "db")
 
+#: KPDC 지도 서버 속성 → 팝업 이름 (073). 여기 없는 열(편집자·SCAR 갈래 번호·참고 번호 따위)은 보이지 않는다.
+#: 차례가 팝업의 차례다. 날짜(`revdate`)는 두 꼴(19570101 · 13/01/1992)로 와서 그대로 둔다
+WMS_PROPS = {
+    "kopri:coast_change": (("year", "연도"), ("source_inf", "그린 근거"), ("reliabilit", "신뢰도"),
+                           ("revdate", "고친 날")),
+    "kopri:lakes": (("surface", "갈래"), ("bedtype", "바닥")),
+    "kopri:streams": (("imw_sheet", "도폭 (IMW)"), ("source", "출처"), ("sourcedate", "출처 날짜"),
+                      ("revdate", "고친 날")),
+    "kopri:moraines": (("surface", "갈래"), ("subsurface", "밑"), ("source", "출처")),
+}
+
 STATION_CLASSES = (
     ("korea", "대한민국 기지", "#c8102e", "star"),
     ("year", "상주 기지", "#1f4e79", "square"),
@@ -592,9 +603,16 @@ def get_feature_info(params: dict) -> dict:
         data = r.json()
     except ValueError as exc:
         raise KopriError("KPDC 지도 서버가 JSON 이 아닌 것을 주었다") from exc
-    return {"features": [{"id": f.get("id", ""), "properties": {k: v for k, v in (f.get("properties") or {}).items()
-                                                                 if k not in ("id", "fid", "gid")}}
+    names = WMS_PROPS.get((params.get("query_layers") or params.get("layers") or "").split(",")[0].strip(), ())
+    return {"features": [{"id": f.get("id", ""), "properties": _wms_props(f.get("properties") or {}, names)}
                          for f in data.get("features") or []]}
+
+
+def _wms_props(props: dict, names) -> dict:
+    """상류 열 → 팝업 이름. 빈 값은 뺀다. 이름표가 없는 레이어면 상류 것을 그대로(id 따위만 빼고)."""
+    if not names:
+        return {k: v for k, v in props.items() if k not in ("id", "fid", "gid")}
+    return {label: props[key] for key, label in names if props.get(key) not in (None, "")}
 
 
 def get_legend(layer: str):

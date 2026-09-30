@@ -35,7 +35,7 @@ import threading
 from pathlib import Path
 
 from django.conf import settings
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 log = logging.getLogger(__name__)
 
@@ -419,6 +419,8 @@ LAYERS = {
     "geomap_chronostratigraphic": "chronostratigraphic",
     "geomap_faults": "faults",
     "geomap_quality": "quality",
+    # 암층 — GNS 의 무늬(빗금·점 무늬)까지 그린다 (`_pattern_image`)
+    "geomap_lithostratigraphic": "lithostratigraphic",
 }
 
 
@@ -475,6 +477,16 @@ def render_image(layer: str, bbox: tuple, width: int, height: int, ss: int = Non
         f"WHERE r.maxx >= ? AND r.minx <= ? AND r.maxy >= ? AND r.miny <= ? ORDER BY r.id",
         (min_x - pad, max_x + pad, min_y - pad, max_y + pad)).fetchall()
 
+    # 무늬는 지도 전역의 픽셀 자리에 맞춘다 — 이웃 타일에서 빗금·점이 끊기지 않게.
+    # 규칙마다 이 그림 크기의 무늬를 한 번만 만든다
+    origin = (min_x * kx, -max_y * ky)
+    patterns = {}
+
+    def paint(index):
+        if index not in patterns:
+            patterns[index] = _pattern_image(style.rules[index], width, height, origin, ss)
+        return patterns[index]
+
     big = []
     for fid, x0, x1, y0, y1, *values in rows:
         index = style.pick(tuple(values))
@@ -483,7 +495,7 @@ def render_image(layer: str, bbox: tuple, width: int, height: int, ss: int = Non
         rule = style.rules[index]
         wpx, hpx = (x1 - x0) * kx, (y1 - y0) * ky
         if style.kind == "fill" and wpx < DOT_PX * ss and hpx < DOT_PX * ss:
-            color = _rgba(rule.get("fill") or rule.get("outline"))
+            color = _rgba(rule.get("fill") or rule.get("outline") or _pattern_color(rule))
             if color:
                 # 한 (최종) 픽셀을 꽉 채운다 — 줄였을 때 흐려지지 않게
                 cx, cy = ((x0 + x1) / 2 - min_x) * kx, (max_y - (y0 + y1) / 2) * ky
@@ -501,7 +513,7 @@ def render_image(layer: str, bbox: tuple, width: int, height: int, ss: int = Non
         rule = style.rules[index]
         if kind == "polygon":
             for rings in parts:
-                _fill_polygon(img, draw, rings, rule, tr, size_px, ss)
+                _fill_polygon(img, draw, rings, rule, tr, size_px, ss, paint=lambda i=index: paint(i))
         elif kind == "line":
             for flat in parts:
                 for run in _clip_runs(_to_px(flat, tr, size_px), width, height, 8 * ss):
@@ -560,7 +572,9 @@ def _clip_runs(pts, width, height, margin):
         yield run
 
 
-def _fill_polygon(img, draw, rings, rule, tr, size_px, ss=1):
+def _fill_polygon(img, draw, rings, rule, tr, size_px, ss=1, paint=None):
+    """`paint` 는 이 규칙의 무늬 그림(그림 전체 크기)을 주는 손이다. 무늬가 있으면
+    바탕 → 무늬 → 외곽선 차례로 가림막에 칠한다."""
     fill = _rgba(rule.get("fill"))
     outline = _rgba(rule.get("outline"))
     if rule.get("pattern") not in (None, "solid"):
@@ -577,7 +591,8 @@ def _fill_polygon(img, draw, rings, rule, tr, size_px, ss=1):
         if hsize >= 1.0:
             holes.append(_to_px(hole, tr, hsize))
     width = max(1, int(round((rule.get("width") or 1) * ss)))
-    if not holes:
+    patterned = paint is not None and (rule.get("hatch") or rule.get("dots"))
+    if not holes and not patterned:
         draw.polygon(outer, fill=fill, outline=outline if outline != fill or width > 1 else fill,
                      width=width)
         return
@@ -595,9 +610,72 @@ def _fill_polygon(img, draw, rings, rule, tr, size_px, ss=1):
         md.polygon([(x - x0, y - y0) for x, y in hole], fill=0)
     if fill:
         img.paste(Image.new("RGBA", mask.size, fill), (x0, y0), mask)
+    pattern = paint() if patterned else None
+    if pattern is not None:
+        piece = pattern.crop((x0, y0, x1, y1))
+        piece.putalpha(ImageChops.multiply(piece.getchannel("A"), mask))
+        img.alpha_composite(piece, (x0, y0))
     if outline:
         for ring in [outer] + holes:
             draw.line(ring + ring[:1], fill=outline, width=width)
+
+
+def _pattern_color(rule):
+    for item in (rule.get("hatch") or []) + (rule.get("dots") or []):
+        return item.get("color")
+    return None
+
+
+def _pattern_image(rule, width, height, origin=(0.0, 0.0), ss=1):
+    """규칙의 무늬(빗금·점 무늬)를 `width × height` 투명 그림에 깐다. 없으면 None.
+
+    `origin` 은 이 그림 왼쪽 위의 **전역 픽셀 자리**다(3031 미터 × 픽셀/미터, y 는
+    아래로). 무늬를 그 자리에 맞추므로 이웃 타일의 무늬가 이어진다. 크기(간격·굵기·
+    마커)는 스타일의 px 에 `ss` 를 곱한다 — QGIS 처럼 화면에서 늘 같은 크기다."""
+    hatch, dots = rule.get("hatch") or [], rule.get("dots") or []
+    if not hatch and not dots:
+        return None
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    gx, gy = origin
+    reach = width + height
+    for h in hatch:
+        spacing = max(1.0, h["spacing"] * ss)
+        theta = math.radians(h.get("angle") or 0)
+        dx, dy = math.cos(theta), -math.sin(theta)          # 선의 방향 (그림 좌표, y 아래로)
+        nx, ny = -dy, dx                                    # 선에 수직
+        base = nx * gx + ny * gy                           # 그림 원점의 전역 자리를 법선에 내린 것
+        corners = [nx * x + ny * y for x, y in ((0, 0), (width, 0), (0, height), (width, height))]
+        lo = math.floor((min(corners) + base) / spacing) - 1
+        hi = math.ceil((max(corners) + base) / spacing) + 1
+        color = _rgba(h.get("color"))
+        lw = max(1, int(round((h.get("width") or 1) * ss)))
+        for k in range(lo, hi + 1):
+            c = k * spacing - base
+            px, py = nx * c, ny * c                        # 그림 원점에서 이 선에 내린 발
+            far = abs(c) + reach                           # 발에서 그림 끝까지 넉넉히
+            draw.line([(px - dx * far, py - dy * far), (px + dx * far, py + dy * far)],
+                      fill=color, width=lw)
+    for d in dots:
+        sx, sy = max(1.0, d["dx"] * ss), max(1.0, d["dy"] * ss)
+        shift = (d.get("shift") or 0) * ss
+        half = max(0.5, d["size"] * ss / 2)
+        color, outline = _rgba(d.get("color")), _rgba(d.get("outline"))
+        j0, j1 = math.floor(gy / sy) - 1, math.ceil((gy + height) / sy) + 1
+        for j in range(j0, j1 + 1):
+            cy = j * sy + sy / 2 - gy
+            off = shift if j % 2 else 0.0                  # 줄마다 어긋난다
+            i0 = math.floor((gx - off) / sx) - 1
+            i1 = math.ceil((gx + width - off) / sx) + 1
+            for i in range(i0, i1 + 1):
+                cx = i * sx + sx / 2 + off - gx
+                if d["marker"] == "half_square":
+                    draw.rectangle((cx - half, cy - half, cx, cy + half), fill=color, outline=outline)
+                elif d["marker"] == "square":
+                    draw.rectangle((cx - half, cy - half, cx + half, cy + half), fill=color, outline=outline)
+                else:
+                    draw.ellipse((cx - half, cy - half, cx + half, cy + half), fill=color, outline=outline)
+    return img
 
 
 def _stroke(draw, pts, strokes, ss=1):
@@ -684,7 +762,11 @@ def legend(layer: str) -> bytes:
                 fill = _rgba(item.get("fill"))
                 if item.get("pattern") not in (None, "solid") and fill:
                     fill = fill[:3] + (110,)
-                draw.rectangle(box, fill=fill, outline=_rgba(item.get("outline")) or (120, 120, 120, 255))
+                draw.rectangle(box, fill=fill)
+                swatch = _pattern_image(item, box[2] - box[0], box[3] - box[1])
+                if swatch is not None:
+                    img.alpha_composite(swatch, (box[0], box[1]))
+                draw.rectangle(box, outline=_rgba(item.get("outline")) or (120, 120, 120, 255))
             else:
                 mid = (box[1] + box[3]) / 2
                 _stroke(draw, [(box[0], mid), (box[2], mid)], item.get("strokes") or [])

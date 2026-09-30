@@ -30,6 +30,13 @@
    "bbox": [-180, -90, 180, -60]
   },
   {
+   "name": "geomap_lithostratigraphic",
+   "title": "암층",
+   "group": "GeoMAP 지질도",
+   "abstract": "GeoMAP 지질 단위를 지질시대별 암석 갈래(MAPSYMBOL)로 GNS 의 무늬(빗금·점 무늬)를 살려 칠했다 (GNS 의 Lithostratigraphic 스타일)",
+   "bbox": [-180, -90, 180, -60]
+  },
+  {
    "name": "geomap_faults",
    "title": "단층",
    "group": "GeoMAP 지질도",

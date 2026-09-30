@@ -11,8 +11,10 @@
 .qml 이 없다.
 
 읽는 것은 QGIS 규칙 렌더러의 좁은 부분뿐이다 — `FIELD = 값`, `FIELD IS NULL`
-을 `AND`·`OR` 로 이은 필터, `SimpleFill`·`SimpleLine` 심볼. 그 밖의 것이 나오면
-멈춘다. 모르는 식을 대충 넘기면 색이 조용히 틀린다.
+을 `AND`·`OR` 로 이은 필터, `SimpleFill`·`SimpleLine` 심볼, 그리고 암층 스타일이
+쓰는 무늬 둘 — 빗금(`LinePatternFill` → `hatch`)과 점 무늬(`PointPatternFill` 에
+`SimpleMarker` 하나 → `dots`). 그 밖의 것이 나오면 멈춘다. 모르는 식을 대충 넘기면
+색이 조용히 틀린다.
 
 **자료 품질(quality) 레이어에는 GNS 의 스타일이 없다.** 그 색만은 여기서 정한다
 (`QUALITY_STYLE`). 1–5 등급의 뜻은 gpkg 의 설명(gpkg_contents)을 줄인 것이다.
@@ -31,6 +33,8 @@ SOURCES = {
     "simple_lithology": ("ATA geological units - Simple lithology.qml", "units", "fill"),
     "chronostratigraphic": ("ATA geological units - Chronostratigraphic symbols.qml", "units", "fill"),
     "faults": ("Mapped faults.qml", "faults", "line"),
+    # 암층 — 무늬 채우기가 대부분이다 (빗금·점 무늬)
+    "lithostratigraphic": ("ATA geological units - Lithostratigraphic symbols.qml", "units", "fill"),
 }
 
 #: 자료 품질의 색. GNS 스타일이 없어 여기서 정한다 — 5(좋다) 초록 ~ 1(나쁘다) 빨강.
@@ -70,9 +74,10 @@ def parse_filter(text: str) -> list:
     if "(" in text or ")" in text:
         raise ValueError(f"괄호가 든 필터는 읽지 못한다: {text[:80]}")
     out = []
-    for clause in re.split(r"\s+OR\s+", text.strip(), flags=re.I):
+    # 따옴표 바로 뒤에 붙은 OR 도 받는다 — 암층 스타일에 `'Cn'OR MAPSYMBOL = 'CTp'` 가 있다
+    for clause in re.split(r"(?:\s+|(?<='))OR\s+", text.strip(), flags=re.I):
         cond = {}
-        for atom in re.split(r"\s+AND\s+", clause, flags=re.I):
+        for atom in re.split(r"(?:\s+|(?<='))AND\s+", clause, flags=re.I):
             m = _ATOM.match(atom)
             if not m:
                 raise ValueError(f"모르는 식이다: {atom[:80]}")
@@ -112,8 +117,67 @@ def _width(props, key, unit_key) -> float:
     return round(float(props.get(key) or 1) * _UNIT_PX.get(props.get(unit_key, "Pixel"), 1.0), 2)
 
 
+def _own_props(layer) -> dict:
+    """이 심볼 층 **자신의** 값만. `_props` 는 안쪽(무늬의 서브심볼·data defined 의
+    `name`)까지 훑어 이름이 겹치면 엉뚱한 값이 잡힌다 — 무늬 층은 이것으로 읽는다."""
+    out = {p.get("k"): p.get("v") for p in layer.findall("prop")}
+    for opt in layer.findall("./Option/Option"):
+        if opt.get("name") and opt.get("value") is not None:
+            out.setdefault(opt.get("name"), opt.get("value"))
+    return out
+
+
+def _sub_layers(layer, cls: str) -> list:
+    """무늬 층의 서브심볼에서 켜진 `cls` 층들."""
+    sub = layer.find("symbol")
+    if sub is None:
+        raise ValueError(f"{layer.get('class')} 에 서브심볼이 없다")
+    found = []
+    for inner in sub.findall("layer"):
+        if inner.get("enabled", "1") == "0":
+            continue
+        if inner.get("class") != cls:
+            raise ValueError(f"{layer.get('class')} 의 서브심볼에 모르는 갈래가 있다: {inner.get('class')}")
+        found.append(_own_props(inner))
+    return found
+
+
+def _hatch(layer) -> list:
+    """빗금 — 각도(도, 반시계)·간격(px). 그리는 것은 서브심볼의 선이다(QGIS 3 은 층의
+    `color`·`line_width` 를 쓰지 않는다)."""
+    p = _own_props(layer)
+    spacing = _width(p, "distance", "distance_unit")
+    angle = float(p.get("angle") or 0)
+    return [{"angle": angle, "spacing": spacing, "color": _rgba(line.get("line_color")),
+             "width": _width(line, "line_width", "line_width_unit")}
+            for line in _sub_layers(layer, "SimpleLine") if line.get("line_style", "solid") != "no"]
+
+
+#: 그릴 줄 아는 마커. QGIS 의 `half_square` 는 네모의 왼쪽 반이다
+MARKERS = ("circle", "square", "half_square")
+
+
+def _dots(layer) -> list:
+    """점 무늬 — 격자 간격(dx, dy)·줄마다 어긋남(shift, px)과 마커 하나."""
+    p = _own_props(layer)
+    grid = {"dx": _width(p, "distance_x", "distance_x_unit"),
+            "dy": _width(p, "distance_y", "distance_y_unit"),
+            "shift": _width(p, "displacement_x", "displacement_x_unit") if p.get("displacement_x") else 0.0}
+    if float(p.get("displacement_y") or 0):
+        raise ValueError("세로 어긋남(displacement_y)이 든 점 무늬는 읽지 못한다")
+    out = []
+    for m in _sub_layers(layer, "SimpleMarker"):
+        name = m.get("name") or "circle"
+        if name not in MARKERS:
+            raise ValueError(f"모르는 마커다: {name}")
+        out.append(dict(grid, marker=name, size=_width(m, "size", "size_unit"),
+                        color=_rgba(m.get("color")),
+                        outline=_rgba(m.get("outline_color")) if m.get("outline_style", "solid") != "no" else None))
+    return out
+
+
 def parse_symbol(symbol) -> dict:
-    fills, strokes = [], []
+    fills, strokes, hatch, dots = [], [], [], []
     for layer in symbol.findall("layer"):
         if layer.get("enabled", "1") == "0":
             continue
@@ -133,13 +197,32 @@ def parse_symbol(symbol) -> dict:
             strokes.append({"color": _rgba(p.get("line_color")),
                             "width": _width(p, "line_width", "line_width_unit"),
                             "dash": dash})
+        elif cls == "LinePatternFill":
+            hatch.extend(_hatch(layer))
+        elif cls == "PointPatternFill":
+            dots.extend(_dots(layer))
         else:
             raise ValueError(f"모르는 심볼 갈래다: {cls}")
-    if fills:
-        f = fills[0]
-        return {"fill": f["fill"], "outline": f["outline"], "width": f["width"],
-                "pattern": f["pattern"]}
-    return {"strokes": strokes}
+    if not (hatch or dots):
+        # 무늬가 없는 심볼 — 앞의 네 스타일은 모두 여기다. 적는 꼴을 바꾸지 않는다
+        if fills:
+            f = fills[0]
+            return {"fill": f["fill"], "outline": f["outline"], "width": f["width"],
+                    "pattern": f["pattern"]}
+        return {"strokes": strokes}
+    # 무늬가 든 면 — 바탕(SimpleFill) → 무늬 → 외곽선. 외곽선은 SimpleFill 의 것이
+    # 없으면 뒤따르는 SimpleLine 의 것이다 (암층 스타일은 대개 그렇다)
+    base = fills[0] if fills else {"fill": None, "outline": None, "width": 1, "pattern": "solid"}
+    out = dict(base)
+    if out["fill"] is not None and out["fill"][3] == 0:
+        out["fill"] = None                             # 완전히 투명한 바탕은 칠하지 않는다
+    if out["outline"] is None and strokes:
+        out["outline"], out["width"] = strokes[-1]["color"], strokes[-1]["width"]
+    if hatch:
+        out["hatch"] = hatch
+    if dots:
+        out["dots"] = dots
+    return out
 
 
 def parse_qml(path: Path, table: str, kind: str) -> dict:

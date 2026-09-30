@@ -298,7 +298,9 @@
     var row = byName[name] || {};
     var resolutions = [];
     var width = GEOMAP_GRID.extent[2] - GEOMAP_GRID.extent[0];
-    for (var z = 0; z <= GEOMAP_GRID.maxZoom; z++) {
+    // 잘라 둔 것(IBCSO 자료 출처, 071)은 줌 6 까지다 — 그 위는 OpenLayers 가 늘린다
+    var top = row.maxZoom || GEOMAP_GRID.maxZoom;
+    for (var z = 0; z <= top; z++) {
       resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
     }
     return new ol.source.XYZ({
@@ -336,6 +338,14 @@
       INFO_FORMAT: "application/json", FEATURE_COUNT: 5,
     });
     return BASE + "featureinfo/?" + q.toString();
+  }
+
+  /** IBCSO 자료 출처(TID)의 속성 주소 — 누른 자리의 위경도로 묻는다(`ibcso/info/`, 071). */
+  function ibcsoInfoUrl(source, coordinate) {
+    var ll = toLL(coordinate);
+    return BASE + "ibcso/info/?" + new URLSearchParams({
+      lat: ll[1].toFixed(6), lon: ll[0].toFixed(6),
+    }).toString();
   }
 
   /** 노르웨이 극지연구소(NPI) — 서버의 `/wms/` 가 NPI 지도 서버의 `export` 로 옮겨
@@ -443,6 +453,8 @@
     gsj: { source: gsjSource, info: gsjInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
+    // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
+    ibcso: { source: geomapSource, info: ibcsoInfoUrl },
   };
 
   function layerKind(name) {
@@ -1542,6 +1554,8 @@
         li.appendChild(pointLegend(entry));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].noLegend) {
         li.appendChild(note(T("범례가 없는 레이어다")));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].classLegend) {
+        li.appendChild(classLegend(byName[entry.name].classLegend));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].legend) {
         entry.legendBox = gsjLegend(entry);
         li.appendChild(entry.legendBox);
@@ -2508,6 +2522,31 @@
     return box;
   }
 
+  /** 갈래마다 색 한 칸인 범례 — 서버가 카탈로그 행에 표째 보낸다(`classLegend`, IBCSO 자료 출처 071).
+   *  이름은 서버가 이미 화면 말로 옮겨 보냈다. */
+  function classLegend(table) {
+    var box = document.createElement("div");
+    box.className = "vector-legend";
+    (table.groups || []).forEach(function (group) {
+      var head = document.createElement("div");
+      head.className = "vector-legend-head";
+      head.textContent = group.name;
+      box.appendChild(head);
+      group.rows.forEach(function (r) {
+        var line = document.createElement("div");
+        var sw = document.createElement("span");
+        sw.className = "sw box";
+        sw.style.background = r.color;
+        var label = document.createElement("span");
+        label.textContent = r.label;
+        label.title = "TID " + r.code;
+        line.append(sw, label);
+        box.appendChild(line);
+      });
+    });
+    return box;
+  }
+
   /** 지도를 옮기면 범위 범례만 다시 받는다. 목록 전체를 다시 그리지 않는다. */
   function refreshExtentLegends() {
     active.forEach(function (entry) {
@@ -2962,6 +3001,29 @@
     if (pending === 0) showPopup(evt.coordinate, parts, parts.length ? "" : T("이 자리에는 아무것도 없다"));
   }
 
+  /** IBCSO 수심·표고 (070). 실패하면 빈 것 — 팝업의 다른 줄을 막지 않는다. */
+  function depthFor(lon, lat) {
+    return fetch(BASE + "ibcso/depth/?" + new URLSearchParams({ lat: lat.toFixed(6), lon: lon.toFixed(6) }))
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .catch(function () { return {}; });
+  }
+
+  /** 얼음 위와 해저·빙저가 같으면(드러난 땅·얼음 없는 바다) 한 값만, 다르면 얼음 두께까지 적는다. */
+  function depthText(d) {
+    if (d.bed === undefined && d.ice === undefined) return "";
+    var m = function (v) { return v.toLocaleString() + " m"; };
+    var bits = [];
+    if (d.ice !== undefined && d.bed !== undefined && d.ice - d.bed > 1) {
+      bits.push(T("얼음 위 {m}", { m: m(d.ice) }), T("해저·빙저 {m}", { m: m(d.bed) }),
+                T("얼음 두께 {m}", { m: m(d.ice - d.bed) }));
+    } else {
+      var v = d.bed !== undefined ? d.bed : d.ice;
+      bits.push(v < 0 ? T("수심 {m}", { m: m(-v) }) : T("표고 {m}", { m: m(v) }));
+    }
+    if (d.tid) bits.push(d.tid);
+    return "IBCSO · " + bits.join(" · ");
+  }
+
   function showPopup(coordinate, parts, emptyText) {
     var body = document.getElementById("popup-body");
     body.innerHTML = "";
@@ -3025,6 +3087,18 @@
         var lines = [d.road, d.parcel && d.parcel !== d.road ? d.parcel : ""].filter(Boolean);
         if (lines.length) addr.textContent = lines.join(" · ");
         else addr.remove();
+      });
+    }
+
+    // 남극 바다·얼음 밑이면 IBCSO 의 수심·표고를 한 줄 (070). 잘라 둔 격자가 없거나 자료 밖이면 줄을 두지 않는다
+    if (ll[1] <= -50 && viewProj().getCode() === "EPSG:3031") {
+      var depth = document.createElement("p");
+      depth.className = "popup-addr popup-depth";
+      body.appendChild(depth);
+      depthFor(ll[0], ll[1]).then(function (d) {
+        var text = depthText(d);
+        if (text) depth.textContent = text;
+        else depth.remove();
       });
     }
 

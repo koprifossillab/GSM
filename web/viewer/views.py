@@ -766,7 +766,7 @@ def _catalog(lang="ko"):
             "kind": l.kind,
             **({"cell": VECTOR_CELL} if l.kind == "vector" else {}),
             **_point_fields(l),
-            **_layer_extra(l),
+            **_layer_extra(l, lang),
         } for l in group.layers.filter(enabled=True)
             # VWorld 열쇠가 없으면 "지질 참고" 는 그릴 길이 없다 — 목록에서 뺀다
             if (l.upstream != "vworld" or vworld.enabled()) and not _lab_only(l.name)]
@@ -813,7 +813,7 @@ def _point_fields(layer) -> dict:
     return {}
 
 
-def _layer_extra(layer) -> dict:
+def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geomap":
@@ -840,6 +840,11 @@ def _layer_extra(layer) -> dict:
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
                 "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
+    if layer.upstream == "ibcso" and layer.name == ibcso.TID_LAYER:
+        # IBCSO 자료 출처(071) — 우리가 잘라 둔 3031 타일. 격자는 GeoMAP 의 것이고 줌 6 까지다.
+        # 범례는 갈래 표를 그대로 보낸다(그림이 아니라 — 컨테이너에 한글 글꼴이 없다)
+        return {"attribution": ibcso.ATTRIBUTION, "projection": "EPSG:3031", "maxZoom": ibcso.MAX_ZOOM,
+                "tiles": "ibcso/tid/{z}/{x}/{y}.png", "classLegend": ibcso.tid_legend(lang)}
     if layer.upstream == "peninsula" and layer.name in peninsula.SHEETS:
         # 한반도 지질도 음영판·민판(027·028) — 우리가 잘라 둔 5179 타일. 격자를 화면에 알린다
         sheet = peninsula.SHEETS[layer.name]
@@ -1149,6 +1154,62 @@ def ibcso_tile(request, layer, z, x, y):
     if data is None:
         return _tile(tiles.blank_tile(256, 256))
     return _tile(data, content_type="image/webp")
+
+
+@require_GET
+def ibcso_tid_tile(request, z, x, y):
+    """IBCSO 자료 출처(TID) 타일 — `ibcso/tid/<z>/<x>/<y>.png` (071). 격자는 해저지형 배경과 같다.
+    잘라 둔 파일을 내주기만 한다. 잘라 두지 않았으면 안내 타일, 자료 밖은 빈 타일이다."""
+    z, x, y = int(z), int(x), int(y)
+    if not ibcso.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
+                            status=404)
+    if not ibcso.tid_available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_IBCSO), store=False)
+    data = ibcso.read_tid_tile(z, x, y)
+    return _tile(data if data is not None else tiles.blank_tile(256, 256))
+
+
+def _latlon(request):
+    """`?lat=&lon=` → (위도, 경도). 없거나 틀리면 None."""
+    try:
+        lat, lon = float(request.GET["lat"]), float(request.GET["lon"])
+    except (KeyError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 360):
+        return None
+    return lat, lon
+
+
+@require_GET
+def ibcso_depth(request):
+    """누른 자리의 수심·표고 — `ibcso/depth/?lat=&lon=` (070). 잘라 둔 수치 격자에서 읽는다.
+    `{"bed": 해저·빙저 m, "ice": 얼음 위 m, "tid": 자료 출처}` — 없는 것은 빠진다. 자료 밖이면 빈 것이다."""
+    ll = _latlon(request)
+    if ll is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), i18n.lang_of(request))}, status=400)
+    got = ibcso.depths({0: ll}).get(0, {})
+    tid = ibcso.tid_at({0: ll}).get(0)
+    if tid is not None:
+        got["tid"] = i18n.t(ibcso.tid_label(tid), i18n.lang_of(request))
+    return JsonResponse(got)
+
+
+@require_GET
+def ibcso_info(request):
+    """TID 레이어의 속성 — `ibcso/info/?lat=&lon=` (071). `/featureinfo/` 의 꼴(`features[].props`)로 낸다."""
+    lang = i18n.lang_of(request)
+    ll = _latlon(request)
+    if ll is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    code = ibcso.tid_at({0: ll}).get(0)
+    if code is None:
+        return JsonResponse({"features": []})
+    props = {"자료 출처": i18n.t(ibcso.tid_label(code), lang), "TID": code}
+    depth = ibcso.depths({0: ll}).get(0, {})
+    if "bed" in depth:
+        props["해저·빙저 (m)"] = depth["bed"]
+    return JsonResponse({"features": [{"props": i18n.props_en(props) if lang == "en" else props}]})
 
 
 #: 3D 가 다시 편 타일을 받는 줌. 멀리서는 원본을 수십 장 모아야 해 묻지 않는다
@@ -1833,24 +1894,38 @@ def pointset_create(request):
 ELEV_PROP, ELEV_SOURCE_PROP = "표고(DEM)", "표고 출처"
 
 
-def _point_props(p) -> dict:
+#: 남극 바다·얼음 밑 점에 IBCSO 에서 읽어 붙이는 이름(070). 저장하지 않고 부를 때마다 읽는다 — 우리 디스크의
+#: 격자라 상류를 타지 않고, 판이 바뀌면 곧바로 따라간다. 되살리기가 이 이름들을 떼어 버린다
+IBCSO_BED_PROP, IBCSO_ICE_PROP = "해저·빙저(IBCSO)", "얼음 두께(IBCSO)"
+
+
+def _point_props(p, depth=None) -> dict:
     props = dict(p.props, **{"이름표": p.label} if p.label else {})
     if p.elev is not None:
         props[ELEV_PROP] = round(p.elev, 1)
         props[ELEV_SOURCE_PROP] = p.elev_source
+    if depth and "bed" in depth:
+        props[IBCSO_BED_PROP] = depth["bed"]
+        if "ice" in depth and depth["ice"] - depth["bed"] > 1:
+            props[IBCSO_ICE_PROP] = depth["ice"] - depth["bed"]
     return props
 
 
 def _pointset_features(pointset) -> dict:
-    """점묶음 하나를 GeoJSON FeatureCollection 으로. 내려받기와 지울 때의 사본이 쓴다."""
+    """점묶음 하나를 GeoJSON FeatureCollection 으로. 내려받기와 지울 때의 사본이 쓴다.
+    지구 점묶음의 남위 50° 남쪽 점에는 IBCSO 수심·빙저를 붙인다(070)."""
+    points = list(pointset.points.all())
+    depths = {}
+    if pointset.body == "earth":
+        depths = ibcso.depths({p.id: (p.lat, p.lon) for p in points if p.lat <= ibcso.NORTH})
     return {
         "type": "FeatureCollection",
         "name": pointset.name,
         "features": [{
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [p.lon, p.lat]},
-            "properties": _point_props(p),
-        } for p in pointset.points.all()] + [{
+            "properties": _point_props(p, depths.get(p.id)),
+        } for p in points] + [{
             "type": "Feature",
             "geometry": s.geometry,
             "properties": dict(s.props, **{"이름표": s.label} if s.label else {}),

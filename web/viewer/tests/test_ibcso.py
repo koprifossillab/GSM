@@ -170,3 +170,157 @@ class DemView(TestCase):
             r = self.client.get("/GSM/warp/ibcso/ice/3/2/2.png")      # 남위 50° 북쪽 — 빈 타일
             self.assertEqual(r.status_code, 200)
             self.assertNotEqual(r.get("Cache-Control"), "no-store")
+
+
+def write_dem_tile(d, kind, level, x, y, image_f, fill_f):
+    p = Path(d) / ibcso.DEMS[kind].folder / str(level) / str(x) / f"{y}.png"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(ibcso.encode_dem(ibcso.cut_dem(image_f, fill_f, 0, 0)))
+
+
+def tile_of_point(lat, lon):
+    col, row = ibcso._pixel_of(lat, lon)
+    return int(col // 256), int(row // 256), col % 256, row % 256
+
+
+#: 맥머도 앞 로스 빙붕 — 얼음 위와 해저가 다르다
+ROSS = (-78.5, 175.0)
+
+
+class Depths(SimpleTestCase):
+    """누른 자리의 수심·표고 (070) — 잘라 둔 수치 타일(단계 6)에서 읽는다."""
+
+    def test_두_판을_읽는다(self):
+        tx, ty, _, _ = tile_of_point(*ROSS)
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            ones = Image.new("F", (256, 256), 1.0)
+            write_dem_tile(d, "ice", 6, tx, ty, Image.new("F", (256, 256), 42.0), ones)
+            write_dem_tile(d, "bed", 6, tx, ty, Image.new("F", (256, 256), -623.0), ones)
+            got = ibcso.depths({"a": ROSS, "north": (-40.0, 0.0)})
+        self.assertEqual(got, {"a": {"ice": 42, "bed": -623}})
+
+    def test_이웃을_섞는다(self):
+        tx, ty, fx, fy = tile_of_point(*ROSS)
+        ramp = Image.new("F", (256, 256))
+        ramp.putdata([float(x * 10) for y in range(256) for x in range(256)])   # 오른쪽으로 한 화소에 10 m
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            write_dem_tile(d, "bed", 6, tx, ty, ramp, Image.new("F", (256, 256), 1.0))
+            got = ibcso.depths({"a": ROSS})["a"]["bed"]
+        # 화소 가운데가 +0.5 다. 가장자리 화소가 아니면 쌍선형은 (fx − 0.5)·10 이다
+        if 1 <= fx <= 255:
+            self.assertAlmostEqual(got, round((fx - 0.5) * 10), delta=1)
+
+    def test_빈_곳이_섞이면_가까운_화소(self):
+        tx, ty, fx, fy = tile_of_point(*ROSS)
+        value = Image.new("F", (256, 256), -500.0)
+        fill = Image.new("F", (256, 256), 1.0)
+        # 누른 화소의 오른쪽 이웃을 비운다
+        px, py = int(fx), int(fy)
+        nx = min(255, px + 1) if fx - px >= 0.5 else px
+        fill.putpixel((nx, py), 0.0)
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            write_dem_tile(d, "bed", 6, tx, ty, value, fill)
+            got = ibcso.depths({"a": ROSS})
+        if (nx, py) != (px, py):
+            self.assertEqual(got["a"]["bed"], -500)
+
+    def test_잘라_두지_않았으면_빈_것(self):
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            self.assertEqual(ibcso.depths({"a": ROSS}), {})
+
+
+class Tid(SimpleTestCase):
+    """자료 출처(TID, 071) — 번호라 섞지 않는다."""
+
+    def test_번호를_팔레트로_칠한다(self):
+        codes = Image.new("L", (4, 1))
+        codes.putdata([0, 11, 41, ibcso.TID_NONE])
+        painted = ibcso.tid_paint(codes)
+        palette = painted.getpalette()
+        index = painted.getpixel((1, 0))
+        self.assertEqual(tuple(palette[index * 3:index * 3 + 3]), ibcso.TID_CLASSES[11][1])
+        self.assertEqual(painted.getpixel((0, 0)), 0)           # 육지는 칠하지 않는다
+        self.assertEqual(painted.getpixel((3, 0)), 0)           # 빈 곳도
+
+    def test_자를_때_섞지_않는다(self):
+        codes = Image.new("L", (600, 600), 11)
+        codes.paste(41, (0, 0, 300, 600))
+        painted = ibcso.tid_paint(codes)
+        tile = ibcso.cut_tid(painted, 32, 0, 0, 0)
+        used = {i for _, i in tile.getcolors()}
+        lut, _ = ibcso._tid_palette()
+        self.assertTrue(used <= {0, lut[11], lut[41]})         # 두 갈래 사이의 색이 생기지 않는다
+        data = ibcso.encode_tid(tile)
+        self.assertEqual(Image.open(io.BytesIO(data)).info.get("transparency"), 0)
+
+    def test_다_빈_타일은_None(self):
+        self.assertIsNone(ibcso.cut_tid(ibcso.tid_paint(Image.new("L", (600, 600), 0)), 32, 0, 0, 0))
+        self.assertIsNone(ibcso.cut_tid_raw(Image.new("L", (300, 300), ibcso.TID_NONE), 0, 0))
+
+    def test_누른_자리의_번호(self):
+        tx, ty, _, _ = tile_of_point(*ROSS)
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            p = Path(d) / "tid-raw" / "6" / str(tx) / f"{ty}.png"
+            p.parent.mkdir(parents=True)
+            Image.new("L", (256, 256), 70).save(p)
+            self.assertEqual(ibcso.tid_at({"a": ROSS, "b": (-10.0, 0.0)}), {"a": 70})
+        self.assertEqual(ibcso.tid_label(70), "미리 만든 격자")
+        self.assertEqual(ibcso.tid_label(0), "육지")
+
+    def test_범례는_세_묶음(self):
+        legend = ibcso.tid_legend("en")
+        self.assertEqual([g["name"] for g in legend["groups"]],
+                         ["Direct measurements", "Indirect measurements", "Mixed or unknown source"])
+        self.assertEqual(sum(len(g["rows"]) for g in legend["groups"]), len(ibcso.TID_CLASSES))
+
+
+class DepthView(TestCase):
+    def test_수심과_자료_출처(self):
+        tx, ty, _, _ = tile_of_point(*ROSS)
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            ones = Image.new("F", (256, 256), 1.0)
+            write_dem_tile(d, "bed", 6, tx, ty, Image.new("F", (256, 256), -623.0), ones)
+            p = Path(d) / "tid-raw" / "6" / str(tx) / f"{ty}.png"
+            p.parent.mkdir(parents=True)
+            Image.new("L", (256, 256), 11).save(p)
+            r = self.client.get("/GSM/ibcso/depth/", {"lat": ROSS[0], "lon": ROSS[1]})
+            self.assertEqual(r.json(), {"bed": -623, "tid": "멀티빔 측심"})
+            r = self.client.get("/GSM/ibcso/info/", {"lat": ROSS[0], "lon": ROSS[1]})
+            self.assertEqual(r.json()["features"][0]["props"],
+                             {"자료 출처": "멀티빔 측심", "TID": 11, "해저·빙저 (m)": -623})
+        self.assertEqual(self.client.get("/GSM/ibcso/depth/", {"lat": "x"}).status_code, 400)
+
+    def test_자료_밖은_빈_것(self):
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            self.assertEqual(self.client.get("/GSM/ibcso/depth/", {"lat": 37, "lon": 127}).json(), {})
+            self.assertEqual(self.client.get("/GSM/ibcso/info/", {"lat": 37, "lon": 127}).json(),
+                             {"features": []})
+
+    def test_TID_타일(self):
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            r = self.client.get("/GSM/ibcso/tid/3/2/2.png")
+            self.assertEqual(r["Cache-Control"], "no-store")           # 잘라 두지 않았다 — 안내 타일
+            (Path(d) / "tiles-tid").mkdir()
+            r = self.client.get("/GSM/ibcso/tid/3/2/2.png")
+            self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.client.get("/GSM/ibcso/tid/7/0/0.png").status_code, 404)
+
+    def test_남극_점묶음에_수심을_붙이고_되살리면_뗀다(self):
+        from viewer.models import Point, PointSet, PointSetDeletion
+        tx, ty, _, _ = tile_of_point(*ROSS)
+        with tempfile.TemporaryDirectory() as d, override_settings(IBCSO_DIR=d):
+            ones = Image.new("F", (256, 256), 1.0)
+            write_dem_tile(d, "ice", 6, tx, ty, Image.new("F", (256, 256), 42.0), ones)
+            write_dem_tile(d, "bed", 6, tx, ty, Image.new("F", (256, 256), -623.0), ones)
+            ps = PointSet.objects.create(name="로스")
+            Point.objects.create(pointset=ps, lat=ROSS[0], lon=ROSS[1], label="J9")
+            Point.objects.create(pointset=ps, lat=37.5, lon=127.0, label="서울")
+            feats = self.client.get(f"/GSM/pointsets/{ps.id}/geojson/").json()["features"]
+            self.assertEqual(feats[0]["properties"]["해저·빙저(IBCSO)"], -623)
+            self.assertEqual(feats[0]["properties"]["얼음 두께(IBCSO)"], 665)
+            self.assertNotIn("해저·빙저(IBCSO)", feats[1]["properties"])
+            self.client.post(f"/GSM/pointsets/{ps.id}/delete/")
+            gone = PointSetDeletion.objects.get()
+            self.client.post(f"/GSM/pointsets/deleted/{gone.id}/restore/")
+            back = PointSet.objects.get(name="로스")
+            self.assertEqual(back.points.get(label="J9").props, {})

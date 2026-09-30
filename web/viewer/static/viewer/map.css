@@ -1471,6 +1471,8 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .vector-legend .sw.box { width: 14px; height: 10px; border-radius: 2px; }
 .vector-legend .sw.star { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); border: 0; width: 12px; height: 12px; }
 .vector-legend .sw-line { flex: none; display: inline-flex; }
+/* 갈래 범례의 묶음 제목 (map.js 의 classLegend — IBCSO 자료 출처, 071) */
+.vector-legend > div.vector-legend-head { margin: 6px 0 1px; font-weight: 600; }
 
 /* KIGAM 인증키·임시 경로 띠는 한국 지질도에 대한 것이다. 다른 지역에서는 숨긴다.
    동아시아는 한국을 품으므로 보인다 (devlog 024) */

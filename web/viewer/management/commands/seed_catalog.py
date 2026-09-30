@@ -63,6 +63,8 @@ class Command(BaseCommand):
                 (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver"),
                 # 한반도 지질도 음영판 — 우리 디스크의 PDF 를 잘라 둔 타일 (027)
                 (settings.PENINSULA_CATALOG_SEED, "한반도 음영판", "korea", "peninsula"),
+                # 남극 IBCSO 자료 출처(TID) — 우리 디스크의 격자를 잘라 둔 타일 (071)
+                (settings.IBCSO_CATALOG_SEED, "남극 IBCSO", "antarctica", "ibcso"),
                 # 극지연구소 — 암석 시료·운석·KPDC 자료·기지·해안선 (053–057). 지역은 씨앗이 적는다
                 *((path, f"극지연구소 ({path.stem})", "antarctica", "kopri")
                   for path in settings.KOPRI_CATALOG_SEEDS)):

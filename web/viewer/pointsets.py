@@ -412,6 +412,9 @@ def restore(gone):
             label = str(props.pop("이름표", ""))[:200]
             # 표고(P03)는 `props` 가 아니라 제 칸이다 — 사본에 실린 것을 떼어 돌린다
             elev, source = props.pop("표고(DEM)", None), str(props.pop("표고 출처", "") or "")
+            # IBCSO 수심(070)은 부를 때마다 격자에서 읽어 붙이는 것이다 — 원본의 열이 아니다
+            props.pop("해저·빙저(IBCSO)", None)
+            props.pop("얼음 두께(IBCSO)", None)
             if geom.get("type") == "Point":
                 lon, lat = geom["coordinates"][:2]
                 extra = {}

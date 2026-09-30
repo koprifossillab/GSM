@@ -323,3 +323,265 @@ def cut_wide(level_image, x: int, y: int):
     if tile.getchannel("A").getbbox() is None:
         return None
     return tile
+
+
+# ── 한 점 읽기 — 누른 자리의 수심·표고 (070) ─────────────────────────
+#
+# 3D 지형으로 잘라 둔 수치 타일(단계 6 = 원본 그대로, 500 m)에서 읽는다. 원본을 다시 열지 않는다 —
+# 3 억 7 천만 화소를 한 점 때문에 풀 수 없다. 네 이웃을 쌍선형으로 섞고, 이웃에 빈 곳이 섞이면
+# 가장 가까운 한 화소를 쓴다(`elevation._sample` 과 같은 규칙).
+
+#: 이 위도 북쪽은 IBCSO 밖이다
+NORTH = -50.0
+
+
+def _pixel_of(lat: float, lon: float) -> tuple:
+    """위경도 → 단계 6 격자의 소수 화소 (열, 행). 화소의 가운데가 정수+0.5 다."""
+    x, y = to_9354(lat, lon)
+    return (x + SOURCE_HALF) / SOURCE_RES, (SOURCE_HALF - y) / SOURCE_RES
+
+
+def _read_grid(points: dict, read_tile, decode) -> dict:
+    """{열쇠: (위도, 경도)} → {열쇠: 값}. 타일마다 한 번만 연다. `decode(화소값)` 이 None 이면 빈 곳."""
+    by_tile = {}
+    for key, (lat, lon) in points.items():
+        if lat > NORTH:
+            continue
+        col, row = _pixel_of(lat, lon)
+        if not (0 <= col < SOURCE_SIZE and 0 <= row < SOURCE_SIZE):
+            continue
+        by_tile.setdefault((int(col // TILE), int(row // TILE)), []).append((key, col, row))
+    out = {}
+    for (tx, ty), items in by_tile.items():
+        data = read_tile(DEM_MAX_LEVEL, tx, ty)
+        if not data:
+            continue
+        from PIL import Image
+        image = Image.open(io.BytesIO(data))
+        image.load()
+        for key, col, row in items:
+            value = _sample(image, col - tx * TILE, row - ty * TILE, decode)
+            if value is not None:
+                out[key] = value
+    return out
+
+
+def _sample(image, px: float, py: float, decode):
+    """타일 안의 소수 화소 자리(화소 가운데가 +0.5). 타일 가장자리 너머 이웃은 가장자리로 누른다."""
+    w, h = image.size
+    fx, fy = px - 0.5, py - 0.5
+    x0, y0 = max(0, min(w - 1, math.floor(fx))), max(0, min(h - 1, math.floor(fy)))
+    x1, y1 = min(w - 1, x0 + 1), min(h - 1, y0 + 1)
+    tx, ty = min(max(fx - x0, 0.0), 1.0), min(max(fy - y0, 0.0), 1.0)
+    vals = [decode(image.getpixel((x, y))) for x, y in ((x0, y0), (x1, y0), (x0, y1), (x1, y1))]
+    if any(v is None for v in vals):
+        near = decode(image.getpixel((max(0, min(w - 1, int(px))), max(0, min(h - 1, int(py))))))
+        return near
+    top = vals[0] * (1 - tx) + vals[1] * tx
+    bottom = vals[2] * (1 - tx) + vals[3] * tx
+    return top * (1 - ty) + bottom * ty
+
+
+def _dem_code(code):
+    return None if not code else code - DEM_OFFSET
+
+
+def depths(points: dict) -> dict:
+    """{열쇠: (위도, 경도)} → {열쇠: {"bed": m, "ice": m}}. 판이 없거나 자료 밖이면 그 판이 빠진다.
+    둘 다 해발이다 — 바다는 음수. 얼음 위에서 해저·빙저를 빼면 얼음(빙상·빙붕)의 두께다."""
+    out = {}
+    for kind, sheet in DEMS.items():
+        if not sheet.available():
+            continue
+        for key, value in _read_grid(points, sheet.read_tile, _dem_code).items():
+            out.setdefault(key, {})[kind] = round(value)
+    return out
+
+
+# ── 자료 출처(TID) — 측심한 곳과 보간한 곳 (071) ──────────────────────
+#
+# IBCSO v2 의 TID 격자(`IBCSO_v2_TID.tif`, int16, 빈 곳 −32768)는 격자 한 칸의 값이 무엇에서 왔는지를
+# GEBCO 의 갈래 번호로 적는다. **값이 번호라 섞지 않는다** — 줄일 때도 자를 때도 가장 가까운 화소를
+# 쓴다(`NEAREST`). 두 벌을 자른다.
+#
+#   tid-raw/   원본의 9354 격자 단계 6 그대로, 8 비트 흑백 PNG(값이 곧 번호, 255 가 빈 곳). 누른 자리 읽기
+#   tiles-tid/ 2D 의 3031 격자(GeoMAP 과 같다) 줌 0–6, 칠한 PNG(팔레트). 화면이 레이어로 얹는다
+
+TID_SOURCE = "IBCSO_v2_TID.tif"
+TID_NONE = 255
+TID_LAYER = "ibcso:tid"
+
+#: GEBCO TID 번호 → (한국어 이름, 색). 영어는 GEBCO 의 이름 그대로(`i18n.EN`).
+#: 직접 잰 것은 푸른·초록 갈래, 간접은 주황 갈래, 출처가 섞인 격자·모름은 잿빛이다. 0(육지)은 칠하지 않는다
+TID_CLASSES = {
+    10: ("싱글빔 측심", (66, 146, 198)),
+    11: ("멀티빔 측심", (8, 69, 148)),
+    12: ("탄성파 탐사", (106, 81, 163)),
+    13: ("따로 잰 측심점", (158, 154, 200)),
+    14: ("전자해도(ENC) 측심", (65, 171, 93)),
+    15: ("라이다 측심", (116, 196, 118)),
+    16: ("광학 센서 측심", (161, 217, 155)),
+    17: ("여러 직접 측정", (0, 109, 44)),
+    40: ("위성 중력으로 예측", (253, 174, 107)),
+    41: ("계산으로 보간", (254, 227, 145)),
+    42: ("해도 등심선", (241, 105, 19)),
+    43: ("전자해도 등심선", (217, 72, 1)),
+    44: ("측심에 묶인 격자", (253, 141, 60)),
+    45: ("항공 중력으로 예측", (230, 85, 13)),
+    46: ("좌초 빙산의 흘수", (166, 54, 3)),
+    70: ("미리 만든 격자", (150, 150, 150)),
+    71: ("출처 모름", (99, 99, 99)),
+    72: ("조정점", (189, 189, 189)),
+}
+TID_LAND = "육지"
+#: 범례의 묶음 — 번호의 십의 자리가 곧 묶음이다(GEBCO)
+TID_GROUPS = ((10, 40, "직접 측정"), (40, 70, "간접 측정"), (70, 100, "출처가 섞였거나 모름"))
+TID_OPACITY = 200
+
+
+def tid_raw_dir() -> Path:
+    return root() / "tid-raw"
+
+
+def tid_tiles_dir() -> Path:
+    return root() / "tiles-tid"
+
+
+def tid_available() -> bool:
+    return tid_tiles_dir().is_dir()
+
+
+def tid_source_file():
+    path = root() / TID_SOURCE
+    return path if path.is_file() else None
+
+
+def read_tid_raw(level: int, x: int, y: int):
+    try:
+        return (tid_raw_dir() / str(level) / str(x) / f"{y}.png").read_bytes()
+    except FileNotFoundError:
+        return None
+
+
+def read_tid_tile(z: int, x: int, y: int):
+    try:
+        return (tid_tiles_dir() / str(z) / str(x) / f"{y}.png").read_bytes()
+    except FileNotFoundError:
+        return None
+
+
+def tid_label(code) -> str:
+    if code == 0:
+        return TID_LAND
+    spec = TID_CLASSES.get(code)
+    return spec[0] if spec else f"TID {code}"
+
+
+def tid_at(points: dict) -> dict:
+    """{열쇠: (위도, 경도)} → {열쇠: TID 번호}. 섞지 않는다 — 가장 가까운 한 화소다."""
+    if not tid_raw_dir().is_dir():
+        return {}
+    by_tile = {}
+    for key, (lat, lon) in points.items():
+        if lat > NORTH:
+            continue
+        col, row = _pixel_of(lat, lon)
+        if not (0 <= col < SOURCE_SIZE and 0 <= row < SOURCE_SIZE):
+            continue
+        by_tile.setdefault((int(col // TILE), int(row // TILE)), []).append((key, int(col), int(row)))
+    out = {}
+    from PIL import Image
+    for (tx, ty), items in by_tile.items():
+        data = read_tid_raw(DEM_MAX_LEVEL, tx, ty)
+        if not data:
+            continue
+        image = Image.open(io.BytesIO(data))
+        for key, col, row in items:
+            code = image.getpixel((col - tx * TILE, row - ty * TILE))
+            if code != TID_NONE:
+                out[key] = code
+    return out
+
+
+def _tid_palette() -> list:
+    """번호 → 팔레트 번호 표와 팔레트(RGB). 팔레트 0 은 투명(육지·빈 곳)."""
+    lut = [0] * 256
+    palette = [0, 0, 0]
+    for index, (code, (_, rgb)) in enumerate(sorted(TID_CLASSES.items()), start=1):
+        lut[code] = index
+        palette += list(rgb)
+    return lut, palette
+
+
+def open_tid(path):
+    """TID 원본 → 번호 그림(L, 빈 곳 255)."""
+    from PIL import Image, ImageMath
+    image = Image.open(path)
+    if image.size != (SOURCE_SIZE, SOURCE_SIZE):
+        raise IbcsoError(f"TID 격자가 {image.size} 다 — {SOURCE_SIZE}×{SOURCE_SIZE} 를 기다렸다")
+    image.load()
+    image = image.convert("I")
+    code = ImageMath.lambda_eval(
+        lambda a: a["v"] * a["int"](a["v"] >= 0) + TID_NONE * a["int"](a["v"] < 0), v=image)
+    return code.convert("L")
+
+
+def tid_paint(codes):
+    """번호 그림(L) → 칠한 그림(P, 팔레트 0 투명)."""
+    from PIL import Image
+    lut, palette = _tid_palette()
+    indexed = codes.point(lut)
+    out = Image.frombytes("P", indexed.size, indexed.tobytes())
+    out.putpalette(palette)
+    out.info["transparency"] = 0
+    return out
+
+
+def cut_tid(level_image, factor: int, z: int, x: int, y: int):
+    """칠한 그림(P)의 줌 z 타일 한 장(P). 번호라 가장 가까운 화소로 자른다. 다 비었으면 None."""
+    from PIL import Image
+    left, top, right, bottom = (v / factor for v in source_box(z, x, y))
+    w, h = level_image.size
+    cl, ct, cr, cb = max(left, 0), max(top, 0), min(right, w), min(bottom, h)
+    if cr <= cl or cb <= ct:
+        return None
+    px, py = TILE / (right - left), TILE / (bottom - top)
+    ox, oy = round((cl - left) * px), round((ct - top) * py)
+    ow, oh = round((cr - left) * px) - ox, round((cb - top) * py) - oy
+    if ow < 1 or oh < 1:
+        return None
+    piece = level_image.resize((ow, oh), Image.NEAREST, box=(cl, ct, cr, cb))
+    if piece.getextrema()[1] == 0:
+        return None
+    tile = Image.new("P", (TILE, TILE), 0)
+    tile.putpalette(level_image.getpalette())
+    tile.paste(piece, (ox, oy))
+    return tile
+
+
+def encode_tid(tile) -> bytes:
+    buf = io.BytesIO()
+    tile.save(buf, format="PNG", optimize=True, transparency=0)
+    return buf.getvalue()
+
+
+def cut_tid_raw(codes, x: int, y: int):
+    """번호 그림(L)의 단계 6 타일 한 장(L). 밖은 빈 곳(255). 다 비었으면 None."""
+    from PIL import Image
+    tile = Image.new("L", (TILE, TILE), TID_NONE)
+    tile.paste(codes.crop((x * TILE, y * TILE, min((x + 1) * TILE, SOURCE_SIZE),
+                           min((y + 1) * TILE, SOURCE_SIZE))), (0, 0))
+    if tile.getextrema()[0] == TID_NONE:
+        return None
+    return tile
+
+
+def tid_legend(lang: str = "ko") -> dict:
+    """범례 — 묶음마다 (번호, 이름, 색). 화면이 HTML 로 그린다."""
+    from . import i18n
+    groups = []
+    for lo, hi, name in TID_GROUPS:
+        rows = [{"code": code, "label": i18n.t(label, lang), "color": "#%02x%02x%02x" % rgb}
+                for code, (label, rgb) in sorted(TID_CLASSES.items()) if lo <= code < hi]
+        groups.append({"name": i18n.t(name, lang), "rows": rows})
+    return {"groups": groups, "attribution": ATTRIBUTION}

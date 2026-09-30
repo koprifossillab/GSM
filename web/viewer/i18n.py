@@ -348,6 +348,36 @@ EN = {
     "IBCSO 해저·얼음 위 지형": "IBCSO seafloor and ice surface",
     "IBCSO v2 (500 m). 빙붕·빙상의 윗면과 해저. CC BY 4.0":
         "IBCSO v2 (500 m). Seafloor and the top of ice shelves and the ice sheet. CC BY 4.0",
+    # 누른 자리의 IBCSO 수심·표고 (070)
+    "lat·lon 이 없다": "lat and lon are missing",
+    "얼음 위 {m}": "ice surface {m}",
+    "해저·빙저 {m}": "bed {m}",
+    "얼음 두께 {m}": "ice thickness {m}",
+    "수심 {m}": "depth {m}",
+    "표고 {m}": "elevation {m}",
+    # IBCSO 자료 출처(TID) — GEBCO 의 갈래 이름 (071)
+    "직접 측정": "Direct measurements",
+    "간접 측정": "Indirect measurements",
+    "출처가 섞였거나 모름": "Mixed or unknown source",
+    "육지": "Land",
+    "싱글빔 측심": "Singlebeam",
+    "멀티빔 측심": "Multibeam",
+    "탄성파 탐사": "Seismic",
+    "따로 잰 측심점": "Isolated sounding",
+    "전자해도(ENC) 측심": "ENC sounding",
+    "라이다 측심": "Lidar",
+    "광학 센서 측심": "Optical light sensor",
+    "여러 직접 측정": "Combination of direct measurements",
+    "위성 중력으로 예측": "Predicted from satellite-derived gravity",
+    "계산으로 보간": "Interpolated by computer algorithm",
+    "해도 등심선": "Bathymetric contours from charts",
+    "전자해도 등심선": "Bathymetric contours from ENCs",
+    "측심에 묶인 격자": "Grid constrained by soundings",
+    "항공 중력으로 예측": "Predicted from flight-derived gravity",
+    "좌초 빙산의 흘수": "Draft of a grounded iceberg",
+    "미리 만든 격자": "Pre-generated grid",
+    "출처 모름": "Unknown source",
+    "조정점": "Steering points",
     "Polar Geospatial Center. 2 m 표고에서 그린 음영":
         "Polar Geospatial Center. Hillshade drawn from 2 m elevation",
     "Blue Marble 위성 (NASA)": "Blue Marble satellite (NASA)",
@@ -742,6 +772,17 @@ PROP_EN = {
     "축척": "Scale",
     "표고(DEM)": "Elevation (DEM, m)",
     "표고 출처": "Elevation source",
+    "해저·빙저(IBCSO)": "Bed (IBCSO, m)",
+    "얼음 두께(IBCSO)": "Ice thickness (IBCSO, m)",
+    "자료 출처": "Data source",
+    "해저·빙저 (m)": "Bed (m)",
+    # KPDC 지도 서버 (073)
+    "그린 근거": "Source of the line",
+    "고친 날": "Revised",
+    "바닥": "Bed type",
+    "도폭 (IMW)": "IMW sheet",
+    "출처 날짜": "Source date",
+    "밑": "Subsurface",
     # 스발바르 도폭 경계 (npolar.POINTS, P01 6 단계)
     "도폭 번호": "Sheet number",
     "발행": "Printed",
@@ -1214,6 +1255,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
     "지구물리이상도": "Geophysical anomaly maps",
@@ -1249,6 +1291,7 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    "ibcso:tid": "Bathymetry data source (TID)",
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",
     "L_50K_Geology_Map": "1:50K geology",
@@ -1344,6 +1387,7 @@ LAYER_EN = {
     "geomap_simple_geology": "Geology (simplified)",
     "geomap_chronostratigraphic": "Chronostratigraphy",
     "geomap_simple_lithology": "Lithology (simplified)",
+    "geomap_lithostratigraphic": "Lithostratigraphy",
     "geomap_faults": "Faults",
     "geomap_quality": "Data quality",
     # 얀마옌 (NPI 지질도, janmayen.py)

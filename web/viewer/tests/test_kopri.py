@@ -201,3 +201,18 @@ class View(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(sent["layers"], "kpdc:antarctic_coastline_coast_change")
         self.assertTrue(sent["url"].endswith("/geoserver/kpdc/wms"))
+
+
+class WmsProps(SimpleTestCase):
+    """KPDC 지도 서버 속성 이름 (073) — 상류 열을 팝업 이름으로, 빈 값·편집자는 뺀다."""
+
+    def test_해안선_변화(self):
+        from viewer import kopri
+        got = kopri._wms_props({"editor": "acook", "revdate": "19570101", "coast_type": 22011, "year": 1957,
+                                "reliabilit": 1, "source_inf": None, "reference": 303},
+                               kopri.WMS_PROPS["kopri:coast_change"])
+        self.assertEqual(got, {"연도": 1957, "신뢰도": 1, "고친 날": "19570101"})
+
+    def test_이름표가_없으면_그대로(self):
+        from viewer import kopri
+        self.assertEqual(kopri._wms_props({"fid": 1, "a": 2}, ()), {"a": 2})

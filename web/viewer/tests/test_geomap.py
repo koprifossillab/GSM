@@ -314,6 +314,75 @@ class Styles(SimpleTestCase):
         self.assertIn("GeoMAP 지질도", i18n.GROUP_EN)
 
 
+PATTERN_QML = """<qgis><renderer-v2 type="RuleRenderer">
+ <rules><rule filter="MAPSYMBOL = 'Kg'OR MAPSYMBOL = 'Kd'" symbol="0" label="intrusive rocks"/></rules>
+ <symbols><symbol name="0" type="fill">
+  <layer class="SimpleFill" enabled="1"><prop k="color" v="255,96,17,0"/><prop k="style" v="solid"/>
+   <prop k="outline_style" v="no"/><prop k="outline_color" v="255,96,17,0"/></layer>
+  <layer class="LinePatternFill" enabled="1"><prop k="angle" v="45"/><prop k="distance" v="1.5"/>
+   <prop k="distance_unit" v="MM"/><prop k="color" v="1,2,3,255"/>
+   <symbol name="@0@1" type="line"><layer class="SimpleLine" enabled="1">
+    <prop k="line_color" v="137,199,114,255"/><prop k="line_width" v="0.3"/><prop k="line_width_unit" v="MM"/>
+   </layer></symbol></layer>
+  <layer class="PointPatternFill" enabled="1"><prop k="distance_x" v="2"/><prop k="distance_x_unit" v="MM"/>
+   <prop k="distance_y" v="2"/><prop k="distance_y_unit" v="MM"/><prop k="displacement_x" v="1"/>
+   <prop k="displacement_x_unit" v="MM"/><prop k="displacement_y" v="0"/>
+   <symbol name="@0@2" type="marker"><layer class="SimpleMarker" enabled="1">
+    <prop k="name" v="half_square"/><prop k="color" v="190,210,255,255"/><prop k="size" v="1.25"/>
+    <prop k="size_unit" v="MM"/><prop k="outline_color" v="190,210,255,255"/>
+    <data_defined_properties><Option type="Map"><Option name="name" value="" type="QString"/></Option></data_defined_properties>
+   </layer></symbol></layer>
+  <layer class="SimpleLine" enabled="1"><prop k="line_color" v="137,199,114,255"/><prop k="line_width" v="0.26"/>
+   <prop k="line_width_unit" v="MM"/></layer>
+ </symbol></symbols></renderer-v2></qgis>"""
+
+
+class Patterns(SimpleTestCase):
+    """암층 스타일의 무늬 — 빗금(`hatch`)·점 무늬(`dots`)."""
+
+    def parse(self):
+        path = Path(tempfile.mkdtemp(prefix="gsm-qml-")) / "litho.qml"
+        path.write_text(PATTERN_QML, encoding="utf-8")
+        return geomap_styles.parse_qml(path, "units", "fill")
+
+    def test_따옴표에_붙은_OR(self):
+        self.assertEqual(geomap_styles.parse_filter("A = 'x'OR A = 'y'"), [{"A": "x"}, {"A": "y"}])
+
+    def test_빗금과_점_무늬를_읽는다(self):
+        rule = self.parse()["rules"][0]
+        self.assertEqual(rule["when"], [{"MAPSYMBOL": "Kg"}, {"MAPSYMBOL": "Kd"}])
+        self.assertIsNone(rule["fill"])                     # 다 투명한 바탕은 칠하지 않는다
+        self.assertEqual(rule["outline"], [137, 199, 114, 255])     # 뒤따르는 SimpleLine
+        h, = rule["hatch"]
+        self.assertEqual((h["angle"], h["color"]), (45.0, [137, 199, 114, 255]))   # 서브심볼의 색
+        self.assertAlmostEqual(h["spacing"], 1.5 * 96 / 25.4, places=1)
+        d, = rule["dots"]
+        self.assertEqual(d["marker"], "half_square")        # data defined 의 빈 name 에 속지 않는다
+        self.assertAlmostEqual(d["shift"], 96 / 25.4, places=1)
+
+    def test_무늬가_없는_스타일은_꼴이_그대로다(self):
+        for name in ("simple_geology", "simple_lithology", "chronostratigraphic"):
+            for rule in geomap.styles()[name].rules:
+                self.assertNotIn("hatch", rule)
+                self.assertNotIn("dots", rule)
+
+    def test_암층_스타일(self):
+        style = geomap.styles()["lithostratigraphic"]
+        self.assertTrue(any(r.get("hatch") for r in style.rules))
+        self.assertTrue(any(r.get("dots") for r in style.rules))
+        self.assertIsNotNone(style.pick(("Czw",)))
+
+    def test_무늬는_이웃_타일에서_이어진다(self):
+        rule = self.parse()["rules"][0]
+        # 가로로 붙은 두 그림 — 둘째의 원점은 첫째보다 폭만큼 오른쪽이다
+        a = geomap._pattern_image(rule, 64, 64, (1000.0, 500.0), ss=2)
+        b = geomap._pattern_image(rule, 64, 64, (1064.0, 500.0), ss=2)
+        wide = geomap._pattern_image(rule, 128, 64, (1000.0, 500.0), ss=2)
+        self.assertEqual(a.tobytes(), wide.crop((0, 0, 64, 64)).tobytes())
+        self.assertEqual(b.tobytes(), wide.crop((64, 0, 128, 64)).tobytes())
+        self.assertIsNotNone(a.getbbox())
+
+
 # ── 그리기·속성 ────────────────────────────────────────────────────
 
 def _png(content):
@@ -347,6 +416,14 @@ class Render(WithData, SimpleTestCase):
         # 단층은 SY+5000 → 위에서 (12000-5000)/100 = 70 째 줄
         self.assertGreater(img.getpixel((120, 70))[3], 0)
         self.assertEqual(img.getpixel((120, 120))[3], 0)
+
+    def test_암층은_무늬로_칠한다(self):
+        img = _png(geomap.render("geomap_lithostratigraphic", self.bbox(), 240, 240))
+        # 큰 네모(Czw, 신생대 퇴적암)는 가로 빗금이라 칠한 줄과 빈 줄이 번갈아 온다
+        column = [img.getpixel((40, y))[3] for y in range(40, 80)]
+        self.assertGreater(max(column), 0)
+        self.assertEqual(min(column), 0)
+        self.assertEqual(img.getpixel((2, 2))[3], 0)
 
     def test_범례(self):
         for layer in geomap.LAYERS:
