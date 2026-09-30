@@ -704,7 +704,7 @@ def mars_info(request):
 
 
 def _mars_original_info(lon, lat, lang):
-    """옛 지질도의 단위 — 판·단위·이름·시대 (068). 시대만 한국어판에서 옮긴다(달 원도와 같다)."""
+    """옛 지질도·지역도의 단위 — 판·단위·이름·시대·지형구·축척 (068, wetherilli 079). 시대만 한국어판에서 옮긴다."""
     if not marsmap.available():
         return JsonResponse({"rows": [], "note": i18n.t(msg("옛 지질도 파일이 서버에 없다"), lang)})
     try:
@@ -715,8 +715,10 @@ def _mars_original_info(lon, lat, lang):
     if not hit:
         return JsonResponse({"rows": []})
     age = hit["age"] if lang == "en" else trek.mars_age_ko(hit["age"])
-    source = hit["map"] if lang == "en" or not hit["sheet_ko"] else f"{hit['map']} — {hit['sheet_ko']}"
-    rows = [("원도", source), ("단위", hit["unit"]), ("이름", hit["name"]), ("시대", age), ("지은이", hit["citation"])]
+    # 판 — 한국어판은 "I-1802-A — 서쪽 적도", 영어판은 번호만. MTM 지역도는 사각형 이름이 곧 이름이다
+    source = hit["map"] if lang == "en" or not hit["map_ko"] else f"{hit['map']} — {hit['map_ko']}"
+    rows = [("원도", source), ("단위", hit["unit"]), ("이름", hit["name"]), ("시대", age), ("지형구", hit["note"]),
+            ("축척", hit["scale"]), ("지은이", hit["citation"])]
     rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
     return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
 
