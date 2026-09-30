@@ -2663,4 +2663,35 @@
       setMode("flat", { lon: f.lon, lat: f.lat, h: resToHeight(f.res) });
     }
   } catch (e) { flyGlobe(HOME[0], HOME[1], HOME_H); }
+
+  // ── 패널 접기 (jikhanjung 008·009) ────────────────────────────────────
+  //
+  // 지구 지도(jikhanjung 007)와 같은 손잡이. 접힌 채인지는 세 화면이 한 열쇠(`gsm.panelFolded`)를
+  // 같이 쓴다 — 접어 두는 것은 사람의 버릇이지 화면의 것이 아니다. 접고 편 뒤에는 평면과 구를
+  // 둘 다 다시 잰다(숨은 쪽도 — 바꿔 들어갈 때 어긋나지 않게).
+  (function () {
+    var handle = document.getElementById("panel-handle");
+    if (!handle) return;
+    var KEY = "gsm.panelFolded";
+    function apply(folded, keep) {
+      document.body.classList.toggle("panel-folded", folded);
+      handle.textContent = folded ? ">" : "<";
+      handle.title = folded ? T("패널을 편다") : T("패널을 접는다");
+      handle.setAttribute("aria-expanded", folded ? "false" : "true");
+      if (keep) {
+        try { localStorage.setItem(KEY, folded ? "1" : "0"); } catch (e) { /* 사생활 모드 */ }
+      }
+      setTimeout(function () {
+        flat.updateSize();
+        viewer.resize();
+        viewer.scene.requestRender();
+      }, 0);
+    }
+    var folded = false;
+    try { folded = localStorage.getItem(KEY) === "1"; } catch (e) { /* 사생활 모드 */ }
+    if (folded) apply(true, false);
+    handle.addEventListener("click", function () {
+      apply(!document.body.classList.contains("panel-folded"), true);
+    });
+  })();
 })();

@@ -114,6 +114,7 @@
 | jikhanjung 006 | 2026-09-30 | [줌 표시, 그리고 자세 기호를 멀리서 작게](20260930_jikhanjung_006_zoom_badge.md) |
 | jikhanjung 007 | 2026-09-30 | [패널 접는 손잡이, 자세 기호 체크를 색 글자로](20260930_jikhanjung_007_panel_handle.md) |
 | jikhanjung 008 | 2026-09-30 | [달·화성 화면에도 패널 손잡이](20260930_jikhanjung_008_panel_handle_moon_mars.md) |
+| jikhanjung 009 | 2026-09-30 | [온 지구 화면에도 패널 손잡이](20260930_jikhanjung_009_panel_handle_earth.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |
