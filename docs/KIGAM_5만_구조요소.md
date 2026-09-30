@@ -85,3 +85,22 @@ TODOs "더 큰 것" 의 "KIGAM GeoServer 에만 있는 레이어 338 개" 는 **
 `geoOpen` 워크스페이스에 묶여 `Geology_map:*` 을 `LayerNotDefined` 로 거절하니, 그림을 띄우려면 KIGAM 에 열어 달라 하거나
 `kigam._endpoint` 를 레이어마다 가르는 예외를 두어야 했다. **자료로 받으면 그 예외가 필요 없다** — 한 번 받아 우리 디스크에
 두고 우리가 그린다. 5만 원도 스캔·탄전 지질도·드론 음영기복도 같은 그림 레이어는 여전히 그 물음에 남는다.
+
+## 8. 층리를 뺀 5만 지질도 — 타일로 받을 수 있나 (2026-09-30)
+
+지금 뷰어의 5만 지질도(`L_50K_Geology_Map`, `/openapi/wms`)는 층리·엽리 기호와 경사각 숫자가 빽빽하다. 그것을 빼고
+받을 수 있는지 봤다.
+
+- `L_50K_Geology_Map` 은 **레이어 묶음**(layer group)이다 — 스타일 이름이 `default-style-…` 꼴이고, GeoServer 의
+  전체 `GetCapabilities` 에 짝이 되는 낱레이어 `Geology_map:l_50k_geology_*_latest` 가 있다. WMS 에는 묶음에서 일부만 빼는
+  요청이 없으니 **낱레이어를 골라 부른다**
+- GeoServer(`/mgeo/geoserver/wms`)에 `litho_view`·`alterationzone`·`metamorphismzone`·`boundary`·`fold`·`fault` 여섯을
+  한 요청에 이어 부르면, 청송 천지 도폭(128.93–129.01°E, 36.41–36.47°N)에서 **층리·엽리 기호만 빠지고** 암상 색·무늬,
+  지층 기호(`Khgg`·`Jcsgr`), 경계, 단층이 그대로 나온다
+- 묶음에 딸려 있던 **시·군 경계선·이름과 물길**도 같이 빠진다. 배경지도에 있는 것이라 두었다
+- **`/openapi/wms` 로는 안 된다** — 인증키를 붙여 낱레이어 이름(`Geology_map:…`, 접두사 없이도)을 물으면 393 바이트짜리 빈
+  그림이 온다. 그 길은 `geoOpen` 의 묶음 하나만 안다
+
+**정한 것 (사람, 같은 날)** — 층리 뺀 판을 **따로 켜는 레이어 하나로** 두고, 그 레이어만 GeoServer 로 받는다. 기본 5만
+지질도는 지금대로 `/openapi/wms` + 인증키다. 예외를 레이어 하나에 가두고, 받은 타일은 캐시에 담는다. KIGAM 에 같은 묶음을
+`/openapi/wms` 에 열어 달라고 따로 부탁하고, 열리면 그리로 옮긴다. 층리는 jikhanjung P01 대로 우리가 따로 그려 겹친다.
