@@ -90,6 +90,10 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 Trek 판은 씨앗 `data/<몸>_trek_layers.json`(`manage.py fetch_trek_catalog`, 사람은 `ko`·`hide` 만 손질)이고, WMTS 가 없는
 판은 `trek/<몸>/map/…` 이 굽는다. 운영 파일 — `db/ibcso/{tiles-tid,tid-raw}/`(판 전에 잘라 두었다).
 
+**v0.20.0 — 화성 크레이터·옛 지질도·주룽, 북극해 탭, 시료 지점의 VWorld 둘레** (060·066–068·074–077). 세 세션을 모았다.
+이주 0014(`Point.place`)·0015(지역 choices 에 `arctic_ocean`). 운영 파일 — `db/mars/mars_craters.sqlite`·`mars_originals.sqlite`
+(판 전에 구워 두었다). 화성 주룽은 저장소의 `data/mars_zhurong.json`. 오래된 점묶음의 둘레는 `manage.py fill_places <번호>`.
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
