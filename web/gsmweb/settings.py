@@ -138,6 +138,8 @@ MOON_PLACES_FILE = BASE_DIR.parent / "data" / "moon_places.json"
 TREK_MARS_URL = env("GSM_TREK_MARS_URL", "https://trek.nasa.gov/mars")
 #: 화성 지명 — `manage.py fetch_moon_places --body mars` 가 적는다
 MARS_PLACES_FILE = BASE_DIR.parent / "data" / "mars_places.json"
+#: 주룽 로버의 착륙 지점·주행 경로 (066, `manage.py build_zhurong`)
+MARS_ZHURONG_FILE = BASE_DIR.parent / "data" / "mars_zhurong.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")

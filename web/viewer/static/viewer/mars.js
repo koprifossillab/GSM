@@ -59,9 +59,9 @@
     // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"` — 달에서 온 이름)
     { group: "착륙지", layers: [
       { name: "landings", title: "착륙선·로버 지점", kind: "vector", url: "mars/landings/", legend: "landings",
-        src: "NASA Mars Trek · JPL" },
+        src: "NASA Mars Trek · JPL · Zhurong: Zhang et al. 2026, Ding et al. 2022 (CC BY)" },
       { name: "eva", title: "로버 주행 경로", kind: "vector", url: "mars/traverses/", legend: "traverses",
-        src: "NASA Mars Trek · JPL" },
+        src: "NASA Mars Trek · JPL · Zhurong: Zhang et al. 2026, Ding et al. 2022 (CC BY)" },
       { name: "nac", title: "착륙지 고해상 사진 (MRO HiRISE)", kind: "nac", src: "NASA/JPL/University of Arizona" },
     ] },
   ];
@@ -431,8 +431,9 @@
     rover: { color: "#6fd3ff", size: 9, label: "로버" },
   };
   //: 로버마다 한 색 — 범례 칸도 이것으로 선다
+  //: 주룽(祝融)은 Trek 에 없어 서버가 저장소의 파일(`zhurong.py`)을 덧붙인다 (066)
   var TRAVERSE_COLOR = { "Spirit": "#ffe14d", "Opportunity": "#7bc47f", "Curiosity": "#ff8fab",
-                         "Perseverance": "#c879ff" };
+                         "Perseverance": "#c879ff", "Zhurong": "#ff4a3d" };
   var EVA_COLOR = "#ffe14d";
   // Trek 의 HiRISE 모자이크 — 줌 끝은 2026-09-29 에 한 장씩 받아 보았다(게일 16·예제로 17, 한 픽셀 25–50 cm)
   var NAC = [

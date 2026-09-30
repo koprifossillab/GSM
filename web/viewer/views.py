@@ -24,7 +24,8 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
-               patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
+               patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
+               zhurong)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -705,6 +706,7 @@ def mars_landings(request):
     sites = _mars_cached(request, "landings", trek.mars_landings, "착륙 지점")
     if sites is None:
         return _mars_failed(request)
+    sites = sites + zhurong.landings()              # Trek 에 없는 주룽 — 저장소의 파일 (066)
     return JsonResponse({"type": "FeatureCollection", "features": [{
         "type": "Feature", "geometry": {"type": "Point", "coordinates": [s["lon"], s["lat"]]},
         "properties": {"이름표": s["name"], "임무": s["mission"], "kind": s["kind"]},
@@ -717,6 +719,7 @@ def mars_traverses(request):
     items = _mars_cached(request, "traverses", trek.mars_traverses, "로버 동선")
     if items is None:
         return _mars_failed(request)
+    items = items + [t for t in [zhurong.traverse()] if t]    # 주룽 (066)
     return JsonResponse({"type": "FeatureCollection", "features": [{
         "type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": t["paths"]},
         "properties": {"임무": t["mission"]},
@@ -725,7 +728,7 @@ def mars_traverses(request):
 
 @functools.lru_cache(maxsize=1)
 def _mars_places():
-    return trek.load_places(settings.MARS_PLACES_FILE)
+    return trek.load_places(settings.MARS_PLACES_FILE) + zhurong.place()
 
 
 @require_GET

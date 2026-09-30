@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
-from viewer import trek
+from viewer import trek, zhurong
 from viewer.models import PointSet, REGIONS
 from viewer.tests.test_trek import response, tiff
 
@@ -180,8 +180,21 @@ class MarsViews(TestCase):
         page = {"features": [{"geometry": {"paths": [[[137.44, -4.59], [137.45, -4.6]]]}}]}
         with mock.patch("viewer.trek.requests.get", return_value=response(page)):
             data = self.client.get(reverse("viewer:mars-traverses")).json()
-        self.assertEqual(len(data["features"]), len(trek.MARS_TRAVERSES))
+        # Trek 의 넷에 저장소의 주룽이 붙는다 (066)
+        self.assertEqual(len(data["features"]), len(trek.MARS_TRAVERSES) + 1)
         self.assertEqual(data["features"][0]["geometry"]["type"], "MultiLineString")
+        self.assertEqual(data["features"][-1]["properties"]["임무"], "Zhurong")
+
+    def test_착륙지에_주룽이_붙는다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response({"features": []})):
+            data = self.client.get(reverse("viewer:mars-landings")).json()
+        names = [f["properties"]["이름표"] for f in data["features"] if f["properties"]["임무"] == "Zhurong"]
+        self.assertEqual(names[0], "Zhurong Landing Site")
+        self.assertTrue(names[1].startswith("Zhurong, sol "))
+
+    def test_지명_찾기에_주룽_착륙지(self):
+        data = self.client.get(reverse("viewer:mars-places"), {"q": "zhurong"}).json()
+        self.assertEqual(data["results"][0]["name"], "Zhurong Landing Site")
 
     def test_지명_찾기는_저장소의_파일을_뒤진다(self):
         data = self.client.get(reverse("viewer:mars-places"), {"q": "gale"}).json()
@@ -242,3 +255,48 @@ class MarsPointSets(TestCase):
         point = ps.points.get(label="Bradbury")
         self.assertEqual((point.elev, point.elev_source, point.elev_datum),
                          (-4494.0, trek.MARS_ELEV_SOURCE, trek.MARS_ELEV_DATUM))
+
+
+#: 2CL 한 장의 꼴 — 솔 20 의 것에서 로버 자리 둘레만 남겼다
+TWO_CL = """<Product_Observational><start_date_time>2021-06-03T09:01:52.514000Z</start_date_time>
+<local_true_solar_time>00020 11:12:00</local_true_solar_time>
+<Rover_Location><reference_frame>MARS_COORDINATE_SYSTEM</reference_frame>
+<longitude unit="deg">109.908435</longitude><latitude unit="deg">25.083231</latitude></Rover_Location>
+<Rover_Location_xyz><reference_frame>LANDING_SITE_COORDINATE_SYSTEM</reference_frame>
+<x unit="m">-0.355912</x><y unit="m">-5.125183</y><z unit="m">0.424993</z></Rover_Location_xyz>
+</Product_Observational>"""
+
+
+class Zhurong(SimpleTestCase):
+    """주룽 (066) — 논문의 자료에서 뽑은 미터 좌표를 HiRISE 착륙 지점에 붙인다."""
+
+    def test_2CL_에서_솔과_자리를_읽는다(self):
+        r = zhurong.read_2cl(TWO_CL)
+        self.assertEqual((r["sol"], r["x"], r["y"]), (20, -0.355912, -5.125183))
+        self.assertIsNone(zhurong.read_2cl("<x>1</x>"))
+
+    def test_같은_자리의_사진은_한_번(self):
+        r = zhurong.read_2cl(TWO_CL)
+        later = dict(r, time="2021-06-04T00:00:00Z", x=r["x"] + 0.01)
+        moved = dict(r, time="2021-06-05T00:00:00Z", sol=22, x=4.912, y=-13.157)
+        got = zhurong.stops([moved, later, r])
+        self.assertEqual(len(got), len(zhurong.EARLY) + 2)
+        self.assertEqual(got[len(zhurong.EARLY)][0], 20)
+        self.assertEqual(got[-1][:3], [22, 4.912, -13.157])
+
+    def test_미터를_경위도로(self):
+        origin = (109.925, 25.066)
+        lon, lat = zhurong.to_lonlat(0, -1000, origin)
+        self.assertEqual(lon, 109.925)
+        self.assertAlmostEqual(lat, 25.066 - 1000 * 180 / (3.14159265 * trek.MARS_RADIUS), places=6)
+        # 동쪽 1 km 는 위도의 cos 만큼 경도가 더 벌어진다
+        lon, _ = zhurong.to_lonlat(1000, 0, origin)
+        self.assertAlmostEqual((lon - 109.925) * 0.9058, 1000 * 180 / (3.14159265 * trek.MARS_RADIUS), places=5)
+
+    def test_저장소의_경로는_착륙_지점에서_남쪽으로_1_9_km(self):
+        line = zhurong.traverse()["paths"][0]
+        self.assertEqual(line[0], [109.925, 25.066])
+        self.assertLess(line[-1][1], 25.066 - 0.02)              # 남쪽으로 1.3 km 남짓 내려갔다
+        data = zhurong.load()
+        walked = sum(((b[1] - a[1]) ** 2 + (b[2] - a[2]) ** 2) ** 0.5 for a, b in zip(data["stops"], data["stops"][1:]))
+        self.assertAlmostEqual(walked, 1900, delta=60)
