@@ -197,6 +197,9 @@ IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
 #: `manage.py fetch_kopri` 가 천천히 모아 여기 쓴다(두 시간 남짓, 다음부터는 새 것만). 저장소·이미지에
 #: 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (devlog 053·055). 기본은 `<DB 옆>/kopri/`.
 KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
+#: KIGAM 5만 지질도의 층리·엽리·절리 등 — GeoServer WFS 에서 한 번 받아 둔 것(`raw/<YYYYMMDD>/`).
+#: 저장소·이미지에 두지 않는다. 없으면 자세 기호에 커서가 안 바뀔 뿐 뷰어는 돈다 (jikhanjung 004).
+KIGAM50K_DIR = env("GSM_KIGAM50K_DIR") or str(_data_dir() / "kigam50k")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")

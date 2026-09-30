@@ -852,6 +852,17 @@ EN = {
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
     "범례가 없는 레이어다": "This layer has no legend",
     "bbox 가 없다": "bbox is missing",
+    # 5만 지질도의 자세 기호 — 커서와 팝업 (jikhanjung 004)
+    "미상": "unknown",
+    "경사 방향과 원문 사분면이 맞지 않는다 — 기호는 경사 방향대로 그렸다":
+        "Dip direction disagrees with the original quadrant — the symbol follows the dip direction",
+    "KIGAM 5만 지질도 · {date} 받음": "KIGAM 1:50K geological map · fetched {date}",
+    "층리": "Bedding", "수직층리": "Vertical bedding", "역전층리": "Overturned bedding", "수평층리": "Horizontal bedding",
+    "엽리": "Foliation", "수직엽리": "Vertical foliation",
+    "1차엽리": "Primary foliation", "2차엽리": "Secondary foliation", "3차엽리": "Tertiary foliation",
+    "편리": "Schistosity", "경사미상 편리": "Schistosity (dip unknown)",
+    "1차편리": "Primary schistosity", "2차편리": "Secondary schistosity", "3차편리": "Tertiary schistosity",
+    "절리": "Joint", "수직절리": "Vertical joint",
     # 암맥 기록 — phyloserver (devlog 026)
     "산성암맥": "Felsic dikes",
     "중성암맥": "Intermediate dikes",
@@ -1073,6 +1084,10 @@ PROP_EN = {
     "산상": "Morphology",
     "주향 (°)": "Strike (°)",
     "경사 방향": "Dip direction",
+    "경사": "Dip",
+    "주향": "Strike",
+    "원문 사분면": "Original quadrant",
+    "알림": "Note",
     "너비 (m)": "Width (m)",
     "다이아몬드 품위": "Diamond grade",
     "출처 갈래": "Source type",
