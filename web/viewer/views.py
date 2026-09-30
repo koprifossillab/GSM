@@ -1414,7 +1414,7 @@ def vworld_tile(request, layer, z, y, x):
 
     **브라우저가 `api.vworld.kr` 에 곧장 닿지 못할 때만 온다** — 사내 VPN 이
     그 연결을 끊는다 (033). 캐시에 담지 않는다. 자료 밖은 투명한 빈 타일이다."""
-    if layer not in vworld.WMTS_LAYERS:
+    if not vworld.knows_wmts(layer):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
     try:
