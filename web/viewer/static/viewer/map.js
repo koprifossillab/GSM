@@ -769,6 +769,20 @@
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
+  // 같은 ImageServer 의 다른 그리는 법 둘 (wetherilli 092). 여러 방향 음영은 한 방향 음영이 그늘에 묻는
+  // 북서향 사면·선구조를 살린다. 높이 색 음영은 빙상·산지·해안 평지를 한눈에 가른다
+  BASEMAPS.arcticdem_multi = {
+    title: T("ArcticDEM 음영 (여러 방향)"),
+    note: T("Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다"),
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Multidirectional"); },
+  };
+  BASEMAPS.arcticdem_tinted = {
+    title: T("ArcticDEM 높이 색 음영"),
+    note: T("Polar Geospatial Center. 높이를 색으로 칠한 음영"),
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Elevation Tinted"); },
+  };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
@@ -804,6 +818,18 @@
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
     regions: ["antarctica"], needs: "EPSG:3031",
     make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA); },
+  };
+  BASEMAPS.rema_multi = {
+    title: T("REMA 음영 (여러 방향)"),
+    note: T("Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA, "Hillshade Multidirectional"); },
+  };
+  BASEMAPS.rema_tinted = {
+    title: T("REMA 높이 색 음영"),
+    note: T("Polar Geospatial Center. 높이를 색으로 칠한 음영"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA, "Hillshade Elevation Tinted"); },
   };
 
   // ── 스발바르 배경 — 노르웨이 극지연구소 (devlog 021) ──
@@ -972,15 +998,15 @@
     });
   }
 
-  /** PGC 의 표고 ImageServer 에서 음영을 그려 받는다 (`Hillshade Gray`).
+  /** PGC 의 표고 ImageServer 에서 음영을 그려 받는다 (기본 `Hillshade Gray`, `fn` 으로 다른 그리는 법).
    *  미리 구운 타일이 아니라 부를 때마다 PGC 가 그린다 — 한 장에 1~2 초.
    *  그래서 타일을 512 로 키워 부르는 수를 줄인다. */
-  function pgcHillshade(service, code, attribution) {
+  function pgcHillshade(service, code, attribution, fn) {
     return new ol.layer.Tile({
       opacity: 0.85,
       source: new ol.source.TileArcGISRest({
         url: "https://di-pgc.img.arcgis.com/arcgis/rest/services/" + service + "/ImageServer",
-        params: { renderingRule: JSON.stringify({ rasterFunction: "Hillshade Gray" }), FORMAT: "jpgpng" },
+        params: { renderingRule: JSON.stringify({ rasterFunction: fn || "Hillshade Gray" }), FORMAT: "jpgpng" },
         projection: code,
         tileGrid: ol.tilegrid.createXYZ({ extent: ol.proj.get(code).getExtent(), tileSize: 512, maxZoom: 16 }),
         crossOrigin: "anonymous",

@@ -406,6 +406,13 @@ EN = {
         "EOX · OpenStreetMap. Non-commercial use only. The coastline is rough north of 82°N — use ArcticDEM",
     "ArcticDEM 음영": "ArcticDEM hillshade",
     "REMA 음영": "REMA hillshade",
+    "ArcticDEM 음영 (여러 방향)": "ArcticDEM hillshade (multidirectional)",
+    "REMA 음영 (여러 방향)": "REMA hillshade (multidirectional)",
+    "ArcticDEM 높이 색 음영": "ArcticDEM elevation-tinted hillshade",
+    "REMA 높이 색 음영": "REMA elevation-tinted hillshade",
+    "Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다":
+        "Polar Geospatial Center. Hillshade lit from several directions — slopes hidden in a single-light shadow show up",
+    "Polar Geospatial Center. 높이를 색으로 칠한 음영": "Polar Geospatial Center. Hillshade tinted by elevation",
     "IBCSO 해저·빙저 지형": "IBCSO seafloor and subglacial bed",
     "IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0":
         "IBCSO v2 (500 m). Seafloor and the bed beneath ice shelves and the ice sheet. CC BY 4.0",
