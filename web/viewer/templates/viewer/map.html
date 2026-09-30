@@ -326,6 +326,17 @@
   <output id="edge-w" class="edge w" title="{% t "보이는 지도의 서쪽 끝" %}"></output>
   <output id="edge-e" class="edge e" title="{% t "보이는 지도의 동쪽 끝" %}"></output>
 
+  <!-- 높이 그래프 — 거리를 다 재면 뜬다. 달 화면의 것(wetherilli 100)을 옮겼다 (wetherilli 109) -->
+  <section id="profile" class="profile-dock" hidden>
+    <header>
+      <strong>{% t "높이 그래프" %}</strong>
+      <span id="profile-sum" class="profile-sum"></span>
+      <button type="button" id="profile-close" class="profile-close" title="{% t "닫기" %}" aria-label="{% t "닫기" %}">×</button>
+    </header>
+    <svg id="profile-svg" class="profile-svg" viewBox="0 0 640 170" aria-hidden="true"></svg>
+    <p id="profile-read" class="profile-read"></p>
+  </section>
+
   <div id="scalebar"><output id="projbadge" class="projbadge"></output><output id="zoombadge" class="projbadge zoombadge"></output></div>
 
   <div id="coordbar">

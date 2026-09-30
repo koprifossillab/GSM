@@ -1200,6 +1200,7 @@
     showProjection(false);
     showZoom();
     initPanelHandle();
+    initProfile();
     map.on("moveend", showZoom);
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
@@ -1906,6 +1907,7 @@
       // 재는 것은 한 번에 하나만 둔다. 여럿이 겹치면 어느 것이 어느 것인지
       // 알 수 없고, 화면이 금세 지저분해진다.
       measureSource.clear();
+      hideProfile();
       var geometry = evt.feature.getGeometry();
       geometry.on("change", function () {
         var got = measureOf(geometry);
@@ -1917,6 +1919,8 @@
       var got = measureOf(evt.feature.getGeometry());
       evt.feature.set("label", got.text);
       showMeasure(got, true);
+      // 거리를 다 재면 그 선의 높이 그래프 (wetherilli 109)
+      if (next === "line") showProfile(evt.feature.getGeometry().getCoordinates().map(toLL));
     });
     map.addInteraction(drawInteraction);
   }
@@ -2412,6 +2416,7 @@
   }
 
   function clearDrawn() {
+    hideProfile();
     tempSource.clear();
     measureSource.clear();
     foundSource.clear();
@@ -2424,6 +2429,128 @@
     out.textContent = T("아직 잰 것이 없다");
     out.classList.remove("done");
     updateToolOut();
+  }
+
+  // ── 높이 그래프 (wetherilli 109) ─────────────────────────────────
+  //
+  // 달 화면의 것(wetherilli 100)을 옮겼다. 거리를 다 재면 그 선을 대원을 따라 고르게 나눈 점의 표고를 받아(`elevation/profile/`)
+  // 아래 가운데 판에 그린다. 표고는 타일로만 읽는다 — 일본은 국토지리원, 나머지(극지도)는 AWS Terrarium. 점 사이에 맞춘 줌이라
+  // 긴 선은 거칠다. 그래프 위를 훑으면 그 자리를 지도에 찍는다
+  var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
+  var profileSeq = 0, profileData = null, profileSource = null;
+  function profileMark(ll) {
+    if (!profileSource) {
+      profileSource = new ol.source.Vector();
+      map.addLayer(new ol.layer.Vector({ source: profileSource, zIndex: 120, style: new ol.style.Style({
+        image: new ol.style.Circle({ radius: 6, fill: new ol.style.Fill({ color: "#c9a24b" }),
+                                     stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }) }) }));
+    }
+    profileSource.clear();
+    if (ll) profileSource.addFeature(new ol.Feature(new ol.geom.Point(fromLL(ll))));
+  }
+  function hideProfile() {
+    profileSeq += 1;
+    profileData = null;
+    var box = document.getElementById("profile");
+    if (box) box.hidden = true;
+    if (profileSource) profileSource.clear();
+  }
+  function showProfile(coords) {
+    var seq = ++profileSeq, box = document.getElementById("profile");
+    profileData = null;
+    box.hidden = false;
+    document.getElementById("profile-svg").innerHTML = "";
+    document.getElementById("profile-sum").textContent = "";
+    document.getElementById("profile-read").textContent = T("높이를 읽는 중…");
+    var length = ol.sphere.getLength(new ol.geom.LineString(coords), { projection: "EPSG:4326" });
+    // 30 m 에 한 점쯤, 64–512 점
+    var n = Math.max(64, Math.min(512, Math.round(length / 30)));
+    var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
+    fetch(BASE + "elevation/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { if (seq === profileSeq) drawProfile(d); })
+      .catch(function () { if (seq === profileSeq) document.getElementById("profile-read").textContent = T("높이를 읽지 못했다"); });
+  }
+  function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
+  function drawProfile(d) {
+    var P = PROFILE, pw = P.W - P.L - P.R, ph = P.H - P.T - P.B;
+    var got = d.elev.filter(function (e) { return e !== null; });
+    if (!got.length) { document.getElementById("profile-read").textContent = T("높이를 읽지 못했다"); return; }
+    var lo = Math.min.apply(null, got), hi = Math.max.apply(null, got), total = d.dist[d.dist.length - 1] || 1;
+    var pad = Math.max(10, (hi - lo) * 0.08), y0 = lo - pad, y1 = hi + pad;
+    function X(dist) { return P.L + pw * dist / total; }
+    function Y(e) { return P.T + ph * (1 - (e - y0) / (y1 - y0)); }
+    // 못 읽은 점에서 선을 끊는다
+    var path = "", area = "", run = [];
+    function flush() {
+      if (run.length > 1) {
+        path += "M" + run.join("L");
+        area += "M" + run[0].split(",")[0] + "," + (P.T + ph) + "L" + run.join("L") + "L" +
+                run[run.length - 1].split(",")[0] + "," + (P.T + ph) + "Z";
+      }
+      run = [];
+    }
+    d.elev.forEach(function (e, i) {
+      if (e === null) { flush(); return; }
+      run.push(X(d.dist[i]).toFixed(1) + "," + Y(e).toFixed(1));
+    });
+    flush();
+    var up = 0, down = 0;
+    for (var i = 1; i < d.elev.length; i++) {
+      if (d.elev[i] === null || d.elev[i - 1] === null) continue;
+      var dh = d.elev[i] - d.elev[i - 1];
+      if (dh > 0) up += dh; else down -= dh;
+    }
+    var svg = "<g>";
+    [y0 + (y1 - y0) * 0.1, (y0 + y1) / 2, y1 - (y1 - y0) * 0.1].forEach(function (e) {
+      svg += '<line class="grid" x1="' + P.L + '" x2="' + (P.W - P.R) + '" y1="' + Y(e).toFixed(1) + '" y2="' + Y(e).toFixed(1) + '"/>' +
+             '<text class="tick" x="' + (P.L - 5) + '" y="' + (Y(e) + 3.5).toFixed(1) + '" text-anchor="end">' +
+             esc(Math.round(e).toLocaleString()) + "</text>";
+    });
+    [0, 0.5, 1].forEach(function (f) {
+      svg += '<text class="tick" x="' + X(total * f).toFixed(1) + '" y="' + (P.H - 6) + '" text-anchor="' +
+             (f === 0 ? "start" : f === 1 ? "end" : "middle") + '">' + esc(asLength(total * f)) + "</text>";
+    });
+    svg += '</g><path class="area" d="' + area + '"/><path class="line" d="' + path + '"/>' +
+           '<line class="cursor" id="profile-cursor" y1="' + P.T + '" y2="' + (P.T + ph) + '" visibility="hidden"/>' +
+           '<circle class="dot" id="profile-dot" r="3.5" visibility="hidden"/>';
+    document.getElementById("profile-svg").innerHTML = svg;
+    document.getElementById("profile-sum").textContent = T("최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}",
+      { lo: asHeight(lo), hi: asHeight(hi), up: asHeight(up), down: asHeight(down) });
+    var read = (d.sources || []).some(function (s) { return s.indexOf("gsi") === 0; })
+      ? T("국토지리원·AWS 표고 타일에서 읽은 해발 높이 — 바다는 수심(음수)") : T("AWS 표고 타일(SRTM·GMTED)에서 읽은 해발 높이 — 바다는 수심(음수)");
+    document.getElementById("profile-read").textContent = read;
+    profileData = { d: d, X: X, Y: Y, total: total, read: read };
+  }
+  function initProfile() {
+    var svg = document.getElementById("profile-svg");
+    if (!svg) return;
+    svg.addEventListener("mousemove", function (evt) {
+      if (!profileData) return;
+      var r = svg.getBoundingClientRect(), P = PROFILE;
+      var x = (evt.clientX - r.left) * P.W / r.width;
+      var dist = Math.max(0, Math.min(1, (x - P.L) / (P.W - P.L - P.R))) * profileData.total;
+      var d = profileData.d, best = 0;
+      for (var i = 1; i < d.dist.length; i++) if (Math.abs(d.dist[i] - dist) < Math.abs(d.dist[best] - dist)) best = i;
+      var cx = profileData.X(d.dist[best]).toFixed(1), cur = document.getElementById("profile-cursor");
+      var dot = document.getElementById("profile-dot");
+      cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.setAttribute("visibility", "visible");
+      if (d.elev[best] !== null) {
+        dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
+        dot.setAttribute("visibility", "visible");
+      } else dot.setAttribute("visibility", "hidden");
+      document.getElementById("profile-read").textContent = T("거리 {d} · 높이 {h}", {
+        d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]) });
+      profileMark([d.lon[best], d.lat[best]]);
+    });
+    svg.addEventListener("mouseleave", function () {
+      if (!profileData) return;
+      document.getElementById("profile-cursor").setAttribute("visibility", "hidden");
+      document.getElementById("profile-dot").setAttribute("visibility", "hidden");
+      document.getElementById("profile-read").textContent = profileData.read;
+      profileMark(null);
+    });
+    document.getElementById("profile-close").addEventListener("click", hideProfile);
   }
 
   // ── 점 레이어 (그린란드 정부 포털) ──────────────────────────────

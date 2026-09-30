@@ -338,6 +338,11 @@ EN = {
     "가볍게 다시 연다": "Reopen lighter",
     "평면 지도는 구와 따로 돈다": "The flat map runs separately from the globe",
     "평면으로": "Go flat",
+    # 지구 높이 그래프 (wetherilli 109)
+    "국토지리원·AWS 표고 타일에서 읽은 해발 높이 — 바다는 수심(음수)":
+        "Height above sea level from GSI and AWS elevation tiles — the sea shows depth (negative)",
+    "AWS 표고 타일(SRTM·GMTED)에서 읽은 해발 높이 — 바다는 수심(음수)":
+        "Height above sea level from AWS elevation tiles (SRTM, GMTED) — the sea shows depth (negative)",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",

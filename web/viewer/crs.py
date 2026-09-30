@@ -219,6 +219,43 @@ def latlon_to_laea_north(lat, lon, lon0=0.0, ellipsoid=WGS84):
     return rho * math.sin(lam), -rho * math.cos(lam)
 
 
+# ── 대원을 따라 고르게 (wetherilli 109) ─────────────────────────────
+
+def great_circle_points(vertices, n, radius=6371008.8):
+    """꼭짓점 `[(경도, 위도), …]` → 대원을 따라 고르게 `n` 점 `[(경도, 위도, 처음부터의 거리 m), …]`. 꼭짓점 자리에는 꼭
+    한 점을 둔다 — 꺾인 곳의 높이가 빠지지 않게. 구로 잰다(평균 반지름 — `ol.sphere` 의 거리와 같다). 달 화면의 것
+    (`trek.profile_points`)과 같은 셈이다 — 문은 서로를 타지 않아 여기 한 벌 둔다."""
+    def unit(lon, lat):
+        lo, la = math.radians(lon), math.radians(lat)
+        return (math.cos(la) * math.cos(lo), math.cos(la) * math.sin(lo), math.sin(la))
+
+    def slerp(a, b, f):
+        dot = max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b))))
+        omega = math.acos(dot)
+        if omega < 1e-12:
+            return a
+        s = math.sin(omega)
+        p, q = math.sin((1 - f) * omega) / s, math.sin(f * omega) / s
+        return tuple(p * x + q * y for x, y in zip(a, b))
+
+    def lonlat(v):
+        return math.degrees(math.atan2(v[1], v[0])), math.degrees(math.asin(max(-1.0, min(1.0, v[2]))))
+
+    units = [unit(lon, lat) for lon, lat in vertices]
+    seg = [radius * math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b))))) for a, b in zip(units, units[1:])]
+    total = sum(seg)
+    if total <= 0:
+        return [(vertices[0][0], vertices[0][1], 0.0)]
+    counts = [max(1, round((n - 1) * s / total)) for s in seg]
+    out, start = [], 0.0
+    for i, (a, b) in enumerate(zip(units, units[1:])):
+        for k in range(counts[i]):
+            out.append(lonlat(slerp(a, b, k / counts[i])) + (start + seg[i] * k / counts[i],))
+        start += seg[i]
+    out.append(lonlat(units[-1]) + (total,))
+    return out
+
+
 # ── 옛 측지계 (Bessel ↔ GRS80) ────────────────────────────────────────
 
 def _geodetic_to_ecef(lat, lon, ell, h=0.0):
