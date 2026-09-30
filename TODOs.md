@@ -120,8 +120,6 @@
 - [ ] PGC 음영 변형(Multidirectional·Elevation Tinted) [실측] — 배경 `pgcHillshade` 에 함수 이름을 인자로. 1–2시간
 - [ ] 스발바르 빙하 전면 변화 [실측] NPI `Temadata/I_Glacier_Fronts_Svalbard` — `npolar.TILES` 한 줄. `npolar.FRIENDLY` 가 허용
       목록이라 연도·이름 열을 적는다. CC BY 4.0. 1–2시간–반나절(상류가 연도별로 칠하지 않으면 점 길로 가야 해 반나절 넘음)
-- [ ] 달 DEM 256ppd [실측] — `trek.DEM_SERVICE`·`DEM_MAX_ZOOM` 8→9. **캐시 열쇠(`trek-dem/…`)에 서비스 이름이 없어 올려야 한다.**
-      ⛰ 출처가 바뀐다. 1–2시간
 
 ### 그린란드 포털 면 틀 — 하루 (세 건 합쳐)
 
@@ -166,7 +164,7 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 - [ ] 광물·원소·지각 두께 값 [실측] — Kaguya MI(FeO·감람석·휘석·사장석, 50°N–S)·LP Th·GRAIL 지각 두께·극지 광물·얼음 깊이.
       `lola_values`·`mars_values` 를 `trek.samples()` 로 묶는다. ImageServer 는 씨앗에 없어 판마다 단위·배율·빈 값 표를 손으로.
       한 번 누르면 판 6–8 개라 느리다(병렬, 켠 판만). 팝업만 하루, 점묶음 열까지 이틀(새 JSONField, 이주 0016). Kaguya 는 JAXA 조건(043)
-- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 256ppd(위) 뒤에, 장마다 원천을 고른다. 하루. 경계의 턱
+- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 온 달은 256 ppd 다(wetherilli 083). 장마다 원천을 고른다. 하루. 경계의 턱
 
 ### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
 
