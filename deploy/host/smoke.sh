@@ -29,6 +29,22 @@ check "카탈로그"  "$BASE/catalog/"  200
 check "점묶음"    "$BASE/pointsets/" 200
 check "좌표"      "$BASE/coords/parse/?q=37.5,127.0" 200
 
+# /healthz/ — unhealthy(503)면 멈춘다. degraded(백업이 멈췄거나 낡았다)는 **알리기만 한다** — 백업 때문에 화면을
+# 올리는 일을 막지 않는다. 걸리는 것은 그대로 적어 사람이 본다 (koprifossillab 002)
+echo "== /healthz/ =="
+health=$(curl -s -m 20 "$BASE/healthz/")
+echo "$health" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print("  상태", d["status"], "· 판", d.get("version"), "· DB", d.get("db"))
+b = d.get("backup") or {}
+if b:
+    print("  백업", b.get("result"), b.get("at"), f"({b.get(\"age_days\")} 일 전)")
+for n in d.get("notes", []):
+    print("  !", n)
+sys.exit(1 if d["status"] == "unhealthy" else 0)
+' || { echo "  /healthz/ 가 unhealthy 이거나 읽지 못했다" >&2; fail=1; }
+
 echo "== 카탈로그에 든 레이어 =="
 curl -s -m 20 "$BASE/catalog/" \
   | python3 -c 'import json,sys; d=json.load(sys.stdin); print("  레이어군", len(d["groups"]), "· 레이어", sum(len(g["layers"]) for g in d["groups"]))' \

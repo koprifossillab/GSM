@@ -46,8 +46,8 @@ NAS_SOURCES=$NAS_ROOT/GSM/sources
 DAY=$(date +%Y%m%d)
 MODE=${1:-all}
 
-# 백업에 넣지 않는 것 — 비밀과 운영이 쓰다 만 것
-SECRETS='^\./(kigam_key|vworld_key|secret_key|geus_whoami|allowed_hosts)$'
+# 백업에 넣지 않는 것 — 비밀과 이 스크립트가 적는 결과(backup_status.json)
+SECRETS='^\./(kigam_key|vworld_key|secret_key|geus_whoami|allowed_hosts|backup_status\.json)$'
 # ① 에 드는 것. ② 의 목록에서 뺀다. pbdb.sqlite 는 CSV 로 다시 굽는다. 스위치 파일을 ② 에 두면 켜고 끌 때마다
 # 1.4 GB 를 새로 뜬다
 WEEKLY='^\./(GSM\.db.*|dev_direct_wms|public|kopri/.*|kigam50k/.*|earth/pbdb_collections\.csv|earth/pbdb\.sqlite)$'
@@ -64,10 +64,14 @@ trap 'rm -rf "$STAGE"' EXIT
 
 STEP=start
 ARCHIVE=""; BUILT=same; NAS_RESULT=skip; TILES_RESULT=skip; SOURCES_RESULT=skip; FETCH=skip
+# 결과는 로그 자리와 **DB 옆**(`backup_status.json`)에 둘 다 적는다 — 로그 자리는 컨테이너에 붙어 있지 않고,
+# `/GSM/healthz/` 가 DB 옆의 것을 읽는다 (koprifossillab 002). 설명의 따옴표·빗금은 JSON 을 깨지 않게 바꾼다
 status() {   # status <ok|fail> <설명>
+    local note=${2//\\//}; note=${note//\"/\'}
     printf '{"at": "%s", "result": "%s", "step": "%s", "note": "%s", "backup": "%s", "built": "%s", "nas": "%s", "tiles": "%s", "sources": "%s", "fetch": "%s"}\n' \
-        "$(date -Is)" "$1" "$STEP" "$2" "$ARCHIVE" "$BUILT" "$NAS_RESULT" "$TILES_RESULT" "$SOURCES_RESULT" "$FETCH" \
+        "$(date -Is)" "$1" "$STEP" "$note" "$ARCHIVE" "$BUILT" "$NAS_RESULT" "$TILES_RESULT" "$SOURCES_RESULT" "$FETCH" \
         > "$LOGS/last_backup.json"
+    cp "$LOGS/last_backup.json" "$DB/backup_status.json.part" && mv "$DB/backup_status.json.part" "$DB/backup_status.json"
     echo "$(date -Is) [$1] $STEP — $2"
 }
 fail() { status fail "$1"; exit 1; }
