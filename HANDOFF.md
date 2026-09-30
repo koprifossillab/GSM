@@ -7,7 +7,7 @@
 
 ## 작업 방식 (2026-09-30 부터)
 
-**브랜치** `main` = `0.25.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+**브랜치** `main` = `0.25.1` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
 `feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
 올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
 [devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
@@ -56,7 +56,7 @@
 | `mars/` | 화성 크레이터·옛 지질도 sqlite | `manage.py build_mars_craters <zip>`·`build_mars_originals <zip>` (067·068) |
 | `earth/` | 옛 해안선 `paleocoastlines_v7.json`, 화석 산지 `pbdb.sqlite` | `manage.py build_paleocoastlines`·`fetch_pbdb` (wetherilli 097·098) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
-| `kigam50k/` | KIGAM 5만 지질도 층리·엽리·절리·단층 등 19 레이어(WFS, 2026-09-30) | 지금은 손으로 받아 둔 `raw/20260930/`. 명령은 jikhanjung P01 |
+| `kigam50k/` | KIGAM 5만 지질도 층리·엽리·절리·단층 등 19 레이어(WFS, 2026-09-30). 0.25.1 부터 자세 기호의 커서·팝업이 읽는다 | 지금은 손으로 받아 둔 `raw/20260930/`. 받는 명령은 jikhanjung P01 |
 
 그 밖에 가끔 돌리는 것 — `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`
 (`/openapi/wms` 가 속성을 열었는지), `upstream_stats`(얼마나 묻는지).

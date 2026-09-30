@@ -47,7 +47,7 @@
   var REGIONS = {
     korea: { title: "한국", proj: "EPSG:3857", center: [127.8, 36.2], zoom: 7, vworld: true,
              base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "L_50K_Geology_Map",
-                    "l_50k_geology_frame_latest", "G_tectonic"],
+                    "L_50K_Geology_Map_NoAttitude", "l_50k_geology_frame_latest", "G_tectonic"],
              first: "L_50K_Geology_Map" },
     greenland: { title: "그린란드", proj: "EPSG:3413", center: [-42.0, 72.0], zoom: 3, vworld: false,
                  home: [-750000, -3450000, 950000, -550000],
@@ -1201,6 +1201,7 @@
     map.on("moveend", refreshExtentLegends);
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
+    initAttitudes();
   }
 
   /** 투영 하나의 보기. **OpenLayers 는 보기의 투영을 바꾸지 못한다** — 지역을
@@ -1301,7 +1302,9 @@
     measureLayer.setZIndex(600);
     tempLayer.setZIndex(700);
     foundLayer.setZIndex(800);
+    if (attitudeLayer) attitudeLayer.setZIndex(520);
     renderActive();
+    refreshAttitudes();
     saveLayers();
     if (typeof refreshCompare === "function") refreshCompare();
   }
@@ -1497,7 +1500,7 @@
 
   /** 카탈로그.
    *
-   *  **기본 지질도 다섯 장만 펼치고 나머지는 모두 "추가 지질도" 안으로
+   *  **기본 지질도 몇 장만 펼치고 나머지는 모두 "추가 지질도" 안으로
    *  접는다.** 61 개를 한 줄로 늘어놓으면 패널이 화면보다 길어져서 아래의
    *  "그리기" 칸이 밀려 안 보인다. 늘 보는 것과 찾아서 켜는 것의 차이를
    *  접기로 나타낸다. 추가 지질도 안에서는 상류의 레이어군을 그대로 쓴다.
@@ -3013,6 +3016,150 @@
 
   // ── 클릭해 속성 읽기 ────────────────────────────────────────────
 
+  // ── 5만 지질도의 자세 기호 (jikhanjung 004) ──────────────────────
+  //
+  // 5만 지질도 타일에는 층리·엽리·편리·절리 기호가 그림으로 박혀 있어 누를 수 없다.
+  // 받아 둔 자리(`kigam50k/attitudes/`)를 보이지 않는 점으로 깔아 두고, **커서를 올리면
+  // 손가락으로 바꾸고 그 기호를 그려 보인다.** 누르면 경사·경사 방향·주향이 팝업에 뜬다.
+  // 층리 뺀 판에서는 이것이 층리를 찾는 길이다. 5만 지질도(두 판 어느 것이든)를 켜고
+  // 줌 11 이상일 때만 받는다 — 1:5만 도폭의 기호를 전국에 깔 까닭이 없다.
+
+  var ATTITUDE_LAYERS = ["L_50K_Geology_Map", "L_50K_Geology_Map_NoAttitude"];
+  var ATTITUDE_MIN_ZOOM = 11;
+  var ATTITUDE_COLORS = { bedding: "#b3261e", foliation: "#1f5fa8", schistosity: "#6b3fa0", joint: "#2e7d32" };
+  var ATTITUDE_NAMES = { bedding: "층리", foliation: "엽리", schistosity: "편리", joint: "절리" };
+  var attitudeSource = null, attitudeLayer = null, attitudeHover = null;
+  var attitudeLoaded = null, attitudeSeq = 0;
+  var ATTITUDE_HIT = new ol.style.Style({
+    // 보이지 않지만 맞힐 수 있게 — 알파가 0 이면 OpenLayers 가 맞힌 것으로 치지 않는 판이 있다
+    image: new ol.style.Circle({ radius: 7, fill: new ol.style.Fill({ color: "rgba(0,0,0,0.01)" }) }),
+  });
+
+  function initAttitudes() {
+    attitudeSource = new ol.source.Vector();
+    attitudeLayer = new ol.layer.Vector({ source: attitudeSource, style: attitudeStyle, visible: false,
+                                          updateWhileInteracting: false });
+    attitudeLayer.set("gsmAttitude", true);
+    attitudeLayer.setZIndex(520);
+    map.addLayer(attitudeLayer);
+    map.on("moveend", refreshAttitudes);
+    map.on("pointermove", function (e) {
+      if (e.dragging || mode !== "info") return;
+      var hit = null;
+      if (attitudeLayer.getVisible()) {
+        hit = map.forEachFeatureAtPixel(e.pixel, function (f) { return f; },
+          { hitTolerance: 3, layerFilter: function (l) { return l === attitudeLayer; } });
+      }
+      if (hit !== attitudeHover) {
+        var old = attitudeHover;
+        attitudeHover = hit;
+        if (old) old.changed();
+        if (hit) hit.changed();
+      }
+      map.getTargetElement().style.cursor = hit ? "pointer" : "";
+    });
+  }
+
+  function attitudeWanted() {
+    if (!attitudeLayer || !isMercator()) return false;
+    if ((map.getView().getZoom() || 0) < ATTITUDE_MIN_ZOOM) return false;
+    return active.some(function (e) { return ATTITUDE_LAYERS.indexOf(e.name) >= 0; });
+  }
+
+  function refreshAttitudes() {
+    if (!attitudeLayer) return;
+    var want = attitudeWanted();
+    attitudeLayer.setVisible(want);
+    if (!want) {
+      if (attitudeHover) { attitudeHover = null; map.getTargetElement().style.cursor = ""; }
+      return;
+    }
+    var ext = ol.proj.transformExtent(map.getView().calculateExtent(map.getSize()), viewProj(), "EPSG:4326");
+    if (attitudeLoaded && ol.extent.containsExtent(attitudeLoaded, ext)) return;
+    // 조금 넓게 받아 둔다 — 조금 끌 때마다 다시 묻지 않게. 소수 둘째 자리로 잘라 캐시가 맞게
+    var w = ext[2] - ext[0], h = ext[3] - ext[1];
+    var box = [ext[0] - w * 0.5, ext[1] - h * 0.5, ext[2] + w * 0.5, ext[3] + h * 0.5].map(function (v, i) {
+      return i < 2 ? Math.floor(v * 100) / 100 : Math.ceil(v * 100) / 100;
+    });
+    var seq = ++attitudeSeq;
+    fetch(BASE + "kigam50k/attitudes/?bbox=" + box.join(","))
+      .then(function (r) { return r.ok ? r.json() : { points: [] }; })
+      .catch(function () { return { points: [] }; })
+      .then(function (data) {
+        if (seq !== attitudeSeq) return;
+        attitudeSource.clear();
+        attitudeHover = null;
+        attitudeSource.addFeatures((data.points || []).map(function (p) {
+          var f = new ol.Feature({ geometry: new ol.geom.Point(fromLL([p.lon, p.lat])) });
+          f.setProperties({ att: p, fetched: data.fetched || "" });
+          return f;
+        }));
+        attitudeLoaded = data.truncated ? null : box;
+      });
+  }
+
+  /** 평소에는 보이지 않는 점, 커서가 올라간 것만 기호로 그린다. */
+  function attitudeStyle(feature, resolution) {
+    if (feature !== attitudeHover) return ATTITUDE_HIT;
+    var p = feature.get("att");
+    var c = feature.getGeometry().getCoordinates();
+    var color = ATTITUDE_COLORS[p.kind] || "#333";
+    var halo = new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: 5 });
+    var ink = new ol.style.Stroke({ color: color, width: 2.5 });
+    var styles = [new ol.style.Style({
+      image: new ol.style.Circle({ radius: 3, fill: new ol.style.Fill({ color: color }),
+                                   stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }) }),
+    })];
+    if (p.dipdir === null || p.dipdir === undefined) return styles;
+    // 3857 은 북쪽이 위다 — 방위각(북에서 시계 방향)을 그대로 쓴다
+    function at(az, px) {
+      var a = az * Math.PI / 180;
+      return [c[0] + Math.sin(a) * px * resolution, c[1] + Math.cos(a) * px * resolution];
+    }
+    var strike = (p.dipdir + 270) % 360;
+    var lines = [new ol.geom.LineString([at(strike, 13), at(strike + 180, 13)])];
+    var vertical = /수직/.test(p.type) || p.dip === 90;
+    var flat = /수평/.test(p.type) || p.dip === 0;
+    if (!flat) {
+      lines.push(new ol.geom.LineString([c, at(p.dipdir, 7)]));
+      if (vertical) lines.push(new ol.geom.LineString([c, at(p.dipdir + 180, 7)]));
+    }
+    lines.forEach(function (g) {
+      styles.push(new ol.style.Style({ geometry: g, stroke: halo }));
+      styles.push(new ol.style.Style({ geometry: g, stroke: ink }));
+    });
+    if (p.dip !== null && p.dip !== undefined && !vertical && !flat) {
+      styles.push(new ol.style.Style({
+        geometry: new ol.geom.Point(at(p.dipdir, 17)),
+        text: new ol.style.Text({ text: String(p.dip), font: "700 12px sans-serif",
+                                  fill: new ol.style.Fill({ color: color }),
+                                  stroke: new ol.style.Stroke({ color: "#fff", width: 3 }) }),
+      }));
+    }
+    return styles;
+  }
+
+  function quadrantOf(az) {
+    return az < 90 ? "NE" : az < 180 ? "SE" : az < 270 ? "SW" : "NW";
+  }
+
+  function attitudePart(feature) {
+    var p = feature.get("att");
+    var deg = function (v) { return v === null || v === undefined ? T("미상") : v + "°"; };
+    var props = {};
+    props["경사"] = deg(p.dip);
+    props["경사 방향"] = deg(p.dipdir);
+    props["주향"] = p.dipdir === null || p.dipdir === undefined ? T("미상") : ((p.dipdir + 270) % 360) + "°";
+    if (p.quad) props["원문 사분면"] = p.quad;
+    props["도폭"] = p.sheet + (p.sheet_no ? " (" + p.sheet_no + ")" : "");
+    var dipQuad = (p.quad || "").split("/")[1];
+    if (dipQuad && p.dipdir !== null && p.dipdir !== undefined && quadrantOf(p.dipdir) !== dipQuad) {
+      props["알림"] = T("경사 방향과 원문 사분면이 맞지 않는다 — 기호는 경사 방향대로 그렸다");
+    }
+    props["출처"] = T("KIGAM 5만 지질도 · {date} 받음", { date: feature.get("fetched") });
+    return { title: T(p.type || ATTITUDE_NAMES[p.kind] || p.kind), props: props };
+  }
+
   function onClick(evt) {
     if (mode === "point") {
       addTempPoint(evt.coordinate);
@@ -3025,6 +3172,11 @@
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
     map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+      // 5만 지질도의 자세 기호(층리·엽리·편리·절리) — 받아 둔 값을 그 자리에서 읽는다
+      if (layer && layer.get("gsmAttitude")) {
+        parts.push(attitudePart(feature));
+        return;
+      }
       // 벡터 레이어(단층)의 선. 속성은 서버가 팝업에 맞춰 곁들여 보냈다
       var vectorName = layer && layer.get("gsmVector");
       if (vectorName) {

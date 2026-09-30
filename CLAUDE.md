@@ -124,6 +124,11 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
   이것만 갈랐다. 이 길에는 **키를 붙이지 않는다** — 묻지 않는 곳에 흘릴 까닭이
   없다. 갈림은 `kigam.DIRECT_REQUESTS` 한 줄이고, `/openapi/wms` 가 열어주면
   거기서 지운다
+- **"5만 지질도 (층리·엽리 뺀 판)" 의 그림도 GeoServer 로 간다** (2026-09-30, jikhanjung 003).
+  `L_50K_Geology_Map` 은 묶음이라 자세 기호만 뺄 수 없어, 낱레이어(`Geology_map:l_50k_geology_*`)
+  여섯을 엮어 부른다. `/openapi/wms` 는 낱레이어에 빈 그림을 준다. 예외는 그 레이어 하나뿐이고
+  (`kigam.COMPOSED`), 속성·범례는 바탕 묶음으로 바꿔 지금 길로 묻는다. 기본 5만 지질도는 그대로
+  `/openapi/wms` 다. KIGAM 이 같은 판을 열어 주면 `COMPOSED` 에서 지운다
 - `GSM_DEV_DIRECT_WMS=1` 은 **인증키가 없을 때의 임시 조치다.** 켜면 모든
   상류 요청이 GeoServer 로 곧장 가고 화면 맨 위에 띠가 뜬다
   (`map.html` 의 `.warn.direct`). 기본값은 꺼짐이다. 2026-09-23~27 에는
@@ -347,6 +352,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
   moonmap.py      달 지질도 원도 6 장 셰이프파일 -> sqlite(R*Tree) -> 달 경위도 타일. 문이 아니다
   peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
+  kigam50k.py     KIGAM 5만 지질도의 층리·엽리·편리·절리 — 받아 둔 WFS 파일(<DB 옆>/kigam50k/raw/날짜/)에서 자리와 값. 문이 아니다
   ibcso.py        남극 해저·빙저 지형 IBCSO v2 — 칠한 GeoTIFF(9354) -> 3031 타일(미리 잘라 둔다). 문이 아니다
   marscraters.py  화성 크레이터 38 만 개(Robbins 2012) -> sqlite(3 차원 R*Tree) -> 화성 경위도·극 타일. 문이 아니다
   marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다
@@ -374,7 +380,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`.**
 이 열둘 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 

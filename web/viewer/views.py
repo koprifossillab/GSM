@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -56,8 +56,17 @@ _TAG = re.compile(r"<[^>]+>")
 NOISE_PREFIXES = ("admin_boundary",)
 
 
+#: 5만 지질도 묶음이 같이 주는 자세 기호(층리·엽리·편리·절리). 받아 둔 자료가 있으면
+#: 화면이 같은 점을 제 칸으로 올린다(경사 방향·주향으로 풀어 적은 것, jikhanjung 004) —
+#: 그때는 상류의 날것(`심볼회전각` …)을 빼 같은 층리가 두 번 뜨지 않게 한다.
+ATTITUDE_PREFIXES = tuple(f"l_50k_geology_{k}_latest" for k in kigam50k.KINDS)
+
+
 def _is_noise(feature_id: str) -> bool:
-    return str(feature_id).lower().startswith(NOISE_PREFIXES)
+    fid = str(feature_id).lower()
+    if fid.startswith(NOISE_PREFIXES):
+        return True
+    return fid.startswith(ATTITUDE_PREFIXES) and kigam50k.available()
 
 
 def _split_links(value):
@@ -1973,6 +1982,28 @@ def gsj_info(request):
     if lang == "en":
         props = i18n.props_en(props)
     return JsonResponse({"features": [{"id": row.get("symbol", ""), "props": props}]})
+
+
+@require_GET
+def kigam50k_attitudes(request):
+    """`?bbox=서,남,동,북` — 그 범위의 층리·엽리·편리·절리 자리와 값 (jikhanjung 004).
+
+    5만 지질도 타일에 그림으로 박힌 자세 기호를 누를 수 있게 하려는 것이다. 받아 둔
+    파일(`kigam50k`)을 읽고 상류를 타지 않는다. 파일이 없으면 빈 목록 — 뷰어는 돈다.
+    """
+    lang = i18n.lang_of(request)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "points": []}, status=400)
+    west, south, east, north = parts
+    if not kigam50k.available():
+        return JsonResponse({"points": [], "truncated": False, "available": False})
+    points, cut = kigam50k.within(west, south, east, north)
+    response = JsonResponse({"points": points, "truncated": cut, "available": True,
+                             "fetched": kigam50k.fetched_on()})
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
 
 
 @require_GET

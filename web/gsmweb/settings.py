@@ -197,10 +197,13 @@ IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
 #: `manage.py fetch_kopri` 가 천천히 모아 여기 쓴다(두 시간 남짓, 다음부터는 새 것만). 저장소·이미지에
 #: 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (devlog 053·055). 기본은 `<DB 옆>/kopri/`.
 KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
+#: KIGAM 5만 지질도의 층리·엽리·절리 등 — GeoServer WFS 에서 한 번 받아 둔 것(`raw/<YYYYMMDD>/`).
+#: 저장소·이미지에 두지 않는다. 없으면 자세 기호에 커서가 안 바뀔 뿐 뷰어는 돈다 (jikhanjung 004).
+KIGAM50K_DIR = env("GSM_KIGAM50K_DIR") or str(_data_dir() / "kigam50k")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
-# 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.
+# 문서에 없는 주소. 씨앗 뽑기, 속성(kigam.DIRECT_REQUESTS), 엮은 레이어의 그림(kigam.COMPOSED)만 여기로 간다.
 CAPABILITIES_URL = env("GSM_CAPABILITIES_URL",
                        "https://data.kigam.re.kr/mgeo/geoserver/wms")
 #: 브라우저에게 "이만큼 들고 있어라" 고 말하는 시간 (HTTP Cache-Control).
@@ -287,6 +290,9 @@ def _public() -> bool:
 PUBLIC = _public()
 
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
+#: KIGAM 낱레이어를 엮은 레이어(층리 뺀 5만 지질도)의 씨앗 — 상류가 뽑아 준 것이 아니라 사람이 적는다.
+#: 엮는 법은 `kigam.COMPOSED` (docs/KIGAM_5만_구조요소.md §8)
+KIGAM_COMPOSED_CATALOG_SEED = REPO_DIR / "data" / "kigam_composed_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
 #: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)
