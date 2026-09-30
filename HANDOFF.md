@@ -56,6 +56,7 @@
 | `mars/` | 화성 크레이터·옛 지질도 sqlite | `manage.py build_mars_craters <zip>`·`build_mars_originals <zip>` (067·068) |
 | `earth/` | 옛 해안선 `paleocoastlines_v7.json`, 화석 산지 `pbdb.sqlite` | `manage.py build_paleocoastlines`·`fetch_pbdb` (wetherilli 097·098) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
+| `kigam50k/` | KIGAM 5만 지질도 층리·엽리·절리·단층 등 19 레이어(WFS, 2026-09-30) | 지금은 손으로 받아 둔 `raw/20260930/`. 명령은 jikhanjung P01 |
 
 그 밖에 가끔 돌리는 것 — `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`
 (`/openapi/wms` 가 속성을 열었는지), `upstream_stats`(얼마나 묻는지).

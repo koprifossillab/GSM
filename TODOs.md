@@ -168,6 +168,10 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
       (`Geology_origin_raster_50k:*_rectified`), 탄전 지질도 126, 드론 음영기복도. `/openapi/wms` 는 `geoOpen` 에 묶여
       `LayerNotDefined` 다. KIGAM 에 열어 달라 묻거나 속성처럼 예외로 둘지 사람이 정한다. 예외면 `kigam._endpoint` 를 레이어 단위로
       바꿔 이틀 넘게, 열어 주면 씨앗·영어만 하루. 값은 가장 크다
+      **구조 요소(층리·엽리·절리·단층 …)는 WFS 로 받아 우리가 그리는 길이 섰다** — [docs/KIGAM_5만_구조요소.md](docs/KIGAM_5만_구조요소.md),
+      계획 jikhanjung P01. 이 항목에 남는 것은 그림 레이어(원도 스캔·탄전 지질도·음영기복도)다
+- [ ] jikhanjung P01 — 5만 층리·엽리·절리를 한국 레이어로. 자료는 `/srv/GSM/db/kigam50k/raw/20260930/` 에 받아 두었다.
+      (사람) P01 §8 — 레이어군 이름, 밖에 열 때 KIGAM 에 알릴지, NAS 사본
 
 개발 머신에서 그린란드 포털(`services5.arcgis.com`)을 부르면 인증서가 막힌다(사내망이 끼워 넣는 인증서) —
 `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt` 를 주면 돈다. 운영과는 상관없다.
