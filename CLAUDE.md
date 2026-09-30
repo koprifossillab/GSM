@@ -204,6 +204,12 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   이름이 `IAU2000:49918`·`49920` 이다 (065). **달 화면을 고치면 화성에도 옮길지 본다** — 두 파일은 일부러 나란히 두었다. 화성 지명은
   `data/mars_places.json`(`manage.py fetch_moon_places --body mars`). 달·화성은 아이콘(`emblem-moon.png`·
   `emblem-mars.png`)과 대기 화면(`splash-*.gif`)이 따로다 — 원본은 `docs/brand/`
+- **온 지구도 지역이 아니다** — 화성 화면을 옮긴 따로 화면(`/GSM/earth/`, `earth.js`·`earth.html`, wetherilli P06·086)이다.
+  지역 탭이 "그 나라의 지도를 그 나라의 투영으로" 보는 자리라면, 여기는 둥근 지구 하나에 온 지구의 자료를 얹는다.
+  지질도는 Macrostrat(`macrostrat.py`, CC BY 4.0)이고, 배경(NASA GIBS Blue Marble)·표고(AWS Terrarium)는 브라우저가
+  곧장 부른다. 평면은 경위도(4326) 그대로이고 위도 65° 너머는 지역 탭과 같은 3413·3031 이다. **carto 는 한 대역
+  아래만 채워**(세계 지질도뿐인 한반도는 줌 6 부터 빈다) 서버가 더 거친 대역의 타일을 늘려 밑에 깐다
+  (`macrostrat.fill`). 까는 법을 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다. 점묶음은 지역 탭의 것(`earth`)을 같이 읽는다
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
@@ -310,6 +316,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
+  macrostrat.py   Macrostrat 으로 나가는 문 (온 지구의 지질도 타일·누른 자리의 단위·범례). 온 지구 화면만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   zhurong.py      주룽 로버 경로 파일(data/mars_zhurong.json) -> 착륙지·경로. Trek 에 없는 것을 덧붙인다. 문이 아니다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
@@ -337,8 +344,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`.**
-이 열 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`.**
+이 열하나 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.

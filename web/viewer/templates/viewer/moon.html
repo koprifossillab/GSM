@@ -45,6 +45,7 @@
     </button>
     <nav class="hidden-menu" id="hidden-menu" role="menu" hidden>
       <a role="menuitem" href="{{ base }}"><span class="moon-dot earth-dot" aria-hidden="true"></span>{% t "지구" %}</a>
+      <a role="menuitem" href="{{ base }}earth/"><span class="moon-dot whole-dot" aria-hidden="true"></span>{% t "온 지구" %}</a>
       <a role="menuitem" href="{{ base }}mars/"><span class="moon-dot mars-dot" aria-hidden="true"></span>{% t "화성" %}</a>
     </nav>
     <div>
@@ -54,6 +55,7 @@
   </header>
   <nav class="regions body-tabs" aria-label="{% t "지역" %}">
     <a class="region-tab" href="{{ base }}">{% t "지구" %}</a>
+    <a class="region-tab" href="{{ base }}earth/">{% t "온 지구" %}</a>
     <span class="region-tab on" aria-current="page">{% t "달" %}</span>
     <a class="region-tab" href="{{ base }}mars/">{% t "화성" %}</a>
   </nav>

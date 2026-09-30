@@ -136,6 +136,10 @@ TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
 MOON_PLACES_FILE = BASE_DIR.parent / "data" / "moon_places.json"
 #: NASA Mars Trek — 화성 (`viewer/trek.py` 의 "화성" 마디, devlog 058). 같은 Trek 의 다른 몸이다
 TREK_MARS_URL = env("GSM_TREK_MARS_URL", "https://trek.nasa.gov/mars")
+#: Macrostrat — 온 지구 화면의 지질도 (`viewer/macrostrat.py`, wetherilli P06). 열쇠가 없다. CC BY 4.0.
+#: 타일(carto)과 API 가 주소가 다르다
+MACROSTRAT_TILES_URL = env("GSM_MACROSTRAT_TILES_URL", "https://tiles.macrostrat.org")
+MACROSTRAT_API_URL = env("GSM_MACROSTRAT_API_URL", "https://macrostrat.org/api/v2")
 #: 화성 지명 — `manage.py fetch_moon_places --body mars` 가 적는다
 MARS_PLACES_FILE = BASE_DIR.parent / "data" / "mars_places.json"
 #: 주룽 로버의 착륙 지점·주행 경로 (066, `manage.py build_zhurong`)

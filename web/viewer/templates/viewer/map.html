@@ -32,6 +32,7 @@
       <img class="emblem" src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
     </button>
     <nav class="hidden-menu" id="hidden-menu" role="menu" hidden>
+      <a role="menuitem" href="earth/"><span class="moon-dot whole-dot" aria-hidden="true"></span>{% t "온 지구" %}</a>
       <a role="menuitem" href="moon/"><span class="moon-dot" aria-hidden="true"></span>{% t "달" %}</a>
       <a role="menuitem" href="mars/"><span class="moon-dot mars-dot" aria-hidden="true"></span>{% t "화성" %}</a>
     </nav>
