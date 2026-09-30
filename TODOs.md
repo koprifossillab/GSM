@@ -61,6 +61,14 @@
 - [ ] (사람) SPA 지질도 원본(Zenodo 10.5281/zenodo.19728952 의 `GeoMap.tif.zip`·`Mapplate.zip`)을 NAS `sources/moon/` 에 둔다.
       운영 `db/moon/` 에는 두었다 (wetherilli 081)
 
+## 온 지구 (P06·P07)
+
+- [ ] **지질도가 가까이 갈수록 더 깨진다**(사람이 2026-09-30 에 보았다) — 멀리서보다 가까이서 단위가 조각나고 모서리가
+      계단진다. 짚이는 자리: 세계 지질도뿐인 곳은 `macrostrat.fill` 이 줌 5·9 의 조상 타일을 가장 가까운 칸으로 늘려 깐다
+      (줌 16 이면 한 칸이 2 048 배) — 그 계단이 그대로 보일 수 있다. carto 가 줌마다 다른 축척 판(tiny·small·medium·large)으로
+      갈아 끼우는 경계에서 판이 바뀌는 것일 수도 있다. 평면(`ol.source.XYZ`, 3857 → 4326·극 투영으로 옮겨 그림)과 구(Cesium,
+      WebMercator) 둘 다에서 보는지, 어느 줌부터인지 먼저 잰다. 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다 (wetherilli 086)
+
 ## 인증키 뒤에 남은 것
 
 - [ ] 호출 제한 수치를 KIGAM 에 묻는다 — 사람이 게시판부터 본다
