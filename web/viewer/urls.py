@@ -23,6 +23,9 @@ urlpatterns = [
     path("mars/", views.mars_view, name="mars"),
     re_path(r"^mars/tiles/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.mars_tile, name="mars-tile"),
+    # 화성 극 평면 — 극 평사도법 격자 (065)
+    re_path(r"^mars/ptiles/(?P<pole>[ns])/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.mars_polar_tile, name="mars-polar-tile"),
     re_path(r"^mars/dem/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$", views.mars_dem, name="mars-dem"),
     path("mars/info/", views.mars_info, name="mars-info"),
     path("mars/legend/", views.mars_legend, name="mars-legend"),

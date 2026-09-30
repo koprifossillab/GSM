@@ -490,6 +490,33 @@ def mars_tile(request, layer, z, x, y):
 
 
 @require_GET
+def mars_polar_tile(request, pole, layer, z, x, y):
+    """극 평면의 화성 지질도 타일 — `mars/ptiles/<n|s>/units/<z>/<x>/<y>.png` (065).
+
+    격자는 Trek 화성 극 WMTS 의 것(`trek.mars_polar_tile_bbox`)이다. SIM 3292 는 극지 판이 없어 Trek 이
+    극 평사도법으로 옮겨 그린다."""
+    z, x, y = int(z), int(x), int(y)
+    if layer != "units" or not trek.polar_valid(z, x, y) or z > trek.MARS_MAX_ZOOM:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-mars", f"{pole}p/{layer}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.mars_polar_tile(pole, z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("화성 극 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", pole, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
 def mars_dem(request, z, x, y):
     """화성 표고 격자 — `mars/dem/<z>/<x>/<y>.png`, 65×65 Terrarium (MOLA–HRSC). 못 받으면 502 (달과 같다)."""
     z, x, y = int(z), int(x), int(y)

@@ -3,6 +3,7 @@
 Trek 을 실제로 부르지 않는다. 응답의 꼴은 2026-09-29 에 Mars Trek 에서 받아 본 그대로다 —
 SIM 3292 의 `identify` 는 `Unit`·`UnitDesc` 를 주고, 범례 이름에는 기호가 없다.
 """
+import json
 import re
 import tempfile
 from unittest import mock
@@ -103,6 +104,45 @@ class Upstream(SimpleTestCase):
                                                    ["Gale", "Crater"], ["Viking 1", "Landing site"]])
 
 
+class Polar(SimpleTestCase):
+    """극 격자 (065) — Trek 화성 극 WMTS 의 것. 구의 반지름은 극 반지름이고, 반폭은 Capabilities 의 1 821 000 이
+    아니라 1 809 300 이다(2026-09-30 에 극 타일과 `export` 를 맞대 보았다)."""
+
+    def test_줌_0_은_한_장(self):
+        h = trek.MARS_POLAR_HALF
+        self.assertEqual(trek.mars_polar_tile_bbox(0, 0, 0), (-h, -h, h, h))
+        self.assertEqual(trek.mars_polar_tile_bbox(1, 1, 0), (0.0, 0.0, h, h))
+
+    def test_투영을_오가면_제자리(self):
+        for pole, lat in (("n", 84.0), ("s", -87.5)):
+            for lon in (-170.0, 0.0, 45.0, 179.0):
+                x, y = trek.mars_lonlat_to_polar(lon, lat, pole)
+                back = trek.mars_polar_to_lonlat(x, y, pole)
+                self.assertAlmostEqual(back[0], lon, places=7)
+                self.assertAlmostEqual(back[1], lat, places=7)
+
+    def test_극지_판은_60_도까지(self):
+        # 격자의 반폭(±1 809 300 m)이 극 반지름의 구에서 꼭 위도 60° 다 — 반폭과 반지름이 함께 맞다는 뜻
+        _, lat = trek.mars_polar_to_lonlat(trek.MARS_POLAR_HALF, 0, "s")
+        self.assertAlmostEqual(lat, -60.0, places=6)
+        self.assertGreater(trek.mars_lonlat_to_polar(0, -80, "s")[1], 0)
+        self.assertLess(trek.mars_lonlat_to_polar(0, 80, "n")[1], 0)
+
+    def test_지질도는_극_평사도법_WKT_로_옮겨_그리게_한다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/png", content=b"png")) as get:
+            self.assertEqual(trek.mars_polar_tile("s", 1, 1, 0), b"png")
+        url, params = get.call_args[0][0], get.call_args[1]["params"]
+        self.assertIn("SIM3292_Global_Geology/MapServer/export", url)
+        sr = json.loads(params["imageSR"])["wkt"]
+        self.assertIn("Stereographic_South_Pole", sr)
+        self.assertIn("3376200.0", sr)
+        self.assertEqual(params["bboxSR"], params["imageSR"])
+        self.assertEqual(params["bbox"], f"0.0,0.0,{trek.MARS_POLAR_HALF},{trek.MARS_POLAR_HALF}")
+        self.assertIn("Stereographic_North_Pole", trek.MARS_POLAR_WKT["n"])
+        with self.assertRaises(trek.TrekError):
+            trek.mars_polar_tile("x", 0, 0, 0)
+
+
 class MarsViews(TestCase):
 
     def setUp(self):
@@ -116,6 +156,15 @@ class MarsViews(TestCase):
             self.assertEqual(self.client.get(url).content, b"png")
             self.assertEqual(self.client.get(url).content, b"png")
         self.assertEqual(get.call_count, 1)
+
+    def test_극_타일도_캐시에_담는다(self):
+        url = reverse("viewer:mars-polar-tile", args=["n", "units", 3, 2, 5])
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/png", content=b"png")) as get:
+            self.assertEqual(self.client.get(url).content, b"png")
+            self.assertEqual(self.client.get(url).content, b"png")
+        self.assertEqual(get.call_count, 1)
+        self.assertEqual(self.client.get(reverse("viewer:mars-polar-tile", args=["s", "units", 0, 1, 0])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("viewer:mars-polar-tile", args=["s", "nac", 0, 0, 0])).status_code, 404)
 
     def test_모르는_레이어와_격자_밖은_404(self):
         self.assertEqual(self.client.get(reverse("viewer:mars-tile", args=["contacts", 1, 0, 0])).status_code, 404)

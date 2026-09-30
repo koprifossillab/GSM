@@ -525,6 +525,72 @@ def mars_tile(z: int, x: int, y: int) -> bytes:
     }))
 
 
+# ── 화성 극 격자 (065) ──
+#
+# 달의 극 격자(052)와 같은 꼴이다 — 극 평사도법, 극에서 축척 1, 줌 0 이 한 장, 한 장이 줌마다 반씩. 다른 것 둘.
+#
+# - **구의 반지름이 극 반지름(3 376.2 km)이다.** Trek 의 화성 극지 판(`…_np`·`…_sp`)이 WKT 에 그렇게 적는다
+#   (`Mars_2000_Sphere_Polar`). 경위도·등거리 원통의 3 396.19 km 와 20 km 다르다 — 이것으로 옮겨야 극 영상과
+#   점이 맞는다. 그래서 PSDI 의 `IAU_2015:49930`·`49935`(평균 적도 반지름의 구)라 부르지 않고 Trek 색인의
+#   이름(`IAU2000:49918` 북·`49920` 남)을 쓴다
+# - **격자의 반폭은 1 809 300.127 m 다.** WMTSCapabilities 는 왼쪽 위를 (−1 821 000, 1 821 000)으로 적지만 같은
+#   문서의 축척(1:50 482 700.9)은 1 809 300 에서 나오고, 극 WMTS 한 장과 같은 판의 ArcGIS `export` 를 맞대 보면
+#   1 809 300 에서 한 픽셀도 어긋나지 않는다(2026-09-30, 남·북 둘). 극 반지름의 구에서 꼭 위도 60° 다
+#
+# 지질도(SIM 3292)는 극지 판이 없다. MapServer `export` 에 극 평사도법 WKT 를 `bboxSR`·`imageSR` 로 주면
+# Trek 이 옮겨 그려 준다(한 장 0.8 초) — 달처럼 극지 판을 부르는 대신 이 길이다.
+
+MARS_POLAR_RADIUS = 3376200.0
+MARS_POLAR_HALF = 1809300.127
+_MARS_POLAR_WKT = (
+    'PROJCS["Mars_{p}polar_Sphere_Polar",GEOGCS["GCS_Mars_2000_Sphere_Polar",'
+    'DATUM["D_Mars_2000_Sphere_Polar",SPHEROID["Mars_2000_Sphere_Polar",3376200.0,0.0]],'
+    'PRIMEM["Reference_Meridian",0.0],UNIT["Degree",0.0174532925199433]],'
+    'PROJECTION["Stereographic_{pole}_Pole"],PARAMETER["false_easting",0.0],PARAMETER["false_northing",0.0],'
+    'PARAMETER["central_meridian",0.0],PARAMETER["standard_parallel_1",{lat}],UNIT["Meter",1.0]]')
+MARS_POLAR_WKT = {
+    "n": _MARS_POLAR_WKT.format(p="N", pole="North", lat="90.0"),
+    "s": _MARS_POLAR_WKT.format(p="S", pole="South", lat="-90.0"),
+}
+
+
+def mars_polar_tile_bbox(z: int, x: int, y: int) -> tuple:
+    """화성 극 격자 한 장의 (서, 남, 동, 북) — 극 평사도법 미터."""
+    span = 2 * MARS_POLAR_HALF / 2 ** z
+    west = -MARS_POLAR_HALF + x * span
+    north = MARS_POLAR_HALF - y * span
+    return west, north - span, west + span, north
+
+
+def mars_polar_to_lonlat(x: float, y: float, pole: str) -> tuple:
+    rho = math.hypot(x, y)
+    lat = 90.0 - math.degrees(2 * math.atan2(rho, 2 * MARS_POLAR_RADIUS))
+    if pole == "n":
+        return math.degrees(math.atan2(x, -y)), lat
+    return math.degrees(math.atan2(x, y)), -lat
+
+
+def mars_lonlat_to_polar(lon: float, lat: float, pole: str) -> tuple:
+    phi, lam = math.radians(lat), math.radians(lon)
+    if pole == "n":
+        rho = 2 * MARS_POLAR_RADIUS * math.tan(math.pi / 4 - phi / 2)
+        return rho * math.sin(lam), -rho * math.cos(lam)
+    rho = 2 * MARS_POLAR_RADIUS * math.tan(math.pi / 4 + phi / 2)
+    return rho * math.sin(lam), rho * math.cos(lam)
+
+
+def mars_polar_tile(pole: str, z: int, x: int, y: int) -> bytes:
+    """극 격자의 화성 지질도 타일 (065). Trek 이 SIM 3292 를 극 평사도법으로 옮겨 그린다."""
+    if pole not in MARS_POLAR_WKT:
+        raise TrekError("극이 아니다")
+    w, s, e, n = mars_polar_tile_bbox(z, x, y)
+    sr = json.dumps({"wkt": MARS_POLAR_WKT[pole]}, separators=(",", ":"))
+    return _image(_mars(f"{MARS_GEOLOGY}/MapServer/export", {
+        "bbox": f"{w},{s},{e},{n}", "bboxSR": sr, "imageSR": sr, "size": f"{TILE},{TILE}",
+        "format": "png32", "transparent": "true", "f": "image",
+    }))
+
+
 def mars_identify(lon: float, lat: float) -> dict | None:
     """한 점이 드는 지질 단위 — `{"unit": "eHv", "age": "Early Hesperian", "rows": […]}`. 없으면 None."""
     d = 0.5

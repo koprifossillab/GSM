@@ -3,7 +3,8 @@
  * **달 화면(`moon.js`)을 그대로 옮겨 와 화성의 자료로 바꿨다.** 틀 — 구(Cesium)와 평면(OpenLayers)을 오가는
  * 것, 레이어 목록·카드·범례·점묶음·그리기 도구·그림 내려받기 — 은 달과 같다. 고친 것은 몸과 자료다.
  *
- * - 몸 — 반지름 3 396.19 km 의 구. 평면은 화성의 등거리 원통(IAU_2015:49910, 미터)이다
+ * - 몸 — 반지름 3 396.19 km 의 구. 평면은 화성의 등거리 원통(IAU_2015:49910, 미터)이다. 위도 65° 너머는
+ *   극 평사도법이고 Mars Trek 의 극지 판을 곧장 받는다 (065, 달의 052 를 옮겼다)
  * - 영상 배경(Viking 색 모자이크·THEMIS 적외선·MOLA 음영)·착륙지 사진(HiRISE)은 브라우저가 Mars Trek 을
  *   곧장 부르고, 지질도(USGS SIM 3292)·표고(MOLA–HRSC)·속성·범례·지명·착륙지는 서버의 문(`trek.py`)을 거친다
  *
@@ -232,8 +233,68 @@
   ol.proj.addCoordinateTransforms(LL, EQC,
     function (c) { return [c[0] * M_PER_DEG, c[1] * M_PER_DEG]; },
     function (c) { return [c[0] / M_PER_DEG, c[1] / M_PER_DEG]; });
-  function toLL(xy) { return [xy[0] / M_PER_DEG, xy[1] / M_PER_DEG]; }
-  function fromLL(ll) { return [ll[0] * M_PER_DEG, ll[1] * M_PER_DEG]; }
+
+  // ── 극 평면 (065, 달의 052 를 옮겼다) ──
+  //
+  // 위도 65° 너머는 **극 평사도법**으로 편다 — Trek 이 극지 영상을 이 투영으로 그려 둔다(극에서 축척 1, 가짜 동거 0).
+  // 달과 다른 것 하나 — **구의 반지름이 극 반지름(3 376.2 km)이다.** Trek 의 화성 극지 판이 WKT 에 그렇게 적는다.
+  // 평균 반지름(`R`)으로 옮기면 극에서 1 200 km 떨어진 곳이 7 km 어긋난다. 그래서 PSDI 의 `IAU_2015:49930`·`49935`
+  // (평균 반지름의 구)라 부르지 않고 Trek 색인의 이름(`IAU2000:49918` 북·`49920` 남)을 쓴다(`trek.MARS_POLAR_*`).
+  // 경계 65° 와 되돌이 ±2° 는 달과 같다 — Trek 의 극지 판이 60° 까지다
+  var POLAR_R = 3376200;                   // 서버의 `trek.MARS_POLAR_RADIUS`
+  var POLAR_HALF = 1809300.127;            // 서버의 `trek.MARS_POLAR_HALF` — Capabilities 의 1 821 000 은 틀렸다
+  var POLAR_LAT = 65;                      // 이 위도 너머는 극 평면. 넘나드는 문턱은 ±2° 되돌이
+  function psForward(pole) {
+    return function (c) {
+      // 반대쪽 반구는 멀리 떨어진다 — 반대 극에서 무한으로 가지 않게 80° 에서 멈춘다
+      var lat = pole === "n" ? Math.max(-80, c[1]) : Math.min(80, c[1]);
+      var phi = lat * Math.PI / 180, lam = c[0] * Math.PI / 180;
+      var rho = 2 * POLAR_R * Math.tan(Math.PI / 4 - (pole === "n" ? phi : -phi) / 2);
+      return [rho * Math.sin(lam), pole === "n" ? -rho * Math.cos(lam) : rho * Math.cos(lam)];
+    };
+  }
+  function psInverse(pole) {
+    return function (c) {
+      var rho = Math.hypot(c[0], c[1]), lat = 90 - 2 * Math.atan2(rho, 2 * POLAR_R) * 180 / Math.PI;
+      var lon = Math.atan2(c[0], pole === "n" ? -c[1] : c[1]) * 180 / Math.PI;
+      return [lon, pole === "n" ? lat : -lat];
+    };
+  }
+  function polarProj(pole) {
+    var inv = psInverse(pole);
+    var p = new ol.proj.Projection({
+      code: pole === "n" ? "IAU2000:49918" : "IAU2000:49920", units: "m",
+      extent: [-POLAR_HALF, -POLAR_HALF, POLAR_HALF, POLAR_HALF],
+      // 극에서 축척 1 — 위도 φ 에서 한 단위가 극 반지름 구의 (1 + sin|φ|) / 2 미터, 땅(평균 반지름)으로는 R/POLAR_R 배
+      getPointResolution: function (resolution, point) {
+        return resolution * (1 + Math.sin(Math.abs(inv(point)[1]) * Math.PI / 180)) / 2 * R / POLAR_R;
+      },
+    });
+    ol.proj.addProjection(p);
+    ol.proj.addCoordinateTransforms(LL, p, psForward(pole), inv);
+    ol.proj.addCoordinateTransforms(EQC, p,
+      function (c) { return psForward(pole)([c[0] / M_PER_DEG, c[1] / M_PER_DEG]); },
+      function (c) { var ll = inv(c); return [ll[0] * M_PER_DEG, ll[1] * M_PER_DEG]; });
+    p.pole = pole;
+    return p;
+  }
+  var NPS = polarProj("n"), SPS = polarProj("s");
+  var proj = EQC;                          // 평면이 지금 쓰는 투영
+  function toLL(xy) { return ol.proj.transform(xy, proj, LL); }
+  function fromLL(ll) { return ol.proj.transform(ll, LL, proj); }
+  /** 그 위도에 맞는 투영. 지금 투영(`cur`)을 주면 되돌이를 둔다 — 문턱에서 오락가락하지 않게 */
+  function projFor(lat, cur) {
+    var a = Math.abs(lat), edge = !cur ? POLAR_LAT : cur === EQC ? POLAR_LAT + 2 : POLAR_LAT - 2;
+    return a < edge ? EQC : lat > 0 ? NPS : SPS;
+  }
+  /** 평면의 해상도(투영 단위) ↔ 땅의 미터. 등거리 원통은 남북이 참이라 그대로다(038) */
+  function groundScale(p, lat) {
+    return p === EQC ? 1 : (1 + Math.sin(Math.abs(lat) * Math.PI / 180)) / 2 * R / POLAR_R;
+  }
+  function groundRes() {
+    var v = flat.getView();
+    return v.getResolution() * groundScale(proj, toLL(v.getCenter())[1]);
+  }
 
   // Trek·우리 문의 격자 — 줌 0 이 가로 2·세로 1 장, y 는 북쪽부터
   function grid(maxZoom) {
@@ -242,20 +303,84 @@
     return new ol.tilegrid.TileGrid({ extent: EQC.getExtent(), origin: [-180 * M_PER_DEG, 90 * M_PER_DEG],
                                       resolutions: res, tileSize: 256 });
   }
-  function tileSource(template, maxZoom, attribution, crossOrigin) {
+  // `box`(경위도 [서, 남, 동, 북])를 주면 그 밖의 타일은 묻지 않는다 — 착륙지 사진처럼 좁은 판은 밖이 404 인데
+  // Trek 이 404 에는 CORS 를 달지 않아 콘솔이 붉어진다. 극 평면에서 옮겨 그릴 때(065) 둘레 타일을 더 묻는다
+  function tileSource(template, maxZoom, attribution, crossOrigin, box) {
     return new ol.source.TileImage({
       projection: EQC, tileGrid: grid(maxZoom), attributions: attribution, wrapX: true, crossOrigin: crossOrigin,
       tileUrlFunction: function (coord) {
         var z = coord[0], x = coord[1], y = coord[2], n = Math.pow(2, z + 1);
         if (y < 0 || y >= n / 2) return undefined;
         x = ((x % n) + n) % n;
+        if (box) {
+          var step = 180 / Math.pow(2, z), w = -180 + x * step, north = 90 - y * step;
+          if (w > box[2] || w + step < box[0] || north < box[1] || north - step > box[3]) return undefined;
+        }
         return template.replace("{z}", z).replace("{x}", x).replace("{y}", y);
       },
     });
   }
   // 배경은 WebGL 타일이다 — 영상 보정(밝기·대비·감마·채도)을 GPU 셰이더로 건다(042). 셰이더가 영상을 읽으려면
   // CORS 로 받아야 한다(Trek 은 `*`)
-  function baseSource(key) { var b = BASES[key]; return tileSource(b.url, b.max, b.credit, "anonymous"); }
+  // 극 격자 — Trek 화성 극 WMTS 의 것. 줌 0 이 한 장(±1 809 300 m), 한 장이 줌마다 반씩
+  function polarGrid(maxZoom) {
+    var res = [];
+    for (var z = 0; z <= maxZoom; z++) res.push(2 * POLAR_HALF / 256 / Math.pow(2, z));
+    return new ol.tilegrid.TileGrid({ extent: [-POLAR_HALF, -POLAR_HALF, POLAR_HALF, POLAR_HALF],
+                                      origin: [-POLAR_HALF, POLAR_HALF], resolutions: res, tileSize: 256 });
+  }
+  // Trek 의 극지 판 — 이름의 `{p}` 가 np·sp 다. 줌 끝은 2026-09-30 에 한 장씩 받아 보았다(남·북 같다). 배경마다
+  // 같은 자료의 극지 판이 있다 — THEMIS 만 판이 옛것(v12)이다. 음영은 MOLA–HRSC 섞은 것 하나다
+  var POLAR = {
+    viking: { credit: BASES.viking.credit, name: "Mars_Viking_MDIM21_ClrMosaic_global_232m_{p}", max: 5 },
+    themis: { credit: BASES.themis.credit, name: "Mars_MO_THEMIS-IR-Day_mosaic_global_100m_v12_clon0_ly_{p}", max: 6 },
+    mola: { credit: BASES.mola.credit, name: "Mars_MGS_MOLA_ClrShade_merge_global_463m_{p}", max: 4 },
+    shade: { credit: BASES.shade.credit, name: "Mars_MOLA_blend200ppx_HRSC_Shade_clon0dd_200mpp_lzw_{p}", max: 5 },
+  };
+  /** 극 타일. 판의 줌 끝을 넘으면 조상 타일을 잘라 늘린다(`#crop=`) — 달의 `polarSource` 와 같은 수다.
+   *  달은 판 여럿을 이었지만 화성은 배경마다 한 판이다 */
+  function polarSource(pole, key) {
+    var def = POLAR[key], dir = pole === "n" ? "NP/" : "SP/";
+    var url = "https://trek.nasa.gov/tiles/Mars/" + dir + def.name.replace("{p}", pole + "p") +
+              "/1.0.0/default/default028mm/{z}/{y}/{x}.png";
+    return new ol.source.TileImage({
+      projection: pole === "n" ? NPS : SPS, tileGrid: polarGrid(GEO_MAX), attributions: def.credit,
+      crossOrigin: "anonymous",
+      tileUrlFunction: function (coord) {
+        var z = coord[0], x = coord[1], y = coord[2], n = Math.pow(2, z);
+        if (x < 0 || y < 0 || x >= n || y >= n) return undefined;
+        if (z <= def.max) return url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+        var dz = z - def.max, ax = x >> dz, ay = y >> dz;
+        return url.replace("{z}", def.max).replace("{x}", ax).replace("{y}", ay) +
+               "#crop=" + dz + "," + (x - (ax << dz)) + "," + (y - (ay << dz));
+      },
+      tileLoadFunction: function (tile, src) {
+        var img = tile.getImage(), m = /#crop=(\d+),(\d+),(\d+)$/.exec(src);
+        if (!m) { img.src = src; return; }
+        var whole = new Image();
+        whole.crossOrigin = "anonymous";
+        whole.onload = function () {
+          var k = Math.pow(2, +m[1]), w = 256 / k, c = document.createElement("canvas");
+          c.width = c.height = 256;
+          c.getContext("2d").drawImage(whole, +m[2] * w, +m[3] * w, w, w, 0, 0, 256, 256);
+          img.src = c.toDataURL();
+        };
+        whole.onerror = function () { img.src = src.replace(/#.*$/, ""); };   // 없는 것 — 타일이 빈 채 끝난다
+        whole.src = src.replace(/#.*$/, "");
+      },
+    });
+  }
+  function polarGeoSource(pole, name) {
+    return new ol.source.TileImage({
+      projection: pole === "n" ? NPS : SPS, tileGrid: polarGrid(GEO_MAX), attributions: creditOf(name),
+      url: BASE + "mars/ptiles/" + pole + "/" + name + "/{z}/{x}/{y}.png",
+    });
+  }
+  function baseSource(key) {
+    if (proj !== EQC) return polarSource(proj.pole, key);
+    var b = BASES[key];
+    return tileSource(b.url, b.max, b.credit, "anonymous");
+  }
   function baseLayer(className, key) {
     return new ol.layer.WebGLTile({
       className: className, source: baseSource(key),
@@ -270,7 +395,7 @@
   function placeBase() {
     var b = BASES[look.base];
     oUnder.setVisible(!!b.under);
-    oBase.setMinZoom(b.min ? b.min - 0.5 : -Infinity);
+    oBase.setMinZoom(b.min && proj === EQC ? b.min - 0.5 : -Infinity);
   }
   placeBase();
   var SHADE = BASES.shade;
@@ -293,6 +418,7 @@
       new ol.control.ScaleLine({ target: $("scalebar"), bar: true, steps: 4, text: true, minWidth: 110 }),
     ]),
   });
+  window.__gsmMarsFlat = flat;
 
   // ══ 착륙지 (달의 046 을 옮겼다) ════════════════════════════════════
   //
@@ -339,9 +465,10 @@
                      function (a) { cl.forEach(function (l) { l.alpha = a; }); });
     oGeo.nac = new ol.layer.Group({ visible: false, layers: NAC.map(function (m) {
       return new ol.layer.Tile({
+        gsmBox: m.bbox,                                                    // 투영을 바꾸면 범위를 다시 잰다 (065)
         extent: [m.bbox[0] * M_PER_DEG, m.bbox[1] * M_PER_DEG, m.bbox[2] * M_PER_DEG, m.bbox[3] * M_PER_DEG],
         source: tileSource(TREK + m.layer + "/1.0.0/default/default028mm/{z}/{y}/{x}.png", m.max, NAC_CREDIT,
-                           "anonymous"),                                   // CORS — 그림으로 뽑으려면 (048)
+                           "anonymous", m.bbox),                           // CORS — 그림으로 뽑으려면 (048)
       });
     }) });
     oExtra.getLayers().push(oGeo.nac);
@@ -364,7 +491,7 @@
         (data.features || []).forEach(function (f) { draw.cesium(ds, f); });
         src.addFeatures(new ol.format.GeoJSON().readFeatures(
           { type: "FeatureCollection", features: (data.features || []).map(draw.olFeature) },
-          { dataProjection: LL, featureProjection: EQC }));
+          { dataProjection: LL, featureProjection: proj }));
       }).catch(function () { loaded = false; });
     }
     cRaise[name] = [];
@@ -445,7 +572,6 @@
   // 넘는 높이를 둘로 둔다(되돌이). 구에서 400 km 밑으로 곧장 내려다보면 평면으로, 평면에서 640 km
   // 높이만큼 멀어지면 구로. 둘이 같으면 문턱에서 오락가락한다. 달(250·400 km)보다 높다 — 화성이 두 배 크다
   var TO_FLAT_H = 400000, TO_GLOBE_H = 640000;
-  var POLE_LIMIT = 75;                    // 이 위도 너머는 평면이 늘어나 구에 머문다
   var HOME_H = 10000000;                  // 처음·"처음 자리" 의 높이 — 반지름의 세 배쯤, 한 반구가 다 든다
   var mode = "globe";
   var autoFlat = true;                    // 손으로 구로 돌아오면, 한 번 멀어질 때까지 저절로 넘지 않는다
@@ -475,9 +601,12 @@
     if (next === "flat") {
       var c = at || cameraLL();
       if (!c) return;
+      // 위도가 투영을 고른다 — 65° 너머는 극 평사도법 (065)
+      var ground = Math.min(heightToRes(c.h), heightToRes(TO_GLOBE_H) * 0.9);
+      useProj(projFor(c.lat), [c.lon, c.lat], ground);
       var view = flat.getView();
       view.setCenter(fromLL([c.lon, c.lat]));
-      view.setResolution(Math.min(heightToRes(c.h), heightToRes(TO_GLOBE_H) * 0.9));
+      view.setResolution(ground / groundScale(proj, c.lat));
       view.setRotation(0);
       mode = "flat";
       wrap.className = "moon-flat";
@@ -486,12 +615,49 @@
       flat.updateSize();
     } else {
       var v = flat.getView(), ll = toLL(v.getCenter());
-      flyGlobe(ll[0], ll[1], (at && at.h) || resToHeight(v.getResolution()));
+      flyGlobe(ll[0], ll[1], (at && at.h) || resToHeight(groundRes()));
       mode = "globe";
       viewer.useDefaultRenderLoop = true;
       wrap.className = "moon-globe";
     }
     save("gsm.mars.mode", mode);
+  }
+
+  /** 평면의 투영을 바꾼다 (065, 달의 052). 타일 소스를 갈아 끼우고, 벡터는 모양을 옮기고, 찍고 잰 것은
+   *  경위도에서 다시 그린다. 새 뷰는 `ll` 을 가운데에, 땅의 해상도 `ground` 로 연다. 바뀌었으면 true */
+  function useProj(p, ll, ground) {
+    if (p === proj) return false;
+    var from = proj;
+    proj = p;
+    cancelSketch();
+    function each(layer) {
+      if (layer instanceof ol.layer.Group) { layer.getLayers().forEach(each); return; }
+      if (layer.get("gsmBox")) layer.setExtent(ol.proj.transformExtent(layer.get("gsmBox"), LL, p, 16));
+      if (layer instanceof ol.layer.Vector && layer.getSource() !== drawSource) {
+        layer.getSource().getFeatures().forEach(function (f) {
+          if (f.getGeometry()) f.getGeometry().transform(from, p);
+        });
+      }
+    }
+    flat.getLayers().forEach(each);
+    oUnder.setSource(baseSource("viking"));
+    oBase.setSource(baseSource(look.base));
+    oShade.setSource(p === EQC ? tileSource(SHADE.url, SHADE.max, SHADE.credit, "anonymous") : polarSource(p.pole, "shade"));
+    GEO_NAMES.forEach(function (name) {
+      oGeo[name].setSource(p === EQC ? tileSource(geoUrl(name), GEO_MAX, creditOf(name)) : polarGeoSource(p.pole, name));
+    });
+    placeBase();
+    var polar = p !== EQC;
+    flat.setView(new ol.View({
+      projection: p, center: fromLL(ll), resolution: ground / groundScale(p, ll[1]), constrainResolution: false,
+      maxResolution: polar ? 2 * POLAR_HALF / 256 : 180 * M_PER_DEG / 256,
+      // 가운데만 격자 안에 묶는다 — 화면 전체를 묶으면 멀리서 볼 때 가운데가 극에서 떠나지 못한다
+      extent: polar ? [-POLAR_HALF, -POLAR_HALF, POLAR_HALF, POLAR_HALF] : undefined, constrainOnlyCenter: polar,
+    }));
+    installFlat();
+    renderDrawn();
+    applyTune();
+    return true;
   }
 
   viewer.camera.moveEnd.addEventListener(function () {
@@ -504,26 +670,28 @@
     if (mode !== "globe") return;
     if (c.h > TO_FLAT_H) { autoFlat = true; return; }
     var straight = viewer.camera.pitch < Cesium.Math.toRadians(-80);
-    if (autoFlat && straight && Math.abs(c.lat) <= POLE_LIMIT && !drawing() && !tilting) setMode("flat", c);
+    if (autoFlat && straight && !drawing() && !tilting) setMode("flat", c);
   });
   flat.on("moveend", function () {
     if (mode !== "flat") return;
-    var v = flat.getView(), ll = toLL(v.getCenter());
-    save("gsm.mars.flat", JSON.stringify({ lon: +ll[0].toFixed(5), lat: +ll[1].toFixed(5), res: Math.round(v.getResolution()) }));
+    var v = flat.getView(), ll = toLL(v.getCenter()), ground = groundRes();
+    // 해상도는 땅의 미터로 적는다 — 투영마다 단위의 뜻이 달라서다 (065)
+    save("gsm.mars.flat", JSON.stringify({ lon: +ll[0].toFixed(5), lat: +ll[1].toFixed(5), res: Math.round(ground) }));
     if (drawing()) return;                // 그리던 선이 끊기지 않게 (041)
-    if (v.getResolution() > heightToRes(TO_GLOBE_H) || Math.abs(ll[1]) > POLE_LIMIT + 3) setMode("globe");
+    if (ground > heightToRes(TO_GLOBE_H)) { setMode("globe"); return; }
+    // 극으로 가면 극 평사도법으로, 돌아오면 등거리 원통으로 — 문턱 둘레 2° 는 되돌이다 (065)
+    useProj(projFor(ll[1], proj), ll, ground);
   });
 
   $("tool-mode").addEventListener("click", function () {
     if (mode === "globe") {
       var c = cameraLL();
       if (!c) return;
-      // 멀리서 누르면 문턱 높이까지 내려와 평면으로. 극이면 평면이 되는 위도까지 끌어온다
-      setMode("flat", { lon: c.lon, lat: Math.max(-POLE_LIMIT, Math.min(POLE_LIMIT, c.lat)), h: Math.min(c.h, TO_FLAT_H) });
+      // 멀리서 누르면 문턱 높이까지 내려와 평면으로. 극이면 극 평사도법이다 (065)
+      setMode("flat", { lon: c.lon, lat: c.lat, h: Math.min(c.h, TO_FLAT_H) });
     } else {
       autoFlat = false;
-      var res = flat.getView().getResolution();
-      setMode("globe", { h: Math.max(resToHeight(res), TO_FLAT_H * 1.4) });
+      setMode("globe", { h: Math.max(resToHeight(groundRes()), TO_FLAT_H * 1.4) });
     }
   });
   $("tool-home").addEventListener("click", function () {
@@ -642,7 +810,7 @@
     if (mode !== "flat" || !(e.button === 2 || (e.button === 0 && e.ctrlKey))) return;
     e.preventDefault();
     e.stopPropagation();
-    var v = flat.getView(), ll = wrapLon(toLL(v.getCenter())), h = resToHeight(v.getResolution());
+    var v = flat.getView(), ll = wrapLon(toLL(v.getCenter())), h = resToHeight(groundRes());
     var ground = scene.globe.getHeight(Cesium.Cartographic.fromDegrees(ll[0], ll[1])) || 0;
     tilting = true;
     setMode("globe", { h: h });
@@ -1214,7 +1382,7 @@
       cSets[ps.id] = source;
       var layer = new ol.layer.Vector({
         source: new ol.source.Vector({ features: new ol.format.GeoJSON().readFeatures(data,
-                                         { dataProjection: LL, featureProjection: EQC }) }),
+                                         { dataProjection: LL, featureProjection: proj }) }),
         style: flatStyle(ps), declutter: true, visible: ps.visible,
       });
       layer.set("gsmSet", ps);
@@ -1234,8 +1402,10 @@
   }
   function goTo(lon, lat, h) {
     closePopup();
-    if (mode === "flat" && Math.abs(lat) <= POLE_LIMIT && h < TO_GLOBE_H) {
-      flat.getView().animate({ center: fromLL([lon, lat]), resolution: heightToRes(h), duration: 600 });
+    if (mode === "flat" && h < TO_GLOBE_H) {
+      useProj(projFor(lat, proj), [lon, lat], heightToRes(h));
+      flat.getView().animate({ center: fromLL([lon, lat]), resolution: heightToRes(h) / groundScale(proj, lat),
+                               duration: 600 });
     } else {
       if (mode === "flat") setMode("globe");
       flyGlobe(lon, lat, h, 1.5);
@@ -1817,7 +1987,7 @@
   }
   // 지금 보는 높이 — 점으로 옮겨 갈 때 당기거나 물리지 않는다
   function hereHeight() {
-    if (mode === "flat") return resToHeight(flat.getView().getResolution());
+    if (mode === "flat") return resToHeight(groundRes());
     var c = cameraLL();
     return c ? Math.min(c.h, 200000) : 200000;
   }
@@ -2184,7 +2354,9 @@
     active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
     if (mode === "globe" && look.terrain) credits.push(DEM_CREDIT);
     credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
-    var out = [T("대돌여지도") + " · " + T("화성") + " · " + T(mode === "flat" ? "평면" : "구") + " · " + stampText()];
+    var kind = mode !== "flat" ? T("구") : proj === EQC ? T("평면") :
+      T("평면") + " (" + T(proj === NPS ? "북극 평사도법" : "남극 평사도법") + ")";
+    var out = [T("대돌여지도") + " · " + T("화성") + " · " + kind + " · " + stampText()];
     out.push(T("배경") + ": " + base);
     out.push(T("레이어") + ": " + (shown.length ? shown.join(" / ") : "—"));
     if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
@@ -2204,7 +2376,7 @@
   /** 평면 가운데 위도의 땅 축척으로 막대를 그린다. 1·2·5 × 10ⁿ 로 반올림한다. */
   function drawScaleBar(ctx, x, y, maxWidth) {
     var v = flat.getView();
-    var metersPerPx = ol.proj.getPointResolution(EQC, v.getResolution(), v.getCenter(), "m");
+    var metersPerPx = ol.proj.getPointResolution(proj, v.getResolution(), v.getCenter(), "m");
     if (!isFinite(metersPerPx) || metersPerPx <= 0) return;
     var raw = metersPerPx * maxWidth;
     var pow = Math.pow(10, Math.floor(Math.log10(raw)));

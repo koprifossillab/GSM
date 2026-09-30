@@ -200,7 +200,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - **화성도 지역이 아니다** — 달 화면을 옮긴 따로 화면(`/GSM/mars/`, `mars.js`·`mars.html`, 058)이다. 틀은 달과 같고
   자료만 다르다 — USGS 화성 지질도(SIM 3292)·MOLA–HRSC 지형, 영상 배경은 Viking·THEMIS·MOLA. 문은 같은 `trek.py`
   (`mars_*`, 주소 `TREK_MARS_URL`)다 — 같은 NASA Trek 의 다른 몸이라 문을 새로 내지 않았다. 테마는 녹슨 주황이다.
-  **달 화면을 고치면 화성에도 옮길지 본다** — 두 파일은 일부러 나란히 두었다. 화성 지명은
+  평면은 달처럼 위도 65° 너머면 극 평사도법인데, Trek 의 화성 극지 판이 **극 반지름(3 376.2 km)의 구**라
+  이름이 `IAU2000:49918`·`49920` 이다 (065). **달 화면을 고치면 화성에도 옮길지 본다** — 두 파일은 일부러 나란히 두었다. 화성 지명은
   `data/mars_places.json`(`manage.py fetch_moon_places --body mars`). 달·화성은 아이콘(`emblem-moon.png`·
   `emblem-mars.png`)과 대기 화면(`splash-*.gif`)이 따로다 — 원본은 `docs/brand/`
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
