@@ -3,7 +3,14 @@
 이 문서는 **지금 어디까지 왔고 다음이 무엇인지** 한 곳에서 답한다.
 왜 그렇게 했는지는 `devlog/`, 무엇이 언제 붙었는지는 `CHANGELOG.md`.
 
-마지막으로 손본 날: **2026-09-29**
+마지막으로 손본 날: **2026-09-30**
+
+## 작업 방식 (2026-09-30 부터)
+
+**브랜치** `main` = `0.20.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+`feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
+올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
+[devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
 
 ## 한 줄
 
@@ -16,86 +23,38 @@
 고쳐서 설정을 **DB 옆 파일**로도 읽게 해 두었다 —
 `kigam_key`·`allowed_hosts`·`dev_direct_wms`·`secret_key`.
 
-**v0.5.x 에서 늘어난 것** — 주제도 비교(밀어 보기·나란히, 011), 선·면 GeoJSON 과
-잡은 범위를 네모 그대로 저장(모양 `Shape`, 012), 좌표계 고르기(TM·UTM-K·옛 Bessel,
-013). 판마다 무엇이 붙었는지는 `CHANGELOG.md`.
+## 지금 서 있는 것
 
-**v0.7.0 — 극지** (017–022). 지역이 한국·그린란드·스발바르·얀마옌·남극에 북극
-묶음 탭까지 여섯이다. 극지는 극 평사도법(3413·3031)으로 본다. 남극 GeoMAP 과 얀마옌은
-**파일을 받아 우리가 그린다** — 파일은 `/srv/GSM/db/geomap/`·`/srv/GSM/db/npolar/`
-에 있고 원본은 NAS `N:\GSM\sources\`. 상류(문)가 다섯으로 늘었다 — KIGAM·VWorld·
-GEUS·그린란드 정부 포털·NPI.
+판마다 무엇이 붙었는지는 `CHANGELOG.md`, 왜 그랬는지는 괄호 안의 devlog 다.
 
-**v0.8.0 — 일본·동아시아** (024). 일본 지질조사종합센터(GSJ)의 심리스 지질도 V2 를
-z/x/y 타일로 중계하고, 한국·일본을 한 화면에 모은 동아시아 묶음 탭을 더했다. 문이
-여섯이 되었다(+ GSJ). GSJ 는 열쇠가 없고 파일도 없다.
+- **지역** — 한국(기본)·일본·중국·그린란드·스발바르·얀마옌·북극해·남극, 묶음 탭 동아시아·북극 (016·017·021·024·076).
+  화면 투영은 3857·3413·3031 이다
+- **상류로 나가는 문 열** — kigam·vworld·geus·grportal·npolar·gsj·phyloserver·elevation·trek·kopri. 문이 아닌
+  것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso·marscraters·marsmap·zhurong, 그리고 3D 용으로 다시 펴는 warp
+- **달·화성** — 아이콘의 숨은 차림에서 `/GSM/moon/`·`/GSM/mars/`. 둥근 몸(Cesium)과 평면(OpenLayers)을 오가고,
+  위도 65° 너머는 극 평면이다 (036·038·052·058·065). Trek 판 목록은 씨앗 `data/<몸>_trek_layers.json` (060).
+  화성에는 크레이터 38 만 개·옛 지질도 I-1802·주룽 경로를 우리가 굽는다 (066–068)
+- **3D** — 도구 막대의 단추로 늘 연다 (059). 한국·일본·북극·남극 지형과 지질, 점묶음
+- **영어판** — 설정의 "언어 · Language". 화면의 글을 고치면 `viewer/i18n.py` 에 영어도 적는다 (008)
+- **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
 
-**v0.9.0 — 중국, 그리고 연구실의 암맥** (025·026). 중국은 USGS geo3al(1:500만)을 **파일로 받아
-우리가 그린다** — `/srv/GSM/db/usgs/geo3al/` 에 `geo3al.{shp,dbf,prj}` 를 두면 읽힌다
-(원본 NAS `N:\GSM\sources\china\geo3al.zip`). **연구실 내부용이다** — 이용 조건이
-가공물까지 재배포를 막아, 파일은 저장소·이미지에 없고 밖에 열 때는 이 레이어를 먼저 내린다.
-한국에는 **커스텀 지질도** — phyloserver 암맥 기록(줌 11 아래 도폭별 로즈)과 한반도 지질도
-스캔(026). 문이 일곱이 되었다(+ phyloserver, 읽기만 한다). 운영 설정은 없다.
+### 운영에 두는 파일
 
-**v0.9.1 — 한반도 지질도 음영판** (027). 좌표가 박힌 QGIS PDF 를 5179 타일로 잘라 두고
-화면이 옮겨 그린다 — `db/peninsula/`. PDF 의 좌표는 해안선에 대 고쳐 쓴다. 문이 아니다.
+모두 `/srv/GSM/db/` 아래다. 저장소에 두지 않고, 원본은 NAS `N:\GSM\sources\` 에 있다.
 
-**v0.10.0 — 그림 내려받기, 3D 점묶음, 스발바르 도폭** (028·029). 도구 막대의 "그림" 이 지금
-보는 지도를 PNG 한 장으로 내려준다(레이어·축척·출처를 밑에 적는다). 3D(실험)에 점묶음이
-얹히고, 켜고 끈 것은 2D 와 함께 기억한다. 스발바르에 1:10만 도폭 스캔과 도폭 경계가 섰다.
-절(Age) 이름은 국제지질연대층서표 한글판을 따른다. `prewarm` 이 NPI·GSJ·GeoMAP 을 안다.
-밖에 열 때는 `GSM_PUBLIC=1` 하나로 연구실 내부용 레이어가 내려간다. 한반도 지질도 민판(028).
+| 자리 | 무엇 | 채우는 법 |
+|---|---|---|
+| `geomap/` | 남극 GeoMAP gpkg (490 MB) | 파일을 둔다 (018) |
+| `npolar/` | 얀마옌 지질도 GeoJSON | 파일을 둔다 (022) |
+| `usgs/geo3al/` | 중국 geo3al `{shp,dbf,prj}` | 파일을 둔다 (025) |
+| `peninsula/` | 한반도 지질도 음영판·민판과 잘라 둔 타일 | `manage.py build_peninsula [--layer plain]` (027·028) |
+| `moon/` | 달 원도 6 장 sqlite | `manage.py build_moon_originals <zip>` (039) |
+| `ibcso/` | IBCSO 타일·수치 격자·TID | `manage.py build_ibcso` (047·051·071) |
+| `mars/` | 화성 크레이터·옛 지질도 sqlite | `manage.py build_mars_craters <zip>`·`build_mars_originals <zip>` (067·068) |
+| `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
 
-**v0.10.1 — 3D 에 커스텀 지질도** (030). 한반도 지질도 셋(5179·5181 격자)을 서버가 3857 로
-다시 펴고(`warp.py`, `/GSM/warp/`), 암맥은 그대로 얹는다. 3D 점묶음에 이름표(글꼴 조각을 담았다).
-
-**v0.11.0 — 시료 고도, 3D 의 일본 지형** (031). 표고로 나가는 문 `elevation.py` — AWS 표고 타일·
-국토지리원 표고 타일·PGC. 문이 여덟이다. `Point` 에 표고 칸 셋(이주 0011).
-
-**v0.11.1 — 북극의 3D** (032·033). 위도 60° 너머의 3D 지형을 PGC ArcticDEM 으로(`dem/`).
-VWorld 배경은 곧장 닿지 못하면 서버를 거친다(033).
-
-**v0.11.2 — 3D 에도 그림으로 내려받기.** 3D 화면을 PNG 한 장으로, 밑에 자리·출처 띠를 붙인다.
-
-**v0.11.3 — 극지 3D 속도·테마** (034). gunicorn 워커마다 스레드 8, PGC 는 4×4 네모째 받는다.
-
-**v0.11.4 — 남극 3D** (035). REMA 지형에 드로닝모드랜드 지질. GeoMAP 은 아직 3D 에 없다.
-
-**v0.12.0 — 달** (036, P05). 아이콘의 숨은 차림 → `/GSM/moon/`. CesiumJS(`vendor/cesium/`, 14 MB)의 둥근 달에
-USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, NASA Moon Trek). 운영 설정은 없다.
-
-**v0.13.0 — 달 점묶음** (037). `PointSet.body`(이주 0012). 지구 화면은 `earth`, 달 화면은 `moon` 만 읽는다.
-달 점묶음의 ⛰ 는 LOLA `getSamples`(GET, 100 점씩 — POST 는 Trek 이 403).
-
-**v0.14.0 — 달을 2D 의 틀로** (038). `moon.html` 이 `map.css` 를 그대로 싣고 `data-region="moon"` 흑백.
-구(Cesium)와 평면(OpenLayers, IAU_2015:30110)을 한 화면에 두고 250 km·400 km 문턱으로 오간다. 지질은 오버레이 카드.
-
-**v0.15.0 — 세 세션을 모은 판** (039–043). 달 원도 6 장(`moonmap.py`, 우리가 굽는다 — 운영 `db/moon/moon_originals.sqlite`,
-원본 NAS `sources/moon/`), 가구야 고해상 배경, 영상 보정(평면 배경은 WebGLTile), 도구·자세 손잡이, 남극 Esri 위성·3D GeoMAP.
-**판은 한 세션이 모아 붙인다** — 다른 세션은 커밋만 하고 커밋 번호·요지를 넘긴다.
-
-**v0.16.0 — 달 기울여 보기, 시대별 범례** (044·045). 이주·운영 파일 없음.
-
-**v0.17.0 — 달 착륙지, 남극 IBCSO** (046·047). 운영 파일 — `/srv/GSM/db/ibcso/tiles-{bed,ice}/`(56 MB, `manage.py build_ibcso`
-가 자른 것. 원본 TIFF 는 NAS `sources/ibcso/`). 달 EVA 동선은 저장소의 씨앗 `data/moon_apollo_eva.json`.
-
-**v0.17.1 — 달 그림 내려받기, 남극 기지 단추** (048·049). 이주·운영 파일 없음.
-
-**v0.18.0 — 화성, 3D 상시, 극지연구소 자료, 3D 남극 IBCSO, 달 극 평면** (050–059). 세 세션을 모았다. 이주 0013
-(`PointSet.body` 에 `mars`). 화성은 `/GSM/mars/`(`mars.js`·`mars.html` — `moon.*` 을 옮긴 것, 문은 `trek.py` 의 `mars_*`).
-새 문 `kopri.py`(연구실 내부용) — 운영 `db/kopri/` 를 `manage.py fetch_kopri` 가 채운다. 3D 남극은 운영
-`db/ibcso/{dem,wide}-{bed,ice}/`(460 MB, 판 전에 옮겨 두었다).
-
-**v0.19.0 — NASA Trek 판 목록, 화성 극 평면, 남극 수심 읽기** (060·065·070–073). 세 세션을 모았다. 이주 없음.
-Trek 판은 씨앗 `data/<몸>_trek_layers.json`(`manage.py fetch_trek_catalog`, 사람은 `ko`·`hide` 만 손질)이고, WMTS 가 없는
-판은 `trek/<몸>/map/…` 이 굽는다. 운영 파일 — `db/ibcso/{tiles-tid,tid-raw}/`(판 전에 잘라 두었다).
-
-**v0.20.0 — 화성 크레이터·옛 지질도·주룽, 북극해 탭, 시료 지점의 VWorld 둘레** (060·066–068·074–077). 세 세션을 모았다.
-이주 0014(`Point.place`)·0015(지역 choices 에 `arctic_ocean`). 운영 파일 — `db/mars/mars_craters.sqlite`·`mars_originals.sqlite`
-(판 전에 구워 두었다). 화성 주룽은 저장소의 `data/mars_zhurong.json`. 오래된 점묶음의 둘레는 `manage.py fill_places <번호>`.
-
-**영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
-고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
+그 밖에 가끔 돌리는 것 — `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`
+(`/openapi/wms` 가 속성을 열었는지), `upstream_stats`(얼마나 묻는지).
 
 ## 돌려보는 법
 
@@ -133,7 +92,7 @@ GSM_DEV_DIRECT_WMS=0
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 492 개 다 돈다 (`manage.py test viewer`, 2026-09-29) |
+| 시험 | 654 개 다 돈다 (`manage.py test viewer`, 2026-09-30) |
 | 오픈API | 키로 61 개 전부 그려진다. 범례도 된다. **속성은 막혀 있다** (006) |
 | 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 | 배경지도 | VWorld `Base`·`Satellite`·`Hybrid` 200. 자리 차례는 `z/y/x` (003) |
@@ -204,58 +163,12 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 `kigam_key` 를 `600` 으로 만들었더니 컨테이너가 못 읽어 "인증키가 없다" 띠가
 떴다. 설정은 기동할 때 읽으므로 고친 뒤에는 `docker restart gsm-web-1`.
 
-### v0.7.0 을 올릴 때 (2026-09-28)
+### 판을 올릴 때
 
-- 파일 둘은 이미 `db/` 아래 두었다 — compose 를 고칠 일이 없다
-  (`db/geomap/ATA_SCAR_GeoMAP_Geology_v2022_08.gpkg` 490 MB,
-  `db/npolar/NP_J250_Geologi/*.geojson`)
-- 기동할 때 이주 0006–0008 과 씨앗(VWorld 11·포털 4·GeoMAP 5·NPI 5+6·얀마옌 3)이 들어간다
-- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py fetch_grportal`
-  (시료 2 만 점을 미리 받아 둔다. 상류를 천천히 탄다)
-
-### v0.8.0 을 올릴 때 (2026-09-28)
-
-- 새 파일·열쇠가 없다. 기동할 때 이주 0009 와 GSJ 씨앗 5 개가 들어간다
-- 운영 장비에서 `gbank.gsj.jp`·`cyberjapandata.gsi.go.jp`(브라우저) 로 나갈 수 있어야 한다
-
-### v0.9.0 을 올릴 때 (2026-09-28)
-
-- 중국 파일은 먼저 두었다 — `db/usgs/geo3al/geo3al.{shp,dbf,prj}` (640). 첫 요청이 3 초 남짓 걸린다
-- 기동할 때 이주 0010 과 씨앗(중국 2·커스텀 지질도 2)이 들어간다
-- phyloserver 는 IP(`172.16.116.98`)로 부른다 — 컨테이너 안에서 닿는 것을 확인했다(026)
-
-### v0.9.1 을 올릴 때 (2026-09-28)
-
-- 음영판 파일은 먼저 두었다 — `db/peninsula/geomap.pdf` 와 잘라 둔 `db/peninsula/tiles/`
-  (2 343 장, 75 MB 가운데 타일 29 MB). 판이 바뀌면 컨테이너 안에서 `manage.py build_peninsula`
-- 기동할 때 씨앗(음영판 1)이 들어간다. 이주는 없다
-
-### v0.10.0 을 올릴 때
-
-- 민판 파일을 먼저 둔다 (028) — `db/peninsula/` 에 `geomap_new_5179.{png,pgw}` 와 잘라 둔
-  `tiles-plain/`(1 015 장, 6.3 MB). 컨테이너 안에서 `manage.py build_peninsula --layer plain` 을
-  돌려도 같다(메모리 2.2 GB·13 초)
-- 기동할 때 씨앗(지질 참고 +2 지하수 등치선, 스발바르 +2 도폭 스캔·경계, 민판 +1)이 들어간다. 이주는 없다
-- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py fetch_grportal`
-  (이제 NPI 점·지명·도폭 경계까지 받는다)
-- 올린 뒤 한 번 — `docker exec -w /app/web gsm-web-1 python manage.py verify_layers --probe-info`
-  (`/openapi/wms` 가 속성을 열었는지. 이 서버에는 키가 없어 못 보았다)
-- 올렸다(2026-09-29). VWorld 배경을 깐 "그림" 도 된다. `/openapi/wms` 의 속성은 아직 500 이다
-
-### v0.11.0 을 올릴 때
-
-- 기동할 때 이주 0011(점의 표고 칸 셋)이 들어간다. 씨앗·파일은 없다
-- 운영 장비에서 `s3.amazonaws.com`·`cyberjapandata.gsi.go.jp`·`di-pgc.img.arcgis.com` 으로 나갈 수
-  있어야 한다 — 이제 서버도 부른다(전에는 브라우저만)
-
-## VWorld 로 더 할 수 있는 것
-
-열쇠 하나로 배경지도 말고도 꽤 된다 — WMS 187 종(단층·지질구조선·수문지질
-단위·등산로), 점 하나로 묻는 데이터 API(읍면동·가까운 단층·토박이 지명),
-주소↔좌표. **3D 는 권하지 않는다** — Cesium 포크라 딴 화면이어야 하고,
-표고를 점 단위로 얻는 창구가 막혀 있다.
-
-쏴 보고 확인한 것과 막힌 것을 devlog 004 에 적었고, 할 일은 TODOs 맨 위에 있다.
+- 기동할 때 이주와 씨앗(`seed_catalog`)이 저절로 들어간다
+- 새 파일이 드는 판이면 **판보다 먼저** 위 "운영에 두는 파일" 자리에 둔다
+- 새 상류가 생기면 운영 장비에서 그 주소로 나갈 수 있는지 먼저 본다 (KOPRI 망의 TLS 는 위)
+- 올린 뒤 `deploy/host/smoke.sh`
 
 ## 걸린 것 — 없음
 
