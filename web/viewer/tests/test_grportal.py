@@ -80,6 +80,64 @@ class Fetch(SimpleTestCase):
                 grportal.fetch("grportal:geochron", pause=0)
 
 
+class Areas(SimpleTestCase):
+    """면과 갈래 색 — 광물 잠재 구역·불안정 사면·매스무브먼트·다이아몬드 산출지 (wetherilli 089)."""
+
+    def test_면은_레이어_번호와_줄이기를_붙여_받는다(self):
+        square = {"type": "Feature", "id": None,
+                  "geometry": {"type": "Polygon", "coordinates": [[[-50, 70], [-49, 70], [-49, 71], [-50, 70]]]},
+                  "properties": {"OBJECTID": 7, "Placename": "Sermikassak", "heights": 580}}
+        with mock.patch.object(grportal.requests, "get", return_value=page([square])) as get, \
+                mock.patch.object(grportal.usage, "record"):
+            got = grportal.fetch("grportal:unstable_slopes", pause=0)
+        self.assertEqual(got[0]["geometry"]["type"], "Polygon")
+        self.assertEqual(got[0]["id"], 7)                              # FID 가 아니라 OBJECTID
+        self.assertEqual(got[0]["properties"], {"place": "Sermikassak", "h": 580.0})
+        call = get.call_args_list[0]
+        self.assertIn("_WFL1/FeatureServer/2/query", call.args[0])
+        self.assertEqual(call.kwargs["params"]["maxAllowableOffset"], 0.0001)
+        self.assertEqual(call.kwargs["params"]["orderByFields"], "OBJECTID ASC")
+
+    def test_옛_레이어의_캐시_열쇠는_그대로다(self):
+        self.assertTrue(grportal.signature("grportal:geochron").startswith("geochron|FID|"))
+        self.assertTrue(grportal.signature("grportal:unstable_slopes").startswith(
+            "Map_of_unstable_slopes_and_registered_mass_movements_WFL1/2|OBJECTID|g=0.0001|"))
+
+    def test_모르는_값_마이너스_999_는_뺀다(self):
+        fields = grportal.LAYERS["grportal:diamond_occurrences"]["fields"]
+        got = grportal.compact({"id": 1, "geometry": {"type": "Point", "coordinates": [-52, 65]},
+                                "properties": {"STRIKE": -999, "DIP": 90, "DIAM_GRADE": " "}}, fields)
+        self.assertEqual(got["properties"], {"dip": 90.0})
+
+    def test_갈래를_가르고_범례를_싣는다(self):
+        rows = [{"type": "Feature", "id": i, "geometry": {"type": "Point", "coordinates": [-52, 65]},
+                 "properties": {"rock": rock}}
+                for i, rock in enumerate(["Kimberlitic", "Carbonatite_Kimberlitic", "Lamproitic",
+                                          "Lamprophyre_Ultramafic", "Kimberlitic", "Not_Reported"])]
+        body = json.loads(grportal.body("grportal:diamond_occurrences", json.dumps(rows).encode()))
+        self.assertEqual(body["style"], "class")
+        self.assertEqual([f["properties"]["code"] for f in body["features"]],
+                         ["kimb", "carb", "lampo", "lampr", "kimb", "other"])
+        self.assertEqual([(r["code"], r["count"]) for r in body["legend"]],
+                         [("kimb", 2), ("carb", 1), ("lampo", 1), ("lampr", 1), ("other", 1)])
+        self.assertIn("rock", body["labels"])
+
+    def test_갈래가_없는_옛_레이어는_그대로_싼다(self):
+        body = json.loads(grportal.body("grportal:geochron", b"[]"))
+        self.assertEqual(body["style"], "age")
+        self.assertNotIn("legend", body)
+
+    def test_범례_이름도_영어가_있다(self):
+        for spec in grportal.LAYERS.values():
+            if "classes" in spec:
+                for row in list(spec["classes"]["table"]) + [spec["classes"]["else"]]:
+                    self.assertIn(row[1], {**i18n.EN, **i18n.PROP_EN}, row[1])
+
+    def test_작성_중인_지도는_캐시를_30_일만_믿는다(self):
+        self.assertEqual(grportal.fresh_seconds("grportal:unstable_slopes"), 30 * 86400)
+        self.assertIsNone(grportal.fresh_seconds("grportal:geochron"))
+
+
 class Words(SimpleTestCase):
     """팝업 이름·레이어·레이어군의 영어가 표에 있다 (CLAUDE.md "영어판")."""
 

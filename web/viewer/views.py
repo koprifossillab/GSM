@@ -1958,8 +1958,10 @@ def point_features(name: str, *, refresh: bool = False) -> bytes:
     """
     _, module = _point_door(name)
     key = _point_key(name)
-    # 날마다 바뀌는 상류(phyloserver 의 암맥, 026)는 하루면 다시 묻는다
-    fresh = getattr(module, "FRESH_SECONDS", None)
+    # 날마다 바뀌는 상류(phyloserver 의 암맥, 026)는 하루면 다시 묻는다. 레이어마다 다른 문은
+    # `fresh_seconds` 를 둔다 — 그린란드 포털의 불안정 사면은 30 일 (wetherilli 089)
+    fresh = (module.fresh_seconds(name) if hasattr(module, "fresh_seconds")
+             else getattr(module, "FRESH_SECONDS", None))
     if not refresh:
         hit = tilecache.get(key, ".json", max_age=fresh)
         if hit is not None:

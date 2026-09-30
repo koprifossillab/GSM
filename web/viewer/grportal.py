@@ -15,6 +15,7 @@
 - 이용 조건은 항목에 적혀 있지 않다(`licenseInfo` 가 비어 있다). 웹지도의
   한 줄 소개가 "Free Geological Data for Greenland" 다. devlog 019
 """
+import json
 import logging
 
 import requests
@@ -106,6 +107,110 @@ LAYERS = {
             "color": _field("rgb", "", "rgb"),
         },
     },
+    # ── 면과 갈래 색 (wetherilli 089) ─────────────────────────────────
+    # 아래는 `style: class` 로 간다 — 극지연구소(053)와 같은 틀. 갈래(`classes`)를 받은 값에서
+    # 가르고 덩이에 `legend` 를 싣는다. 면(`areal`)은 `generalize` 도(°)로 줄여 받는다.
+    # `layer` 는 FeatureServer 안의 번호(적지 않으면 0), `fresh` 는 캐시를 믿는 초(적지 않으면 3 년)
+    #
+    # 광물 잠재 구역 — GEUS·그린란드 정부가 2009–2014 에 광종마다 연 평가 워크숍(USGS 3 단계 평가)의 구역.
+    # `n90`…`n01` 은 "이 확률로 적어도 몇 개" 의 미발견 광상 수다. 색은 포털이 광종마다 매긴 것(`rgb`)
+    "grportal:mineral_tracts": {
+        "service": "gmom_tracts",
+        "item": "91249221eda646ffa8c303936d169394",
+        "style": "class", "areal": True, "generalize": 0.005,
+        "classes": {"by": "work", "table": (
+            ("cu", "구리", "#008c28", "square", ("Copper",)),
+            ("au", "금", "#149bf0", "square", ("Gold",)),
+            ("ni", "니켈", "#8c28f0", "square", ("Nickel",)),
+            ("ree", "희토류", "#f0288c", "square", ("Rare Earth",)),
+            ("w", "텅스텐", "#288cf0", "square", ("Tungsten",)),
+            ("zn", "아연", "#8cf028", "square", ("Zinc",)),
+        ), "else": ("other", "그 밖·미상", "#757575", "square")},
+        "fields": {
+            "tract": _field("tract_name", "구역"),
+            "work": _field("workshop", "평가 광종"),
+            "year": _field("year", "평가 연도"),
+            "model": _field("mineralisa", "광상 모델"),
+            "known": _field("number_kno", "알려진 광상 수", "number"),
+            "unk": _field("number_unk", "미발견 광상 수 (추정)", "number"),
+            "n90": _field("n90", "미발견 광상 수 (90%)", "number"),
+            "n50": _field("n50", "미발견 광상 수 (50%)", "number"),
+            "n10": _field("n10", "미발견 광상 수 (10%)", "number"),
+            "n05": _field("n05", "미발견 광상 수 (5%)", "number"),
+            "n01": _field("n01", "미발견 광상 수 (1%)", "number"),
+            "link": _field("report", "보고서", "link"),
+            "geo": _field("geology_an", "지질 해설", "link"),
+        },
+    },
+    # 불안정 사면·매스무브먼트 — 그린란드 정부 지질과가 "작업 중, 정기적으로 고친다(마지막 2026-02)"
+    # 라고 적은 지도다. 한 서비스에 그린란드어·영어 이름의 같은 레이어가 둘씩 있어(5=2, 8=7) 영어 쪽을 받는다.
+    # 그래서 캐시를 30 일만 믿는다
+    "grportal:unstable_slopes": {
+        "service": "Map_of_unstable_slopes_and_registered_mass_movements_WFL1", "layer": 2, "oid": "OBJECTID",
+        "item": "43ac21a7a6dc4d389b42637004e2cad1",
+        "style": "class", "areal": True, "generalize": 0.0001, "fresh": 30 * 86400,
+        "classes": {"by": "", "table": (), "else": ("slope", "불안정 사면", "#f2c200", "square")},
+        "fields": {
+            "place": _field("Placename", "지명"),
+            "near": _field("closest_si", "가까운 마을"),
+            "dist": _field("distance_s", "마을까지 (km)", "number"),
+            "vol": _field("Min_volume", "최소 부피 (m³)", "number"),
+            "area": _field("area", "면적 (m²)", "number"),
+            "h": _field("heights", "높이 (m)", "number"),
+            "run": _field("Runout_3d_", "도달 거리 (m)", "number"),
+            "geol": _field("Geology", "지질"),
+            "src": _field("source_dat", "원자료"),
+        },
+    },
+    "grportal:mass_movements": {
+        "service": "Map_of_unstable_slopes_and_registered_mass_movements_WFL1", "layer": 7, "oid": "OBJECTID",
+        "item": "43ac21a7a6dc4d389b42637004e2cad1",
+        "style": "class", "areal": True, "generalize": 0.0001, "fresh": 30 * 86400,
+        "classes": {"by": "tsu", "table": (
+            ("tsunami", "매스무브먼트 — 쓰나미를 일으켰다", "#b71c1c", "square", ("1",)),
+        ), "else": ("event", "매스무브먼트", "#6d4c41", "square")},
+        "fields": {
+            "name": _field("Stednavn", "이름"),
+            "when": _field("Skred_periode", "일어난 때"),
+            "tsu": _field("Tsunamigeneration", "쓰나미 (1 = 일으켰다)"),
+            "vol": _field("Volumen", "부피 (m³)", "number"),
+            "area": _field("skredareal", "면적 (m²)", "number"),
+            "h": _field("H", "낙차 (m)", "number"),
+            "run": _field("Runout", "도달 거리 (m)", "number"),
+            "src": _field("Kildedata", "원자료"),
+            "note": _field("Remarks", "비고"),
+        },
+    },
+    # 다이아몬드 탐사 자료(DED)의 산출지 3 029 — 킴벌라이트·램프로파이어·카보나타이트 따위의 암맥·관입체.
+    # 모르는 값을 -999 로 적어 `measure` 로 받는다. 시추공·지시광물 화학은 받지 않았다
+    "grportal:diamond_occurrences": {
+        "service": "DED_GL_OCCURRENCES",
+        "item": "2f2965291cb84ba996a5754cfeddc111",
+        "style": "class",
+        "classes": {"by": "rock", "table": (
+            ("kimb", "킴벌라이트질", "#6a1b9a", "diamond", ("Kimberlit",)),
+            ("carb", "카보나타이트", "#00897b", "dot", ("Carbonatite", "Soevite", "Fenite")),
+            ("lampo", "램프로아이트", "#c2185b", "dot", ("Lamproit",)),
+            ("lampr", "램프로파이어", "#ef6c00", "dot", ("Lamprophyre", "Alnoite", "Shonkinite")),
+        ), "else": ("other", "그 밖·미상", "#757575", "dot")},
+        "fields": {
+            "loc": _field("LOCNAME", "지점"),
+            "other": _field("OTHER_NAME", "다른 이름"),
+            "rock": _field("ROCK_GROUP", "암석군"),
+            "morph": _field("MORPHOLOGY", "산상"),
+            "strike": _field("STRIKE", "주향 (°)", "measure"),
+            "dip": _field("DIP", "경사 (°)", "measure"),
+            "dipdir": _field("DIPDIR", "경사 방향"),
+            "len": _field("DIMENSION1", "길이 (m)", "measure"),
+            "wid": _field("DIMENSION2", "너비 (m)", "measure"),
+            "grade": _field("DIAM_GRADE", "다이아몬드 품위"),
+            "desc": _field("COMMENTS1", "기재"),
+            "note": _field("COMMENTS2", "비고"),
+            "srct": _field("SOURCETYPE", "출처 갈래"),
+            "owner": _field("OWNERNAME", "보고한 곳"),
+            "year": _field("DATE", "연도"),
+        },
+    },
 }
 
 #: 지도 귀퉁이에 적는 출처. 항목 주소가 있으면 그리로, 없으면 웹지도로 잇는다.
@@ -125,25 +230,36 @@ def signature(name: str) -> str:
     """캐시 열쇠에 넣는 것 (`arcpoints.signature`). 019 의 열쇠 그대로다 —
     틀을 떼어 냈다고 받아 둔 점을 다시 받지 않는다."""
     spec = LAYERS[name]
-    return arcpoints.signature(spec, f"{spec['service']}|FID")
+    head = f"{spec['service']}|FID"
+    if spec.get("layer") or spec.get("generalize"):
+        head = f"{spec['service']}/{spec.get('layer', 0)}|{spec.get('oid', 'FID')}|g={spec.get('generalize', 0)}"
+    return arcpoints.signature(spec, head)
+
+
+def fresh_seconds(name: str):
+    """캐시를 믿는 초. None 이면 다른 받아온 것처럼 3 년이다 (`views.point_features`)."""
+    return LAYERS[name].get("fresh")
 
 
 def labels(name: str) -> dict:
     return arcpoints.labels(LAYERS[name])
 
 
-def _query_url(service: str) -> str:
-    return f"{settings.GRPORTAL_URL.rstrip('/')}/{service}/FeatureServer/0/query"
+def _query_url(service: str, layer: int = 0) -> str:
+    return f"{settings.GRPORTAL_URL.rstrip('/')}/{service}/FeatureServer/{layer}/query"
 
 
-def _get_page(service: str, fields: list, offset: int) -> dict:
+def _get_page(service: str, fields: list, offset: int, *, layer: int = 0, oid: str = "FID",
+              generalize: float = 0) -> dict:
     params = {
         "where": "1=1", "outFields": ",".join(fields), "returnGeometry": "true",
-        "outSR": "4326", "f": "geojson", "orderByFields": "FID ASC",
+        "outSR": "4326", "f": "geojson", "orderByFields": f"{oid} ASC",
         "resultOffset": offset, "resultRecordCount": PAGE,
     }
+    if generalize:
+        params["maxAllowableOffset"] = generalize
     try:
-        r = requests.get(_query_url(service), params=params, timeout=settings.UPSTREAM_TIMEOUT,
+        r = requests.get(_query_url(service, layer), params=params, timeout=settings.UPSTREAM_TIMEOUT,
                          verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
     except requests.RequestException as exc:
         usage.record("grportal", ok=False)
@@ -174,11 +290,14 @@ def fetch(name: str, pause: float = None) -> list:
     """
     spec = LAYERS[name]
     fields = spec["fields"]
+    oid = spec.get("oid", "FID")
     # FID 를 늘 함께 받는다 — 열을 골라 받으면 상류가 feature 의 `id` 를 비워 보낸다
-    wanted = sorted({f["from"] for f in fields.values()} | {"FID"})
-    return arcpoints.collect(lambda offset: _get_page(spec["service"], wanted, offset), fields,
-                             page=PAGE, max_pages=MAX_PAGES, pause=PAUSE if pause is None else pause,
-                             name=name)
+    wanted = sorted({f["from"] for f in fields.values()} | {oid})
+    return arcpoints.collect(
+        lambda offset: _get_page(spec["service"], wanted, offset, layer=spec.get("layer", 0), oid=oid,
+                                 generalize=spec.get("generalize", 0)),
+        fields, page=PAGE, max_pages=MAX_PAGES, pause=PAUSE if pause is None else pause,
+        name=name, oid=oid, areal=spec.get("areal", False))
 
 
 #: 받은 feature 를 우리 꼴로 줄이는 틀은 `arcpoints` 에 있다 (NPI 와 함께 쓴다, 021)
@@ -186,6 +305,33 @@ compact = arcpoints.compact
 _clean = arcpoints.clean
 
 
+def class_of(spec: dict, props: dict) -> tuple:
+    """feature 하나의 갈래 (code, label, color, shape). 받은 값이 표의 머리말로 시작하면 그 갈래다 —
+    위에서부터 먼저 맞는 것. 캐시에는 넣지 않고 내보낼 때 가른다 — 색을 고쳐도 다시 받지 않는다."""
+    classes = spec["classes"]
+    value = str(props.get(classes["by"], "")) if classes["by"] else ""
+    for code, label, color, shape, heads in classes["table"]:
+        if value.startswith(heads):
+            return code, label, color, shape
+    return classes["else"]
+
+
 def body(name: str, features_json: bytes) -> bytes:
-    """브라우저에 보내는 한 덩이 (`arcpoints.body`)."""
-    return arcpoints.body(LAYERS[name], features_json)
+    """브라우저에 보내는 한 덩이 (`arcpoints.body`). 갈래가 있는 레이어는 feature 마다 `code`,
+    덩이에 `legend`([{code, label, color, shape, count}])를 싣는다 — 극지연구소와 같은 꼴이다."""
+    spec = LAYERS[name]
+    if "classes" not in spec:
+        return arcpoints.body(spec, features_json)
+    features = json.loads(features_json)
+    counts, table = {}, {}
+    for feature in features:
+        code, label, color, shape = class_of(spec, feature["properties"])
+        feature["properties"]["code"] = code
+        counts[code] = counts.get(code, 0) + 1
+        table[code] = (label, color, shape)
+    order = [row[0] for row in spec["classes"]["table"]] + [spec["classes"]["else"][0]]
+    legend = [{"code": c, "label": table[c][0], "color": table[c][1], "shape": table[c][2], "count": counts[c]}
+              for c in order if c in counts]
+    return json.dumps({"type": "FeatureCollection", "labels": arcpoints.labels(spec),
+                       "links": arcpoints.links(spec), "style": "class", "legend": legend,
+                       "features": features}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
