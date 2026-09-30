@@ -44,7 +44,7 @@ urlpatterns = [
     path("earth/info/", views.earth_info, name="earth-info"),
     path("earth/legend/", views.earth_legend, name="earth-legend"),
     path("earth/paleo/", views.earth_paleo, name="earth-paleo"),
-    re_path(r"^earth/paleo/tiles/(?P<style>land|edge)/(?P<age>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+    re_path(r"^earth/paleo/tiles/(?P<style>land|edge|coast)/(?P<age>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_paleo_tile, name="earth-paleo-tile"),
     path("earth/paleo/at/", views.earth_paleo_at, name="earth-paleo-at"),
     path("pointsets/<int:pk>/paleo/", views.earth_paleo_set, name="pointset-paleo"),

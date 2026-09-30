@@ -57,20 +57,32 @@
     ] },
     // 판 회전에 쓰는 대륙 조각의 경계 — 오늘의 것. 옛 연대에는 서버가 돌려 칠한 판이 배경이 된다 (wetherilli 091)
     { group: "판 조각 (PALEOMAP 2016)", layers: [
-      { name: "plates", title: "판 조각 경계", grid: "ll", today: true, src: "PALEOMAP 2016 (Scotese) · CC BY 4.0" },
+      { name: "plates", title: "판 조각 경계", grid: "ll", src: "PALEOMAP 2016 (Scotese) · CC BY 4.0" },
+    ] },
+    // 그때의 지구에만 뜨는 것 — 연대(1 Ma 부터)를 따라 타일이 바뀐다 (P07·wetherilli 097)
+    //   then  1 Ma 부터만 뜬다. 오늘의 레이어는 그 반대다
+    { group: "그때의 지구", layers: [
+      { name: "coast", title: "옛 해안선", grid: "ll", then: true,
+        src: "PaleoCoastlines v7.1 (Kocsis & Scotese 2021) · CC BY 4.0" },
     ] },
   ];
+  var THEN = JSON.parse(($("then-data") || {}).textContent || "{}");
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
   var GEO_NAMES = ALL_NAMES;
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
-    return name === "plates" ? paleoUrl("edge", 0) : BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
+    if (name === "plates") return paleoUrl("edge", 0);
+    if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
+    return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
   var GEO_CREDIT = "Macrostrat (CC BY 4.0) · Peters, Husson & Czaplewski 2018, G-cubed";
   var PALEO_CREDIT = "PALEOMAP 2016 (CC BY 4.0) · Scotese 2016, PALEOMAP PaleoAtlas for GPlates";
-  function creditOf(name) { return name === "geology" ? GEO_CREDIT : name === "plates" ? PALEO_CREDIT : undefined; }
+  var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
+  function creditOf(name) {
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT }[name];
+  }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
   function paleoUrl(style, age) { return BASE + "earth/paleo/tiles/" + style + "/" + age + "/{z}/{x}/{y}.png"; }
@@ -103,6 +115,12 @@
     } catch (e) { /* 깨진 값 */ }
     return [{ name: "geology", opacity: 0.6 }];
   })();
+  // 옛 해안선(097)은 처음 한 번 켜 둔다 — 전에 기억한 목록에도. 사람이 끄면 그대로 꺼진다
+  if (saved("gsm.earth.coast.added", "") !== "1") {
+    if (!active.some(function (e) { return e.name === "coast"; })) active.push({ name: "coast", opacity: 1 });
+    save("gsm.earth.coast.added", "1");
+    save("gsm.earth.layers", JSON.stringify(active));
+  }
   function entryOf(name) { return active.filter(function (e) { return e.name === name; })[0]; }
   function isOn(name) { return !!entryOf(name); }
   function saveLayers() { save("gsm.earth.layers", JSON.stringify(active)); }
@@ -293,16 +311,16 @@
   var oBase = baseLayer("moon-base", look.base);
   // 지질도 — 3857 z/x/y 를 어느 투영에서나 OpenLayers 가 옮겨 그린다. 그래서 투영을 바꿔도 소스를 갈지 않는다
   function geoSource(name) {
-    if (LAYER[name].grid === "ll") return paleoSource(geoUrl(name));
+    if (LAYER[name].grid === "ll") return paleoSource(geoUrl(name), creditOf(name));
     return new ol.source.XYZ({ url: geoUrl(name), maxZoom: GEO_MAX, attributions: creditOf(name),
                                crossOrigin: "anonymous" });            // CORS — 그림으로 뽑으려면 (048)
   }
   // 판 조각 — 경위도 격자(줌 0 이 180° 두 장, 256 칸). 극 평면에서는 OpenLayers 가 옮겨 그린다
-  function paleoSource(url) {
+  function paleoSource(url, credit) {
     var res = [];
     for (var z = 0; z <= PALEO_MAX; z++) res.push(180 / 256 / Math.pow(2, z));
     return new ol.source.XYZ({
-      url: url, projection: LL, attributions: PALEO_CREDIT, crossOrigin: "anonymous",
+      url: url, projection: LL, attributions: credit || PALEO_CREDIT, crossOrigin: "anonymous",
       tileGrid: new ol.tilegrid.TileGrid({ extent: [-180, -90, 180, 90], origin: [-180, 90], resolutions: res, tileSize: 256 }),
     });
   }
@@ -665,7 +683,8 @@
   function applyStack() {
     Object.keys(cGeo).forEach(function (name) {
       var e = entryOf(name);
-      var shown = !!e && !paleoOn();          // 오늘의 것은 오늘에만 뜬다 (P07 §2)
+      // 오늘의 것은 오늘에만, 그때의 것(`then`)은 1 Ma 부터만 뜬다 (P07 §2)
+      var shown = !!e && (LAYER[name].then ? paleoOn() : !paleoOn());
       cGeo[name].show = shown;
       oGeo[name].setVisible(shown);
       if (e) { cGeo[name].alpha = e.opacity; oGeo[name].setOpacity(e.opacity); }
@@ -1290,6 +1309,14 @@
   var AGE_BANDS = [
     { title: "판 조각 (PALEOMAP 2016)", from: PALEO_FROM, to: AGE_MAX },
   ];
+  var COAST_AGES = (THEN.coast || []).filter(function (a) { return a >= PALEO_FROM; });
+  if (COAST_AGES.length) AGE_BANDS.push({ title: "옛 해안선", from: COAST_AGES[0], to: COAST_AGES[COAST_AGES.length - 1] + 10 });
+  /** 옛 해안선의 시점 — 가장 가까운 것, 10 Myr 안에서만 (서버의 `paleocoast.stop` 과 같다) */
+  function coastStop(a) {
+    var best = null;
+    (THEN.coast || []).forEach(function (c) { if (best == null || Math.abs(c - a) < Math.abs(best - a)) best = c; });
+    return best != null && Math.abs(best - a) <= 10 ? best : null;
+  }
   var AGE_TICKS = [[0.001, "1 ka"], [0.01, "10 ka"], [0.1, "100 ka"], [1, "1 Ma"], [10, "10 Ma"], [100, "100 Ma"], [1000, "1 Ga"]];
   var ageRange = $("age-range"), ageInput = $("age-input");
   function pct(a) { return (toSlider(a) / SLIDER * 100).toFixed(2) + "%"; }
@@ -1327,6 +1354,20 @@
     oPaleo.setVisible(true);
   }
 
+  // 그때의 레이어(`then`) — 연대마다 타일 주소가 달라 갈아 끼운다. 구는 같은 자리(차례)에 새로 넣는다
+  var thenAt = null;
+  function refreshThen(a) {
+    if (a === thenAt || a == null) { thenAt = a == null ? thenAt : a; return; }
+    thenAt = a;
+    GEO_NAMES.filter(function (n) { return LAYER[n].then; }).forEach(function (name) {
+      var at = viewer.imageryLayers.indexOf(cGeo[name]);
+      viewer.imageryLayers.remove(cGeo[name], true);
+      cGeo[name] = viewer.imageryLayers.addImageryProvider(cPaleoProvider(geoUrl(name), creditOf(name)), at);
+      cRaise[name] = [cGeo[name]];
+      oGeo[name].setSource(geoSource(name));
+    });
+    applyStack();
+  }
   var wasPaleo = null, setsAt = 0;
   function showAge() {
     var p = paleoOn();
@@ -1336,9 +1377,15 @@
     $("age-period").textContent = period;
     $("age-now").disabled = !age;
     $("timebar").classList.toggle("paleo", p);
-    $("age-note").textContent = !age ? "" : p
+    var note = !age ? "" : p
       ? T("PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다")
       : T("오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다");
+    if (p && isOn("coast")) {
+      var c = coastStop(age);
+      note += " " + (c == null ? T("옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)")
+                                : T("옛 해안선은 {age} Ma 의 것 — 화석이 가리키는 가장 깊은 바다", { age: c }));
+    }
+    $("age-note").textContent = note;
   }
   function applyAge(a) {
     a = snapAge(a);
@@ -1365,6 +1412,7 @@
       applyStack();
     }
     showPaleo(p ? age : null);
+    refreshThen(p ? age : null);
     // 점묶음 — 그때의 지구에서는 그 연대의 자리로 옮긴 것을 다시 받는다. 오늘의 지구끼리는 그대로다
     var want = p ? age : 0;
     if (want !== setsAt) {
@@ -2228,7 +2276,8 @@
 
   /** 띠에 적을 줄들. 첫 줄이 제목이다. */
   function exportLines() {
-    var shown = paleoOn() ? [] : active.map(function (e) { return T(LAYER[e.name].title); });
+    var shown = active.filter(function (e) { return !LAYER[e.name].then === !paleoOn(); })
+                      .map(function (e) { return T(LAYER[e.name].title); });
     var mine = pointsets.filter(function (ps) { return ps.visible; });
     var select = $("basemap"), base = select.options[select.selectedIndex].text;
     var tuned = TUNES.filter(function (k) { return tune[k] !== TUNE_DEFAULT[k]; });
@@ -2249,7 +2298,9 @@
       if (look.terrain) where += " · " + T("지형 과장") + " ×" + (look.exag / 10).toFixed(1);
     }
     var credits = paleoOn() ? [PALEO_CREDIT] : [BASES[look.base].credit];
-    if (!paleoOn()) active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
+    active.forEach(function (e) {
+      if (!LAYER[e.name].then === !paleoOn()) credits.push(creditOf(e.name) || LAYER[e.name].src);
+    });
     if (mode === "globe" && look.terrain && !paleoOn()) credits.push(DEM_CREDIT);
     credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
     var kind = mode !== "flat" ? T("구") : proj === EQC ? T("평면") :

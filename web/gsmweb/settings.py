@@ -153,6 +153,9 @@ MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")
 #: 화성 크레이터 목록(Robbins & Hynek 2012)을 구운 sqlite(`mars_craters.sqlite`)와 옛 지질도(`mars_originals.sqlite`,
 #: 068)가 있는 곳 (`viewer/marscraters.py`·`marsmap.py`, devlog 067). 우리 디스크의 파일이다. 없으면 크레이터 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/mars
 MARS_DIR = env("GSM_MARS_DIR") or str(_data_dir() / "mars")
+#: 온 지구의 큰 자료 — 옛 해안선(`paleocoastlines_v7.json`, wetherilli 097, `manage.py build_paleocoastlines <zip>`) 따위.
+#: 우리 디스크의 파일이다. 없으면 그 레이어가 비고 나머지는 돈다. 운영은 /srv/GSM/db/earth (P07 §5)
+EARTH_DIR = env("GSM_EARTH_DIR") or str(_data_dir() / "earth")
 #: 화성 옛 지질도(068)의 단위 색·구조선 모양 — 저장소에 담는다
 MARS_ORIGINAL_STYLES_FILE = BASE_DIR.parent / "data" / "mars_original_styles.json"
 #: 연구실의 phyloserver — 암맥 기록 (`viewer/phyloserver.py`, devlog 026). 열쇠가 없다.

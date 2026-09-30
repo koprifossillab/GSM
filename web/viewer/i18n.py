@@ -290,6 +290,13 @@ EN = {
     "거슬러 옮기는 끝": "Carried back to",
     "이 조각은 오늘까지 남지 않았다 — 오늘의 자리는 그 판이 가 있을 곳이다":
         "This piece does not survive to the present — 'today' is where its plate would be",
+    # 옛 해안선 (wetherilli 097)
+    "그때의 지구": "The Earth then",
+    "옛 해안선": "Palaeocoastlines",
+    "옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)":
+        "No palaeocoastline for this age (0–535 Ma, nearest within 10 Myr)",
+    "옛 해안선은 {age} Ma 의 것 — 화석이 가리키는 가장 깊은 바다":
+        "Palaeocoastline of {age} Ma — the furthest reach of the sea that fossils indicate",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
