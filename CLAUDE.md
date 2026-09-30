@@ -333,7 +333,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   views.py        화면 하나 + 프록시 둘 + 업로드
 deploy/           Docker·nginx·배포 스크립트
 data/             카탈로그 씨앗
-web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/tiles)
+web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/tiles, 컨테이너 안에서는 /srv/GSM/tiles)
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 

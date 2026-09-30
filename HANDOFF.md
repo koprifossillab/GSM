@@ -142,7 +142,8 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 ## 배포한 자리에서 알아둘 것
 
 `/srv/GSM` 은 배포한 사람(root)의 것이라 **`.env` 도 `docker-compose.yml` 도
-못 고친다.** 쓸 수 있는 것은 `db/` 와 `tiles/` 뿐이다. 2026-09-23 에 이것이
+못 고친다.** 쓸 수 있는 것은 `db/` 뿐이다(고칠 때는 사람이 sudo 로). 타일 캐시는 2026-09-30 에
+`/data/GSM/tiles`(8 TB 하드)로 옮겼다 — 컨테이너 안의 경로는 그대로 `/srv/GSM/tiles` 다 (wetherilli 082). 2026-09-23 에 이것이
 세 번 걸렸다 — 빈 `SECRET_KEY` 로 기동 실패, `ALLOWED_HOSTS` 에 `paleolab` 이
 없어 400, 그리고 임시 스위치.
 
