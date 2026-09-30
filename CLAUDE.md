@@ -217,7 +217,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   **시간 축**(wetherilli P07·091) — 연대 하나를 로그 막대로 고른다(`?age=`). 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
   서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
   판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다. 레이어의 `then: true` 는 1 Ma 부터만 뜬다 — 옛 해안선
-  (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097)
+  (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097).
+  `always` 는 늘 뜬다 — **화석 산지**(PBDB 27 만 곳, 문 `pbdb.py`, `manage.py fetch_pbdb` 가 받아 `fossils.py` 가 `<EARTH_DIR>/pbdb.sqlite`
+  로 굽는다, wetherilli 098). 화면이 부를 때 PBDB 를 타지 않는다. 옛 연대에는 그 연대를 품은 산지를 우리 판 회전으로 옮겨 찍는다
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
@@ -324,6 +326,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례)
+  pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
   macrostrat.py   Macrostrat 으로 나가는 문 (온 지구의 지질도 타일·누른 자리의 단위·범례). 온 지구 화면만 쓴다
@@ -342,6 +345,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   spamap.py       남극–에이트켄 분지 지질도 원본(팔레트 GeoTIFF) -> 누른 자리의 단위. 타일은 Trek 의 것. 문이 아니다
   paleo.py        PALEOMAP 2016 판 회전(data/paleomap2016.json) -> 오늘의 한 자리가 옛 연대에 있던 곳. 문이 아니다
   paleocoast.py   옛 해안선 PaleoCoastlines v7.1 -> 그때의 지구에 얹는 경위도 타일. 문이 아니다
+  fossils.py      PBDB 화석 산지 CSV -> sqlite(R*Tree) -> 연대마다 그 자리의 점 타일·누른 자리. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
@@ -356,9 +360,9 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`.**
-이 열하나 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py` 는
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`.**
+이 열둘 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 

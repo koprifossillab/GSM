@@ -297,6 +297,12 @@ EN = {
         "No palaeocoastline for this age (0–535 Ma, nearest within 10 Myr)",
     "옛 해안선은 {age} Ma 의 것 — 화석이 가리키는 가장 깊은 바다":
         "Palaeocoastline of {age} Ma — the furthest reach of the sea that fossils indicate",
+    # 화석 산지 (wetherilli 098)
+    "PBDB 의 옛 자리": "Palaeoposition by PBDB",
+    "화석 산지 (PBDB)": "Fossil collections (PBDB)",
+    "화석 산지": "Fossil collections",
+    "PBDB 에서 보기": "Open in PBDB",
+    "산지 {n} 곳 가운데 가까운 것부터": "Nearest of {n} collections",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
@@ -852,6 +858,11 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 화석 산지 (wetherilli 098)
+    "산지": "Collection",
+    "퇴적 환경": "Environment",
+    "화석 수": "Occurrences",
+    "첫 문헌": "Primary reference",
     "지질시대": "Geologic age",
     "시대": "Age",
     "도폭": "Map sheet",

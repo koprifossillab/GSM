@@ -61,6 +61,11 @@
     ] },
     // 그때의 지구에만 뜨는 것 — 연대(1 Ma 부터)를 따라 타일이 바뀐다 (P07·wetherilli 097)
     //   then  1 Ma 부터만 뜬다. 오늘의 레이어는 그 반대다
+    // 화석 산지 — 모든 연대에 뜬다(`always`). 오늘은 모든 산지, 옛 연대는 그 연대를 품은 산지를 그때의 자리에 (098)
+    { group: "화석 산지 (PBDB)", layers: [
+      { name: "fossils", title: "화석 산지", grid: "ll", always: true, legend: "geology",
+        src: "Paleobiology Database · CC BY 4.0" },
+    ] },
     { group: "그때의 지구", layers: [
       { name: "coast", title: "옛 해안선", grid: "ll", then: true,
         src: "PaleoCoastlines v7.1 (Kocsis & Scotese 2021) · CC BY 4.0" },
@@ -75,13 +80,15 @@
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
+    if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
   var GEO_CREDIT = "Macrostrat (CC BY 4.0) · Peters, Husson & Czaplewski 2018, G-cubed";
   var PALEO_CREDIT = "PALEOMAP 2016 (CC BY 4.0) · Scotese 2016, PALEOMAP PaleoAtlas for GPlates";
   var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
+  var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   function creditOf(name) {
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT }[name];
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
@@ -116,10 +123,17 @@
     return [{ name: "geology", opacity: 0.6 }];
   })();
   // 옛 해안선(097)은 처음 한 번 켜 둔다 — 전에 기억한 목록에도. 사람이 끄면 그대로 꺼진다
-  if (saved("gsm.earth.coast.added", "") !== "1") {
-    if (!active.some(function (e) { return e.name === "coast"; })) active.push({ name: "coast", opacity: 1 });
-    save("gsm.earth.coast.added", "1");
+  // 화석 산지(098)도 그렇게 한 번 켜 둔다
+  [["coast", "gsm.earth.coast.added"], ["fossils", "gsm.earth.fossils.added"]].forEach(function (pair) {
+    if (saved(pair[1], "") === "1") return;
+    if (!active.some(function (e) { return e.name === pair[0]; })) active.unshift({ name: pair[0], opacity: 1 });
+    save(pair[1], "1");
     save("gsm.earth.layers", JSON.stringify(active));
+  });
+  /** 지금의 연대에 이 레이어가 뜨나 — 오늘의 것은 오늘에만, 그때의 것(`then`)은 1 Ma 부터, `always` 는 늘 (P07 §2) */
+  function visibleNow(name) {
+    var l = LAYER[name];
+    return l.always ? true : l.then ? paleoOn() : !paleoOn();
   }
   function entryOf(name) { return active.filter(function (e) { return e.name === name; })[0]; }
   function isOn(name) { return !!entryOf(name); }
@@ -683,8 +697,7 @@
   function applyStack() {
     Object.keys(cGeo).forEach(function (name) {
       var e = entryOf(name);
-      // 오늘의 것은 오늘에만, 그때의 것(`then`)은 1 Ma 부터만 뜬다 (P07 §2)
-      var shown = !!e && (LAYER[name].then ? paleoOn() : !paleoOn());
+      var shown = !!e && visibleNow(name);
       cGeo[name].show = shown;
       oGeo[name].setVisible(shown);
       if (e) { cGeo[name].alpha = e.opacity; oGeo[name].setOpacity(e.opacity); }
@@ -983,7 +996,7 @@
       return;
     }
     var at = globeLL(click.position);
-    if (at) (paleoOn() ? askPaleo : askUnit)(at, px);
+    if (at) askAt(at, px);
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   flat.on("singleclick", function (e) {
     // 도구가 켜져 있으면 도구가 받는다. 선·면·범위는 평면의 Draw·DragBox 가 따로 받는다 (041)
@@ -997,7 +1010,7 @@
       showFeature(props, hit[1].get("gsmSet"), ll, e.pixel);
       return;
     }
-    (paleoOn() ? askPaleo : askUnit)(wrapLon(toLL(e.coordinate)), e.pixel);
+    askAt(wrapLon(toLL(e.coordinate)), e.pixel);
   });
 
   // ══ 범례 — 오른쪽 아래, 펼쳐 둔다 ═══════════════════════════════
@@ -1023,8 +1036,11 @@
   }
   var legendAsked = 0;
   function syncLegend() {
-    var layers = active.filter(function (e) { return LAYER[e.name].legend && !paleoOn(); })
-                       .map(function (e) { return LAYER[e.name]; });
+    // 같은 범례(기의 색)를 쓰는 레이어가 여럿이면 한 번만 — 지질 단위와 화석 산지 (098)
+    var kinds = {};
+    var layers = active.filter(function (e) { return LAYER[e.name].legend && visibleNow(e.name); })
+                       .map(function (e) { return LAYER[e.name]; })
+                       .filter(function (l) { return !kinds[l.legend] && (kinds[l.legend] = true); });
     dock.hidden = !layers.length;
     if (!layers.length) return;
     var mine = ++legendAsked;
@@ -1354,12 +1370,15 @@
     oPaleo.setVisible(true);
   }
 
-  // 그때의 레이어(`then`) — 연대마다 타일 주소가 달라 갈아 끼운다. 구는 같은 자리(차례)에 새로 넣는다
-  var thenAt = null;
-  function refreshThen(a) {
-    if (a === thenAt || a == null) { thenAt = a == null ? thenAt : a; return; }
-    thenAt = a;
-    GEO_NAMES.filter(function (n) { return LAYER[n].then; }).forEach(function (name) {
+  // 연대를 따르는 레이어(옛 해안선·화석 산지) — 타일 주소가 연대마다 달라, 주소가 바뀌면 갈아 끼운다. 구는 같은
+  // 자리(차례)에 새로 넣는다
+  var urlNow = {};
+  GEO_NAMES.forEach(function (n) { urlNow[n] = geoUrl(n); });
+  function refreshThen() {
+    var changed = GEO_NAMES.filter(function (n) { return geoUrl(n) !== urlNow[n]; });
+    if (!changed.length) return;
+    changed.forEach(function (name) {
+      urlNow[name] = geoUrl(name);
       var at = viewer.imageryLayers.indexOf(cGeo[name]);
       viewer.imageryLayers.remove(cGeo[name], true);
       cGeo[name] = viewer.imageryLayers.addImageryProvider(cPaleoProvider(geoUrl(name), creditOf(name)), at);
@@ -1412,7 +1431,7 @@
       applyStack();
     }
     showPaleo(p ? age : null);
-    refreshThen(p ? age : null);
+    refreshThen();
     // 점묶음 — 그때의 지구에서는 그 연대의 자리로 옮긴 것을 다시 받는다. 오늘의 지구끼리는 그대로다
     var want = p ? age : 0;
     if (want !== setsAt) {
@@ -1471,6 +1490,38 @@
           });
       })
       .catch(function () { if (mine === asked) showPopup(head + '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>", pixel); });
+  }
+  // ══ 화석 산지를 누르면 (wetherilli 098) ══════════════════════════
+  //
+  // 켜져 있으면 먼저 누른 자리 둘레(7 칸)의 산지를 묻는다. 있으면 산지를, 없으면 여느 때처럼 그 자리를(오늘은 지질 단위,
+  // 옛 연대는 판 조각) 보인다 — 점묶음의 점을 누른 것과 같은 차례다
+  function askAt(ll, pixel) {
+    var ask = paleoOn() ? askPaleo : askUnit;
+    if (!isOn("fossils") || !THEN.fossils) { ask(ll, pixel); return; }
+    var mine = ++asked;
+    var perPx = (mode === "flat" ? groundRes() : heightToRes(hereHeight())) / 111320;
+    fetch(BASE + "earth/fossils/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&age=" + age +
+          "&r=" + Math.max(0.002, perPx * 7).toFixed(4))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (mine !== asked) return;
+        if (!d.hits || !d.hits.length) { ask(ll, pixel); return; }
+        showFossils(d.hits, pixel);
+      })
+      .catch(function () { if (mine === asked) ask(ll, pixel); });
+  }
+  function showFossils(hits, pixel) {
+    var first = hits[0];
+    markAt(first.at);
+    var html = coordHead(first.today) + paleoForm(first.today, first.mid);
+    if (hits.length > 1) html += '<p class="none">' + esc(T("산지 {n} 곳 가운데 가까운 것부터", { n: hits.length })) + "</p>";
+    html += hits.map(function (h) {
+      return "<h3>" + esc(h.name) + "</h3><table>" + h.rows.map(function (row) {
+        return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+      }).join("") + '</table><p><a class="ett-link" target="_blank" rel="noopener" href="' + esc(h.link) + '">' +
+        esc(T("PBDB 에서 보기")) + "</a></p>";
+    }).join("");
+    showPopup(html, pixel);
   }
   function goToday(lon, lat) {
     var c = cameraLL();
@@ -2276,7 +2327,7 @@
 
   /** 띠에 적을 줄들. 첫 줄이 제목이다. */
   function exportLines() {
-    var shown = active.filter(function (e) { return !LAYER[e.name].then === !paleoOn(); })
+    var shown = active.filter(function (e) { return visibleNow(e.name); })
                       .map(function (e) { return T(LAYER[e.name].title); });
     var mine = pointsets.filter(function (ps) { return ps.visible; });
     var select = $("basemap"), base = select.options[select.selectedIndex].text;
@@ -2299,7 +2350,7 @@
     }
     var credits = paleoOn() ? [PALEO_CREDIT] : [BASES[look.base].credit];
     active.forEach(function (e) {
-      if (!LAYER[e.name].then === !paleoOn()) credits.push(creditOf(e.name) || LAYER[e.name].src);
+      if (visibleNow(e.name)) credits.push(creditOf(e.name) || LAYER[e.name].src);
     });
     if (mode === "globe" && look.terrain && !paleoOn()) credits.push(DEM_CREDIT);
     credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
