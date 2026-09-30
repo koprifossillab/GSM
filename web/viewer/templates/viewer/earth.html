@@ -261,6 +261,25 @@
     <output id="tool-out" class="tool-out" hidden></output>
   </div>
 
+  {% comment %}시간 축 (wetherilli P07·091) — 연대 하나. 0 이 오늘이고, 1 Ma 넘어서는 판을 돌린 그때의 지구다{% endcomment %}
+  <div id="timebar" class="timebar" role="group" aria-labelledby="age-cap">
+    <div class="tb-row">
+      <span class="tb-cap" id="age-cap">{% t "연대" %}</span>
+      <form id="age-form" class="tb-form">
+        <input id="age-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+               title="{% t "연대를 넣는다 — 250, 20 ka, 1.2 Ga" %}" aria-label="{% t "연대" %}">
+      </form>
+      <span class="tb-period" id="age-period"></span>
+      <button type="button" class="tb-now" id="age-now" title="{% t "오늘로 — 연대를 0 으로" %}">{% t "오늘" %}</button>
+    </div>
+    <div class="tb-track">
+      <div class="tb-bands" id="age-bands" aria-hidden="true"></div>
+      <input id="age-range" type="range" min="0" max="1000" step="1" aria-labelledby="age-cap">
+      <div class="tb-ticks" id="age-ticks" aria-hidden="true"></div>
+    </div>
+    <p class="tb-note" id="age-note"></p>
+  </div>
+
   <div id="scalebar"></div>
 
   <details class="legend-dock" id="legend-dock" open>

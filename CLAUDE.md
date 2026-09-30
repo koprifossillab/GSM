@@ -213,7 +213,10 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   누른 자리는 **그때의 자리**(`paleo.py`, wetherilli 087)도 보인다 — PALEOMAP 2016 판 회전(`data/paleomap2016.json`, CC BY 4.0,
   `manage.py build_paleomap <zip>`)으로 단위의 윗·밑 연대나 사람이 넣은 연대로 옮긴다. EarthThruTime3D 와 같은 모델·같은 줄임이다 —
   건너갔을 때 같은 자리에 핀이 서게. 셈은 ETT 의 코드(MIT, `docs/licenses/`)를 옮겼다. **계산이지 관측이 아니다**.
-  옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다
+  옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다.
+  **시간 축**(wetherilli P07·091) — 연대 하나를 로그 막대로 고른다(`?age=`). 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
+  서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
+  판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)

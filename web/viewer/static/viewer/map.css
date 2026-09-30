@@ -1697,3 +1697,32 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   .legend-dock { width: auto; left: 12px; }
   .coord-readout { display: none; }
 }
+/* 시간 축 (wetherilli 091) — 온 지구 화면의 왼쪽 위. 연대 하나를 로그 막대로 고른다 */
+.timebar { position: absolute; left: 12px; top: 12px; z-index: 6; width: min(520px, calc(100% - 200px));
+           padding: 8px 12px 6px; background: var(--glass); border: 1px solid var(--glass-line); border-radius: 10px;
+           box-shadow: var(--shadow); backdrop-filter: blur(6px); font-size: 12px; color: var(--ink-soft); }
+.timebar .tb-row { display: flex; align-items: center; gap: 8px; }
+.timebar .tb-cap { font-weight: 700; letter-spacing: .08em; color: var(--gold-bright); }
+.timebar .tb-form input { width: 92px; padding: 2px 6px; font: 600 13px var(--font-mono); color: var(--ink);
+                          background: var(--panel-tint); border: 1px solid var(--line); border-radius: 5px; }
+.timebar .tb-period { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                      color: var(--ink); }
+.timebar .tb-now { padding: 2px 10px; font: inherit; color: var(--on-hi); background: var(--hi); border: 0;
+                   border-radius: 5px; cursor: pointer; }
+.timebar .tb-now:disabled { opacity: .45; cursor: default; }
+.timebar .tb-track { position: relative; margin-top: 6px; }
+.timebar input[type="range"] { display: block; width: 100%; margin: 0; accent-color: var(--hi); }
+/* 자료가 있는 구간 — 막대 위 띠. 레이어마다 한 줄 */
+.timebar .tb-bands { position: relative; height: 0; }
+.timebar .tb-band { position: relative; height: 4px; margin-bottom: 2px; border-radius: 2px; opacity: .8; }
+.timebar .tb-band span { position: absolute; top: 0; bottom: 0; border-radius: 2px; background: var(--gold); }
+.timebar .tb-ticks { position: relative; height: 14px; font: 10px var(--font-mono); color: var(--ink-faint); }
+.timebar .tb-ticks span { position: absolute; top: 1px; transform: translateX(-50%); white-space: nowrap; }
+.timebar .tb-ticks span:first-child { transform: none; }
+.timebar .tb-ticks span:last-child { transform: translateX(-100%); }
+.timebar .tb-note { margin: 2px 0 0; line-height: 1.45; color: var(--ink-faint); }
+.timebar .tb-note:empty { display: none; }
+.timebar.paleo { border-color: var(--gold); }
+.popup .today-go { margin: 4px 0 2px; padding: 2px 10px; font: inherit; font-size: 12px; color: var(--on-hi);
+                   background: var(--hi); border: 0; border-radius: 5px; cursor: pointer; }
+@media (max-width: 720px) { .timebar { width: calc(100% - 24px); top: auto; bottom: 64px; } }

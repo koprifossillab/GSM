@@ -137,3 +137,74 @@ class Views(TestCase):
         with override_settings(PALEOMAP_FILE="/nonexistent/pm.json"):
             self.assertEqual(self.client.get(reverse("viewer:earth-paleo"),
                                              {"lon": 1, "lat": 1, "age": 1}).status_code, 503)
+
+
+class Then(SimpleTestCase):
+    """그때의 지구 (wetherilli 091) — 판을 돌려 칠하고, 누른 자리를 오늘로 되돌린다."""
+
+    def setUp(self):
+        self.m = paleo.model()
+
+    def test_연대마다_그때_있던_조각만(self):
+        now, then = self.m.reconstruct(0), self.m.reconstruct(250)
+        self.assertGreater(len(now), len(then))
+        self.assertTrue(all(p["from"] >= 250 for p in then))
+
+    def test_옮긴_자리를_누르면_오늘로_돌아온다(self):
+        got = self.m.carry(126.98, 37.57, 250)
+        hit = self.m.plate_then(got["lon"], got["lat"], 250)
+        self.assertEqual(hit["pid"], 604)
+        self.assertAlmostEqual(hit["today_lon"], 126.98, delta=0.02)
+        self.assertAlmostEqual(hit["today_lat"], 37.57, delta=0.02)
+        self.assertIsNone(self.m.plate_then(-150, 0, 250))      # 판다랏사 한가운데
+
+    def test_날짜변경선을_넘는_고리는_이어서_편다(self):
+        poly = paleo.plane([170, -10, -170, -10, -170, 10, 170, 10])
+        self.assertEqual([x for x, _ in poly], [170, 190, 190, 170])
+
+    def test_극을_두른_고리는_극까지_막는다(self):
+        ring = [lon for k in range(0, 360, 30) for lon in (k - 180, -70)]
+        poly = paleo.plane(ring)
+        self.assertEqual(poly[-1], (-180, -90.0))
+        self.assertEqual(poly[-2][1], -90.0)
+        self.assertAlmostEqual(poly[-2][0] - poly[0][0], 360.0)
+
+    def test_타일(self):
+        from PIL import Image
+        im = Image.open(io.BytesIO(paleo.render_tile(0.0, "land", 0, 1, 0))).convert("RGBA")
+        self.assertEqual(im.size, (256, 256))
+        self.assertGreater(im.getpixel((150, 60))[3], 200)        # 동경 105°·북위 48° — 몽골은 땅
+        self.assertLess(im.getpixel((250, 128))[3], 20)          # 동경 176°·적도 — 태평양은 비었다
+        self.assertGreater(im.getpixel((128, 254))[3], 200)       # 남극점 둘레 — 극까지 칠했다
+
+
+class ThenViews(TestCase):
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-then-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_판_조각_타일(self):
+        url = reverse("viewer:earth-paleo-tile", kwargs={"style": "land", "age": 250, "z": 0, "x": 0, "y": 0})
+        first, again = self.client.get(url), self.client.get(url)
+        self.assertEqual((first["X-GSM-Cache"], again["X-GSM-Cache"]), ("miss", "hit"))
+        bad = reverse("viewer:earth-paleo-tile", kwargs={"style": "land", "age": 250, "z": 0, "x": 2, "y": 0})
+        self.assertEqual(self.client.get(bad).status_code, 404)
+
+    def test_그때의_지구를_누르면(self):
+        data = self.client.get(reverse("viewer:earth-paleo-at"), {"lon": 105.01, "lat": 30.58, "age": 250}).json()
+        self.assertEqual(data["pid"], 604)
+        self.assertEqual(dict(data["rows"])["판"], "604")
+        sea = self.client.get(reverse("viewer:earth-paleo-at"), {"lon": -150, "lat": 0, "age": 250}).json()
+        self.assertNotIn("rows", sea)
+
+    def test_점묶음을_그때의_자리로(self):
+        from viewer.models import Point, PointSet
+        ps = PointSet.objects.create(name="시험", body="earth")
+        Point.objects.create(pointset=ps, label="서울", lat=37.57, lon=126.98)
+        Point.objects.create(pointset=ps, lat=0, lon=-150, props={})
+        feats = self.client.get(reverse("viewer:pointset-paleo", args=[ps.pk]), {"age": 250}).json()["features"]
+        seoul, sea = feats
+        self.assertAlmostEqual(seoul["geometry"]["coordinates"][0], 105.01, delta=0.02)
+        self.assertEqual(seoul["properties"]["_today"], [126.98, 37.57])
+        self.assertIn("바다 밑", sea["properties"]["_paleo"])
