@@ -112,6 +112,7 @@
 | jikhanjung 004 | 2026-09-30 | [5만 지질도의 자세 기호에 커서를 — 올리면 손가락, 누르면 값](20260930_jikhanjung_004_attitude_hover.md) |
 | jikhanjung 005 | 2026-09-30 | [자세 기호를 늘 그리는 스위치, 그리고 "(층리 등 제외)"](20260930_jikhanjung_005_attitude_symbols.md) |
 | jikhanjung 006 | 2026-09-30 | [줌 표시, 그리고 자세 기호를 멀리서 작게](20260930_jikhanjung_006_zoom_badge.md) |
+| jikhanjung 007 | 2026-09-30 | [패널 접는 손잡이, 자세 기호 체크를 색 글자로](20260930_jikhanjung_007_panel_handle.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |

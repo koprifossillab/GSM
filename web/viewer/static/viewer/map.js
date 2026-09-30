@@ -1197,6 +1197,7 @@
 
     showProjection(false);
     showZoom();
+    initPanelHandle();
     map.on("moveend", showZoom);
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
@@ -1284,6 +1285,30 @@
     el.classList.remove("flash");
     void el.offsetWidth;  // 애니메이션을 처음부터 다시 돌린다
     el.classList.add("flash");
+  }
+
+  /** 패널 접기 — 지도 칸 왼쪽 가장자리의 손잡이. 접힌 채로 두었는지는 이 브라우저가 기억한다 (jikhanjung 007). */
+  var PANEL_KEY = "gsm.panelFolded";
+  function initPanelHandle() {
+    var handle = document.getElementById("panel-handle");
+    if (!handle) return;
+    function apply(folded, save) {
+      document.body.classList.toggle("panel-folded", folded);
+      handle.textContent = folded ? ">" : "<";
+      handle.title = folded ? T("패널을 편다") : T("패널을 접는다");
+      handle.setAttribute("aria-expanded", folded ? "false" : "true");
+      if (save) {
+        try { localStorage.setItem(PANEL_KEY, folded ? "1" : "0"); } catch (e) { /* 사생활 모드 */ }
+      }
+      // 지도 칸의 폭이 바뀌었으니 다시 잰다
+      setTimeout(function () { map.updateSize(); if (typeof map2 !== "undefined" && map2) map2.updateSize(); renderEdges(); }, 0);
+    }
+    var saved = false;
+    try { saved = localStorage.getItem(PANEL_KEY) === "1"; } catch (e) { /* 사생활 모드 */ }
+    if (saved) apply(true, false);
+    handle.addEventListener("click", function () {
+      apply(!document.body.classList.contains("panel-folded"), true);
+    });
   }
 
   /** 지금의 줌 — EPSG 번호 옆에 늘 적는다. 맞춰 보기(fit)를 하면 소수가 되므로 한 자리까지 (jikhanjung 006). */
@@ -3066,10 +3091,6 @@
     var box = document.createElement("div");
     box.className = "attitude-toggles";
     box.title = T("켜면 늘 그리고, 끄면 커서를 올릴 때만 그린다 — 줌 {n} 부터", { n: ATTITUDE_MIN_ZOOM });
-    var head = document.createElement("span");
-    head.className = "k";
-    head.textContent = T("자세 기호");
-    box.appendChild(head);
     Object.keys(ATTITUDE_NAMES).forEach(function (kind) {
       var label = document.createElement("label");
       var input = document.createElement("input");
@@ -3083,10 +3104,8 @@
         });
       });
       input.dataset.kind = kind;
-      var sw = document.createElement("span");
-      sw.className = "sw";
-      sw.style.background = ATTITUDE_COLORS[kind];
-      label.append(input, sw, document.createTextNode(T(ATTITUDE_NAMES[kind])));
+      label.className = kind;          // 글자색이 지도 위 기호의 색이다 (map.css)
+      label.append(input, document.createTextNode(T(ATTITUDE_NAMES[kind])));
       box.appendChild(label);
     });
     return box;

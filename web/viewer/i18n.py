@@ -857,7 +857,8 @@ EN = {
     "경사 방향과 원문 사분면이 맞지 않는다 — 기호는 경사 방향대로 그렸다":
         "Dip direction disagrees with the original quadrant — the symbol follows the dip direction",
     "KIGAM 5만 지질도 · {date} 받음": "KIGAM 1:50K geological map · fetched {date}",
-    "자세 기호": "Attitude symbols",
+    "패널을 접는다": "Collapse the panel",
+    "패널을 편다": "Expand the panel",
     "줌 {z}": "Zoom {z}",
     "줌 수준 — 한 단계 오를 때마다 두 배로 가까워진다": "Zoom level — each step is twice as close",
     "켜면 늘 그리고, 끄면 커서를 올릴 때만 그린다 — 줌 {n} 부터":

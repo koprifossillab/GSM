@@ -450,11 +450,18 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 /* 켠 레이어의 출처 — VWorld 레이어에만 붙는다 (devlog 020) */
 .active-src { margin: 4px 0 0; font-size: 10.5px; color: var(--ink-faint); }
 /* 5만 지질도 카드 밑 — 층리·엽리·편리·절리를 늘 그릴지 (jikhanjung 005) */
-.attitude-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; font-size: 11.5px; color: var(--ink-soft); }
-.attitude-toggles .k { font-size: 10.5px; letter-spacing: .04em; color: var(--ink-faint); }
+.attitude-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; font-size: 11.5px; font-weight: 600; }
 .attitude-toggles label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .attitude-toggles input { margin: 0; }
-.attitude-toggles .sw { display: inline-block; width: 10px; height: 3px; border-radius: 1px; }
+/* 글자를 지도 위 기호의 색으로. 어두운 패널에서는 같은 색조를 조금 밝게 — 짙은 빨강·파랑은 안 읽힌다 */
+.attitude-toggles .bedding { color: #ec6b62; }
+.attitude-toggles .foliation { color: #6fa6ea; }
+.attitude-toggles .schistosity { color: #b28ce8; }
+.attitude-toggles .joint { color: #6cc070; }
+:root[data-theme="light"] .attitude-toggles .bedding { color: #b3261e; }
+:root[data-theme="light"] .attitude-toggles .foliation { color: #1f5fa8; }
+:root[data-theme="light"] .attitude-toggles .schistosity { color: #6b3fa0; }
+:root[data-theme="light"] .attitude-toggles .joint { color: #2e7d32; }
 /* 벡터 레이어의 범례. 선을 우리가 그리므로 범례도 우리가 적는다 */
 .vector-legend {
   margin-top: 8px;
@@ -716,6 +723,28 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 /* ══ 지도 ══════════════════════════════════════════════════════════ */
 
 #map-wrap { position: relative; flex: 1; min-width: 0; height: 100vh; }
+
+/* 패널 접는 손잡이 — 패널 오른쪽 가장자리, 가운데보다 조금 위(가운데에는 서쪽 가장자리의 경도가 뜬다).
+   지도 칸 왼쪽에 붙어 있어 패널을 접어도 제자리에 남는다 (jikhanjung 007) */
+.panel-handle {
+  position: absolute;
+  top: calc(50% - 120px);
+  left: 0;
+  z-index: 30;
+  width: 18px;
+  height: 48px;
+  padding: 0;
+  font: 600 13px/1 ui-monospace, Menlo, monospace;
+  color: var(--gold-bright);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, .18);
+  cursor: pointer;
+}
+.panel-handle:hover, .panel-handle:focus-visible { color: var(--hi-ink); background: var(--raise); outline: none; }
+body.panel-folded #panel { display: none; }
 #map { width: 100%; height: 100%; background: #e8e0d2; }
 
 /* ── 주제도 비교 ── */
@@ -1254,6 +1283,9 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   #coordbar { flex-wrap: wrap; }
   .edge.w, .edge.e { display: none; }
   .tool { width: 44px; height: 44px; }
+  /* 좁은 화면은 패널이 위에 쌓인다 — 옆으로 접을 것이 없다 */
+  .panel-handle { display: none; }
+  body.panel-folded #panel { display: flex; }
 }
 
 /* 범위잡기 — 끄는 동안의 네모. 다 그리면 지도 위의 금색 네모(rangeStyle)로 바뀐다 */
