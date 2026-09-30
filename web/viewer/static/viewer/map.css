@@ -1601,6 +1601,9 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
                      border-radius: 5px; cursor: pointer; }
 .paleo-form .paleo-out { flex-basis: 100%; font-family: var(--font-mono); color: var(--hi-ink); }
 .paleo-form .paleo-out:empty { display: none; }
+/* EarthThruTime3D 로 건너가는 링크 (wetherilli 088) */
+.ett-link { color: var(--hi-ink); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.ett-link::after { content: " ↗"; font-size: .9em; }
 .hidden-menu .moon-dot.whole-dot { background: radial-gradient(circle at 35% 35%, #9ff0e0, #2f8f9a 55%, #123a52); }
 :root[data-region="moon"] .count, :root[data-region="mars"] .count { color: var(--on-hi); background: var(--hi); }
 :root[data-region="moon"] #map, :root[data-region="mars"] #map { background: #000; }

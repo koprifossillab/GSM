@@ -124,10 +124,12 @@ class Views(TestCase):
                  "t_int_name": "Precambrian", "b_age": 4000, "t_age": 541, "color": "#F04370"}
         hit = {"units": [macrostrat.unit_row(seoul, "tiny")], "refs": {}}
         with mock.patch.object(macrostrat, "identify", return_value=hit):
-            rows = dict(self.client.get(reverse("viewer:earth-info"), {"lon": 126.98, "lat": 37.57, "z": 8})
-                        .json()["units"][0]["rows"])
+            unit = self.client.get(reverse("viewer:earth-info"), {"lon": 126.98, "lat": 37.57, "z": 8}).json()["units"][0]
+        rows = dict(unit["rows"])
         self.assertTrue(rows["그때의 자리 (541 Ma)"].startswith("북위 13."))
         self.assertEqual(rows["그때의 자리 (4000 Ma)"], "이 판은 1100 Ma 까지만 거슬러 옮긴다")
+        # 옮겨진 연대만 — 화면이 그 연대로 EarthThruTime3D 링크를 단다 (wetherilli 088)
+        self.assertEqual(unit["then"], [541.0])
 
     def test_파일이_없으면_그_줄_없이(self):
         paleo.model.cache_clear()

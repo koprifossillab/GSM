@@ -824,7 +824,10 @@
     out.textContent = T("읽는 중");
     fetch(BASE + "earth/paleo/?lon=" + form.dataset.lon + "&lat=" + form.dataset.lat + "&age=" + encodeURIComponent(age))
       .then(function (r) { return r.json(); })
-      .then(function (d) { out.textContent = d.error || d.text; })
+      .then(function (d) {
+        out.textContent = d.error || d.text;
+        if (d.lon != null) out.insertAdjacentHTML("beforeend", " " + ettLink([+form.dataset.lon, +form.dataset.lat], d.age));
+      })
       .catch(function () { out.textContent = T("속성을 받지 못했다"); });
   });
   // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달·화성에서 온 틀이다. 지구는 지질도 하나다.
@@ -833,11 +836,36 @@
     var res = mode === "flat" ? groundRes() : heightToRes(hereHeight());
     return Math.max(0, Math.min(GEO_MAX, Math.round(Math.log(40075016.7 / 256 / Math.max(0.5, res)) / Math.LN2)));
   }
-  function unitTable(u) {
+  // ══ EarthThruTime3D 로 건너가기 (wetherilli 088) ════════════════
+  //
+  // 옛 위치를 ETT 의 고지리 지구본에서 본다. 주소는 ETT 의 것 그대로다(`docs/site-map.md`) — 핀은 **오늘의 좌표**를
+  // 넘기고 옮기기는 ETT 가 한다. 둘 다 PALEOMAP 2016 이라 우리가 적은 자리에 핀이 선다(087). 고도 격자(PaleoDEM)는
+  // 540 Ma 까지라 그보다 오랜 연대는 기본 판(PaleoAtlas 육지 마스크, 750 Ma 까지 — 그 너머는 판 재구성만)으로 연다.
+  // ETT 는 연대를 가장 가까운 시점에 맞춘다. 링크일 뿐이라 자료는 넘어가지 않는다
+  var ETT_URL = "https://earththrutime.nopeoplestime.info/";
+  var ETT_DEM_MAX = 540;
+  function ettHref(ll, age) {
+    var w = wrapLon(ll), q = [];
+    if (age <= ETT_DEM_MAX) q.push("masks=paleodem2018");
+    q.push("age=" + (+age).toFixed(age < 10 ? 3 : 1).replace(/\.?0+$/, ""));
+    q.push("pin=" + w[0].toFixed(2) + "," + w[1].toFixed(2));
+    return ETT_URL + "?" + q.join("&");
+  }
+  function ettLink(ll, age) {
+    return '<a class="ett-link" target="_blank" rel="noopener" href="' + esc(ettHref(ll, age)) + '" title="' +
+           esc(T("EarthThruTime3D 의 고지리 지구본에서 이 자리를 그 연대로 본다 — 새 창")) + '">' +
+           esc(T("ETT 에서 {age} Ma", { age: age })) + "</a>";
+  }
+  function unitTable(u, ll) {
     var chip = u.color ? '<span class="swatch-img" style="display:inline-block;background:' + esc(u.color) + '"></span>' : "";
-    return "<table>" + u.rows.map(function (row, k) {
+    var rows = u.rows.map(function (row, k) {
       return "<tr><th>" + esc(row[0]) + "</th><td>" + (k === 0 ? chip : "") + esc(row[1]) + "</td></tr>";
-    }).join("") + "</table>";
+    });
+    if (u.then && u.then.length) {
+      rows.push('<tr><th>EarthThruTime3D</th><td>' + u.then.map(function (age) { return ettLink(ll, age); }).join(" · ") +
+                "</td></tr>");
+    }
+    return "<table>" + rows.join("") + "</table>";
   }
   function askUnit(ll, pixel) {
     markAt(ll);
@@ -860,7 +888,7 @@
           return;
         }
         // 한 자리에 단위가 여럿일 수 있다(판이 겹친 곳) — 다 싣는다
-        html += data.units.map(unitTable).join("");
+        html += data.units.map(function (u) { return unitTable(u, ll); }).join("");
       });
       showPopup(html, pixel);
     });

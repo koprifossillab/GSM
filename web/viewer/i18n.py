@@ -263,6 +263,10 @@ EN = {
     "이 판은 {reach} Ma 까지만 거슬러 옮긴다": "This plate is carried back to {reach} Ma only",
     "lat·lon·age 가 없다": "lat, lon and age are missing",
     "판 회전 파일이 서버에 없다": "The plate rotation file is not on the server",
+    # EarthThruTime3D 로 건너가기 (wetherilli 088)
+    "ETT 에서 {age} Ma": "{age} Ma in ETT",
+    "EarthThruTime3D 의 고지리 지구본에서 이 자리를 그 연대로 본다 — 새 창":
+        "See this place at that age on the EarthThruTime3D palaeogeographic globe — new window",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
