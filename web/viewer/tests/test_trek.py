@@ -149,6 +149,62 @@ class Dem(SimpleTestCase):
         self.assertEqual(r * 256 + g + b / 256 - 32768, 0)
 
 
+class FineDem(TestCase):
+    """가까이서 쓰는 고운 표고 판 — 극 5 m·NAC (wetherilli 107)."""
+
+    @staticmethod
+    def tile(z, lon, lat):
+        step = 180 / 2 ** z
+        return z, int((lon + 180) // step), int((90 - lat) // step)
+
+    @staticmethod
+    def height(png, px=(10, 10)):
+        r, g, b = Image.open(io.BytesIO(png)).convert("RGB").getpixel(px)
+        return r * 256 + g + b / 256 - 32768
+
+    def test_고운_판_고르기(self):
+        self.assertIsNone(trek.dem_part(*self.tile(9, -11.3, -43.0)))            # 온 달 판의 줌
+        self.assertEqual(trek.dem_part(*self.tile(15, -11.3, -43.0))[0], "LRO_NAC_DEM_43S349E_150cmp")
+        self.assertIsNone(trek.dem_part(*self.tile(12, 0, 0)))                   # 고운 판이 없는 자리
+        self.assertEqual(trek.dem_part(*self.tile(11, 0, -89.5))[0], "LRO_LOLA_DEM_SPole875_5mp_v04_EQ")
+        self.assertEqual(trek.dem_part(*self.tile(10, 45, -80))[0], "LRO_LOLA_DEM_SPole75_30mp_v04_EQ")
+        self.assertIsNone(trek.dem_part(*self.tile(12, 0, -89.5)))               # 5 m 판의 줌 끝 너머
+
+    def test_극_5_m_는_반_m_단위(self):
+        raw = tiff([-1443.0] * trek.DEM_SIZE ** 2)
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/tiff", content=raw)) as get:
+            png = trek.dem_tile(*self.tile(11, 0, -89.5))
+        self.assertIn("LRO_LOLA_DEM_SPole875_5mp_v04_EQ", get.call_args[0][0])
+        self.assertAlmostEqual(self.height(png), -721.5, places=1)
+
+    def test_빈_칸은_온_달_판으로_메운다(self):
+        empty = response(ctype="image/tiff", content=tiff([-3.4e38] * trek.DEM_SIZE ** 2))
+        base = response(ctype="image/tiff", content=tiff([-3000.0] * trek.DEM_SIZE ** 2))
+        with mock.patch("viewer.trek.requests.get", side_effect=[empty, base]) as get:
+            png = trek.dem_tile(*self.tile(13, -11.64, -43.65))
+        self.assertIn("LRO_NAC_DEM_43S349E", get.call_args_list[0][0][0])
+        self.assertIn(trek.DEM_SERVICE, get.call_args_list[1][0][0])
+        self.assertAlmostEqual(self.height(png), -3000.0, places=1)
+
+    def test_줌_0_은_128_ppd(self):
+        """256 ppd 판은 반구 한 장을 받지 않는다 — 0.21.0 부터 운영의 줌 0 이 502 였다."""
+        raw = tiff([-1000.0] * trek.DEM_SIZE ** 2)
+        with mock.patch("viewer.trek.requests.get", return_value=response(ctype="image/tiff", content=raw)) as get:
+            trek.dem_tile(0, 0, 0)
+            trek.dem_tile(1, 0, 0)
+        self.assertIn(trek.DEM_Z0_SERVICE, get.call_args_list[0][0][0])
+        self.assertIn(trek.DEM_SERVICE, get.call_args_list[1][0][0])
+
+    def test_화면이_받는_것(self):
+        z, x, y = self.tile(12, 0, 0)
+        with mock.patch("viewer.trek.requests.get") as get:
+            self.assertEqual(self.client.get(reverse("viewer:moon-dem", args=[z, x, y])).status_code, 404)
+        get.assert_not_called()
+        html = self.client.get(reverse("viewer:moon")).content.decode()
+        self.assertIn('id="dem-parts"', html)
+        self.assertIn("-87.55", html)
+
+
 class Places(SimpleTestCase):
     PLACES = [["Apollo", "Crater", -151.8, -36.1], ["Apollo 11", "Landing site", 23.48, 0.67],
               ["Tycho", "Crater", -11.36, -43.31], ["Tycho A", "Satellite Feature", -12.13, -39.94],
