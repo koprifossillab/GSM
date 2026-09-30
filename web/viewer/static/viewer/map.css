@@ -943,7 +943,7 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   align-items: flex-end;
   gap: 6px;
 }
-/* 화면 투영의 EPSG 번호. 축척 막대 오른쪽에 붙는다 (시험) */
+/* 화면 투영의 EPSG 번호. 축척 막대 오른쪽에 늘 떠 있다 */
 .projbadge {
   order: 2;
   pointer-events: auto;
