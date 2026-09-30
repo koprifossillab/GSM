@@ -1196,6 +1196,8 @@
     map.addOverlay(popupOverlay);
 
     showProjection(false);
+    showZoom();
+    map.on("moveend", showZoom);
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
     map.on("moveend", refreshExtentLegends);
@@ -1282,6 +1284,17 @@
     el.classList.remove("flash");
     void el.offsetWidth;  // 애니메이션을 처음부터 다시 돌린다
     el.classList.add("flash");
+  }
+
+  /** 지금의 줌 — EPSG 번호 옆에 늘 적는다. 맞춰 보기(fit)를 하면 소수가 되므로 한 자리까지 (jikhanjung 006). */
+  function showZoom() {
+    var el = document.getElementById("zoombadge");
+    if (!el || !map) return;
+    var z = map.getView().getZoom();
+    if (z === undefined || z === null || isNaN(z)) { el.textContent = ""; return; }
+    var r = Math.round(z * 10) / 10;
+    el.textContent = T("줌 {z}", { z: r % 1 === 0 ? r.toFixed(0) : r.toFixed(1) });
+    el.title = T("줌 수준 — 한 단계 오를 때마다 두 배로 가까워진다");
   }
 
   /** 켠 레이어를 화면 순서에 맞춰 다시 쌓는다.
@@ -3025,10 +3038,11 @@
   // 받아 둔 자리(`kigam50k/attitudes/`)를 보이지 않는 점으로 깔아 두고, **커서를 올리면
   // 손가락으로 바꾸고 그 기호를 그려 보인다.** 누르면 경사·경사 방향·주향이 팝업에 뜬다.
   // 층리 뺀 판에서는 이것이 층리를 찾는 길이다. 5만 지질도(두 판 어느 것이든)를 켜고
-  // 줌 11 이상일 때만 받는다 — 1:5만 도폭의 기호를 전국에 깔 까닭이 없다.
+  // 줌 12 이상일 때만 받는다 — 1:5만 도폭의 기호를 전국에 깔 까닭이 없다.
 
   var ATTITUDE_LAYERS = ["L_50K_Geology_Map", "L_50K_Geology_Map_NoAttitude"];
-  var ATTITUDE_MIN_ZOOM = 11;
+  // 줌 11 에서는 한 화면에 점이 수천이라 지도가 느려진다(사람) — 12 부터 받고 그린다 (jikhanjung 006)
+  var ATTITUDE_MIN_ZOOM = 12;
   var ATTITUDE_COLORS = { bedding: "#b3261e", foliation: "#1f5fa8", schistosity: "#6b3fa0", joint: "#2e7d32" };
   var ATTITUDE_NAMES = { bedding: "층리", foliation: "엽리", schistosity: "편리", joint: "절리" };
   var attitudeSource = null, attitudeLayer = null, attitudeHover = null;
@@ -3154,11 +3168,15 @@
     var labels = hovered || resolution <= 156543.03392804097 / Math.pow(2, ATTITUDE_LABEL_ZOOM) + 1e-9;
     var c = feature.getGeometry().getCoordinates();
     var color = ATTITUDE_COLORS[p.kind] || "#333";
+    // 멀리서는 작게 — 줌 12(처음 그리는 줌)에서 0.7 배, 한 단계마다 0.15 씩 커져 14 에서 제 크기.
+    // 기호가 겹쳐 뭉치는 것을 덜려는 것이다. 커서가 올라간 것은 늘 제 크기 (jikhanjung 006)
+    var zoom = Math.log(156543.03392804097 / resolution) / Math.LN2;
+    var k = hovered ? 1 : Math.max(0.55, Math.min(1, 0.7 + 0.15 * (zoom - 12)));
     // 늘 그리는 것은 가늘게, 커서가 올라간 것은 굵게 — 어느 것을 가리키는지 보이게
-    var halo = new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: hovered ? 5 : 3.5 });
-    var ink = new ol.style.Stroke({ color: color, width: hovered ? 2.5 : 1.6 });
+    var halo = new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: hovered ? 5 : 1.5 + 2 * k });
+    var ink = new ol.style.Stroke({ color: color, width: hovered ? 2.5 : 0.8 + 0.8 * k });
     var styles = [new ol.style.Style({
-      image: new ol.style.Circle({ radius: hovered ? 3 : 2, fill: new ol.style.Fill({ color: color }),
+      image: new ol.style.Circle({ radius: hovered ? 3 : 1 + k, fill: new ol.style.Fill({ color: color }),
                                    stroke: new ol.style.Stroke({ color: "#fff", width: hovered ? 1.5 : 1 }) }),
       zIndex: hovered ? 10 : 0,
     })];
@@ -3169,12 +3187,12 @@
       return [c[0] + Math.sin(a) * px * resolution, c[1] + Math.cos(a) * px * resolution];
     }
     var strike = (p.dipdir + 270) % 360;
-    var lines = [new ol.geom.LineString([at(strike, 13), at(strike + 180, 13)])];
+    var lines = [new ol.geom.LineString([at(strike, 13 * k), at(strike + 180, 13 * k)])];
     var vertical = /수직/.test(p.type) || p.dip === 90;
     var flat = /수평/.test(p.type) || p.dip === 0;
     if (!flat) {
-      lines.push(new ol.geom.LineString([c, at(p.dipdir, 7)]));
-      if (vertical) lines.push(new ol.geom.LineString([c, at(p.dipdir + 180, 7)]));
+      lines.push(new ol.geom.LineString([c, at(p.dipdir, 7 * k)]));
+      if (vertical) lines.push(new ol.geom.LineString([c, at(p.dipdir + 180, 7 * k)]));
     }
     lines.forEach(function (g) {
       styles.push(new ol.style.Style({ geometry: g, stroke: halo, zIndex: hovered ? 10 : 0 }));
@@ -3182,7 +3200,7 @@
     });
     if (labels && p.dip !== null && p.dip !== undefined && !vertical && !flat) {
       styles.push(new ol.style.Style({
-        geometry: new ol.geom.Point(at(p.dipdir, 17)),
+        geometry: new ol.geom.Point(at(p.dipdir, 7 * k + 10)),
         zIndex: hovered ? 12 : 2,
         text: new ol.style.Text({ text: String(p.dip), font: (hovered ? "700 12px" : "600 10.5px") + " sans-serif",
                                   fill: new ol.style.Fill({ color: color }),

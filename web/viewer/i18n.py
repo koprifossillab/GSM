@@ -858,6 +858,8 @@ EN = {
         "Dip direction disagrees with the original quadrant — the symbol follows the dip direction",
     "KIGAM 5만 지질도 · {date} 받음": "KIGAM 1:50K geological map · fetched {date}",
     "자세 기호": "Attitude symbols",
+    "줌 {z}": "Zoom {z}",
+    "줌 수준 — 한 단계 오를 때마다 두 배로 가까워진다": "Zoom level — each step is twice as close",
     "켜면 늘 그리고, 끄면 커서를 올릴 때만 그린다 — 줌 {n} 부터":
         "Checked: always drawn. Unchecked: drawn only under the cursor — from zoom {n}",
     "층리": "Bedding", "수직층리": "Vertical bedding", "역전층리": "Overturned bedding", "수평층리": "Horizontal bedding",
