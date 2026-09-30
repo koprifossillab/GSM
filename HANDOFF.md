@@ -30,10 +30,11 @@
 - **지역** — 한국(기본)·일본·중국·그린란드·스발바르·얀마옌·북극해·남극, 묶음 탭 동아시아·북극 (016·017·021·024·076).
   화면 투영은 3857·3413·3031 이다
 - **상류로 나가는 문 열** — kigam·vworld·geus·grportal·npolar·gsj·phyloserver·elevation·trek·kopri. 문이 아닌
-  것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso·marscraters·marsmap·zhurong, 그리고 3D 용으로 다시 펴는 warp
+  것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso·marscraters·marsmap·zhurong·spamap, 그리고 3D 용으로 다시 펴는 warp
 - **달·화성** — 아이콘의 숨은 차림에서 `/GSM/moon/`·`/GSM/mars/`. 둥근 몸(Cesium)과 평면(OpenLayers)을 오가고,
   위도 65° 너머는 극 평면이다 (036·038·052·058·065). Trek 판 목록은 씨앗 `data/<몸>_trek_layers.json` (060).
-  화성에는 크레이터 38 만 개·옛 지질도 I-1802·주룽 경로를 우리가 굽는다 (066–068)
+  화성에는 크레이터 38 만 개·옛 지질도 I-1802 와 지역도·주룽 경로를 우리가 굽는다 (066–068, wetherilli 079).
+  달 SPA 지질도는 Trek 의 그림에 원본 GeoTIFF 의 속성을 붙인다 (wetherilli 081)
 - **3D** — 도구 막대의 단추로 늘 연다 (059). 한국·일본·북극·남극 지형과 지질, 점묶음
 - **영어판** — 설정의 "언어 · Language". 화면의 글을 고치면 `viewer/i18n.py` 에 영어도 적는다 (008)
 - **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
