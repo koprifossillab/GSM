@@ -333,3 +333,51 @@ class Profile(TestCase):
         with mock.patch("viewer.trek.lola_values", side_effect=trek.TrekError("x")):
             r = self.client.get(reverse("viewer:moon-profile"), {"line": "0,0;1,1"})
         self.assertEqual(r.status_code, 502)
+
+
+class Values(TestCase):
+    """누른 자리의 광물·원소·지각 두께 값 (wetherilli 103). Trek 은 부르지 않는다."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-values-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def samples(self, value):
+        body = {"samples": [{"locationId": 0, "value": value}]}
+        return mock.Mock(status_code=200, url="…", headers={"content-type": "application/json"},
+                         content=json.dumps(body).encode(), json=lambda: body)
+
+    def test_판_이름에서_갈래(self):
+        self.assertEqual(trek.value_key("moon", "Lunar_Kaguya_MIMap_MineralDeconv_FeOWeightPercent_50N50S_colorized"), "feo")
+        self.assertEqual(trek.value_key("moon", "LP_GRS_Th_Clr_Global_2ppd"), "th")
+        self.assertEqual(trek.value_key("moon", "LP_GRS_ClrTitaniumAbundance_2ppd"), "ti")
+        self.assertEqual(trek.value_key("moon", "Model3_thick.eq"), "thick3")
+        self.assertEqual(trek.value_key("moon", "Model3_cmi.eq"), "")
+        self.assertEqual(trek.value_key("mars", "LP_GRS_Th_Clr_Global_2ppd"), "")
+
+    def test_비율은_백분율로(self):
+        with mock.patch("viewer.trek.requests.get", return_value=self.samples("0.152402669")) as get:
+            got = trek.value_at("olivine", -15.6, 33.0)
+        self.assertEqual(got["rows"][0], ["감람석", "15.2 wt%"])
+        self.assertIn("Lunar_Kaguya_MIMap_MineralDeconv_OlivinePercent_50N50S/ImageServer/getSamples",
+                      get.call_args[0][0])
+
+    def test_범위_밖은_버린다(self):
+        with mock.patch("viewer.trek.requests.get", return_value=self.samples("-3.4e38")):
+            self.assertEqual(trek.value_at("th", 0, 0), {"rows": []})
+
+    def test_Kaguya_는_50도_밖을_묻지_않는다(self):
+        with mock.patch("viewer.trek.requests.get") as get:
+            self.assertEqual(trek.value_at("feo", 0, -80), {"rows": []})
+        get.assert_not_called()
+
+    def test_화면이_받는_것(self):
+        with mock.patch("viewer.trek.requests.get", return_value=self.samples("10.83")) as get:
+            url = reverse("viewer:moon-values")
+            ko = self.client.get(url, {"lon": "-15.6", "lat": "33", "key": "thick1"}).json()
+            en = self.client.get(url, {"lon": "-15.6", "lat": "33", "key": "thick1"}, HTTP_COOKIE="gsm_lang=en").json()
+        self.assertEqual(get.call_count, 1)                                     # 캐시
+        self.assertEqual(ko["rows"][0], ["지각 두께", "10.8 km"])
+        self.assertEqual(en["rows"][0], ["Crustal thickness", "10.8 km"])
+        self.assertEqual(self.client.get(url, {"lon": "0", "lat": "0", "key": "nope"}).status_code, 400)

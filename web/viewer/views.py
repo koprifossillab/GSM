@@ -348,6 +348,28 @@ def moon_profile(request):
 
 
 @require_GET
+def moon_values(request):
+    """`?lon=&lat=&key=feo` — 켠 Trek 판의 값을 누른 자리 한 점에서 (wetherilli 103). `{"rows": [[이름, 값], …]}`.
+    이름은 한국어판·영어판에 맞춘다. 값(숫자·단위)은 옮기지 않는다."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    key = request.GET.get("key") or ""
+    if key not in trek.VALUES or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    cache = tilecache.key_text("trek-value", f"{key}/{lon:.4f},{lat:.4f}")
+    data = _cached_json(cache)
+    if data is None:
+        try:
+            data = trek.value_at(key, lon, lat)
+        except trek.TrekError as exc:
+            log.warning("달 값을 읽지 못했다 (%s): %s", key, exc)
+            return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "rows": []}, status=502)
+        tilecache.put(cache, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    rows = [[i18n.PROP_EN.get(name, name) if lang == "en" else name, value] for name, value in data["rows"]]
+    return JsonResponse({"rows": rows})
+
+
+@require_GET
 def moon_info(request):
     """`?lon=-15&lat=20` — 누른 자리의 지질 단위. `{"rows": [[이름, 값], …]}`.
 

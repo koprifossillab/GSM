@@ -90,7 +90,8 @@
       // 그린 판(Kaguya TC 지질도 = 통합 지질도) — 속성·범례를 그 레이어의 것으로 낸다
       return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
                bbox: l.bbox, polar: l.polar || {}, legend: l.same || (l.legend ? "trek:" + l.id : undefined),
-               info: l.same || (l.kind === "map" ? "trek" : undefined),
+               // 값을 칠한 판은 누른 자리의 값을 ImageServer 에서 읽는다 (wetherilli 103). 색·회색 판이 같은 갈래다
+               info: l.same || (l.kind === "map" ? "trek" : l.value ? "value:" + l.value : undefined),
                title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
                src: (l.src ? l.src + " · " : "") + "NASA Moon Trek" };
     }) };
@@ -1306,6 +1307,13 @@
             var hits = data.hits || [];
             return { rows: [].concat.apply([], hits.map(function (h) { return h.rows; })),
                      note: T("여기에는 속성이 없다") };
+          }).catch(function () { return { error: true }; });
+      }
+      if (l.info.indexOf("value:") === 0) {
+        return fetch(BASE + "moon/values/" + at + "&key=" + l.info.slice(6))
+          .then(function (r) { return r.json(); }).then(function (data) {
+            if (data.error) return data;
+            return { rows: data.rows, note: T("여기에는 값이 없다") };
           }).catch(function () { return { error: true }; });
       }
       var url = BASE + "moon/info/" + at + (l.info === "units" ? "" : "&layer=" + l.info);

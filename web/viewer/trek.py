@@ -398,6 +398,78 @@ def profile(vertices: list, n: int = 256) -> dict:
             "source": ELEV_SOURCE, "datum": ELEV_DATUM}
 
 
+# ── 누른 자리의 값 (wetherilli 103) ──────────────────────────────────
+#
+# 광물·원소·지각 두께 판은 Trek 이 색을 칠해 준다(060) — 그림만으로는 값을 모른다. 같은 자료의 ImageServer 가
+# 값(F32·F64)을 주므로 누른 자리 한 점을 `getSamples` 로 읽는다. **켠 판의 것만** 묻는다 — 한 번 누르는 데 판마다 한
+# 요청이다. 판마다 단위·배율·그럴 법한 범위를 손으로 적었다(2026-09-30 에 한 점씩 받아 보았다). 범위 밖(빈 값)은 버린다.
+
+#: 갈래 → (서비스 뿌리, 서비스, 이름(한국어 원문), 단위, 배율, 아래, 위, 자릿수, 출처)
+VALUES = {
+    "feo": ("trekarcgis", "Lunar_Kaguya_MIMap_MineralDeconv_FeOWeightPercent_50N50S", "FeO", "wt%", 1, 0, 40, 1,
+            "Kaguya MI"),
+    "olivine": ("trekarcgis", "Lunar_Kaguya_MIMap_MineralDeconv_OlivinePercent_50N50S", "감람석", "wt%", 100, 0, 100, 1,
+                "Kaguya MI"),
+    "cpx": ("trekarcgis", "Lunar_Kaguya_MIMap_MineralDeconv_ClinopyroxenePercent_50N50S", "단사휘석", "wt%", 100, 0, 100, 1,
+            "Kaguya MI"),
+    "opx": ("trekarcgis", "Lunar_Kaguya_MIMap_MineralDeconv_OrthopyroxenePercent_50N50S", "사방휘석", "wt%", 100, 0, 100, 1,
+            "Kaguya MI"),
+    "plag": ("trekarcgis", "Lunar_Kaguya_MIMap_MineralDeconv_PlagioclasePercent_50N50S", "사장석", "wt%", 100, 0, 100, 1,
+             "Kaguya MI"),
+    "th": ("trekarcgis", "LP_GRS_Th_Global_2ppd", "토륨", "ppm", 1, 0, 30, 2, "Lunar Prospector GRS"),
+    "ti": ("trekarcgis2", "LP_GRS_TitaniumAbundance_2ppd", "티타늄", "wt%", 1, 0, 15, 2, "Lunar Prospector GRS"),
+    **{f"thick{n}": ("trekarcgis", f"Model{n}_thick_eq", "지각 두께", "km", 1, 0, 200, 1, f"GRAIL · Wieczorek et al. 2013, model {n}")
+       for n in range(1, 5)},
+}
+
+#: 판이 덮는 위도 끝 — 없으면 온 달
+VALUE_LAT = {key: 50 for key in ("feo", "olivine", "cpx", "opx", "plag")}
+
+#: 씨앗의 판 이름 → 갈래. 색 판과 회색 판이 같은 값을 가리킨다. 극지 짝(`_NP`·`_SP`)은 씨앗에 없다
+_VALUE_IDS = (
+    (re.compile(r"^Lunar_Kaguya_MIMap_MineralDeconv_FeOWeightPercent_50N50S"), "feo"),
+    (re.compile(r"^Lunar_Kaguya_MIMap_MineralDeconv_OlivinePercent_50N50S"), "olivine"),
+    (re.compile(r"^Lunar_Kaguya_MIMap_MineralDeconv_ClinopyroxenePercent_50N50S"), "cpx"),
+    (re.compile(r"^Lunar_Kaguya_MIMap_MineralDeconv_OrthopyroxenePercent_50N50S"), "opx"),
+    (re.compile(r"^Lunar_Kaguya_MIMap_MineralDeconv_PlagioclasePercent_50N50S"), "plag"),
+    (re.compile(r"^LP_GRS_Th_(Clr_)?Global_2ppd$"), "th"),
+    (re.compile(r"^LP_GRS_(Clr)?TitaniumAbundance_2ppd$"), "ti"),
+    (re.compile(r"^Model([1-4])_thick\.eq$"), "thick"),
+)
+
+
+def value_key(body: str, label: str) -> str:
+    """씨앗의 판 → 누른 자리의 값 갈래. 없으면 빈 칸. 달만."""
+    if body != "moon":
+        return ""
+    for pattern, key in _VALUE_IDS:
+        m = pattern.match(label)
+        if m:
+            return key + (m.group(1) if key == "thick" else "")
+    return ""
+
+
+def value_at(key: str, lon: float, lat: float) -> dict:
+    """`{"rows": [[이름, "16.7 wt%"], ["출처", …]]}` — 자료 밖이면 rows 가 빈다. 이름은 한국어 원문이다."""
+    root, service, label, unit, scale, lo, hi, digits, source = VALUES[key]
+    # Kaguya MI 는 남북위 50° 안뿐이다. 밖을 물으면 빈 값이 아니라 "Invalid … parameters" 오류가 온다(2026-09-30)
+    if abs(lat) > VALUE_LAT.get(key, 90):
+        return {"rows": []}
+    geometry = {"points": [[round(lon, 6), round(lat, 6)]], "spatialReference": {"wkid": SR}}
+    data = _json(_get(f"{root}/rest/services/{service}/ImageServer/getSamples", {
+        "geometry": json.dumps(geometry), "geometryType": "esriGeometryMultipoint",
+        "returnFirstValueOnly": "true", "f": "json",
+    }))
+    for sample in data.get("samples") or []:
+        try:
+            value = float(sample.get("value")) * scale
+        except (TypeError, ValueError):
+            continue
+        if lo <= value <= hi and not math.isnan(value):
+            return {"rows": [[label, f"{value:.{digits}f} {unit}"], ["출처", source]]}
+    return {"rows": []}
+
+
 # ── 착륙·충돌 지점 (046) ─────────────────────────────────────────────
 #
 # Trek 의 `Lunar_Landing_Impact_Sites` MapServer — 갈래마다 레이어 하나다(충돌·연착륙·유인 착륙·로버).
@@ -1107,7 +1179,7 @@ def client_catalog(body: str) -> dict:
                             "ext": e.get("ext") or "png",
                             "max": e.get("max") or 0, "z0": e.get("z0") or 0, "bbox": bbox, "src": src,
                             "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], ""),
-                            "polar": _client_polar(e.get("polar"))})
+                            "polar": _client_polar(e.get("polar")), "value": value_key(body, e["id"])})
     out = sorted(groups.values(), key=lambda g: g["order"])
     for g in out:
         del g["order"]
