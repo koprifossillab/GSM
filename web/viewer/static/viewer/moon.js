@@ -86,9 +86,11 @@
   var TREK_ROOT = TREK_DATA.root || "https://trek.nasa.gov/tiles/Moon/EQ";
   var TREK_GROUPS = (TREK_DATA.groups || []).map(function (g) {
     return { group: LANG === "en" ? g.en : g.ko, layers: g.layers.map(function (l) {
-      // `map` 은 WMTS 가 없어 우리 문이 굽는 판 — 누르면 속성을 읽는다
+      // `map` 은 WMTS 가 없어 우리 문이 굽는 판 — 누르면 속성을 읽는다. `same` 은 우리 레이어와 같은 자료를 다르게
+      // 그린 판(Kaguya TC 지질도 = 통합 지질도) — 속성·범례를 그 레이어의 것으로 낸다
       return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
-               bbox: l.bbox, legend: l.legend ? "trek:" + l.id : undefined, info: l.kind === "map" ? "trek" : undefined,
+               bbox: l.bbox, legend: l.same || (l.legend ? "trek:" + l.id : undefined),
+               info: l.same || (l.kind === "map" ? "trek" : undefined),
                title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
                src: (l.src ? l.src + " · " : "") + "NASA Moon Trek" };
     }) };
@@ -1238,11 +1240,20 @@
            '</span><span class="k">' + esc(T("달 경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
+  // 켠 레이어 가운데 `key`(속성·범례의 갈래)가 있는 것을 위에서부터, 같은 갈래는 한 번만 — 통합 지질도와
+  // Kaguya TC 지질도(060)를 함께 켜도 같은 표·범례가 두 번 서지 않는다
+  function onceBy(layers, key) {
+    var seen = {};
+    return layers.filter(function (l) {
+      if (!l[key] || seen[l[key]]) return false;
+      return (seen[l[key]] = true);
+    });
+  }
   // 켠 레이어 가운데 읽을 수 있는 것(통합·원도)을 위에서부터 다 묻는다 — 둘을 켜 두면 견줘 읽는다
   function askUnit(ll, pixel) {
     markAt(ll);
     var head = coordHead(ll);
-    var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
+    var layers = onceBy(active.map(function (e) { return LAYER[e.name]; }), "info");
     if (!layers.length) { showPopup(head, pixel); return; }
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
@@ -1408,7 +1419,7 @@
   }
   var legendAsked = 0;
   function syncLegend() {
-    var layers = active.filter(function (e) { return LAYER[e.name].legend; }).map(function (e) { return LAYER[e.name]; });
+    var layers = onceBy(active.map(function (e) { return LAYER[e.name]; }), "legend");
     dock.hidden = !layers.length;
     if (!layers.length) return;
     var mine = ++legendAsked;

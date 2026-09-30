@@ -140,6 +140,13 @@ class Seed(TestCase):
         self.assertTrue(layers["layer_0"]["legend"])                # 값을 칠한 갈래에는 범례 그림이 있다
         self.assertEqual(out["legend"], "https://trek.nasa.gov/moon/TrekWS/rest/cat/legend/stream?label=")
 
+    def test_같은_자료를_다르게_그린_판은_우리_레이어를_가리킨다(self):
+        self.items.append(item("Unified_Geologic_Map_of_the_Moon_RASTER", cat="Geology", cat2="Geologic Map"))
+        self.run_command()
+        layers = {l["id"]: l for g in trek.client_catalog("moon")["groups"] for l in g["layers"]}
+        self.assertEqual(layers["Unified_Geologic_Map_of_the_Moon_RASTER"]["same"], "units")
+        self.assertEqual(layers["layer_0"]["same"], "")
+
     def test_달_화면에_실린다(self):
         self.run_command()
         html = self.client.get(reverse("viewer:moon")).content.decode()

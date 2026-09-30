@@ -902,6 +902,11 @@ def load_catalog(body: str) -> list:
         return []
 
 
+#: 우리 레이어와 같은 자료를 다르게 그린 판 — 누르면 그 레이어의 속성을, 범례 칸에는 그 레이어의 범례를 낸다.
+#: Kaguya TC 지질도는 통합 지질도(`units`)의 단위를 Kaguya 지형 카메라 영상 위에 칠한 래스터다 — 단위 기호·색이 같다
+SAME_AS = {"moon": {"Unified_Geologic_Map_of_the_Moon_RASTER": "units"}}
+
+
 def client_catalog(body: str) -> dict:
     """화면에 내리는 목록 — 타일(WMTS·MapServer)이 있고 숨기지 않은 판만, 레이어군으로 묶어서. 페이지에 싣는다.
 
@@ -924,7 +929,7 @@ def client_catalog(body: str) -> dict:
         g["layers"].append({"id": e["id"], "kind": e["kind"], "title": e["title"], "ko": e.get("ko") or "",
                             "ext": e.get("ext") or "png",
                             "max": e.get("max") or 0, "z0": e.get("z0") or 0, "bbox": bbox, "src": src,
-                            "legend": legend})
+                            "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], "")})
     out = sorted(groups.values(), key=lambda g: g["order"])
     for g in out:
         del g["order"]
