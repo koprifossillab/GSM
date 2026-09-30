@@ -132,3 +132,4 @@
 | wetherilli 098 | 2026-09-30 | [온 지구 — 화석 산지, PBDB 27 만 곳을 연대마다 그 자리에](20260930_wetherilli_098_pbdb_fossil_collections.md) |
 | wetherilli 099 | 2026-09-30 | [극지 — PGC 경사·등고선을 지질도 위에 겹치는 레이어로](20260930_wetherilli_099_pgc_slope_contour_layers.md) |
 | wetherilli 100 | 2026-09-30 | [달 — 잰 선을 따라 높이 그래프](20260930_wetherilli_100_moon_elevation_profile.md) |
+| wetherilli 101 | 2026-09-30 | [온 지구 — 지각 두께, CRUST 2.0](20260930_wetherilli_101_crust_thickness.md) |
