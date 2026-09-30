@@ -99,3 +99,4 @@
 | 072 | 2026-09-30 | [GeoMAP 암층 — 무늬 채우기를 옮겼다](20260930_072_geomap-lithostrat.md) |
 | 073 | 2026-09-30 | [KPDC 지도 서버 속성의 이름](20260930_073_kpdc-wms-props.md) |
 | jikhanjung 001 | 2026-09-30 | [화면 투영의 EPSG 번호를 축척 막대 옆에](20260930_jikhanjung_001_epsg_badge.md) |
+| jikhanjung 002 | 2026-09-30 | [제목 옆에 판 번호](20260930_jikhanjung_002_title_version.md) |
