@@ -60,6 +60,20 @@ class Wmts(SimpleTestCase):
         with mock.patch("viewer.trek.requests.get", return_value=r):
             self.assertIsNone(trek.wmts_info("mars", "FanSurvey_2005_2008_clon0"))
 
+    def test_타일_한_장은_범위_가운데의_줌_0(self):
+        ok = mock.Mock(status_code=200, url="…", content=b"\x89PNG", headers={"content-type": "image/png"})
+        with mock.patch("viewer.trek.requests.get", return_value=ok) as get:
+            self.assertTrue(trek.tile_exists("mars", "JEZ", {"ext": "jpg", "z0": 1}, [77.2, 18.3, 77.6, 18.7]))
+        self.assertEqual(get.call_args[0][0],
+                         "https://trek.nasa.gov/tiles/Mars/EQ/JEZ/1.0.0/default/default028mm/1/0/1.jpg")
+        gone = mock.Mock(status_code=404, url="…", content=b"", headers={"content-type": "text/html"})
+        with mock.patch("viewer.trek.requests.get", return_value=gone) as get:
+            self.assertFalse(trek.tile_exists("moon", "X", {"ext": "png", "z0": 0}, None))
+        self.assertEqual([c[0][0][-18:] for c in get.call_args_list], ["default028mm/0/0/1.png"[-18:], "default028mm/0/0/0.png"[-18:]])
+        # 가운데 쪽이 404 여도 다른 쪽에 있으면 있는 판이다 — 범위가 망가진 화성 CTX 11S289E
+        with mock.patch("viewer.trek.requests.get", side_effect=[gone, ok]):
+            self.assertTrue(trek.tile_exists("mars", "CTX", {"ext": "png", "z0": 0}, [-180.0, -90.0, 219.0, 90.0]))
+
     def test_타일_뿌리는_몸을_따른다(self):
         self.assertEqual(trek.tiles_root("moon"), "https://trek.nasa.gov/tiles/Moon/EQ")
         self.assertEqual(trek.tiles_root("mars"), "https://trek.nasa.gov/tiles/Mars/EQ")
@@ -103,6 +117,10 @@ class Seed(TestCase):
             return {"ext": "png", "max": 5, "box": [-931135, -931138, 931165, 931162]} if name == "layer_0_SP" else None
         with mock.patch("viewer.trek.catalog_items", return_value=self.items), \
                 mock.patch("viewer.trek.wmts_info", side_effect=wmts) as probe, \
+                mock.patch("viewer.trek.tile_exists", side_effect=lambda body, label, info, bbox, delay: label != "notiles"), \
+                mock.patch("viewer.trek.find_mapserver",
+                           side_effect=lambda body, uuid, label: "trekarcgis/rest/services/X/MapServer"
+                           if label == "notiles" else ""), \
                 mock.patch("viewer.trek.polar_twins", return_value=self.twins), \
                 mock.patch("viewer.trek.polar_wmts_info", side_effect=polar_wmts) as self.polar_probe, \
                 mock.patch("viewer.management.commands.fetch_trek_catalog.time.sleep"), \
@@ -118,6 +136,14 @@ class Seed(TestCase):
         seed = self.seed()
         self.assertEqual(seed["layer_0"]["kind"], "tile")
         self.assertIsNone(seed["nowmts"]["kind"])
+
+    def test_Capabilities_만_있고_타일이_없으면_MapServer(self):
+        """화성 사구 지대·Hynek 골짜기망 — Capabilities 는 200, 타일은 404, MapServer 만 있다 (wetherilli 090)."""
+        self.items.append(item("notiles", cat="Landforms"))
+        self.run_command()
+        seed = self.seed()
+        self.assertEqual((seed["notiles"]["kind"], seed["notiles"]["ms"]), ("map", "trekarcgis/rest/services/X/MapServer"))
+        self.assertEqual(seed["layer_0"]["kind"], "tile")
 
     def test_손질한_칸은_지킨다(self):
         self.run_command()

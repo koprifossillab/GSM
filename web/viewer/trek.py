@@ -892,6 +892,29 @@ def wmts_info(body: str, label: str) -> dict | None:
     return parse_wmts(r.content)
 
 
+def tile_exists(body: str, label: str, info: dict, bbox, delay: float = 0.0) -> bool:
+    """WMTS 판의 타일이 실제로 있나 — 판 범위의 가운데를 덮는 줌 0 타일 한 장을 받아 본다 (wetherilli 090).
+
+    Capabilities 가 200 인데 타일이 모두 404 인 판이 있다(화성 사구 지대·Hynek 골짜기망 — MapServer 만 둔다,
+    wetherilli 080). 좁은 판도 줌 0 타일은 준다(2026-09-30, 달·화성 판 열둘을 줌 0·2·끝에서 받아 보았다 — 있는 판은
+    다 200, 없는 판은 다 404). 두 장 다 404 면 False, 다른 실패는 `TrekError`. 두 번 물을 때 사이에 `delay` 초 쉰다."""
+    w, s, e, n = bbox or (-180.0, -90.0, 180.0, 90.0)
+    first = 0 if (w + e) / 2 < 0 else 1
+    # 줌 0 은 두 장이다. 가운데 쪽이 404 면 다른 쪽도 본다 — 범위가 망가진 판이 있다(화성 CTX 11S289E 는 동경
+    # 219° 까지라 적어 가운데가 동반구로 가지만 자료는 서경 71° 에 있다)
+    for i, x in enumerate((first, 1 - first)):
+        if i and delay:
+            time.sleep(delay)
+        r = _get(f"{label}/1.0.0/default/default028mm/{info.get('z0') or 0}/0/{x}.{info.get('ext') or 'png'}", {},
+                 base=tiles_root(body))
+        if r.status_code == 404:
+            continue
+        if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+            raise TrekError(f"NASA Trek 이 타일을 주지 않았다 (status={r.status_code})")
+        return True
+    return False
+
+
 # ── 극지 짝 (wetherilli 085) ────────────────────────────────────────
 #
 # 색인(`index/eq`)은 적도 판만 준다. 몇 판은 Trek 이 극 평사도법으로 따로 구운 짝(`<판>_SP`·`_NP`)을 둔다 —

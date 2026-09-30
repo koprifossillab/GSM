@@ -1,8 +1,9 @@
 """Trek 의 판 목록을 받아 `data/<몸>_trek_layers.json` 씨앗에 적는다 (devlog 060).
 
-색인(`searchItems`)에서 판을 받고, 판마다 `WMTSCapabilities.xml` 을 한 번 물어 포맷·줌 끝을 적는다. WMTS 가
-없으면 ArcGIS MapServer 를 찾아 적는다(`kind: map` — 우리 문이 타일을 굽는다).
-**1 초에 한 번**이고 달은 1 200 남짓이라 20 분쯤 걸린다. 한 번 물은 판은 다시 묻지 않는다(`--reprobe` 로 다시).
+색인(`searchItems`)에서 판을 받고, 판마다 `WMTSCapabilities.xml` 을 한 번 물어 포맷·줌 끝을 적는다. Capabilities 가
+있어도 줌 0 타일 한 장을 받아 보고, 없으면(404) WMTS 가 없는 판으로 친다(wetherilli 090). WMTS 가 없으면 ArcGIS
+MapServer 를 찾아 적는다(`kind: map` — 우리 문이 타일을 굽는다).
+**1 초에 한 번**이고 달은 1 200 남짓이라 40 분쯤 걸린다(판마다 둘). 한 번 물은 판은 다시 묻지 않는다(`--reprobe` 로 다시).
 실패가 잇따르면 멈추고 그때까지 물은 것을 적는다 — 다시 부르면 이어서 묻는다.
 
 끝에 극지 짝(`<판>_SP`·`_NP`)을 찾는다 — 서비스 목록 셋에서 이름으로 모으고, 짝이 있는 판만 극 WMTS 를 묻는다
@@ -51,7 +52,7 @@ class Command(BaseCommand):
             entry = dict(item)
             entry["ko"] = prev.get("ko", "")
             entry["hide"] = prev["hide"] if "hide" in prev else trek.hidden_by_default(body, item)
-            for key in ("kind", "ext", "max", "z0", "ms", "probed", "polar"):
+            for key in ("kind", "ms", "ext", "max", "z0", "probed", "polar"):
                 if key in prev:
                     entry[key] = prev[key]
             layers.append(entry)
@@ -63,12 +64,17 @@ class Command(BaseCommand):
         if o["limit"]:
             todo = todo[:o["limit"]]
         self.stdout.write(f"판 {len(layers)} 개 (사라진 것 {gone}) — WMTS 를 물을 것 {len(todo)} 개, "
-                          f"{delay:g} 초 간격이면 {len(todo) * delay / 60:.0f} 분")
+                          f"{delay:g} 초 간격이면 {len(todo) * 2 * delay / 60:.0f} 분 남짓")
         fails = 0
         for i, entry in enumerate(todo, 1):
             try:
                 if o["reprobe"] or "probed" not in entry:
                     info = trek.wmts_info(body, entry["id"])
+                    # Capabilities 만 있고 타일이 404 인 판이 있다 — 한 장 받아 보고 적는다 (wetherilli 090)
+                    if info:
+                        time.sleep(delay)
+                        if not trek.tile_exists(body, entry["id"], info, entry.get("bbox"), delay):
+                            info = None
                 else:
                     info = None
                 ms = "" if info else trek.find_mapserver(body, entry.get("uuid", ""), entry["id"])
