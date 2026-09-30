@@ -309,6 +309,12 @@ EN = {
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
     "이 칸에는 값이 없다": "No value in this cell",
     "2° 칸의 모형이다 — 관측이 아니다": "A model on 2° cells — not an observation",
+    # 지명·강·호수·빙하 (wetherilli 102)
+    "지리 (Natural Earth)": "Geography (Natural Earth)",
+    "산맥·바다 이름": "Names of ranges and seas",
+    "강·호수": "Rivers and lakes",
+    "빙하·빙붕": "Glaciers and ice shelves",
+    "좌표·지명으로 이동 — 37.57, 126.98 · 바이칼호 · Andes": "Go to coordinates or a place — 37.57, 126.98 · Baikal · Andes",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
