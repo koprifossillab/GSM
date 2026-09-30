@@ -122,13 +122,6 @@
       셋 가운데 하나를 사람이 고른다. 그린란드어 `ĸ`·덴마크어 이름 접기. 첫 건 하루
 - [ ] 드로닝모드랜드 지명 [실측] NPI `NPI_Place_Names_Dronning_Maud_Land` — 위 뒤면 1–2시간. CC BY 4.0
 
-### KPDC 안 쓴 레이어 — 반나절 (+ 레이어별 투영)
-
-- [ ] [실측] 54 개 가운데 6 개만 쓴다. 북극해 수심·등심선(`arctic_topography_bathymetry`·`_bathymetric_contours`), 영구동토
-      (`arctic_topography_permafrost_ice`), 남극 등고선(`antarctic_topography_contours_high`·`_low`), 역사 유적. `kopri.WMS` 에 줄,
-      `WMS_PROPS`, 씨앗. **`views._layer_extra` 가 kopri 를 3031 로 박아 두어** 북극 것은 레이어마다 투영을 두게 먼저 고친다.
-      `LAB_ONLY` (057·073)
-
 ### GSJ 새 호스트 — 사흘 (두 건)
 
 GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만 `gbank`). 둘 다 CLAUDE.md 의 GSJ 줄과 CORS 확인을 탄다.

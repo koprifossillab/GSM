@@ -1154,8 +1154,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
                 **({} if spec["info"] else {"queryable": False})}
     if layer.upstream == "kopri" and kopri.knows_wms(layer.name):
-        # KPDC 지도 서버(057) — 3031 을 그대로 받는다(NPI 드로닝모드랜드와 같다)
-        return {"attribution": kopri.ATTRIBUTION, "projection": "EPSG:3031"}
+        # KPDC 지도 서버(057) — 남극은 3031 을, 북극은 3413 을 그대로 받는다(NPI 와 같다, wetherilli 095)
+        return {"attribution": kopri.ATTRIBUTION, "projection": kopri.wms_projection(layer.name)}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
