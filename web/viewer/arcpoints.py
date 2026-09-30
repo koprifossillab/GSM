@@ -17,7 +17,9 @@
 """
 import json
 import logging
+import re
 import time
+import unicodedata
 
 log = logging.getLogger(__name__)
 
@@ -143,3 +145,61 @@ def body(spec: dict, features_json: bytes) -> bytes:
     head = json.dumps({"type": "FeatureCollection", "labels": labels(spec), "links": links(spec),
                        "style": spec["style"]}, ensure_ascii=False)
     return head[:-1].encode("utf-8") + b', "features": ' + features_json + b"}"
+
+
+# ── 지명 찾기 (wetherilli 096) ──────────────────────────────────────
+#
+# 스발바르·드로닝모드랜드(NPI)와 그린란드(정부 포털)의 지명을 같은 틀로 찾는다. 이름 열이 여럿일 수
+# 있다 — 그린란드는 새 철자·옛 철자·덴마크어·다른 이름. 색인(`name_index`)을 한 번 짓고 찾을 때마다
+# 그것만 훑는다. 짓는 것은 부르는 쪽(`views`)이 메모리에 들고 있는다.
+
+
+def fold(text: str) -> str:
+    """찾기를 위해 접는다 — 작은 글자로, 노르웨이·덴마크 글자는 로마자로(å→a, ø→o, æ→ae),
+    그린란드 옛 철자의 `ĸ`(kra)는 새 철자처럼 q 로, 나머지 덧붙임표는 떼고."""
+    text = (text or "").lower().replace("æ", "ae").replace("ø", "o").replace("å", "a").replace("ĸ", "q")
+    text = unicodedata.normalize("NFKD", text)
+    return re.sub(r"\s+", " ", "".join(c for c in text if not unicodedata.combining(c))).strip()
+
+
+def name_index(features: list, names=("name",), sub=(), prefer=None) -> list:
+    """feature 목록 → [(접은 이름들, 이름들, 곁말, 위도, 경도, 앞세움)]. `names` 의 첫 열이 보이는 이름이고,
+    **그 열이 빈 것은 뺀다** — 그린란드 지명에 그린란드어 이름 없이 덴마크어만 적힌 것이 스무 건 남짓 있는데,
+    스발바르의 Longyearbyen 이 경도 부호가 뒤집혀(동경 15.98° → 서경 16°) 든 것 따위다.
+    `prefer` 는 (열, 값들) — 같은 이름이면 이 값의 것(도시·마을)을 앞세운다."""
+    out = []
+    for f in features:
+        props = f.get("properties") or {}
+        coords = (f.get("geometry") or {}).get("coordinates")
+        if not props.get(names[0]) or not coords:
+            continue
+        shown = tuple(dict.fromkeys(str(props[k]) for k in names if props.get(k)))
+        side = " · ".join(dict.fromkeys(str(props[k]) for k in sub if props.get(k) and str(props[k]) not in shown[:1]))
+        first = 0 if prefer and str(props.get(prefer[0], "")) in prefer[1] else 1
+        out.append((tuple(fold(n) for n in shown), shown, side, coords[1], coords[0], first))
+    return out
+
+
+def match_index(index: list, query: str, limit: int = 20) -> list:
+    """색인에서 `query` 에 맞는 것. 같은 이름 → 앞이 같은 것 → 들어 있는 것 차례, 같으면 짧은 이름.
+    같은 차례면 앞세울 것(`prefer`)이 먼저다. 다른 이름(옛 철자·덴마크어)으로 맞았으면 제목에 괄호로 곁들인다 — 화면은 괄호를 떼고 옮겨 간다.
+    화면의 찾기 결과 꼴(`title`·`sub`·`lat`·`lon`·`kind`)로 준다."""
+    q = fold(query)
+    if not q:
+        return []
+    ranked = []
+    for folded, shown, side, lat, lon, first in index:
+        best = None
+        for i, name in enumerate(folded):
+            if q in name:
+                rank = 0 if name == q else 1 if name.startswith(q) else 2
+                if best is None or rank < best[0]:
+                    best = (rank, i)
+        if best is not None:
+            ranked.append((best[0], first, len(shown[best[1]]), shown[0], best[1], shown, side, lat, lon))
+    ranked.sort(key=lambda r: r[:4])
+    out = []
+    for _, _, _, main, i, shown, side, lat, lon in ranked[:limit]:
+        title = main if i == 0 else f"{main} ({shown[i]})"
+        out.append({"kind": "name", "title": title, "sub": side, "lat": lat, "lon": lon})
+    return out
