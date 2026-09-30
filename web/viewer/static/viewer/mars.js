@@ -56,12 +56,13 @@
     { group: "화성 지질 (USGS 1:2000만, 2014)", layers: [
       { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS SIM 3292 · NASA Mars Trek" },
     ] },
-    // 옛 지질도 — 바이킹 시대의 전 지구판 세 장(I-1802-A·B·C). 우리가 파일을 굽는다 (`marsmap.py`, 068).
+    // 옛 지질도·지역도 — 바이킹 시대의 전 지구판(I-1802) 위에 북부 평원(SIM 2888)·타우마시아(I-2650)·MTM 지역도
+    // 열하나를 좁은 것이 위에 오게 얹었다. 우리가 파일을 굽는다 (`marsmap.py`, 068·wetherilli 079).
     // 이름(`orig-*`)은 달 원도의 것 그대로다 — 두 화면을 나란히 고치기 쉽게
-    { group: "화성 옛 지질도 (USGS 1:1500만, 1986–87)", layers: [
+    { group: "화성 USGS 옛 지질도·지역도 (1986–2005)", layers: [
       { name: "orig-units", title: "옛 지질 단위", info: "orig", legend: "orig",
-        src: "USGS I-1802-A·B·C (Scott & Tanaka 1986, Greeley & Guest 1987, Tanaka & Scott 1987)" },
-      { name: "orig-lines", title: "옛 구조선", legend: "orig-lines", src: "USGS I-1802-A·B·C" },
+        src: "USGS I-1802-A·B·C · SIM 2888 · I-2650 · MTM 1:500K (I-1696 … I-2351)" },
+      { name: "orig-lines", title: "옛 구조선", legend: "orig-lines", src: "USGS I-1802 · SIM 2888 · I-2650" },
     ] },
     // 크레이터 38 만 개 — 서버가 제 디스크의 sqlite 에서 타일로 굽는다(`marscraters.py`, 067). 극 평면도 같다
     { group: "크레이터 (Robbins 2012)", layers: [
@@ -85,7 +86,7 @@
   var GEO_MAX = 11;            // 서버의 `trek.MARS_MAX_ZOOM`
   function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png"; }
   var GEO_CREDIT = "Geologic Map of Mars 1:20M (Tanaka et al., 2014, USGS SIM 3292) via NASA Mars Trek";
-  var ORIG_CREDIT = "Geologic Map of Mars 1:15M (USGS I-1802-A/B/C, 1986–87; digital Skinner et al. 2006)";
+  var ORIG_CREDIT = "USGS Mars geologic maps: I-1802-A/B/C 1:15M (1986–87), SIM 2888 (2005), I-2650 (2001), MTM 1:500K";
   var CRATER_CREDIT = "Mars crater database (Robbins & Hynek 2012, USGS Astrogeology)";
   function creditOf(name) {
     return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : name === "craters" ? CRATER_CREDIT : undefined;

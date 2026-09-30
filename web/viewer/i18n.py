@@ -229,7 +229,7 @@ EN = {
     "매기지 않음": "not classified",
     "크레이터 파일이 서버에 없다": "The crater file is not on the server",
     # 화성 옛 지질도 (068)
-    "화성 옛 지질도 (USGS 1:1500만, 1986–87)": "Mars original geologic map (USGS 1:15M, 1986–87)",
+    "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
     "옛 구조선": "Original structures",
     "옛 지질도 파일이 서버에 없다": "The original geologic map file is not on the server",
@@ -982,6 +982,7 @@ PROP_EN = {
     "보존 상태": "Preservation state",
     "가운데": "Centre",
     "지은이": "Authors",
+    "지형구": "Province",
 }
 
 
