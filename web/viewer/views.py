@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, fossils, macrostrat, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, macrostrat, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -897,7 +897,8 @@ def earth_view(request):
         "lang": lang,
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
-        "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available()}),
+        "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   "crust": crust.legend() if crust.grid() else []}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
@@ -1125,6 +1126,40 @@ def earth_paleo_set(request, pk):
             props["_paleo"] = _paleo_text(got, lang)
         out.append({"type": "Feature", "geometry": g, "properties": props})
     return JsonResponse({"type": "FeatureCollection", "features": out}, json_dumps_params={"ensure_ascii": False})
+
+
+# ── 지각 두께 (wetherilli 101) ───────────────────────────────────────
+
+@require_GET
+def earth_crust_tile(request, z, x, y):
+    """`earth/crust/tiles/<z>/<x>/<y>.png` — CRUST 2.0 지각 두께, 경위도 격자 (`crust.render_tile`)."""
+    z, x, y = int(z), int(x), int(y)
+    if not crust.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if crust.grid() is None:
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    key = tilecache.key_text("crust", f"{crust.RENDERER}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = crust.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_crust_at(request):
+    """`?lon=&lat=` — 누른 자리의 지각 두께. 모형이지 관측이 아니다."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    km = crust.at(lon, lat)
+    text = (i18n.t(msg("약 {km} km — CRUST 2.0, 2° 칸의 모형이다", km=f"{km:.0f}"), lang) if km is not None
+            else i18n.t(msg("이 칸에는 값이 없다"), lang))
+    return JsonResponse({"km": km, "text": text, "credit": crust.CITE})
 
 
 # ── 화석 산지 (wetherilli 098) ───────────────────────────────────────

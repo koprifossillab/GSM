@@ -61,6 +61,11 @@
     ] },
     // 그때의 지구에만 뜨는 것 — 연대(1 Ma 부터)를 따라 타일이 바뀐다 (P07·wetherilli 097)
     //   then  1 Ma 부터만 뜬다. 오늘의 레이어는 그 반대다
+    // 지각 두께 — 오늘의 것(2° 모형). 누르면 두께가 뜬다 (101)
+    { group: "지각 (CRUST 2.0)", layers: [
+      { name: "crust", title: "지각 두께", grid: "ll", info: "crust", legend: "crust", max: 5,
+        src: "CRUST 2.0 (Laske, Masters & Reif 2000) · EarthByte · CC BY 4.0" },
+    ] },
     // 화석 산지 — 모든 연대에 뜬다(`always`). 오늘은 모든 산지, 옛 연대는 그 연대를 품은 산지를 그때의 자리에 (098)
     { group: "화석 산지 (PBDB)", layers: [
       { name: "fossils", title: "화석 산지", grid: "ll", always: true, legend: "geology",
@@ -80,6 +85,7 @@
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
+    if (name === "crust") return BASE + "earth/crust/tiles/{z}/{x}/{y}.png";
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
@@ -87,8 +93,9 @@
   var PALEO_CREDIT = "PALEOMAP 2016 (CC BY 4.0) · Scotese 2016, PALEOMAP PaleoAtlas for GPlates";
   var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
+  var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
   function creditOf(name) {
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT }[name];
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
@@ -233,14 +240,14 @@
 
   // 지질도는 3857 타일이다 — 구도 메르카토르 격자로 받는다
   var cGeo = {};
-  function cPaleoProvider(url, credit) {
+  function cPaleoProvider(url, credit, max) {
     return new Cesium.UrlTemplateImageryProvider({
-      url: url, tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: PALEO_MAX,
+      url: url, tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: max || PALEO_MAX,
       hasAlphaChannel: true, credit: credit,
     });
   }
   GEO_NAMES.forEach(function (name) {
-    var layer = viewer.imageryLayers.addImageryProvider(LAYER[name].grid === "ll" ? cPaleoProvider(geoUrl(name), creditOf(name))
+    var layer = viewer.imageryLayers.addImageryProvider(LAYER[name].grid === "ll" ? cPaleoProvider(geoUrl(name), creditOf(name), LAYER[name].max)
       : new Cesium.UrlTemplateImageryProvider({
       url: geoUrl(name), tilingScheme: new Cesium.WebMercatorTilingScheme(), maximumLevel: GEO_MAX,
       hasAlphaChannel: true, credit: creditOf(name),
@@ -325,14 +332,14 @@
   var oBase = baseLayer("moon-base", look.base);
   // 지질도 — 3857 z/x/y 를 어느 투영에서나 OpenLayers 가 옮겨 그린다. 그래서 투영을 바꿔도 소스를 갈지 않는다
   function geoSource(name) {
-    if (LAYER[name].grid === "ll") return paleoSource(geoUrl(name), creditOf(name));
+    if (LAYER[name].grid === "ll") return paleoSource(geoUrl(name), creditOf(name), LAYER[name].max);
     return new ol.source.XYZ({ url: geoUrl(name), maxZoom: GEO_MAX, attributions: creditOf(name),
                                crossOrigin: "anonymous" });            // CORS — 그림으로 뽑으려면 (048)
   }
   // 판 조각 — 경위도 격자(줌 0 이 180° 두 장, 256 칸). 극 평면에서는 OpenLayers 가 옮겨 그린다
-  function paleoSource(url, credit) {
+  function paleoSource(url, credit, max) {
     var res = [];
-    for (var z = 0; z <= PALEO_MAX; z++) res.push(180 / 256 / Math.pow(2, z));
+    for (var z = 0; z <= (max || PALEO_MAX); z++) res.push(180 / 256 / Math.pow(2, z));
     return new ol.source.XYZ({
       url: url, projection: LL, attributions: credit || PALEO_CREDIT, crossOrigin: "anonymous",
       tileGrid: new ol.tilegrid.TileGrid({ extent: [-180, -90, 180, 90], origin: [-180, 90], resolutions: res, tileSize: 256 }),
@@ -714,7 +721,7 @@
   }
   function addLayer(name) {
     if (isOn(name)) return;
-    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : 1 });
+    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : name === "crust" ? 0.7 : 1 });
     saveLayers(); applyStack(); renderActive(); renderCatalog();
   }
   function removeLayer(name) {
@@ -945,14 +952,16 @@
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
     var at = "?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&z=" + hereZoom();
-    Promise.all(layers.map(function () {
-      return fetch(BASE + "earth/info/" + at).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
+    var ASK = { geology: "earth/info/", crust: "earth/crust/at/" };
+    Promise.all(layers.map(function (l) {
+      return fetch(BASE + ASK[l.info] + at).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
       if (mine !== asked) return;
       var html = head;
       all.forEach(function (data, i) {
         html += "<h3>" + esc(T(layers[i].title)) + "</h3>";
         if (data.error) { html += '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>"; return; }
+        if (layers[i].info === "crust") { html += '<p class="none">' + esc(data.text) + "</p>"; return; }
         if (!data.units || !data.units.length) {
           html += '<p class="none">' + esc(T("여기에는 지질 단위가 없다")) + "</p>";
           return;
@@ -1024,6 +1033,13 @@
   function ma(v) { return v == null ? "" : (+v).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    if (kind === "crust") {
+      legends[kind] = '<li class="empty">' + esc(T("2° 칸의 모형이다 — 관측이 아니다")) + "</li>" +
+        (THEN.crust || []).map(function (row) {
+          return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+        }).join("");
+      return Promise.resolve(legends[kind]);
+    }
     return fetch(BASE + "earth/legend/").then(function (r) { return r.json(); }).then(function (data) {
       var html = '<li class="empty">' + esc(T("색은 시대의 색이다 — 세·절까지 가른 단위는 조금 다르다")) + "</li>";
       html += (data.rows || []).map(function (row) {
@@ -1381,7 +1397,7 @@
       urlNow[name] = geoUrl(name);
       var at = viewer.imageryLayers.indexOf(cGeo[name]);
       viewer.imageryLayers.remove(cGeo[name], true);
-      cGeo[name] = viewer.imageryLayers.addImageryProvider(cPaleoProvider(geoUrl(name), creditOf(name)), at);
+      cGeo[name] = viewer.imageryLayers.addImageryProvider(cPaleoProvider(geoUrl(name), creditOf(name), LAYER[name].max), at);
       cRaise[name] = [cGeo[name]];
       oGeo[name].setSource(geoSource(name));
     });

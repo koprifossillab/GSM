@@ -130,3 +130,4 @@
 | wetherilli 096 | 2026-09-30 | [지명 찾기 — 스발바르 하나에서 그린란드·드로닝모드랜드·북극 묶음으로](20260930_wetherilli_096_place_search_regions.md) |
 | wetherilli 097 | 2026-09-30 | [온 지구 — 옛 해안선, 화석이 가리키는 가장 깊은 바다](20260930_wetherilli_097_paleocoastlines.md) |
 | wetherilli 098 | 2026-09-30 | [온 지구 — 화석 산지, PBDB 27 만 곳을 연대마다 그 자리에](20260930_wetherilli_098_pbdb_fossil_collections.md) |
+| wetherilli 101 | 2026-09-30 | [온 지구 — 지각 두께, CRUST 2.0](20260930_wetherilli_101_crust_thickness.md) |

@@ -303,6 +303,12 @@ EN = {
     "화석 산지": "Fossil collections",
     "PBDB 에서 보기": "Open in PBDB",
     "산지 {n} 곳 가운데 가까운 것부터": "Nearest of {n} collections",
+    # 지각 두께 (wetherilli 101)
+    "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
+    "지각 두께": "Crustal thickness",
+    "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    "이 칸에는 값이 없다": "No value in this cell",
+    "2° 칸의 모형이다 — 관측이 아니다": "A model on 2° cells — not an observation",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
