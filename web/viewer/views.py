@@ -183,6 +183,7 @@ def moon_view(request):
     return render(request, "viewer/moon.html", {
         "lang": lang,
         "pointsets": _script_json(_pointset_list("moon")),
+        "trek_catalog": _script_json(trek.client_catalog("moon")),   # Trek 판 목록 (060)
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("moon", 1)[0],
         "version": VERSION,
@@ -396,6 +397,91 @@ def moon_legend(request):
     return JsonResponse({"items": items})
 
 
+# ── NASA Trek 의 MapServer 판 (060) — 달·화성이 함께 쓴다 ─────────────
+#
+# WMTS 가 없는 판(점·선·면 조사)은 지질도처럼 우리 문이 타일을 굽고 속성·범례를 읽는다. 씨앗(`data/<몸>_trek_layers.json`)에
+# `kind: map` 으로 적힌 판만 부른다 — 아무 서비스나 중계하지 않는다. 받은 것은 캐시에 담는다(007).
+
+def _trek_map(request, body, label):
+    entry = trek.map_entry(body, label)
+    if entry is None:
+        return None, JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), i18n.lang_of(request))}, status=404)
+    return entry, None
+
+
+@require_GET
+def trek_map_tile(request, body, label, z, x, y):
+    """`trek/<moon|mars>/map/<판>/<z>/<x>/<y>.png` — MapServer 판의 타일."""
+    z, x, y = int(z), int(x), int(y)
+    entry, error = _trek_map(request, body, label)
+    if error:
+        return error
+    if not trek.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-map", f"{body}/{label}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.map_tile(body, entry["ms"], z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("Trek 판 타일을 받지 못했다 (%s %s %s/%s/%s): %s", body, label, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def trek_map_info(request, body, label):
+    """`?lon=&lat=&z=` — 누른 자리의 것. `{"hits": [{"layer", "rows": [[열, 값], …]}]}`. 옮기지 않는다."""
+    lang = i18n.lang_of(request)
+    entry, error = _trek_map(request, body, label)
+    if error:
+        return error
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = int(_float(request.GET.get("z")) or 0)
+    if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "hits": []}, status=400)
+    z = max(0, min(z, trek.MAX_ZOOM))
+    key = tilecache.key_text("trek-map-info", f"{body}/{label}/{z}/{lon:.4f},{lat:.4f}")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"hits": trek.map_identify(body, entry["ms"], lon, lat, z)}
+        except trek.TrekError as exc:
+            log.warning("Trek 판 속성을 읽지 못했다 (%s %s): %s", body, label, exc)
+            return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "hits": []}, status=502)
+        tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
+@require_GET
+def trek_map_legend(request, body, label):
+    """MapServer 판의 범례 — `{"items": [{"label", "image"}]}`. 이름은 상류의 것 그대로다."""
+    entry, error = _trek_map(request, body, label)
+    if error:
+        return error
+    key = tilecache.key_text("trek-map-legend", f"{body}/{label}")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = {"items": trek.map_legend(body, entry["ms"])}
+        except trek.TrekError as exc:
+            data = _cached_json(key, stale=True)
+            if data is None:
+                log.warning("Trek 판 범례를 받지 못했다 (%s %s): %s", body, label, exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request)),
+                                     "items": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
 @require_GET
 def moon_landings(request):
     """달의 착륙·충돌 지점 — GeoJSON (046). Trek 에서 한 번 받아 캐시에 담는다(백 곳이 안 된다).
@@ -458,6 +544,7 @@ def mars_view(request):
     return render(request, "viewer/mars.html", {
         "lang": lang,
         "pointsets": _script_json(_pointset_list("mars")),
+        "trek_catalog": _script_json(trek.client_catalog("mars")),   # Trek 판 목록 (060)
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("mars", 1)[0],
         "version": VERSION,

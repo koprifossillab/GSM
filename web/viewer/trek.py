@@ -31,6 +31,7 @@ import json
 import logging
 import math
 import re
+import xml.etree.ElementTree as ET
 
 import requests
 from django.conf import settings
@@ -730,4 +731,310 @@ def mars_traverses() -> list:
                 if len(line) >= 2:
                     paths.append(line)
         out.append({"mission": mission, "paths": paths})
+    return out
+
+
+# ── Trek 판 목록 (060) — 달·화성이 함께 쓴다 ────────────────────────
+#
+# Trek 색인(`searchItems`)에는 지명 말고도 판(product·dataset)이 달 1 200 남짓, 화성 240 남짓 있다
+# (2026-09-30). 거의 다 영상 배경과 같은 WMTS(`tiles/<몸>/EQ/<판>/1.0.0/…`)라 브라우저가 곧장 부르면
+# 되고, 판을 하나씩 손으로 넣지 않고 **목록을 씨앗으로 받아 둔다**(`manage.py fetch_trek_catalog`).
+# 씨앗은 KIGAM 카탈로그처럼 사람이 한글 제목·숨김만 손질한다.
+#
+# 색인이 `serviceTypes: Mosaic` 이라 적어도 WMTS 가 없는 판이 있다 — 화성의 지형 형태 조사(선상지·골짜기망 …)는
+# MapServer 만 있다(2026-09-30, 화성 세션이 찔러 봤다). 그래서 판마다 `WMTSCapabilities.xml` 을 한 번 물어 포맷과
+# 줌 끝을 적고, 404 면 타일이 아닌 판(`kind: null`)으로 둔다. 줌 끝은 손으로 한 장씩 재 둔 값(Kaguya 10·LOLA 음영 6
+# ·NAC 아폴로 12 16)과 같았다.
+
+#: 몸 → (Trek 타일 경로의 이름, 상류에 적는 경위도 코드)
+BODIES = {"moon": ("Moon", SR), "mars": ("Mars", 104905)}
+
+#: 색인의 갈래(`productCat1`) → 레이어군 이름 (한국어, 영어). 목록에 이 차례로 선다. 없는 갈래는 맨 끝 "기타"
+CATEGORIES = (
+    ("Geology", "지질도", "Geology"),
+    ("Mineralogy", "광물·원소", "Mineralogy"),
+    ("Mineral", "광물·원소", "Mineralogy"),
+    ("Spectrometer", "광물·원소", "Mineralogy"),
+    ("Algebraic", "광물·원소", "Mineralogy"),
+    ("Gravity", "중력", "Gravity"),
+    ("Crust", "지각", "Crust"),
+    ("Radiometer", "열·복사", "Thermal"),
+    ("Temperature", "열·복사", "Thermal"),
+    ("ThermalInertia", "열·복사", "Thermal"),
+    ("Imagery", "영상", "Imagery"),
+    ("Topography", "지형", "Topography"),
+    ("Terrain", "경사·거칠기", "Slope & roughness"),
+    ("Illumination", "빛·그늘", "Illumination"),
+    ("Landforms", "지형 형태", "Landforms"),
+    ("Surface Feature", "표면 암괴", "Surface features"),
+    ("Hazard", "착륙 위험", "Landing hazards"),
+    ("Feature", "지점·경로", "Sites & paths"),
+    ("Landing Site", "지점·경로", "Sites & paths"),
+    ("Exploration Zones", "지점·경로", "Sites & paths"),
+    ("Index", "색인", "Index"),
+)
+OTHER_CATEGORY = ("기타", "Other")
+#: 값을 색으로 칠한 갈래 — Trek 의 범례 그림(`TrekWS/rest/cat/legend/stream`)을 붙인다. 영상·음영에는 범례가 없다.
+#: 지형은 색 음영(`ColorHillshade`)만 높이 범례가 있다
+_LEGEND_CATS = {"Mineralogy", "Mineral", "Spectrometer", "Algebraic", "Gravity", "Crust", "Radiometer",
+                "Temperature", "ThermalInertia", "Terrain", "Illumination", "Hazard", "Surface Feature"}
+
+#: 이미 화면이 따로 쓰는 판 — 영상 배경·극지 판·착륙지 사진(`moon.js`·`mars.js`). 목록에 두 번 세우지 않는다
+IN_USE = {
+    "moon": {"Kaguya_TCortho_Mosaic_Global_4096ppd", "LRO_WAC_Mosaic_Global_303ppd_v02",
+             "LRO_LOLA_Shade_Global_256ppd_v06", "LRO_NAC_Apollo12_Mosaic_p", "LRO_NAC_Apollo15_Mosaic_p",
+             "LRO_NAC_Apollo16_Mosaic_p", "NAC_DTM_APOLLO17_MOSAIC_120CM",
+             "LRO_NAC_Post_Landing_OrthoMosaic_1mpp_IM_1_LandingSite",
+             "apollo11_26cm_mosaic_byte_geo_1_2_highContrast", "apollo14_28cm_mosaic_byte_geo_1_2_highContrast"},
+    "mars": {"Mars_Viking_MDIM21_ClrMosaic_global_232m", "THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018",
+             "Mars_MGS_MOLA_ClrShade_merge_global_463m", "Mars_MOLA_blend200ppx_HRSC_Shade_clon0dd_200mpp_lzw"},
+}
+
+#: 처음 들어올 때 숨겨 두는 갈래 — 착륙 공학용(위험·암괴·색인)이거나, 값을 회색으로 칠한 판(같은 것을 칠한 짝이
+#: 있다)이거나, 표고 값 그대로라 그림으로는 읽히지 않는 판. 숨김은 씨앗의 `hide` 이고 사람이 뒤집을 수 있다
+_HIDE_CATS = {"Hazard", "Surface Feature", "Index"}
+_HIDE_CAT2 = {"Confidence", "Confidence Colorized", "Precision", "Grayscale", "DEM", "Slope", "Roughness"}
+_GRAY = re.compile(r"\b(Gray|Grey)(scale)?\b", re.I)
+
+
+def category(cat1: str) -> tuple:
+    """색인의 갈래 → (레이어군 한국어, 영어, 차례)."""
+    for i, (key, ko, en) in enumerate(CATEGORIES):
+        if key == cat1:
+            return ko, en, i
+    return OTHER_CATEGORY[0], OTHER_CATEGORY[1], len(CATEGORIES)
+
+
+def hidden_by_default(body: str, item: dict) -> bool:
+    if item["id"] in IN_USE.get(body, ()):
+        return True
+    if item.get("cat") in _HIDE_CATS or item.get("cat2") in _HIDE_CAT2:
+        return True
+    return bool(_GRAY.search(item.get("title") or ""))
+
+
+def _bbox(text) -> list | None:
+    try:
+        w, s, e, n = (float(v) for v in str(text).split(","))
+    except (TypeError, ValueError):
+        return None
+    return [round(w, 5), round(s, 5), round(e, 5), round(n, 5)]
+
+
+def catalog_items(body: str) -> list:
+    """색인의 판 — `[{id, title, cat, cat2, mission, instrument, coverage, bbox}]`. 지명·북마크는 뺀다."""
+    name, sr = BODIES[body]
+    r = _get("TrekServices/ws/index/eq/searchItems", {
+        "proj": f"urn:ogc:def:crs:EPSG::{sr}", "start": 0, "rows": 100000,
+    }, base=settings.TREK_MARS_URL if body == "mars" else "")
+    docs = (_json(r).get("response") or {}).get("docs") or []
+    out, seen = [], set()
+    for doc in docs:
+        if doc.get("itemType") not in ("product", "dataset"):
+            continue
+        label = str(doc.get("productLabel") or "").strip()
+        if not label or label in seen:
+            continue
+        seen.add(label)
+        out.append({"id": label, "uuid": doc.get("item_UUID") or "",
+                    "title": " ".join(str(doc.get("title") or label).split()),
+                    "cat": doc.get("productCat1") or "", "cat2": doc.get("productCat2") or "",
+                    "mission": doc.get("mission") or "", "instrument": doc.get("instrument") or "",
+                    "coverage": doc.get("coverage") or "", "bbox": _bbox(doc.get("bbox"))})
+    return out
+
+
+def tiles_root(body: str) -> str:
+    """판 타일의 뿌리 — `https://trek.nasa.gov/tiles/Moon/EQ`. 색인 주소의 호스트를 따른다."""
+    base = settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL
+    host = base.split("://", 1)[-1].split("/", 1)[0]
+    return f"{base.split('://', 1)[0]}://{host}/tiles/{BODIES[body][0]}/EQ"
+
+
+_WMTS = "{http://www.opengis.net/wmts/1.0}"
+_OWS = "{http://www.opengis.net/ows/1.1}"
+
+
+def parse_wmts(xml: bytes) -> dict | None:
+    """`WMTSCapabilities.xml` → `{"ext": "png", "max": 10, "z0": 0}`. 경위도 격자(가로 2·세로 1)가 없으면 None."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return None
+    fmt = root.findtext(f".//{_WMTS}Layer/{_WMTS}Format") or ""
+    levels = {}
+    for tm in root.iter(f"{_WMTS}TileMatrix"):
+        try:
+            levels[int(tm.findtext(f"{_OWS}Identifier"))] = (
+                float(tm.findtext(f"{_WMTS}MatrixWidth")), float(tm.findtext(f"{_WMTS}MatrixHeight")))
+        except (TypeError, ValueError):
+            continue
+    # 줌 0(가로 2·세로 1)을 `1` 로 적는 판이 있다 — 타일 주소도 그 번호다(Apollo 15 메트릭 카메라 신뢰도,
+    # 2026-09-30). 우리 줌 0 이 상류의 몇 번인지를 `z0` 에 적는다
+    z0 = [k for k, v in levels.items() if v == (2.0, 1.0)]
+    if not fmt.startswith("image/") or not z0:
+        return None
+    return {"ext": "jpg" if fmt.endswith(("jpeg", "jpg")) else fmt.split("/", 1)[1],
+            "max": max(levels) - z0[0], "z0": z0[0]}
+
+
+def wmts_info(body: str, label: str) -> dict | None:
+    """판 하나의 WMTS — 포맷·줌 끝. 404 면 None(타일이 없는 판). 다른 실패는 `TrekError`."""
+    r = _get(f"{label}/1.0.0/WMTSCapabilities.xml", {}, base=tiles_root(body))
+    if r.status_code == 404:
+        return None
+    if r.status_code != 200:
+        raise TrekError(f"NASA Trek 이 받지 않았다 (status={r.status_code})")
+    return parse_wmts(r.content)
+
+
+def catalog_file(body: str):
+    """씨앗 자리 — `data/moon_trek_layers.json`·`data/mars_trek_layers.json`. 저장소에 담는다."""
+    return settings.REPO_DIR / "data" / f"{body}_trek_layers.json"
+
+
+def load_catalog(body: str) -> list:
+    """씨앗의 판 — 없거나 깨졌으면 빈 목록(화면은 목록 없이 돈다)."""
+    try:
+        return json.loads(catalog_file(body).read_text(encoding="utf-8")).get("layers") or []
+    except (OSError, ValueError):
+        return []
+
+
+def client_catalog(body: str) -> dict:
+    """화면에 내리는 목록 — 타일(WMTS·MapServer)이 있고 숨기지 않은 판만, 레이어군으로 묶어서. 페이지에 싣는다.
+
+    `kind` 가 `tile` 이면 브라우저가 Trek 을 곧장, `map` 이면 우리 문(`trek/<몸>/map/…`)을 부른다.
+
+    `bbox` 는 판이 몸 전체를 덮으면 null — 화면이 범위 밖 타일을 거르지 않는다. 제목은 영어(`title`)와
+    사람이 붙인 한글(`ko`, 없으면 빈 칸 — 화면이 영어로 낸다) 둘을 다 싣는다."""
+    groups = {}
+    for e in load_catalog(body):
+        if e.get("kind") not in ("tile", "map") or e.get("hide"):
+            continue
+        ko, en, order = category(e.get("cat") or "")
+        bbox = e.get("bbox")
+        if bbox and bbox[0] <= -179.9 and bbox[1] <= -89.9 and bbox[2] >= 179.9 and bbox[3] >= 89.9:
+            bbox = None
+        src = " · ".join(v for v in (e.get("mission"), e.get("instrument")) if v and v != "None")
+        g = groups.setdefault(ko, {"ko": ko, "en": en, "order": order, "layers": []})
+        legend = (e.get("kind") == "map" or e.get("cat") in _LEGEND_CATS
+                  or (e.get("cat") == "Topography" and "Color" in (e.get("cat2") or "")))
+        g["layers"].append({"id": e["id"], "kind": e["kind"], "title": e["title"], "ko": e.get("ko") or "",
+                            "ext": e.get("ext") or "png",
+                            "max": e.get("max") or 0, "z0": e.get("z0") or 0, "bbox": bbox, "src": src,
+                            "legend": legend})
+    out = sorted(groups.values(), key=lambda g: g["order"])
+    for g in out:
+        del g["order"]
+    base = settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL
+    return {"root": tiles_root(body), "legend": f"{base.rstrip('/')}/TrekWS/rest/cat/legend/stream?label=",
+            "groups": out}
+
+
+# ── MapServer 판 (060) — WMTS 가 없는 판 ────────────────────────────
+#
+# 점·선·면 조사(화성의 골짜기망·선상지 …, 달의 아르테미스 후보·인공물 지점)는 WMTS 가 없고 ArcGIS MapServer 만
+# 있다. 지질도처럼 **우리 문이 `export` 로 타일을 굽고 `identify` 로 속성을 읽는다** — 한 틀로 달·화성의 것을 다
+# 받는다. 서비스 주소는 `getLayerServices` 가 알려 주는데, 색인이 WMTS 라 적고 MapServer 만 둔 판도 있어
+# (화성 Hynek 골짜기망, 2026-09-30) 그때는 같은 이름을 `trekarcgis*` 밑에서 찾아본다.
+
+_SERVICE_ROOTS = ("trekarcgis", "trekarcgis2", "trekarcgis3")
+
+
+def _body_base(body: str) -> str:
+    return (settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL).rstrip("/")
+
+
+def find_mapserver(body: str, uuid: str, label: str) -> str:
+    """판의 MapServer 경로(`trekarcgis2/rest/services/X/MapServer`) — 없으면 빈 칸."""
+    base = _body_base(body)
+    if uuid:
+        docs = (_json(_get("TrekServices/ws/index/getLayerServices", {"uuid": uuid}, base=base))
+                .get("response") or {}).get("docs") or []
+        for doc in docs:
+            end = str(doc.get("endPoint") or "")
+            if doc.get("protocol") == "ArcGISDynamic" and end.startswith(base + "/") and end.endswith("/MapServer"):
+                return end[len(base) + 1:]
+    for root in _SERVICE_ROOTS:
+        path = f"{root}/rest/services/{label}/MapServer"
+        r = _get(path, {"f": "json"}, base=base)
+        if r.status_code == 200:
+            try:
+                data = r.json()
+            except ValueError:
+                continue
+            if isinstance(data, dict) and "error" not in data:
+                return path
+    return ""
+
+
+def map_entry(body: str, label: str) -> dict | None:
+    """씨앗에서 MapServer 판 하나 — 씨앗에 없는 이름은 부르지 않는다(아무 서비스나 중계하지 않게)."""
+    for e in _catalog_index(body):
+        if e["id"] == label and e.get("kind") == "map" and e.get("ms"):
+            return e
+    return None
+
+
+_INDEX = {}
+
+
+def _catalog_index(body: str) -> list:
+    path = catalog_file(body)
+    try:
+        stamp = path.stat().st_mtime
+    except OSError:
+        return []
+    if _INDEX.get(body, (None,))[0] != stamp:
+        _INDEX[body] = (stamp, load_catalog(body))
+    return _INDEX[body][1]
+
+
+def map_tile(body: str, ms: str, z: int, x: int, y: int) -> bytes:
+    """MapServer 판의 타일 한 장 (256 px PNG). 경위도 격자는 지질도와 같다."""
+    w, s, e, n = tile_bbox(z, x, y)
+    sr = BODIES[body][1]
+    return _image(_get(f"{ms}/export", {
+        "bbox": f"{w},{s},{e},{n}", "bboxSR": sr, "imageSR": sr, "size": f"{TILE},{TILE}",
+        "format": "png32", "transparent": "true", "f": "image",
+    }, base=_body_base(body)))
+
+
+#: 속성에서 빼는 열 — ArcGIS 가 붙이는 것
+_SKIP_FIELDS = re.compile(r"^(FID|OBJECTID|OID|Shape|Shape_Length|Shape_Area|Shape\.STLength\(\)|Shape\.STArea\(\))$", re.I)
+
+
+def map_identify(body: str, ms: str, lon: float, lat: float, z: int) -> list:
+    """누른 자리의 것 — `[[열, 값], …]` 을 찾은 것마다. 점·선이 잡히게 화면의 줌(`z`)으로 너그러움을 잰다.
+
+    열 이름·값은 옮기지 않는다(상류의 조사 자료다)."""
+    step = 180.0 / 2 ** max(0, min(z, 20))
+    sr = BODIES[body][1]
+    data = _json(_get(f"{ms}/identify", {
+        "geometry": f"{lon},{lat}", "geometryType": "esriGeometryPoint", "sr": sr,
+        "layers": "all", "tolerance": 4, "returnGeometry": "false", "f": "json",
+        "mapExtent": f"{lon - step / 2},{lat - step / 2},{lon + step / 2},{lat + step / 2}",
+        "imageDisplay": f"{TILE},{TILE},96",
+    }, base=_body_base(body)))
+    out = []
+    for hit in (data.get("results") or [])[:5]:
+        attrs = hit.get("attributes") or {}
+        rows = [[k, str(v).strip()] for k, v in attrs.items()
+                if not _SKIP_FIELDS.match(k) and str(v).strip() not in ("", "Null", "None", " ")]
+        if rows:
+            out.append({"layer": hit.get("layerName") or "", "rows": rows})
+    return out
+
+
+def map_legend(body: str, ms: str) -> list:
+    """`[{"label", "image"}]` — MapServer 의 범례. 그림은 data URL 이다."""
+    data = _json(_get(f"{ms}/legend", {"f": "json"}, base=_body_base(body)))
+    out = []
+    for layer in data.get("layers") or []:
+        for item in layer.get("legend") or []:
+            label = str(item.get("label") or layer.get("layerName") or "").strip()
+            if item.get("imageData"):
+                out.append({"label": label, "image": f"data:{item.get('contentType') or 'image/png'};base64,"
+                                                    f"{item['imageData']}"})
     return out

@@ -458,6 +458,13 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 
 /* ── 카탈로그 ── */
 #layer-catalog { max-height: 42vh; overflow-y: auto; }
+/* NASA Trek 판 목록 (060) — 달·화성. 판이 수백이라 거르개를 둔다 */
+#trek-catalog { max-height: 42vh; overflow-y: auto; }
+.trek-filter { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 8px; }
+.trek-filter input[type=search] { padding: 6px 8px; font: inherit; font-size: 12.5px; color: var(--ink);
+                                  background: var(--panel-tint); border: 1px solid var(--line); border-radius: var(--radius); }
+.trek-filter label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); cursor: pointer; }
+#trek-catalog .empty { padding: 6px 2px; font-size: 12px; color: var(--ink-faint); }
 .group { border-top: 1px solid var(--line-soft); }
 .group > summary {
   display: flex;
@@ -684,8 +691,10 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .gear:hover { color: var(--on-hi); background: var(--hi); border-color: var(--hi); }
 .gear:hover svg { transform: rotate(90deg); }
 
-#panel-body::-webkit-scrollbar, #layer-catalog::-webkit-scrollbar, .popup::-webkit-scrollbar { width: 9px; }
-#panel-body::-webkit-scrollbar-thumb, #layer-catalog::-webkit-scrollbar-thumb, .popup::-webkit-scrollbar-thumb {
+#panel-body::-webkit-scrollbar, #layer-catalog::-webkit-scrollbar, #trek-catalog::-webkit-scrollbar,
+.popup::-webkit-scrollbar { width: 9px; }
+#panel-body::-webkit-scrollbar-thumb, #layer-catalog::-webkit-scrollbar-thumb, #trek-catalog::-webkit-scrollbar-thumb,
+.popup::-webkit-scrollbar-thumb {
   background: var(--line);
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -1543,6 +1552,7 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .legend-list { max-height: 42vh; overflow-y: auto; padding: 2px 12px 10px; border-top: 1px solid var(--line-soft); }
 .legend-list li { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 11.5px; color: var(--ink-soft); }
 .legend-list img { width: 18px; height: 14px; flex: 0 0 auto; border-radius: 2px; }
+.legend-list img.trek-legend { width: auto; height: auto; max-width: 100%; padding: 4px; background: #fff; border-radius: 3px; }
 /* 시대마다 상자 하나 (044) — 머리에 시대와 단위 수 */
 .legend-list li.age-box { display: block; margin-top: 8px; padding: 0 8px 4px; border: 1px solid var(--line);
                           border-radius: 7px; background: var(--panel-tint); }
