@@ -326,7 +326,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
 deploy/           Docker·nginx·배포 스크립트
 data/             카탈로그 씨앗
 web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /srv/GSM/tiles)
-devlog/           왜 그렇게 했는지
+devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`.**
@@ -342,11 +342,54 @@ VWorld 배경지도(WMTS)만은 문을 거치지 않고 브라우저가 곧장 �
 **VWorld 의 WMS·WFS 는 문을 거친다** — 속성·WFS 가 CORS 로 막히고, 도메인 없이도
 돌아 열쇠가 나가면 안 된다 (020).
 
+## 커밋과 PR
+
+WegenersDream 의 규약을 따른다(2026-09-30 부터).
+
+**각자 자기 Linux 계정에서, 자기 GitHub 계정으로 작업한다**(대응표는 [devlog/README.md](devlog/README.md)).
+저장소에 git 이름을 따로 두지 않는다.
+
+**코드 작업은 기능마다 `feature/<기능 이름>` 브랜치에서 한다** — 기능 이름은 영어 kebab-case
+(`feature/tile-cache`). 고침은 `fix/<이름>`. **코드에 손대기 직전에** `main` 에서 만들고
+(`git switch -c feature/<이름> main`), **커밋·push·확인을 전부 그 브랜치에서** 한다. **작업이 끝나면 PR 을
+만든다**(`gh pr create --base main`) — CI(`시험`)를 통과해야 하고, **`main` 병합은 사람이 정한다.**
+판을 올리는 것은 그 PR 안에서 한다(`CHANGELOG.md`·`web/gsmweb/version.py`·HANDOFF). 병합하고 판이 올랐으면
+CHANGELOG 의 그 절로 GitHub 릴리스(`v<판>`)를 만든다 — 태그마다 CI 가 Docker Hub(`koprifossillab/gsm:<태그>`)에
+이미지를 올린다. 2026-09-30 전에는 `main` 에 곧장 커밋하고 한 세션이 판을 모아 붙였다.
+
+**문서·기록만 고치는 커밋은 `main` 에 바로 올린다**(HANDOFF·TODOs·CLAUDE.md·devlog 색인 같은 것).
+브랜치는 부딪힐 수 있는 것을 격리하려고 있는 것이다. 애매하면 묻는다.
+
+**한 단계가 끝날 때마다 커밋하고 push 한다** — 기능 여럿을 한 커밋에 몰지 않는다. 단계마다 devlog 하나.
+
+메시지는 **한국어로 무엇을 했는지**를 쓰고 끝에 devlog 를 붙인다 — 옛 꼴은 번호만(`(047)`), 새 꼴은
+글쓴이와 번호(`(jikhanjung 001)`):
+
+```
+남극 — IBCSO v2 해저·빙저 지형을 배경으로 (047)
+배경 타일도 서버 캐시에 담는다 (jikhanjung 001)
+```
+
+**`git add` 는 내가 고친 파일만 지정한다** — `git add -A`·`git add .`·`git commit -a` 는 쓰지 않는다.
+`git commit -F <메시지 파일> -- <파일…>`. 커밋 전에 `git status --short` 를 보고, 내가 손대지 않은 파일은
+그대로 둔다. 작업 전에 `git pull --rebase` — 여러 계정이 같은 저장소에서 일한다.
+
 ## devlog
 
-`devlog/YYYYMMDD_NNN_slug.md`. 번호는 이 저장소 안에서 이어 붙인다.
-DiaRUGA·ForGIA 의 devlog 를 가리킬 때는 `DiaRUGA 063` 처럼 출처를 붙인다 —
-맨 번호는 언제나 이 저장소의 것이다.
+**그때의 판단과 근거를 남기는 곳이다.** 실제로 한 작업은 `devlog/YYYYMMDD_{author}_{nnn}_{title}.md`, 계획은
+`YYYYMMDD_{author}_P{nn}_{title}.md` 로 **단계마다 끊어** 적는다. 머리줄 아래에 `날짜 · \`브랜치\` · 글쓴이` 를
+적는다. **무엇을 했는지가 아니라 왜 그렇게 했고 무엇을 버렸는지를 적는다.** 무엇을 했는지는 `git log` 가 안다.
 
-**무엇을 했는지가 아니라 왜 그렇게 했는지를 적는다.** 무엇을 했는지는
-`git log` 가 안다.
+**파일 이름은 글쓴이마다 번호를 센다**(2026-09-30 부터). `author` 는 **작업하는 Linux 계정의 GitHub 계정 이름**
+소문자, `title` 은 영어 snake_case, 번호는 **그 글쓴이의** 다음 번호다. **옛 꼴(`YYYYMMDD_NNN_slug.md`,
+001~073·P01~P05)은 이름을 그대로 두고** 번호만으로 가리킨다("devlog 017"). 새 꼴은 "jikhanjung 001" 로 가리킨다.
+자세한 것과 계정 대응표는 [devlog/README.md](devlog/README.md) — **새 파일은 그 색인에 한 줄 더한다.**
+
+DiaRUGA·ForGIA·WegenersDream 의 devlog 를 가리킬 때는 `DiaRUGA 063` 처럼 저장소 이름을 붙인다 —
+맨 번호와 "글쓴이 번호" 는 언제나 이 저장소의 것이다.
+
+**계획이 아닌 검토는 `docs/`** 에 둔다 — "이렇게 하겠다" 가 정해진 것은 devlog 의 P 문서이고, "할까 말까·
+언제 하나" 를 따진 것은 `docs/` 다. 검토가 계획으로 정해지면 그때 P 문서를 쓴다.
+
+**HANDOFF.md 는 지금만 말한다** — 지난 일은 devlog 의 몫이고, HANDOFF 는 근거가 필요한 자리마다
+devlog 번호를 건다. **TODOs.md 에는 끝난 일을 쌓지 않는다.**

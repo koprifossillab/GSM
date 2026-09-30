@@ -49,7 +49,11 @@ python manage.py runserver
 - [CLAUDE.md](CLAUDE.md) — 이름·낱말·구조의 규약
 - [HANDOFF.md](HANDOFF.md) — 지금 어디까지 왔고 다음이 무엇인지
 - [CHANGELOG.md](CHANGELOG.md) — 판 이력
-- [devlog/](devlog/) — 왜 그렇게 했는지
+- [devlog/](devlog/) — 왜 그렇게 했는지 (색인 [devlog/README.md](devlog/README.md))
+
+각자 자기 계정에서 `feature/<기능 이름>` 브랜치로 작업하고 끝나면 PR 을 만든다. 병합은 사람이 정한다.
+판을 올린 PR 이 병합되면 CHANGELOG 로 GitHub 릴리스를 만들고, 릴리스 태그마다 CI 가 Docker Hub
+(`koprifossillab/gsm:<태그>`)에 이미지를 올린다. 자세한 규약은 CLAUDE.md "커밋과 PR".
 
 ## 라이선스와 자료의 출처
 
