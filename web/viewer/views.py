@@ -3,6 +3,7 @@
 프록시가 있는 까닭은 인증키다 — 브라우저는 키를 모른 채 `/wms/` 를 부르고,
 여기서 키를 붙여 상류로 넘긴다. CLAUDE.md 의 "인증키" 를 볼 것.
 """
+import datetime
 import functools
 import hashlib
 import json
@@ -134,6 +135,76 @@ def _script_json(data) -> str:
     것이라 `</script>` 가 들어 있으면 문서가 끊긴다 — `<`·`>`·`&` 를 `\\u` 로 적는다."""
     text = json.dumps(data, ensure_ascii=False)
     return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
+#: 주간 백업이 이만큼 지나도록 새 기록이 없으면 degraded 다 — 매주 한 번에 하루를 얹었다 (koprifossillab 002)
+BACKUP_MAX_AGE_DAYS = 8
+
+
+def _backup_notes() -> tuple:
+    """주간 백업의 결과 파일을 읽어 (그 내용, 걸리는 것들) 을 낸다. 읽기만 한다."""
+    path = Path(settings.BACKUP_STATUS_FILE)
+    try:
+        status = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, ["백업 기록이 없다 — weekly_backup.sh 가 아직 돌지 않았다"]
+    except (OSError, ValueError) as e:
+        return None, [f"백업 기록을 읽지 못했다: {e}"]
+    notes = []
+    if status.get("result") != "ok":
+        notes.append(f"백업이 {status.get('step', '?')} 에서 멈췄다: {status.get('note', '')}")
+    try:
+        at = datetime.datetime.fromisoformat(status["at"])
+        age = (datetime.datetime.now(datetime.timezone.utc) - at).total_seconds() / 86400
+        status["age_days"] = round(age, 1)
+        if age > BACKUP_MAX_AGE_DAYS:
+            notes.append(f"마지막 백업이 {age:.0f} 일 전이다")
+    except (KeyError, TypeError, ValueError):
+        notes.append("백업 기록에 시각이 없다")
+    failed = [k for k in ("nas", "tiles", "sources") if status.get(k) == "fail"]
+    if failed:
+        notes.append(f"NAS 쪽이 실패했다: {', '.join(failed)}")
+    return status, notes
+
+
+@require_GET
+def healthz(request):
+    """판·DB·백업 상태를 한 번에 낸다 (ForGIA·DiaRUGA `/healthz` 와 같은 모양, koprifossillab 002).
+
+    | 상태 | 코드 | 뜻 |
+    |---|---|---|
+    | `ok` | 200 | 정상 |
+    | `degraded` | **200** | 화면은 도는데 백업이 멈췄거나 낡았다 |
+    | `unhealthy` | 503 | DB 를 못 열거나 레이어가 하나도 없다 |
+
+    **`degraded` 를 503 으로 두지 않는다** — 백업이 멈췄다고 뷰어가 죽은 것은 아니다. 알리는 일은 `smoke.sh` 가 한다.
+    **레이어가 0 이면 unhealthy 다** — DB 마운트가 어긋나 빈 DB 가 새로 생겨도 "열리는가" 는 통과하기 때문이다.
+    가볍게 둔다 — `count(*)` 셋과 작은 파일 하나. 상류는 타지 않는다.
+    """
+    info = {"status": "ok", "version": VERSION}
+    notes = []
+    try:
+        info["db"] = {"layer": Layer.objects.count(), "layergroup": LayerGroup.objects.count(),
+                      "pointset": PointSet.objects.count()}
+    except Exception as e:                       # noqa: BLE001 — 무엇이 나오든 죽지 않는다
+        info["status"] = "unhealthy"
+        info["db"] = None
+        notes.append(f"DB 를 읽지 못했다: {e}")
+    else:
+        if info["db"]["layer"] == 0:
+            info["status"] = "unhealthy"
+            notes.append("레이어가 0 이다 — DB 마운트가 어긋났거나 씨앗이 들지 않았다")
+
+    info["backup"], backup_notes = _backup_notes()
+    if backup_notes and info["status"] == "ok":
+        info["status"] = "degraded"
+    notes.extend(backup_notes)
+
+    info["notes"] = notes
+    response = JsonResponse(info, status=503 if info["status"] == "unhealthy" else 200,
+                            json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @require_GET

@@ -7,6 +7,7 @@ app_name = "viewer"
 
 urlpatterns = [
     path("", views.map_view, name="map"),
+    path("healthz/", views.healthz, name="healthz"),
     path("3d/", views.map3d_view, name="map3d"),
     path("moon/", views.moon_view, name="moon"),
     re_path(r"^moon/tiles/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",

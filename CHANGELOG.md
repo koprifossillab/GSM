@@ -5,6 +5,15 @@
 - **왜 그렇게 했는지**는 `devlog/` — 괄호 안의 번호가 그 문서다
 - 날짜는 그 판을 붙인 날이다
 
+## v0.25.7 — 2026-09-30 · `/healthz/` — 판·DB·백업 상태 (koprifossillab 002)
+
+- **`/GSM/healthz/`** — 판·레이어 수·점묶음 수와 주간 백업의 결과를 JSON 한 장으로. 백업이 멈췄거나 여드레 넘게 없거나
+  NAS 쪽이 실패했으면 `degraded`(200), DB 를 못 열거나 레이어가 0 이면 `unhealthy`(503). ForGIA·DiaRUGA 와 같은 모양
+  (koprifossillab 002)
+- `deploy/host/smoke.sh` 가 `/healthz/` 를 본다 — unhealthy 면 멈추고, degraded 는 걸리는 것을 적기만 한다
+- 주간 백업(`weekly_backup.sh`, koprifossillab 001)이 결과를 DB 옆 `backup_status.json` 에도 적는다 — compose 를 고치지 않고
+  컨테이너가 읽게
+
 ## v0.25.6 — 2026-09-30 · 온 지구 화면에도 패널 손잡이 (jikhanjung 009)
 
 - **온 지구 화면에도 왼쪽 패널을 접는 손잡이** — 지구 지도·달·화성과 같다. 이제 네 화면 모두에 있다 (jikhanjung 009)

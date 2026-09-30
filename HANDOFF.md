@@ -7,7 +7,7 @@
 
 ## 작업 방식 (2026-09-30 부터)
 
-**브랜치** `main` = `0.25.6` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+**브랜치** `main` = `0.25.7` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
 `feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
 올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
 [devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
@@ -175,7 +175,8 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 매주 월요일 01:40 `deploy/host/weekly_backup.sh` — 다시 못 얻는 것(GSM.db·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
 와 NAS 에, 캐시·원본은 거울로. 그 뒤 `fetch_kopri`. 무엇이 어디에 있고 어떻게 되살리나는 [docs/백업.md](docs/백업.md)
 (koprifossillab 001). 2026-09-30 에 paleoadmin 의 crontab 에 붙였다(`deploy/host/crontab.GSM`) — 첫 차례는 10-05(월).
-cron 은 paleoadmin 의 저장소 폴더에서 스크립트를 부르므로, 그 폴더를 스크립트가 없는 브랜치에 두지 않는다.
+결과는 DB 옆 `backup_status.json` 에도 적혀 **`/GSM/healthz/` 가 읽는다** — 멈췄거나 여드레 넘게 없으면 `degraded`
+(koprifossillab 002). cron 은 paleoadmin 의 저장소 폴더에서 스크립트를 부르므로, 그 폴더를 스크립트가 없는 브랜치에 두지 않는다.
 
 ### 판을 올릴 때
 
