@@ -110,6 +110,7 @@
 | jikhanjung P01 | 2026-09-30 | [KIGAM 5만 지질도의 층리·엽리·절리를 레이어로 (계획)](20260930_jikhanjung_P01_kigam_50k_structures.md) |
 | jikhanjung 003 | 2026-09-30 | [층리·엽리 뺀 5만 지질도 — 그림만 낱레이어를 엮어 GeoServer 에서](20260930_jikhanjung_003_kigam_50k_no_attitude.md) |
 | jikhanjung 004 | 2026-09-30 | [5만 지질도의 자세 기호에 커서를 — 올리면 손가락, 누르면 값](20260930_jikhanjung_004_attitude_hover.md) |
+| jikhanjung 005 | 2026-09-30 | [자세 기호를 늘 그리는 스위치, 그리고 "(층리 등 제외)"](20260930_jikhanjung_005_attitude_symbols.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |

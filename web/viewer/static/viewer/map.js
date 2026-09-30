@@ -1650,6 +1650,9 @@
         li.appendChild(srcLine);
       }
 
+      // 5만 지질도 — 층리·엽리·편리·절리를 늘 그릴지 (jikhanjung 005)
+      if (ATTITUDE_LAYERS.indexOf(entry.name) >= 0 && isMercator()) li.appendChild(attitudeToggles());
+
       // 가까이서만 그려 주는 레이어 — 멀리서 켜면 아무것도 안 보이는 까닭을 적는다
       var minZoom = byName[entry.name] && byName[entry.name].minZoom;
       if (minZoom) li.appendChild(note(T("줌 {n} 부터 그려진다", { n: minZoom })));
@@ -3030,6 +3033,50 @@
   var ATTITUDE_NAMES = { bedding: "층리", foliation: "엽리", schistosity: "편리", joint: "절리" };
   var attitudeSource = null, attitudeLayer = null, attitudeHover = null;
   var attitudeLoaded = null, attitudeSeq = 0;
+  //: 늘 그릴 종류. 끈 것은 커서를 올릴 때만 그린다. 이 브라우저에만 남는다 (jikhanjung 005)
+  var ATTITUDE_KEY = "gsm.attitudes";
+  var attitudeShown = (function () {
+    try { return JSON.parse(localStorage.getItem(ATTITUDE_KEY) || "{}") || {}; } catch (e) { return {}; }
+  })();
+  //: 경사각 숫자를 늘 적는 줌. 그보다 멀면 선과 눈금만 — 숫자가 겹쳐 읽히지 않는다
+  var ATTITUDE_LABEL_ZOOM = 13;
+
+  function setAttitudeShown(kind, on) {
+    attitudeShown[kind] = !!on;
+    try { localStorage.setItem(ATTITUDE_KEY, JSON.stringify(attitudeShown)); } catch (e) { /* 사생활 모드 */ }
+    if (attitudeLayer) attitudeLayer.changed();
+  }
+
+  /** 5만 지질도 카드 밑의 체크 넷 — 켠 종류의 기호를 늘 그린다. */
+  function attitudeToggles() {
+    var box = document.createElement("div");
+    box.className = "attitude-toggles";
+    box.title = T("켜면 늘 그리고, 끄면 커서를 올릴 때만 그린다 — 줌 {n} 부터", { n: ATTITUDE_MIN_ZOOM });
+    var head = document.createElement("span");
+    head.className = "k";
+    head.textContent = T("자세 기호");
+    box.appendChild(head);
+    Object.keys(ATTITUDE_NAMES).forEach(function (kind) {
+      var label = document.createElement("label");
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = !!attitudeShown[kind];
+      input.addEventListener("change", function () {
+        setAttitudeShown(kind, input.checked);
+        // 두 판의 카드가 함께 켜져 있으면 다른 카드의 체크도 맞춘다
+        document.querySelectorAll('.attitude-toggles input[data-kind="' + kind + '"]').forEach(function (other) {
+          other.checked = input.checked;
+        });
+      });
+      input.dataset.kind = kind;
+      var sw = document.createElement("span");
+      sw.className = "sw";
+      sw.style.background = ATTITUDE_COLORS[kind];
+      label.append(input, sw, document.createTextNode(T(ATTITUDE_NAMES[kind])));
+      box.appendChild(label);
+    });
+    return box;
+  }
   var ATTITUDE_HIT = new ol.style.Style({
     // 보이지 않지만 맞힐 수 있게 — 알파가 0 이면 OpenLayers 가 맞힌 것으로 치지 않는 판이 있다
     image: new ol.style.Circle({ radius: 7, fill: new ol.style.Fill({ color: "rgba(0,0,0,0.01)" }) }),
@@ -3098,17 +3145,22 @@
       });
   }
 
-  /** 평소에는 보이지 않는 점, 커서가 올라간 것만 기호로 그린다. */
+  /** 평소에는 보이지 않는 점, 커서가 올라간 것과 늘 그리기로 켠 종류만 기호로 그린다. */
   function attitudeStyle(feature, resolution) {
-    if (feature !== attitudeHover) return ATTITUDE_HIT;
     var p = feature.get("att");
+    var hovered = feature === attitudeHover;
+    if (!hovered && !attitudeShown[p.kind]) return ATTITUDE_HIT;
+    // 3857 에서 줌 13 의 해상도 ≈ 19.1 m/px — 그보다 가까우면 숫자까지
+    var labels = hovered || resolution <= 156543.03392804097 / Math.pow(2, ATTITUDE_LABEL_ZOOM) + 1e-9;
     var c = feature.getGeometry().getCoordinates();
     var color = ATTITUDE_COLORS[p.kind] || "#333";
-    var halo = new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: 5 });
-    var ink = new ol.style.Stroke({ color: color, width: 2.5 });
+    // 늘 그리는 것은 가늘게, 커서가 올라간 것은 굵게 — 어느 것을 가리키는지 보이게
+    var halo = new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: hovered ? 5 : 3.5 });
+    var ink = new ol.style.Stroke({ color: color, width: hovered ? 2.5 : 1.6 });
     var styles = [new ol.style.Style({
-      image: new ol.style.Circle({ radius: 3, fill: new ol.style.Fill({ color: color }),
-                                   stroke: new ol.style.Stroke({ color: "#fff", width: 1.5 }) }),
+      image: new ol.style.Circle({ radius: hovered ? 3 : 2, fill: new ol.style.Fill({ color: color }),
+                                   stroke: new ol.style.Stroke({ color: "#fff", width: hovered ? 1.5 : 1 }) }),
+      zIndex: hovered ? 10 : 0,
     })];
     if (p.dipdir === null || p.dipdir === undefined) return styles;
     // 3857 은 북쪽이 위다 — 방위각(북에서 시계 방향)을 그대로 쓴다
@@ -3125,13 +3177,14 @@
       if (vertical) lines.push(new ol.geom.LineString([c, at(p.dipdir + 180, 7)]));
     }
     lines.forEach(function (g) {
-      styles.push(new ol.style.Style({ geometry: g, stroke: halo }));
-      styles.push(new ol.style.Style({ geometry: g, stroke: ink }));
+      styles.push(new ol.style.Style({ geometry: g, stroke: halo, zIndex: hovered ? 10 : 0 }));
+      styles.push(new ol.style.Style({ geometry: g, stroke: ink, zIndex: hovered ? 11 : 1 }));
     });
-    if (p.dip !== null && p.dip !== undefined && !vertical && !flat) {
+    if (labels && p.dip !== null && p.dip !== undefined && !vertical && !flat) {
       styles.push(new ol.style.Style({
         geometry: new ol.geom.Point(at(p.dipdir, 17)),
-        text: new ol.style.Text({ text: String(p.dip), font: "700 12px sans-serif",
+        zIndex: hovered ? 12 : 2,
+        text: new ol.style.Text({ text: String(p.dip), font: (hovered ? "700 12px" : "600 10.5px") + " sans-serif",
                                   fill: new ol.style.Fill({ color: color }),
                                   stroke: new ol.style.Stroke({ color: "#fff", width: 3 }) }),
       }));
