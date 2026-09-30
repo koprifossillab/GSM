@@ -101,6 +101,28 @@ class Fill(SimpleTestCase):
         self.assertEqual(out.getpixel((10, 10)), (10, 20, 30, 255))
         self.assertEqual(out.getpixel((250, 10)), (240, 67, 112, 255))
 
+    def test_늘려도_계단이_없고_없는_색이_없다(self):
+        # 대각선으로 두 단위가 맞닿은 조상 — 줌 5 에서 줌 11 로(64 배) 늘린다 (wetherilli 105)
+        im = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+        px = im.load()
+        for j in range(256):
+            for i in range(256):
+                px[i, j] = (240, 67, 112, 255) if i > j else (0, 160, 80, 255)
+        out = macrostrat.enlarge(im, (100, 100, 104, 104))
+        colours = {c for _, c in out.getcolors(1 << 16)}
+        self.assertEqual(colours, {(240, 67, 112, 255), (0, 160, 80, 255)})
+        # 경계는 대각선이다 — 가장 가까운 칸으로 늘렸다면 64 칸마다 계단이 섰을 것이다
+        edge = [next(i for i in range(256) if out.getpixel((i, j))[0] == 240) for j in (10, 40, 70, 100, 130)]
+        steps = [b - a for a, b in zip(edge, edge[1:])]
+        self.assertTrue(all(20 <= s <= 40 for s in steps), edge)
+
+    def test_가는_선은_늘리지_않는다(self):
+        im = Image.new("RGBA", (256, 256), (240, 67, 112, 255))
+        for j in range(256):
+            im.putpixel((102, j), (0, 0, 0, 255))              # 단층 — 한 칸짜리 검은 선
+        out = macrostrat.enlarge(im, (96, 96, 108, 108))
+        self.assertEqual({c for _, c in out.getcolors(1 << 16)}, {(240, 67, 112, 255)})
+
     def test_다_칠해졌거나_small_대역이면_조상을_묻지_않는다(self):
         full = png((1, 2, 3, 255))
         self.assertEqual(macrostrat.fill(8, 1, 1, lambda *k: {(8, 1, 1): full}[k]), full)

@@ -99,6 +99,97 @@ def search_order(z: int) -> list:
     return [SCALE_ORDER[i]] + list(reversed(SCALE_ORDER[:i]))
 
 
+#: 이만큼 넘게 늘릴 때만 매끄럽게 늘린다 — 두 배까지는 가장 가까운 칸이 더 낫다
+SMOOTH_FROM = 2
+#: 단층·경계선 — 이만큼 어두운 칸은 늘리기 전에 이웃 단위의 색으로 덮는다
+DARK = 70
+
+
+def _clean(crop):
+    """조상 타일의 조각을 늘릴 준비 — 알파는 켜고 끄고, 가는 짙은 선과 반쯤 비친 가장자리 칸은 둘레에서 가장 흔한 단위의
+    색으로 덮는다. 늘리면 1 칸짜리 선이 수십 칸 띠가 되고, 반투명 가장자리는 없는 잿빛 네모가 된다(wetherilli 105)."""
+    w, h = crop.size
+    px = crop.load()
+    solid = {}
+    for j in range(h):
+        for i in range(w):
+            r, g, b, a = px[i, j]
+            if a < 250 or max(r, g, b) < DARK:
+                continue
+            # 가는 것 — 둘레 여덟 칸 가운데 같은 색이 셋이 안 되면 선이다(carto 는 단위 경계를 잿빛 선으로 긋는다)
+            same = sum(1 for dj in (-1, 0, 1) for di in (-1, 0, 1) if (di or dj) and 0 <= i + di < w and 0 <= j + dj < h
+                       and px[i + di, j + dj] == (r, g, b, a))
+            if same >= 3:
+                solid[i, j] = (r, g, b)
+    out = {}
+    for j in range(h):
+        for i in range(w):
+            r, g, b, a = px[i, j]
+            if a < 128:
+                continue
+            if (i, j) in solid:
+                out[i, j] = solid[i, j]
+                continue
+            near = {}
+            for dj in range(-2, 3):
+                for di in range(-2, 3):
+                    c = solid.get((i + di, j + dj))
+                    if c:
+                        near[c] = near.get(c, 0) + 1
+            if near:
+                out[i, j] = max(near, key=near.get)
+    return out
+
+
+def enlarge(whole, box):
+    """조상 타일(256)의 한 조각 `box` 를 256 으로 늘린다 — **계단 없이, 없는 색 없이** (wetherilli 105).
+
+    가장 가까운 칸으로 늘리면 줌 5 의 칸이 줌 12 에서 128 칸짜리 계단이 된다(사람이 "가까이 갈수록 더 깨진다" 고 보았다).
+    겹선형·쌍삼차로 늘리면 단위 경계에 없는 색이 생긴다. 그래서 **색마다 따로** 늘린다 — 색마다 그 색이 있는 곳의 가림판을
+    늘려 원본 한 칸만큼 흐리고, 칸마다 가림판이 가장 짙은 색을 고른다(빈 곳도 한 색으로 친다). 흐리지 않고 쌍삼차로만
+    늘리면 한 칸 계단의 모서리만 둥글어지고 계단은 남았다. 경계는 매끄러운 곡선이 되고 색은
+    원래의 것뿐이다. 1:3 500 만 세계 지질도를 가까이서 보는 일이라, 그림이 매끄럽다고 자세해지는 것은 아니다."""
+    import math
+
+    from PIL import Image, ImageChops, ImageFilter
+
+    x0, y0, x1, y1 = box
+    k = 256.0 / (x1 - x0)
+    if k <= SMOOTH_FROM:
+        return whole.transform((256, 256), Image.Transform.EXTENT, box, Image.Resampling.NEAREST)
+    m = 3                                                    # 둘레를 넉넉히 — 가장자리의 곡선이 조각 밖을 본다
+    cx0, cy0 = max(0, math.floor(x0) - m), max(0, math.floor(y0) - m)
+    cx1, cy1 = min(256, math.ceil(x1) + m), min(256, math.ceil(y1) + m)
+    crop = whole.crop((cx0, cy0, cx1, cy1))
+    cells = _clean(crop)
+    colours = {}
+    for (i, j), c in cells.items():
+        colours.setdefault(c, []).append((i, j))
+    size = (round((cx1 - cx0) * k), round((cy1 - cy0) * k))
+    best = Image.new("L", size, 0)
+    # 빈 곳이 첫 후보다 — 가림판은 칠한 칸 전부의 반대
+    empty = Image.new("L", crop.size, 255)
+    for (i, j) in cells:
+        empty.putpixel((i, j), 0)
+    blur = ImageFilter.GaussianBlur(0.7 * k)
+
+    def smooth(mask):
+        return mask.resize(size, Image.Resampling.BILINEAR).filter(blur)
+
+    best = smooth(empty)
+    out = Image.new("RGBA", size, (0, 0, 0, 0))
+    for c, where in colours.items():
+        mask = Image.new("L", crop.size, 0)
+        for ij in where:
+            mask.putpixel(ij, 255)
+        big = smooth(mask)
+        wins = ImageChops.subtract(big, best).point(lambda v: 255 if v > 0 else 0)
+        out.paste(c + (255,), (0, 0), wins)
+        best = ImageChops.lighter(best, big)
+    left, top = round((x0 - cx0) * k), round((y0 - cy0) * k)
+    return out.crop((left, top, left + 256, top + 256))
+
+
 def fill(z: int, x: int, y: int, get_raw) -> bytes:
     """carto 타일 한 장에 더 거친 대역의 조상 타일을 늘려 밑에 깐다. `get_raw(z, x, y)` 는 상류의 타일(캐시를
     거친다)을 준다. 제 타일이 빈 곳 없이 칠해졌으면 조상을 묻지 않는다."""
@@ -117,8 +208,7 @@ def fill(z: int, x: int, y: int, get_raw) -> bytes:
             continue                                       # 바다 — 깔 것이 없다
         w = 256 / k
         box = ((x - ax * k) * w, (y - ay * k) * w, (x - ax * k + 1) * w, (y - ay * k + 1) * w)
-        # 가장 가까운 칸으로 늘린다 — 겹선형은 단위 경계의 색을 섞어 없는 색을 만든다
-        out.alpha_composite(whole.transform((256, 256), Image.Transform.EXTENT, box, Image.Resampling.NEAREST))
+        out.alpha_composite(enlarge(whole, box))
     out.alpha_composite(own)
     buf = io.BytesIO()
     out.save(buf, "PNG", optimize=True)
