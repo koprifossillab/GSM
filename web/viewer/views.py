@@ -976,10 +976,11 @@ def earth_info(request):
                 ("연대 (Ma)", _age_span(u["b_age"], u["t_age"])), ("암상", u["lith"]),
                 ("설명", u["descrip"]), ("원도", raw.get("refs", {}).get(str(u["source_id"]), ""))]
         # 그때의 자리 (wetherilli 087) — 단위의 윗·밑 연대에서 한 줄씩. 젊은 쪽이 먼저다
-        then = _paleo_rows(lon, lat, [a for a in (u["t_age"], u["b_age"]) if a is not None], lang)
+        then, reached = _paleo_rows(lon, lat, [a for a in (u["t_age"], u["b_age"]) if a is not None], lang)
+        # `then` 은 옮겨진 연대들 — 화면이 그 연대로 EarthThruTime3D 를 여는 링크를 단다 (wetherilli 088)
         units.append({"rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v] + then,
                       "name": u["name"], "color": u["color"], "b_age": u["b_age"], "t_age": u["t_age"],
-                      "scale": u["scale"]})
+                      "scale": u["scale"], "then": reached})
     return JsonResponse({"units": units})
 
 
@@ -1000,19 +1001,21 @@ def _paleo_text(got: dict, lang: str) -> str:
     return i18n.t(msg("이 판은 {reach} Ma 까지만 거슬러 옮긴다", reach=f"{got['reach']:g}"), lang)
 
 
-def _paleo_rows(lon: float, lat: float, ages: list, lang: str) -> list:
-    """`[[그때의 자리 (N Ma), 좌표]…]`. 모델 파일이 없으면 빈 목록이다 — 팝업은 그 줄 없이 돈다."""
+def _paleo_rows(lon: float, lat: float, ages: list, lang: str) -> tuple:
+    """`([[그때의 자리 (N Ma), 좌표]…], [옮겨진 연대…])`. 모델 파일이 없으면 둘 다 비었다 — 팝업은 그 줄 없이 돈다."""
     m = paleo.model()
     if m is None or not ages:
-        return []
+        return [], []
     plate = m.plate_at(lon, lat)
     if plate is None:                                   # 바다 밑 — 연대마다 같은 말을 되풀이하지 않는다
-        return [[i18n.t(msg("그때의 자리"), lang), _paleo_text({"reason": "ocean"}, lang)]]
-    rows = []
+        return [[i18n.t(msg("그때의 자리"), lang), _paleo_text({"reason": "ocean"}, lang)]], []
+    rows, reached = [], []
     for age in dict.fromkeys(float(a) for a in ages):
-        label = i18n.t(msg("그때의 자리 ({age} Ma)", age=f"{age:g}"), lang)
-        rows.append([label, _paleo_text(m.carry(lon, lat, age, plate), lang)])
-    return rows
+        got = m.carry(lon, lat, age, plate)
+        rows.append([i18n.t(msg("그때의 자리 ({age} Ma)", age=f"{age:g}"), lang), _paleo_text(got, lang)])
+        if "lon" in got:
+            reached.append(age)
+    return rows, reached
 
 
 @require_GET
