@@ -880,6 +880,13 @@ PROP_EN = {
     # KPDC 지도 서버 (073)
     "그린 근거": "Source of the line",
     "고친 날": "Revised",
+    # KPDC 기본도 (wetherilli 095)
+    "표면": "Surface",
+    "확실성": "Certainty",
+    "HSM 번호": "HSM no.",
+    "제안국": "Proposed by",
+    "관리국": "Managed by",
+    "수심 (m)": "Depth (m)",
     "바닥": "Bed type",
     "도폭 (IMW)": "IMW sheet",
     "출처 날짜": "Source date",
@@ -1677,4 +1684,9 @@ LAYER_EN = {
     "kopri:lakes": "Lakes",
     "kopri:streams": "Streams (Antarctic Peninsula)",
     "kopri:moraines": "Moraines",
+    "kopri:rock_outcrops": "Rock outcrops",
+    "kopri:contours": "Contours",
+    "kopri:historic": "Historic sites & monuments (HSM)",
+    "kopri:arctic_depth_contours": "Arctic Ocean depth contours",
+    "kopri:greenland_ice_contours": "Ice sheet contours",
 }
