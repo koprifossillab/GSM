@@ -246,6 +246,8 @@
     baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
     navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
     infoBox: false, selectionIndicator: false,
+    // 그리기가 멈추면 Cesium 은 영어 오류 창을 띄우고 멈춘다 — 우리 안내로 바꾼다(아래 `renderFailed`, wetherilli 110)
+    showRenderLoopErrors: false,
   });
   var scene = viewer.scene;
   // 하늘의 대기는 둔다 — 지구다. 땅의 대기(푸른 안개)는 지질도의 색을 흐려 끈다
@@ -261,6 +263,46 @@
   scene.backgroundColor = Cesium.Color.BLACK;
   scene.verticalExaggeration = look.exag / 10;
   window.__gsmEarth = viewer;
+
+  // ── 그리기가 멈추면 (wetherilli 110) ──
+  //
+  // 사람이 "Fragment shader failed to compile. Compile log: null" 로 구가 멈춘 것을 보았다. 기록(log)이 비어 있으면 대개
+  // 셰이더가 틀린 것이 아니라 **WebGL 문맥을 잃은 것**이다 — 그래픽 메모리가 모자라거나 드라이버가 GPU 를 다시 시작했다.
+  // 잃은 문맥은 Cesium 이 되살리지 못한다. 그래서 멈춘 자리에 까닭과 나갈 길 셋을 띄운다 — 새로고침, 가볍게 다시(지형·지구 속을
+  // 끄고), 평면으로(평면은 OpenLayers 라 구와 따로 돈다). 가볍게 다시 연 것은 이 브라우저에 남는다
+  var failed = false;
+  function renderFailed(reason) {
+    if (failed) return;
+    failed = true;
+    viewer.useDefaultRenderLoop = false;
+    var box = $("render-failed");
+    $("render-failed-why").textContent = reason ? String(reason).split("\n")[0].slice(0, 160) : "";
+    box.hidden = false;
+  }
+  scene.renderError.addEventListener(function (s, err) {
+    renderFailed(err && (err.message || err));
+  });
+  scene.canvas.addEventListener("webglcontextlost", function (e) {
+    e.preventDefault();
+    renderFailed(T("WebGL 문맥을 잃었다"));
+  });
+  $("render-failed-reload").addEventListener("click", function () { location.reload(); });
+  $("render-failed-light").addEventListener("click", function () {
+    save("gsm.earth.terrain", "off");
+    try {
+      var list = JSON.parse(saved("gsm.earth.layers", "[]")).filter(function (e) { return e.name !== "mantle"; });
+      save("gsm.earth.layers", JSON.stringify(list));
+    } catch (e) { /* 깨진 값 — 그대로 둔다 */ }
+    location.reload();
+  });
+  $("render-failed-flat").addEventListener("click", function () {
+    $("render-failed").hidden = true;
+    var c = cameraLL();                                  // 평면으로 열 자리 — 보던 가운데를 그대로
+    save("gsm.earth.flat", JSON.stringify({ lon: c ? +c.lon.toFixed(4) : 127.5, lat: c ? +c.lat.toFixed(4) : 30,
+                                            res: 4000 }));
+    save("gsm.earth.mode", "flat");
+    location.reload();                                   // 멈춘 구를 두고 평면만 새로 연다
+  });
 
   // 지질도는 3857 타일이다 — 구도 메르카토르 격자로 받는다
   var cGeo = {};

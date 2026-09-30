@@ -235,7 +235,7 @@ def map3d_view(request):
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
-                              and (l.get("upstream") in ("kigam", "geus", "vworld")
+                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop")
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS))])
               for g in _catalog(lang)]
@@ -1624,7 +1624,7 @@ def catalog_json(request):
 # 타일은 셋이 같이 쓴다.
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
-                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError)
+                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -1649,14 +1649,16 @@ class _Door:
 
     MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
                # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
-               "pgc": elevation}
+               "pgc": elevation,
+               # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
+               "ccop": gsj.CCOP}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2189,6 +2191,8 @@ def feature_info(request):
         elif door.name == "vworld":
             # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다
             props = vworld.friendly(props, params.get("query_layers") or "")
+        elif door.name == "ccop":
+            props = gsj.ccop_friendly(props, lang)   # code → 지질기호 …, 시대를 옮긴다
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)

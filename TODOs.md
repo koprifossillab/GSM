@@ -116,14 +116,10 @@
 - [ ] 다이아몬드 탐사 자료(DED)의 시추공(`DED_GL_DRILLHOLES`)·지시광물 화학(`DED_GL_thm_*`)·탐사 구역 면 — 산출지는
       면 틀에 얹었다(wetherilli 089). 같은 틀이라 레이어마다 1–2시간
 
-### GSJ 새 호스트 — 사흘 (두 건)
+### GSJ 새 호스트 — 이틀
 
 GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만 `gbank`). 둘 다 CLAUDE.md 의 GSJ 줄과 CORS 확인을 탄다.
 
-- [ ] **CCOP 동·동남아시아 200만 지질도** [실측] `ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms`
-      (`EASIA_CCOP_2M_Combined_BLT_SLT_BA`). **밖에 열 때 geo3al 을 대신할 후보**(조건: 개인·교육·연구·비상업, 025).
-      NPI 처럼 `projection: "EPSG:4326"` 으로 받으면 4326 전용 속성도 새 코드 없이 풀린다. 상류 이름은 `gsj` 로 못 둔다
-      (z/x/y 로 간다) — `ccop` 로 두고 문은 `gsj.py`. 하루. 속성이 `MAJOR_CODE` 뿐이라 코드표를 구하면 +반나절
 - [ ] 지질도Navi WMTS 1 849 판 [실측] `gbank.gsj.jp/geonavi/maptile/wmts/1.0.0/WMTSCapabilities.xml` — 달 Trek 판(060)을 옮긴다.
       `fetch_trek_catalog`·`client_catalog` 는 거의 그대로, 품은 map.js 에 DB 밖 목록 틀(moon.js `renderTrek` ~120 행)을 새로
       옮기는 데 있다. 이틀. CORS 가 없으면 서버 중계 +반나절, 제목이 일본어뿐이면 제목 방침

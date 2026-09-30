@@ -465,6 +465,8 @@
     // PGC 경사·등고선(wetherilli 099) — NPI 처럼 지역의 투영으로 곧장 받는다. 누르면 그 자리의 값
     pgc: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
+    // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
+    ccop: { source: wmsSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -487,7 +489,7 @@
    *  항공 공역처럼 레이어마다 달라 VWorld 만 적는다 (wetherilli 084) */
   function sourceNote(name) {
     var row = byName[name];
-    return row && row.upstream === "vworld" ? "VWorld" : "";
+    return row && row.upstream === "vworld" ? "VWorld" : row && row.upstream === "ccop" ? "CCOP · GSJ" : "";
   }
 
   /** 켤 레이어 하나를 만든다. 타일(WMS)이 거의 전부이고, 벡터는 따로 짓는다. */
