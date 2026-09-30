@@ -55,15 +55,25 @@
       { name: "geology", title: "지질 단위", info: "geology", legend: "geology",
         src: "Macrostrat carto · CC BY 4.0" },
     ] },
+    // 판 회전에 쓰는 대륙 조각의 경계 — 오늘의 것. 옛 연대에는 서버가 돌려 칠한 판이 배경이 된다 (wetherilli 091)
+    { group: "판 조각 (PALEOMAP 2016)", layers: [
+      { name: "plates", title: "판 조각 경계", grid: "ll", today: true, src: "PALEOMAP 2016 (Scotese) · CC BY 4.0" },
+    ] },
   ];
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
   var GEO_NAMES = ALL_NAMES;
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
-  function geoUrl(name) { return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png"; }
+  function geoUrl(name) {
+    return name === "plates" ? paleoUrl("edge", 0) : BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
+  }
   var GEO_CREDIT = "Macrostrat (CC BY 4.0) · Peters, Husson & Czaplewski 2018, G-cubed";
-  function creditOf(name) { return name === "geology" ? GEO_CREDIT : undefined; }
+  var PALEO_CREDIT = "PALEOMAP 2016 (CC BY 4.0) · Scotese 2016, PALEOMAP PaleoAtlas for GPlates";
+  function creditOf(name) { return name === "geology" ? GEO_CREDIT : name === "plates" ? PALEO_CREDIT : undefined; }
+  // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
+  var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
+  function paleoUrl(style, age) { return BASE + "earth/paleo/tiles/" + style + "/" + age + "/{z}/{x}/{y}.png"; }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
@@ -72,6 +82,16 @@
     exag: +saved("gsm.earth.exag", "15"),
   };
   if (!BASES[look.base]) look.base = "bm";
+  // 연대 (wetherilli 091) — Ma, 0 이 오늘. 주소(`?age=`)가 이기고, 없으면 이 브라우저에 남긴 것
+  var AGE_MAX = 1100;          // PALEOMAP 2016 이 덮는 끝
+  var PALEO_FROM = 1;          // 이 연대부터는 판을 돌린 그때의 지구다. 그 안쪽은 오늘의 지구에 얹는다
+  function snapAge(a) {
+    if (!(a > 0)) return 0;
+    if (a >= PALEO_FROM - 0.0005) return Math.min(AGE_MAX, Math.round(a));       // 판 조각 타일은 1 Myr 마다다
+    return Math.max(0.001, Math.round(a * 1000) / 1000);                         // 1 ka 마다
+  }
+  var age = snapAge(parseFloat(new URLSearchParams(location.search).get("age") || saved("gsm.earth.age", "0")));
+  function paleoOn() { return age >= PALEO_FROM; }
   // 켠 지질 레이어 — 맨 앞이 위다. `[{name, opacity}]`. 처음이면 지질 단위 하나를 반쯤 비치게
   var active = (function () {
     try {
@@ -159,7 +179,7 @@
   var cBase = cesiumBase(look.base);
   var viewer = new Cesium.Viewer("globe", {
     baseLayer: cBase,
-    terrainProvider: look.terrain ? demTerrain : flatTerrain,
+    terrainProvider: look.terrain && !paleoOn() ? demTerrain : flatTerrain,
     baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
     navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
     infoBox: false, selectionIndicator: false,
@@ -181,8 +201,15 @@
 
   // 지질도는 3857 타일이다 — 구도 메르카토르 격자로 받는다
   var cGeo = {};
+  function cPaleoProvider(url, credit) {
+    return new Cesium.UrlTemplateImageryProvider({
+      url: url, tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: PALEO_MAX,
+      hasAlphaChannel: true, credit: credit,
+    });
+  }
   GEO_NAMES.forEach(function (name) {
-    var layer = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+    var layer = viewer.imageryLayers.addImageryProvider(LAYER[name].grid === "ll" ? cPaleoProvider(geoUrl(name), creditOf(name))
+      : new Cesium.UrlTemplateImageryProvider({
       url: geoUrl(name), tilingScheme: new Cesium.WebMercatorTilingScheme(), maximumLevel: GEO_MAX,
       hasAlphaChannel: true, credit: creditOf(name),
     }));
@@ -266,8 +293,18 @@
   var oBase = baseLayer("moon-base", look.base);
   // 지질도 — 3857 z/x/y 를 어느 투영에서나 OpenLayers 가 옮겨 그린다. 그래서 투영을 바꿔도 소스를 갈지 않는다
   function geoSource(name) {
+    if (LAYER[name].grid === "ll") return paleoSource(geoUrl(name));
     return new ol.source.XYZ({ url: geoUrl(name), maxZoom: GEO_MAX, attributions: creditOf(name),
                                crossOrigin: "anonymous" });            // CORS — 그림으로 뽑으려면 (048)
+  }
+  // 판 조각 — 경위도 격자(줌 0 이 180° 두 장, 256 칸). 극 평면에서는 OpenLayers 가 옮겨 그린다
+  function paleoSource(url) {
+    var res = [];
+    for (var z = 0; z <= PALEO_MAX; z++) res.push(180 / 256 / Math.pow(2, z));
+    return new ol.source.XYZ({
+      url: url, projection: LL, attributions: PALEO_CREDIT, crossOrigin: "anonymous",
+      tileGrid: new ol.tilegrid.TileGrid({ extent: [-180, -90, 180, 90], origin: [-180, 90], resolutions: res, tileSize: 256 }),
+    });
   }
   var oGeo = {};
   GEO_NAMES.forEach(function (name) {
@@ -628,8 +665,9 @@
   function applyStack() {
     Object.keys(cGeo).forEach(function (name) {
       var e = entryOf(name);
-      cGeo[name].show = !!e;
-      oGeo[name].setVisible(!!e);
+      var shown = !!e && !paleoOn();          // 오늘의 것은 오늘에만 뜬다 (P07 §2)
+      cGeo[name].show = shown;
+      oGeo[name].setVisible(shown);
       if (e) { cGeo[name].alpha = e.opacity; oGeo[name].setOpacity(e.opacity); }
     });
     // 구 — 영상 레이어만 차례가 있다(벡터 데이터 소스는 늘 영상 위다). 평면 — zIndex
@@ -737,7 +775,7 @@
   exag.disabled = !look.terrain;
   terrainBox.addEventListener("change", function () {
     look.terrain = terrainBox.checked;
-    scene.terrainProvider = look.terrain ? demTerrain : flatTerrain;
+    scene.terrainProvider = look.terrain && !paleoOn() ? demTerrain : flatTerrain;
     exag.disabled = !look.terrain;
     save("gsm.earth.terrain", look.terrain ? "on" : "off");
   });
@@ -901,9 +939,12 @@
     var rows = Object.keys(props).filter(function (k) {
       return k !== "이름표" && k.charAt(0) !== "_" && props[k] !== "" && props[k] != null && typeof props[k] !== "object";
     });
+    // 그때의 지구에서 옮겨 그린 점 — 팝업의 위경도·옛 위치는 오늘의 좌표로 (091)
+    if (Array.isArray(props._today)) ll = props._today;
     // 연대(Ma) 열 — "연대 (Ma)"·"age_ma" 따위. 숫자면 옛 위치 칸에 미리 넣는다
     var ageKey = rows.filter(function (k) { return /Ma\)?$|_ma$|^age$/i.test(k) && isFinite(parseFloat(props[k])); })[0];
     showPopup((ll ? coordHead(ll) + paleoForm(ll, ageKey ? parseFloat(props[ageKey]) : null) : "") +
+              (props._paleo ? '<p class="none">' + esc(props._paleo) + "</p>" : "") +
               "<h3>" + esc(title) + '</h3><p class="from"><span class="swatch" style="background:' +
               esc(ps.color) + '"></span>' + esc(ps.name) + "</p>" +
               (rows.length ? "<table>" + rows.map(function (k) {
@@ -923,7 +964,7 @@
       return;
     }
     var at = globeLL(click.position);
-    if (at) askUnit(at, px);
+    if (at) (paleoOn() ? askPaleo : askUnit)(at, px);
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   flat.on("singleclick", function (e) {
     // 도구가 켜져 있으면 도구가 받는다. 선·면·범위는 평면의 Draw·DragBox 가 따로 받는다 (041)
@@ -937,7 +978,7 @@
       showFeature(props, hit[1].get("gsmSet"), ll, e.pixel);
       return;
     }
-    askUnit(wrapLon(toLL(e.coordinate)), e.pixel);
+    (paleoOn() ? askPaleo : askUnit)(wrapLon(toLL(e.coordinate)), e.pixel);
   });
 
   // ══ 범례 — 오른쪽 아래, 펼쳐 둔다 ═══════════════════════════════
@@ -963,7 +1004,8 @@
   }
   var legendAsked = 0;
   function syncLegend() {
-    var layers = active.filter(function (e) { return LAYER[e.name].legend; }).map(function (e) { return LAYER[e.name]; });
+    var layers = active.filter(function (e) { return LAYER[e.name].legend && !paleoOn(); })
+                       .map(function (e) { return LAYER[e.name]; });
     dock.hidden = !layers.length;
     if (!layers.length) return;
     var mine = ++legendAsked;
@@ -1086,9 +1128,14 @@
     return w <= e ? [w, s, e, n] : null;
   }
   var loading = {};
+  var setGen = 0;              // 연대가 바뀌어 다시 받으면 늦게 온 옛 답을 버린다
   function loadSet(ps) {
     if (loading[ps.id]) return loading[ps.id];
-    loading[ps.id] = fetch(BASE + "pointsets/" + ps.id + "/geojson/").then(function (r) { return r.json(); }).then(function (data) {
+    var gen = setGen;
+    // 그때의 지구에서는 서버가 점을 그 연대의 자리로 옮겨 준다(`pointsets/<id>/paleo/`). 선·면은 오지 않는다 (091)
+    var url = paleoOn() ? BASE + "pointsets/" + ps.id + "/paleo/?age=" + age : BASE + "pointsets/" + ps.id + "/geojson/";
+    loading[ps.id] = fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      if (gen !== setGen) return;
       var feats = data.features || [];
       extents[ps.id] = extentOf(feats);
       var source = new Cesium.CustomDataSource("ps-" + ps.id);
@@ -1206,10 +1253,189 @@
       host.appendChild(li);
     });
   }
+
+  // ══ 시간 축 (wetherilli P07·091) ═══════════════════════════════════
+  //
+  // 연대 하나(`age`, Ma)를 로그 막대로 고른다 — 1 ka 에서 1 100 Ma 까지 여섯 자릿수가 한 막대에 선다. ETT 처럼
+  // "전체 시대 / 최근 빙기" 창을 가르지 않았다 — 빙상 밑의 대륙을 묻는 물음이 두 화면으로 쪼개진다(P07 §2).
+  //
+  // **1 Ma 가 두 뜻을 가른다.** 그 안쪽은 오늘의 지구에 그 연대의 것을 얹는다(판이 움직인 것이 수십 km 안이다).
+  // 1 Ma 부터는 서버가 판을 돌려 칠한 **그때의 지구**를 바다색 구 위에 그리고, 오늘의 것(영상·지형·지질도)은
+  // 뜨지 않는다 — 오늘 드러난 암석이 그때 거기 드러나 있었다는 뜻으로 읽히지 않게. 판을 돌리는 셈은 서버의
+  // `paleo.py` 하나다 — 브라우저에 한 벌 더 두지 않는다
+  var AGE_LOG0 = Math.log(0.001) / Math.LN10, AGE_LOG1 = Math.log(AGE_MAX) / Math.LN10;
+  var SLIDER = 1000;
+  function toSlider(a) {
+    if (!(a > 0)) return 0;
+    return Math.max(1, Math.min(SLIDER, Math.round(1 + (SLIDER - 1) * (Math.log(a) / Math.LN10 - AGE_LOG0) / (AGE_LOG1 - AGE_LOG0))));
+  }
+  function fromSlider(v) {
+    return v <= 0 ? 0 : snapAge(Math.pow(10, AGE_LOG0 + (v - 1) / (SLIDER - 1) * (AGE_LOG1 - AGE_LOG0)));
+  }
+  function ageText(a) {
+    if (!(a > 0)) return T("오늘");
+    if (a < PALEO_FROM) return Math.round(a * 1000).toLocaleString() + " ka";
+    return a.toLocaleString() + " Ma";
+  }
+  /** "250"·"250 Ma"·"20 ka"·"1.2 Ga"·"오늘" → Ma. 못 읽으면 null */
+  function parseAge(text) {
+    var t = String(text).trim().toLowerCase();
+    if (t === "" || t === "0" || t === T("오늘").toLowerCase() || t === "today") return 0;
+    var m = /^(\d+(?:[.,]\d+)?)\s*(ka|ma|ga|kyr|myr|gyr)?$/.exec(t.replace(/\s+/g, " "));
+    if (!m) return null;
+    var v = parseFloat(m[1].replace(",", ".")), unit = (m[2] || "ma").charAt(0);
+    return snapAge(unit === "k" ? v / 1000 : unit === "g" ? v * 1000 : v);
+  }
+  // 자료가 있는 구간 — 막대 위의 띠. 단계마다 한 줄씩 는다 (P07 §4)
+  var AGE_BANDS = [
+    { title: "판 조각 (PALEOMAP 2016)", from: PALEO_FROM, to: AGE_MAX },
+  ];
+  var AGE_TICKS = [[0.001, "1 ka"], [0.01, "10 ka"], [0.1, "100 ka"], [1, "1 Ma"], [10, "10 Ma"], [100, "100 Ma"], [1000, "1 Ga"]];
+  var ageRange = $("age-range"), ageInput = $("age-input");
+  function pct(a) { return (toSlider(a) / SLIDER * 100).toFixed(2) + "%"; }
+  $("age-ticks").innerHTML = AGE_TICKS.map(function (t) {
+    return '<span style="left:' + pct(t[0]) + '">' + t[1] + "</span>";
+  }).join("");
+  $("age-bands").innerHTML = AGE_BANDS.map(function (b) {
+    var left = toSlider(b.from) / SLIDER * 100, right = toSlider(b.to) / SLIDER * 100;
+    return '<div class="tb-band" title="' + esc(T(b.title)) + " · " + esc(ageText(b.from)) + "–" + esc(ageText(b.to)) +
+           '"><span style="left:' + left.toFixed(2) + "%;width:" + (right - left).toFixed(2) + '%"></span></div>';
+  }).join("");
+  $("age-bands").style.height = AGE_BANDS.length * 6 + "px";
+
+  // 시대 이름 — 지질도 범례와 같은 ICS 기(period)의 목록을 한 번 받는다
+  var periods = null;
+  fetch(BASE + "earth/legend/").then(function (r) { return r.json(); })
+    .then(function (d) { periods = d.rows || []; showAge(); }).catch(function () { periods = []; });
+  function periodOf(a) {
+    var hit = (periods || []).filter(function (r) { return r.t_age <= a && a < r.b_age; })[0];
+    return hit ? hit.name : "";
+  }
+
+  // 그때의 지구 — 칠한 판 조각. 연대마다 타일 주소가 달라 레이어를 갈아 끼운다
+  var cPaleo = null, paleoShown = null;
+  var oPaleo = new ol.layer.Tile({ visible: false });
+  flat.getLayers().insertAt(1, oPaleo);            // 배경 바로 위 — 점묶음·찍은 것은 그 위다
+  var OCEAN = "#1b3a5e";
+  function showPaleo(a) {
+    if (a === paleoShown) return;
+    paleoShown = a;
+    if (cPaleo) { viewer.imageryLayers.remove(cPaleo, true); cPaleo = null; }
+    if (a == null) { oPaleo.setVisible(false); return; }
+    cPaleo = viewer.imageryLayers.addImageryProvider(cPaleoProvider(paleoUrl("land", a), PALEO_CREDIT), 1);
+    oPaleo.setSource(paleoSource(paleoUrl("land", a)));
+    oPaleo.setVisible(true);
+  }
+
+  var wasPaleo = null, setsAt = 0;
+  function showAge() {
+    var p = paleoOn();
+    ageRange.value = toSlider(age);
+    if (document.activeElement !== ageInput) ageInput.value = ageText(age);
+    var period = age > 0 ? periodOf(age) : "";
+    $("age-period").textContent = period;
+    $("age-now").disabled = !age;
+    $("timebar").classList.toggle("paleo", p);
+    $("age-note").textContent = !age ? "" : p
+      ? T("PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다")
+      : T("오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다");
+  }
+  function applyAge(a) {
+    a = snapAge(a);
+    var changed = a !== age;
+    age = a;
+    save("gsm.earth.age", age);
+    try {
+      var q = new URLSearchParams(location.search);
+      if (age) q.set("age", String(age)); else q.delete("age");
+      var qs = q.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+    } catch (e) { /* file:// 따위 */ }
+    var p = paleoOn();
+    showAge();
+    if (p !== wasPaleo) {
+      wasPaleo = p;
+      cBase.show = !p;
+      oBase.setVisible(!p);
+      scene.globe.baseColor = Cesium.Color.fromCssColorString(p ? OCEAN : "#0b1a2a");
+      $("map").style.background = p ? OCEAN : "";
+      scene.terrainProvider = look.terrain && !p ? demTerrain : flatTerrain;
+      terrainBox.disabled = p;
+      exag.disabled = p || !look.terrain;
+      applyStack();
+    }
+    showPaleo(p ? age : null);
+    // 점묶음 — 그때의 지구에서는 그 연대의 자리로 옮긴 것을 다시 받는다. 오늘의 지구끼리는 그대로다
+    var want = p ? age : 0;
+    if (want !== setsAt) {
+      setsAt = want;
+      ++setGen;
+      pointsets.forEach(function (ps) { dropSet(ps.id); });
+      renderSets();
+    }
+    if (changed) closePopup();
+  }
+  var ageTimer = 0;
+  ageRange.addEventListener("input", function () {
+    var a = fromSlider(+ageRange.value);
+    ageInput.value = ageText(a);
+    clearTimeout(ageTimer);
+    ageTimer = setTimeout(function () { applyAge(a); }, 180);   // 끄는 동안 타일을 쏟아 묻지 않게
+  });
+  $("age-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var a = parseAge(ageInput.value);
+    if (a == null) { ageInput.value = ageText(age); return; }
+    ageInput.blur();
+    applyAge(a);
+  });
+  ageInput.addEventListener("blur", function () { ageInput.value = ageText(age); });
+  $("age-now").addEventListener("click", function () { applyAge(0); });
+
+  // 그때의 지구를 누르면 — 그 자리에 있던 판 조각과, 그 판의 회전을 되돌린 **오늘의 자리**. 오늘의 자리에서
+  // 지질 단위를 다시 묻는다. 계산이지 관측이 아니다
+  function askPaleo(ll, pixel) {
+    markAt(ll);
+    var mine = ++asked, at = age;
+    var head = "<h3>" + esc(T("그때의 지구 · {age}", { age: ageText(at) })) + "</h3>" + coordHead(ll);
+    showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
+    fetch(BASE + "earth/paleo/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&age=" + at)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (mine !== asked) return;
+        if (d.error || !d.rows) { showPopup(head + '<p class="none">' + esc(d.error || d.text) + "</p>", pixel); return; }
+        var today = [d.today_lon, d.today_lat];
+        var html = head + "<table>" + d.rows.map(function (row) {
+          return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+        }).join("") + "</table>" +
+          '<button type="button" class="today-go" data-lon="' + today[0] + '" data-lat="' + today[1] + '">' +
+          esc(T("오늘의 그 자리로")) + "</button>";
+        showPopup(html + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
+        return fetch(BASE + "earth/info/?lon=" + today[0].toFixed(4) + "&lat=" + today[1].toFixed(4) + "&z=" + hereZoom())
+          .then(function (r) { return r.json(); })
+          .then(function (info) {
+            if (mine !== asked) return;
+            html += "<h3>" + esc(T("오늘 그 자리의 지질 단위")) + "</h3>";
+            html += info.units && info.units.length
+              ? info.units.map(function (u) { return unitTable(u, today); }).join("")
+              : '<p class="none">' + esc(T(info.error ? "속성을 받지 못했다" : "여기에는 지질 단위가 없다")) + "</p>";
+            showPopup(html, pixel);
+          });
+      })
+      .catch(function () { if (mine === asked) showPopup(head + '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>", pixel); });
+  }
+  function goToday(lon, lat) {
+    var c = cameraLL();
+    applyAge(0);
+    goTo(lon, lat, Math.min(c ? c.h : HOME_H, 3000000));
+  }
+
   renderSets();
   renderCatalog();
   renderActive();
   applyStack();
+  setsAt = paleoOn() ? age : 0;
+  applyAge(age);
 
   // 올리기 — 2D 의 불러오기와 같은 꼴. 몸은 지구다 — 지역 탭에도 뜬다
   var form = $("upload-form"), fileInput = $("upload-file"), msgBox = $("upload-msg");
@@ -1722,6 +1948,8 @@
     return ok;
   }
   popupBody.addEventListener("click", function (e) {
+    var go = e.target.closest(".today-go");
+    if (go) { goToday(+go.dataset.lon, +go.dataset.lat); return; }
     var head = e.target.closest(".popup-coord");
     if (!head) return;
     var mark = head.querySelector(".copy");
@@ -2000,7 +2228,7 @@
 
   /** 띠에 적을 줄들. 첫 줄이 제목이다. */
   function exportLines() {
-    var shown = active.map(function (e) { return T(LAYER[e.name].title); });
+    var shown = paleoOn() ? [] : active.map(function (e) { return T(LAYER[e.name].title); });
     var mine = pointsets.filter(function (ps) { return ps.visible; });
     var select = $("basemap"), base = select.options[select.selectedIndex].text;
     var tuned = TUNES.filter(function (k) { return tune[k] !== TUNE_DEFAULT[k]; });
@@ -2020,14 +2248,15 @@
       } else where = "—";
       if (look.terrain) where += " · " + T("지형 과장") + " ×" + (look.exag / 10).toFixed(1);
     }
-    var credits = [BASES[look.base].credit];
-    active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
-    if (mode === "globe" && look.terrain) credits.push(DEM_CREDIT);
+    var credits = paleoOn() ? [PALEO_CREDIT] : [BASES[look.base].credit];
+    if (!paleoOn()) active.forEach(function (e) { credits.push(creditOf(e.name) || LAYER[e.name].src); });
+    if (mode === "globe" && look.terrain && !paleoOn()) credits.push(DEM_CREDIT);
     credits = credits.filter(function (c, i) { return c && credits.indexOf(c) === i; });
     var kind = mode !== "flat" ? T("구") : proj === EQC ? T("평면") :
       T("평면") + " (" + T(proj === NPS ? "북극 평사도법" : "남극 평사도법") + ")";
     var out = [T("대돌여지도") + " · " + T("온 지구") + " · " + kind + " · " + stampText()];
-    out.push(T("배경") + ": " + base);
+    if (age) out.push(T("연대") + ": " + ageText(age) + (paleoOn() ? " · " + T("PALEOMAP 2016 판 회전으로 셈한 그때의 지구") : ""));
+    out.push(T("배경") + ": " + (paleoOn() ? T("판 조각 (PALEOMAP 2016)") : base));
     out.push(T("레이어") + ": " + (shown.length ? shown.join(" / ") : "—"));
     if (mine.length) out.push(T("점묶음") + ": " + mine.map(function (ps) { return ps.name; }).join(", "));
     out.push(T("가운데") + ": " + where);
