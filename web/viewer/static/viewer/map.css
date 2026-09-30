@@ -968,6 +968,7 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   white-space: nowrap;
 }
 .projbadge:empty { display: none; }
+.zoombadge { order: 3; }
 .projbadge.flash { animation: projflash 1.6s ease-out; }
 @keyframes projflash {
   0%, 30% { background: var(--gold); color: var(--panel-tint); }
