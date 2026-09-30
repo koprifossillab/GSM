@@ -1592,6 +1592,18 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 :root[data-region="earth"] .popup { z-index: 8; }
 :root[data-region="earth"] .temp-no { color: var(--on-hi); background: var(--hi); }
 :root[data-region="earth"] .range-box { border-color: #7fe0e0; background: rgba(127, 224, 224, .14); }
+/* 그때의 자리 (wetherilli 087) — 팝업의 위경도 밑에 연대를 넣어 옮겨 보는 칸 */
+.paleo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 2px; font-size: 12px;
+              color: var(--ink-soft); }
+.paleo-form input { width: 72px; padding: 2px 6px; font: inherit; color: var(--ink); background: var(--panel-tint);
+                    border: 1px solid var(--line); border-radius: 5px; }
+.paleo-form button { padding: 2px 10px; font: inherit; color: var(--on-hi); background: var(--hi); border: 0;
+                     border-radius: 5px; cursor: pointer; }
+.paleo-form .paleo-out { flex-basis: 100%; font-family: var(--font-mono); color: var(--hi-ink); }
+.paleo-form .paleo-out:empty { display: none; }
+/* EarthThruTime3D 로 건너가는 링크 (wetherilli 088) */
+.ett-link { color: var(--hi-ink); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.ett-link::after { content: " ↗"; font-size: .9em; }
 .hidden-menu .moon-dot.whole-dot { background: radial-gradient(circle at 35% 35%, #9ff0e0, #2f8f9a 55%, #123a52); }
 :root[data-region="moon"] .count, :root[data-region="mars"] .count { color: var(--on-hi); background: var(--hi); }
 :root[data-region="moon"] #map, :root[data-region="mars"] #map { background: #000; }

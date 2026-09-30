@@ -806,21 +806,70 @@
            '</span><span class="k">' + esc(T("경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
+  // 그때의 자리 (wetherilli 087) — 누른 자리를 아무 연대로나 옮겨 본다. 서버가 PALEOMAP 2016 판 회전으로 셈한다
+  // (`paleo.py`). 점묶음의 점에 연대(Ma) 열이 있으면 그 값을 미리 넣는다
+  function paleoForm(ll, age) {
+    return '<form class="paleo-form" data-lon="' + ll[0].toFixed(5) + '" data-lat="' + ll[1].toFixed(5) + '">' +
+           '<label title="' + esc(T("PALEOMAP 2016 판 회전으로 셈한 것이다 — 관측이 아니다")) + '">' + esc(T("그때의 자리")) +
+           ' <input type="number" name="age" min="0" max="1100" step="any" placeholder="250" value="' +
+           (age == null ? "" : esc(age)) + '"> Ma</label><button type="submit">' + esc(T("옮긴다")) + "</button>" +
+           '<output class="paleo-out"></output></form>';
+  }
+  popupBody.addEventListener("submit", function (e) {
+    var form = e.target.closest(".paleo-form");
+    if (!form) return;
+    e.preventDefault();
+    var out = form.querySelector(".paleo-out"), age = form.elements.age.value;
+    if (age === "") return;
+    out.textContent = T("읽는 중");
+    fetch(BASE + "earth/paleo/?lon=" + form.dataset.lon + "&lat=" + form.dataset.lat + "&age=" + encodeURIComponent(age))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        out.textContent = d.error || d.text;
+        if (d.lon != null) out.insertAdjacentHTML("beforeend", " " + ettLink([+form.dataset.lon, +form.dataset.lat], d.age));
+      })
+      .catch(function () { out.textContent = T("속성을 받지 못했다"); });
+  });
   // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달·화성에서 온 틀이다. 지구는 지질도 하나다.
   // Macrostrat 는 줌마다 그리는 판(축척)이 달라, 보는 줌을 함께 보낸다 — 타일과 같은 판을 읽는다
   function hereZoom() {
     var res = mode === "flat" ? groundRes() : heightToRes(hereHeight());
     return Math.max(0, Math.min(GEO_MAX, Math.round(Math.log(40075016.7 / 256 / Math.max(0.5, res)) / Math.LN2)));
   }
-  function unitTable(u) {
+  // ══ EarthThruTime3D 로 건너가기 (wetherilli 088) ════════════════
+  //
+  // 옛 위치를 ETT 의 고지리 지구본에서 본다. 주소는 ETT 의 것 그대로다(`docs/site-map.md`) — 핀은 **오늘의 좌표**를
+  // 넘기고 옮기기는 ETT 가 한다. 둘 다 PALEOMAP 2016 이라 우리가 적은 자리에 핀이 선다(087). 고도 격자(PaleoDEM)는
+  // 540 Ma 까지라 그보다 오랜 연대는 기본 판(PaleoAtlas 육지 마스크, 750 Ma 까지 — 그 너머는 판 재구성만)으로 연다.
+  // ETT 는 연대를 가장 가까운 시점에 맞춘다. 링크일 뿐이라 자료는 넘어가지 않는다
+  var ETT_URL = "https://earththrutime.nopeoplestime.info/";
+  var ETT_DEM_MAX = 540;
+  function ettHref(ll, age) {
+    var w = wrapLon(ll), q = [];
+    if (age <= ETT_DEM_MAX) q.push("masks=paleodem2018");
+    q.push("age=" + (+age).toFixed(age < 10 ? 3 : 1).replace(/\.?0+$/, ""));
+    q.push("pin=" + w[0].toFixed(2) + "," + w[1].toFixed(2));
+    return ETT_URL + "?" + q.join("&");
+  }
+  function ettLink(ll, age) {
+    return '<a class="ett-link" target="_blank" rel="noopener" href="' + esc(ettHref(ll, age)) + '" title="' +
+           esc(T("EarthThruTime3D 의 고지리 지구본에서 이 자리를 그 연대로 본다 — 새 창")) + '">' +
+           esc(T("ETT 에서 {age} Ma", { age: age })) + "</a>";
+  }
+  function unitTable(u, ll) {
     var chip = u.color ? '<span class="swatch-img" style="display:inline-block;background:' + esc(u.color) + '"></span>' : "";
-    return "<table>" + u.rows.map(function (row, k) {
+    var rows = u.rows.map(function (row, k) {
       return "<tr><th>" + esc(row[0]) + "</th><td>" + (k === 0 ? chip : "") + esc(row[1]) + "</td></tr>";
-    }).join("") + "</table>";
+    });
+    if (u.then && u.then.length) {
+      rows.push('<tr><th>EarthThruTime3D</th><td>' + u.then.map(function (age) { return ettLink(ll, age); }).join(" · ") +
+                "</td></tr>");
+    }
+    return "<table>" + rows.join("") + "</table>";
   }
   function askUnit(ll, pixel) {
     markAt(ll);
-    var head = coordHead(ll);
+    var head = coordHead(ll) + paleoForm(ll);
     var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
     if (!layers.length) { showPopup(head, pixel); return; }
     var mine = ++asked;
@@ -839,7 +888,7 @@
           return;
         }
         // 한 자리에 단위가 여럿일 수 있다(판이 겹친 곳) — 다 싣는다
-        html += data.units.map(unitTable).join("");
+        html += data.units.map(function (u) { return unitTable(u, ll); }).join("");
       });
       showPopup(html, pixel);
     });
@@ -852,7 +901,10 @@
     var rows = Object.keys(props).filter(function (k) {
       return k !== "이름표" && k.charAt(0) !== "_" && props[k] !== "" && props[k] != null && typeof props[k] !== "object";
     });
-    showPopup((ll ? coordHead(ll) : "") + "<h3>" + esc(title) + '</h3><p class="from"><span class="swatch" style="background:' +
+    // 연대(Ma) 열 — "연대 (Ma)"·"age_ma" 따위. 숫자면 옛 위치 칸에 미리 넣는다
+    var ageKey = rows.filter(function (k) { return /Ma\)?$|_ma$|^age$/i.test(k) && isFinite(parseFloat(props[k])); })[0];
+    showPopup((ll ? coordHead(ll) + paleoForm(ll, ageKey ? parseFloat(props[ageKey]) : null) : "") +
+              "<h3>" + esc(title) + '</h3><p class="from"><span class="swatch" style="background:' +
               esc(ps.color) + '"></span>' + esc(ps.name) + "</p>" +
               (rows.length ? "<table>" + rows.map(function (k) {
                 return "<tr><th>" + esc(T(k)) + "</th><td>" + esc(props[k]) + "</td></tr>";
