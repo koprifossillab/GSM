@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, macrostrat, paleo, paleocoast, spamap
+from . import arcpoints, fossils, macrostrat, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -897,7 +897,7 @@ def earth_view(request):
         "lang": lang,
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
-        "then_data": _script_json({"coast": paleocoast.ages()}),
+        "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available()}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
@@ -1125,6 +1125,70 @@ def earth_paleo_set(request, pk):
             props["_paleo"] = _paleo_text(got, lang)
         out.append({"type": "Feature", "geometry": g, "properties": props})
     return JsonResponse({"type": "FeatureCollection", "features": out}, json_dumps_params={"ensure_ascii": False})
+
+
+# ── 화석 산지 (wetherilli 098) ───────────────────────────────────────
+
+@require_GET
+def earth_fossil_tile(request, ka, z, x, y):
+    """`earth/fossils/tiles/<ka>/<z>/<x>/<y>.png` — 그 연대의 화석 산지(PBDB). 연대는 천 년(ka) 단위의 정수다 —
+    0 은 오늘(모든 산지), 1 Ma 안쪽은 그 연대를 품은 산지를 오늘의 자리에, 1 Ma 부터는 그때의 자리에(`fossils.py`)."""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not paleo.valid_tile(z, x, y) or ka > 1100000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    conn = fossils.db()
+    if conn is None:
+        return _tile(tiles.blank_tile(), store=False)
+    age = ka / 1000.0
+    if age >= fossils.PALEO_FROM:
+        age = float(round(age))
+    built = conn.execute("SELECT v FROM meta WHERE k = 'built'").fetchone()[0]
+    # 다시 구운 날이 열쇠에 든다 — 산지가 늘면 새로 그린다
+    key = tilecache.key_text("pbdb", f"{fossils.RENDERER}/{built}/{age:g}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = fossils.render_tile(age, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_fossil_at(request):
+    """`?lon=&lat=&age=&r=` — 누른 자리 둘레(`r`°)의 화석 산지, 가까운 것부터 다섯. `lon`·`lat` 은 화면에 찍힌 자리다 —
+    1 Ma 부터는 그때의 자리."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    age, r = _float(request.GET.get("age")) or 0.0, min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    if age >= fossils.PALEO_FROM:
+        age = float(round(age))
+    m = paleo.model()
+    out = []
+    for row, (plon, plat) in fossils.near(age, lon, lat, r):
+        span = row["early"] + (f" – {row['late']}" if row["late"] and row["late"] != row["early"] else "")
+        mid = (row["max_ma"] + row["min_ma"]) / 2
+        rows = [("산지", row["name"]), ("지층", row["formation"]),
+                ("시대", i18n.age_ko(span) if lang == "ko" else span),
+                ("연대 (Ma)", _age_span(row["max_ma"], row["min_ma"])), ("퇴적 환경", row["env"]),
+                ("화석 수", str(row["n_occs"]) if row["n_occs"] else ""), ("나라", row["cc"])]
+        # 옛 자리 — 우리 셈(판 조각과 같다)과 PBDB 의 셈, 둘 다 산지 연대의 가운데에서
+        then = []
+        if m is not None and row["pid"] is not None:
+            got = m.carry(row["lon"], row["lat"], mid, {"pid": row["pid"], "lon": row["flon"], "lat": row["flat"],
+                                                          "reach": row["reach"]})
+            then.append([i18n.t(msg("그때의 자리 ({age} Ma)", age=f"{mid:g}"), lang), _paleo_text(got, lang)])
+        if row["pb_lon"] is not None:
+            then.append([i18n.t(msg("PBDB 의 옛 자리"), lang), _lonlat_text(row["pb_lon"], row["pb_lat"], lang)])
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v] + then
+        if row["ref"]:
+            rows.append([i18n.PROP_EN.get("첫 문헌", "첫 문헌") if lang == "en" else "첫 문헌", row["ref"]])
+        out.append({"no": row["no"], "name": row["name"], "rows": rows, "link": pbdb.collection_url(row["no"]),
+                    "today": [row["lon"], row["lat"]], "at": [plon, plat], "mid": mid})
+    return JsonResponse({"hits": out, "credit": pbdb.CREDIT})
 
 
 def _age_span(oldest, youngest) -> str:

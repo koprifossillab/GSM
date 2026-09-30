@@ -129,4 +129,5 @@
 | wetherilli 095 | 2026-09-30 | [극지연구소 — KPDC 기본도 다섯 (노출암·등고선·역사 유적·북극 등심선·빙상 등고선)](20260930_wetherilli_095_kpdc_base_map_layers.md) |
 | wetherilli 096 | 2026-09-30 | [지명 찾기 — 스발바르 하나에서 그린란드·드로닝모드랜드·북극 묶음으로](20260930_wetherilli_096_place_search_regions.md) |
 | wetherilli 097 | 2026-09-30 | [온 지구 — 옛 해안선, 화석이 가리키는 가장 깊은 바다](20260930_wetherilli_097_paleocoastlines.md) |
+| wetherilli 098 | 2026-09-30 | [온 지구 — 화석 산지, PBDB 27 만 곳을 연대마다 그 자리에](20260930_wetherilli_098_pbdb_fossil_collections.md) |
 | wetherilli 099 | 2026-09-30 | [극지 — PGC 경사·등고선을 지질도 위에 겹치는 레이어로](20260930_wetherilli_099_pgc_slope_contour_layers.md) |

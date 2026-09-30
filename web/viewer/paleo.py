@@ -239,14 +239,33 @@ class Model:
             cache[pid] = self.rotations.rotation(pid, 0.0) or IDENTITY
         return cache[pid]
 
+    def _today_boxes(self):
+        """오늘 있는 다각형마다 경위도 네모(다각형의 좌표로, 2° 넉넉히). 날짜변경선을 넘거나 극을 두른 것은 None — 늘 따져 본다.
+        27 만 곳의 화석 산지(098)에 판을 붙일 때 감김 셈을 네모 안에서만 하려는 것이다."""
+        boxes = self.__dict__.get("_boxes")
+        if boxes is None:
+            boxes = []
+            for f in self.features:
+                if f["to"] > 1e-9 or f["from"] < -1e-9:
+                    continue
+                lons = [v for ring in f["rings"] for v in ring[0::2]]
+                lats = [v for ring in f["rings"] for v in ring[1::2]]
+                wide = max(lons) - min(lons) > 180 or max(abs(v) for v in lats) > 85
+                boxes.append((f, None if wide else (min(lons) - 2, max(lons) + 2, min(lats) - 2, max(lats) + 2)))
+            self._boxes = boxes
+        return boxes
+
     def plate_at(self, lon: float, lat: float):
         """오늘의 자리를 담는 대륙 다각형의 판. 여럿이 겹치면 가장 멀리 거슬러 가는 것. 바다 밑이면 None.
         `lon`·`lat` 은 판의 0 Ma 회전을 되돌린 좌표다 — 이것을 옛 연대의 회전으로 옮긴다 (ETT `pinAt` 과 같다)."""
-        best = None
-        for f in self.features:
-            if f["to"] > 1e-9 or f["from"] < -1e-9:
-                continue                                   # 오늘 있는 다각형만
-            here = turn(_conjugate(self._now(f["pid"])), lon, lat)
+        best, heres = None, {}
+        for f, box in self._today_boxes():                 # 오늘 있는 다각형만
+            # 다각형은 판의 0 Ma 회전 앞의 좌표다 — 판에 따라 수십 도 어긋난다. 점을 되돌린 뒤 네모로 거른다
+            here = heres.get(f["pid"])
+            if here is None:
+                here = heres[f["pid"]] = turn(_conjugate(self._now(f["pid"])), lon, lat)
+            if box and not (box[0] <= here[0] <= box[1] and box[2] <= here[1] <= box[3]):
+                continue
             if not holds(f, *here):
                 continue
             if best is None or f["from"] > best["from"]:
