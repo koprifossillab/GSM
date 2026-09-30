@@ -462,6 +462,8 @@
     npolar: { source: npolarSource, info: wmsInfoUrl },
     // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
     kopri: { source: npolarSource, info: wmsInfoUrl },
+    // PGC 경사·등고선(wetherilli 099) — NPI 처럼 지역의 투영으로 곧장 받는다. 누르면 그 자리의 값
+    pgc: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },

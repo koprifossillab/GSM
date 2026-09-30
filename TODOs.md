@@ -138,12 +138,6 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
       **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리 파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만.
       달 DEM 을 바꾼 뒤에. 화성은 옆 세션(`mars.js`)에 넘긴다
 
-### PGC 경사·등고선 레이어 — 하루
-
-- [ ] Slope Degrees·Aspect·Contour 25 [실측] — 지질도 위에 겹치려면 배경 길(브라우저가 곧장)을 못 쓴다. `elevation.py` 에
-      `exportImage`+`renderingRule` 타일 길(`_polar_block` 선례), urls·views, 씨앗 `pgc_layers.json`. 레이어 이름이 레이어군 하나에만
-      들어 지역마다 따로. 등고선은 `minZoom`. 누르면 경사 몇 도. CC BY 4.0
-
 ### 한국 — 시료 지점 칸·KIGAM 자료
 
 - [ ] 시료 지점 속성에 "보호구역 안"·"지목·소유구분" [실측: `LT_C_UO301`] — `point_facts`(074)에 일 둘. `uname` 이 온천의 뜻과
