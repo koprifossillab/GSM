@@ -857,6 +857,9 @@ EN = {
     "경사 방향과 원문 사분면이 맞지 않는다 — 기호는 경사 방향대로 그렸다":
         "Dip direction disagrees with the original quadrant — the symbol follows the dip direction",
     "KIGAM 5만 지질도 · {date} 받음": "KIGAM 1:50K geological map · fetched {date}",
+    "자세 기호": "Attitude symbols",
+    "켜면 늘 그리고, 끄면 커서를 올릴 때만 그린다 — 줌 {n} 부터":
+        "Checked: always drawn. Unchecked: drawn only under the cursor — from zoom {n}",
     "층리": "Bedding", "수직층리": "Vertical bedding", "역전층리": "Overturned bedding", "수평층리": "Horizontal bedding",
     "엽리": "Foliation", "수직엽리": "Vertical foliation",
     "1차엽리": "Primary foliation", "2차엽리": "Secondary foliation", "3차엽리": "Tertiary foliation",
@@ -1577,7 +1580,7 @@ LAYER_EN = {
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",
     "L_50K_Geology_Map": "1:50K geology",
-    "L_50K_Geology_Map_NoAttitude": "1:50K geology (no bedding/foliation symbols)",
+    "L_50K_Geology_Map_NoAttitude": "1:50K geology (without bedding etc.)",
     "l_50k_geology_frame_latest": "1:50K sheet index",
     "L_10k_coalfield_geologic_map": "1:10K coalfield geology",
     "L_25k_coalfield_geologic_map": "1:25K coalfield geology",
