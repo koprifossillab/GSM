@@ -51,12 +51,14 @@
              first: "L_50K_Geology_Map" },
     greenland: { title: "그린란드", proj: "EPSG:3413", center: [-42.0, 72.0], zoom: 3, vworld: false,
                  home: [-750000, -3450000, 950000, -550000],
-                 basemap: "eox_s2",
+                 basemap: "eox_s2", places: "64.176, -51.736 · Nuuk",
                  base: ["grl_g500_lithostr_search", "lithologies"],
                  first: "grl_g500_lithostr_search" },
     antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
                   home: [-2800000, -2400000, 2900000, 2500000],
                   basemap: "esri_antarctic", forgetOldView: true,
+                  // 지명은 드로닝모드랜드(NPI)뿐이다 — 그래서 찾기 칸의 예도 거기 것 (wetherilli 096)
+                  places: "-72.012, 2.535 · Troll",
                   // 좌표 칸의 예 — 남극점(가운데)은 예로 쓸모가 없어 세종기지를 든다 (021)
                   example: "-62.223, -58.787",
                   base: ["geomap_simple_geology", "geomap_chronostratigraphic",
@@ -79,7 +81,7 @@
     // 저절로 빠진다. 보던 자리·켠 레이어·배경은 북극 탭이 따로 기억한다.
     svalbard: { title: "스발바르", proj: "EPSG:3413", center: [17.0, 78.5], zoom: 6, vworld: false,
                 home: [890000, -739000, 1380000, -212000],
-                basemap: "npi_sat", places: true,
+                basemap: "npi_sat", places: "78.223, 15.647 · Longyearbyen",
                 base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
                 first: "npolar:svalbard_units" },
     // ── 북극해 (devlog 076) ──
@@ -95,7 +97,7 @@
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
               includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean"],
               home: [-612000, -3344000, 1380000, -212000],
-              basemap: "eox_s2", places: true,
+              basemap: "eox_s2", places: "78.223, 15.647 · Longyearbyen",
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
               first: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"] },
     // ── 일본·동아시아 (devlog 024) ──
@@ -4251,9 +4253,9 @@
     var box = document.getElementById("search-results");
     box.hidden = false;
     if (!REGIONS[region].vworld) {
-      // 스발바르·북극은 NPI 지명을 뒤진다 (devlog 021). 나머지 극지는 좌표로만 간다
+      // 스발바르·그린란드·남극(드로닝모드랜드)·북극은 지명을 뒤진다 (021·wetherilli 096). 나머지는 좌표로만 간다
       if (REGIONS[region].places) { searchNames(q); return; }
-      box.innerHTML = '<li class="note">' + esc(T("이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·북극 탭에서 찾는다")) + "</li>";
+      box.innerHTML = '<li class="note">' + esc(T("이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다")) + "</li>";
       return;
     }
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
@@ -4269,14 +4271,23 @@
   }
 
   /** 스발바르 지명 8 393 에서 찾는다 — 서버가 한 번 받아 둔 것을 뒤진다(`placenames/`). */
+  /** 지명 찾기의 출처 — 찾은 것이 없을 때도 이 글로 "지명 찾기였다" 를 가른다 */
+  var PLACE_SOURCES = {
+    svalbard: "지명 검색: 노르웨이 극지연구소 (스발바르)",
+    greenland: "지명 검색: 그린란드 정부 (Nunat Aqqi)",
+    antarctica: "지명 검색: 노르웨이 극지연구소 (드로닝모드랜드)",
+    arctic: "지명 검색: 노르웨이 극지연구소 · 그린란드 정부",
+  };
+
   function searchNames(q) {
     var box = document.getElementById("search-results");
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
-    fetch(BASE + "placenames/?q=" + encodeURIComponent(q))
+    // 묶음 지역(북극)은 품은 지역들의 지명을 함께 뒤진다 — 서버가 지명이 없는 지역은 건너뛴다
+    fetch(BASE + "placenames/?q=" + encodeURIComponent(q) + "&region=" + encodeURIComponent(regionKeys().join(",")))
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "");
-        renderResults(res.d.results || [], "", T("지명 검색: 노르웨이 극지연구소 (스발바르)"));
+        renderResults(res.d.results || [], "", T(PLACE_SOURCES[region] || "지명 검색"));
       })
       .catch(function (err) {
         box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
@@ -4294,7 +4305,7 @@
       box.appendChild(head);
     }
     if (!rows.length) {
-      box.innerHTML = '<li class="note">' + esc(src ? T("찾은 것이 없다 — 스발바르 지명을 넣어 본다")
+      box.innerHTML = '<li class="note">' + esc(src ? T("찾은 것이 없다 — 이 지역의 지명을 넣어 본다")
         : T("찾은 것이 없다 — 주소·장소·행정구역을 넣어 본다")) + "</li>";
       return;
     }
@@ -4362,7 +4373,7 @@
   function gotoPlaceholder() {
     var spec = REGIONS[region];
     if (spec.vworld) return gotoPlain;
-    if (spec.places) return T("좌표·지명으로 이동 — 78.223, 15.647 · Longyearbyen");
+    if (spec.places) return T("좌표·지명으로 이동 — {example}", { example: spec.places });
     var example = spec.example || (spec.center[1].toFixed(1) + ", " + spec.center[0].toFixed(1));
     return T("좌표로 이동 — 위도, 경도 (예: {example})", { example: example });
   }

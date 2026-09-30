@@ -11,6 +11,7 @@ import math
 import re
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -27,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import macrostrat, paleo, paleocoast, spamap
+from . import arcpoints, macrostrat, paleo, paleocoast, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -2092,7 +2093,7 @@ def point_layer(request):
         return _kopri_layer(name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
-    if module is None or name == PLACE_NAMES:
+    if module is None or name in PLACE_FIELDS:
         return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
     try:
         features = point_features(name)
@@ -2108,21 +2109,54 @@ def point_layer(request):
 #: 스발바르 지명 8 393 — 찾기 칸이 뒤진다 (npolar.py, devlog 021)
 PLACE_NAMES = "npolar:place_names"
 
+#: 지역 → 그 지역의 지명 레이어 (wetherilli 096). 묶음 지역(북극)은 화면이 품은 지역들을 넘긴다
+PLACE_SOURCES = {
+    "svalbard": (PLACE_NAMES,),
+    "greenland": ("grportal:place_names",),
+    "antarctica": ("npolar:dml_place_names",),
+}
+#: 지명 레이어 → (이름 열들, 곁말 열들). 이름 열의 첫 것이 보이는 이름이다
+PLACE_FIELDS = {
+    PLACE_NAMES: (("name",), ("area",), None),
+    "npolar:dml_place_names": (("name",), ("area",), None),
+    # 그린란드는 같은 이름이 흔하다(Nuuk 라는 곶이 여럿) — 도시(BY)·마을(BYGD)·공항(FLYPL)을 앞세운다
+    "grportal:place_names": (("name", "old", "da", "alt"), ("da", "kind", "mun"), ("kind", ("BY", "BYGD", "FLYPL"))),
+}
+#: 지명 색인을 메모리에 들고 있는 초. 그린란드는 33 000 건·수 MB 라 찾을 때마다 캐시 파일을 풀지 않는다
+PLACE_INDEX_SECONDS = 3600
+_place_index = {}
+
+
+def _place_index_for(name: str) -> list:
+    hit = _place_index.get(name)
+    if hit and time.monotonic() - hit[0] < PLACE_INDEX_SECONDS:
+        return hit[1]
+    names, side, prefer = PLACE_FIELDS[name]
+    index = arcpoints.name_index(json.loads(point_features(name)), names, side, prefer)
+    _place_index[name] = (time.monotonic(), index)
+    return index
+
 
 @require_GET
 def place_names(request):
-    """스발바르 지명 찾기. 한국의 `search/`(VWorld) 자리다. 지명을 한 번 통째로
-    받아 두고(아홉 장) 그 안에서 찾는다 — 찾을 때마다 상류에 묻지 않는다."""
+    """지명 찾기 — 스발바르·그린란드·드로닝모드랜드. 한국의 `search/`(VWorld) 자리다. 지명을 한 번 통째로
+    받아 두고 그 안에서 찾는다 — 찾을 때마다 상류에 묻지 않는다. `region` 은 쉼표로 여럿(북극 묶음)."""
     lang = i18n.lang_of(request)
     query = (request.GET.get("q") or "").strip()[:100]
     if not query:
         return JsonResponse({"results": []})
-    try:
-        features = json.loads(point_features(PLACE_NAMES))
-    except (npolar.NpolarError, ValueError) as exc:
-        log.warning("스발바르 지명을 받지 못했다: %s", exc)
+    regions = [r for r in (request.GET.get("region") or "svalbard").split(",") if r in PLACE_SOURCES]
+    sources = [name for r in regions for name in PLACE_SOURCES[r]] or [PLACE_NAMES]
+    index, failed = [], 0
+    for name in sources:
+        try:
+            index += _place_index_for(name)
+        except (POINT_ERRORS + (ValueError,)) as exc:
+            log.warning("지명을 받지 못했다 (%s): %s", name, exc)
+            failed += 1
+    if failed == len(sources):
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
-    return JsonResponse({"results": npolar.match_places(features, query)})
+    return JsonResponse({"results": arcpoints.match_index(index, query)})
 
 
 def _janmayen_layer(name, lang):

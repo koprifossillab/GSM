@@ -28,7 +28,6 @@ import base64
 import io
 import logging
 import re
-import unicodedata
 
 import requests
 from django.conf import settings
@@ -199,6 +198,12 @@ POINTS = {
     },
     "npolar:place_names": {
         "where": "features", "path": "NPI_Place_Names_Svalbard/FeatureServer/0", "oid": "ObjectId",
+        "style": "name", "source": "https://placenames.npolar.no/",
+        "fields": {"name": _f("name", "지명"), "area": _f("area", "지역")},
+    },
+    # 드로닝모드랜드 지명 4 074 — 스발바르와 같은 꼴이다 (wetherilli 096). CC BY 4.0
+    "npolar:dml_place_names": {
+        "where": "features", "path": "NPI_Place_Names_Dronning_Maud_Land/FeatureServer/0", "oid": "ObjectId",
         "style": "name", "source": "https://placenames.npolar.no/",
         "fields": {"name": _f("name", "지명"), "area": _f("area", "지역")},
     },
@@ -566,31 +571,6 @@ def body(name: str, features_json: bytes) -> bytes:
 
 # ── 지명 찾기 ────────────────────────────────────────────────────────
 
-def _fold(text: str) -> str:
-    """찾기를 위해 접는다 — 작은 글자로, 노르웨이 글자는 로마자로(å→a, ø→o, æ→ae)."""
-    text = (text or "").lower().replace("æ", "ae").replace("ø", "o").replace("å", "a")
-    text = unicodedata.normalize("NFKD", text)
-    return re.sub(r"\s+", " ", "".join(c for c in text if not unicodedata.combining(c))).strip()
-
-
 def match_places(features: list, query: str, limit: int = 20) -> list:
-    """받아 둔 지명 가운데 `query` 에 맞는 것. 같은 이름 → 앞이 같은 것 → 들어 있는 것 차례.
-    화면의 찾기 결과 꼴(`title`·`lat`·`lon`·`kind`)로 준다."""
-    q = _fold(query)
-    if not q:
-        return []
-    ranked = []
-    for f in features:
-        name = (f.get("properties") or {}).get("name") or ""
-        folded = _fold(name)
-        if q not in folded:
-            continue
-        rank = 0 if folded == q else 1 if folded.startswith(q) else 2
-        ranked.append((rank, len(name), name, f))
-    ranked.sort(key=lambda r: r[:3])
-    out = []
-    for _, _, name, f in ranked[:limit]:
-        lon, lat = f["geometry"]["coordinates"][:2]
-        area = (f.get("properties") or {}).get("area") or ""
-        out.append({"kind": "name", "title": name, "sub": area, "lat": lat, "lon": lon})
-    return out
+    """받아 둔 지명 가운데 `query` 에 맞는 것 — 틀은 `arcpoints.match_index` 에 있다 (wetherilli 096)."""
+    return arcpoints.match_index(arcpoints.name_index(features, ("name",), ("area",)), query, limit)

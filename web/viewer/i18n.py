@@ -771,12 +771,16 @@ EN = {
         "Norwegian Polar Institute · Copernicus Sentinel-2. CC BY 4.0",
     "스발바르 지형도 (NPI)": "Svalbard topographic map (NPI)",
     "노르웨이 극지연구소. CC BY 4.0": "Norwegian Polar Institute. CC BY 4.0",
-    "이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·북극 탭에서 찾는다":
-        "Here you go by coordinates — addresses and places work in Korea, place names in the Svalbard and Arctic tabs",
-    "좌표·지명으로 이동 — 78.223, 15.647 · Longyearbyen": "Go to coordinates or a place name — 78.223, 15.647 · Longyearbyen",
+    "이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
+        "Coordinates only here — addresses and places in Korea, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
+    "좌표·지명으로 이동 — {example}": "Go to coordinates or a place name — {example}",
     "좌표로 이동 — 위도, 경도 (예: {example})": "Go to coordinates — latitude, longitude (e.g. {example})",
     "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
-    "찾은 것이 없다 — 스발바르 지명을 넣어 본다": "Nothing found — try a Svalbard place name",
+    "찾은 것이 없다 — 이 지역의 지명을 넣어 본다": "Nothing found — try a place name in this region",
+    "지명 검색: 그린란드 정부 (Nunat Aqqi)": "Place names: Government of Greenland (Nunat Aqqi)",
+    "지명 검색: 노르웨이 극지연구소 (드로닝모드랜드)": "Place names: Norwegian Polar Institute (Dronning Maud Land)",
+    "지명 검색: 노르웨이 극지연구소 · 그린란드 정부": "Place names: Norwegian Polar Institute · Government of Greenland",
+    "지명 검색": "Place names",
     "지명": "Place name",
     # 일본 — GSJ 심리스 지질도·국토지리원 배경 (gsj.py·map.js, devlog 024)
     "일본 담색 지도 (국토지리원)": "Japan pale map (GSI)",
@@ -1020,6 +1024,10 @@ PROP_EN = {
     "다이아몬드 품위": "Diamond grade",
     "출처 갈래": "Source type",
     "보고한 곳": "Reported by",
+    # 그린란드 지명 (wetherilli 096)
+    "옛 철자": "Old spelling",
+    "덴마크어 이름": "Danish name",
+    "지자체": "Municipality",
     "지질": "Geology",
     "시료 번호": "Sample no.",
     "연대 (Ma)": "Age (Ma)",

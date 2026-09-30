@@ -107,6 +107,22 @@ LAYERS = {
             "color": _field("rgb", "", "rgb"),
         },
     },
+    # 그린란드 공식 지명(Nunat Aqqi) 33 025 — 레이어로 켜지 않고 찾기 칸이 뒤진다 (wetherilli 096). 포털에 판이 다섯
+    # 있다(`Nunat_Aqqi`·`…_pisortatigut_aug2018`·`Stednavne_03_08_2018_official` 따위). 열이 같고 가장 나중에
+    # 고친(2019-06) `Nunat_Aqqi` 를 쓴다. 이름은 새 철자·옛 철자(`ĸ`)·덴마크어·다른 이름 넷을 다 뒤진다
+    "grportal:place_names": {
+        "service": "Nunat_Aqqi", "oid": "OBJECTID",
+        "item": "",
+        "style": "name",
+        "fields": {
+            "name": _field("Aqqa_stednavn", "지명"),
+            "old": _field("Allattaasitoqqamik_gml_stave", "옛 철자"),
+            "da": _field("Qallunaatut_Dansk", "덴마크어 이름"),
+            "alt": _field("Allatut_Alternativ", "다른 이름"),
+            "kind": _field("Sammisaq_Genstand", "갈래"),
+            "mun": _field("Kommune", "지자체"),
+        },
+    },
     # ── 면과 갈래 색 (wetherilli 089) ─────────────────────────────────
     # 아래는 `style: class` 로 간다 — 극지연구소(053)와 같은 틀. 갈래(`classes`)를 받은 값에서
     # 가르고 덩이에 `legend` 를 싣는다. 면(`areal`)은 `generalize` 도(°)로 줄여 받는다.

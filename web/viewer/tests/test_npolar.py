@@ -262,6 +262,8 @@ class Places(SimpleTestCase):
 
 class View(TestCase):
     def setUp(self):
+        views._place_index.clear()          # 지명 색인은 메모리에 남는다 (wetherilli 096)
+        self.addCleanup(views._place_index.clear)
         patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-npi-"),
                                   TILE_CACHE_MIN_FREE_BYTES=0)
         patch.enable()
@@ -320,6 +322,40 @@ class View(TestCase):
             data = self.client.get("/GSM/placenames/", {"q": "longyearb"}).json()
         self.assertEqual(data["results"][0]["title"], "Longyearbyen")
         self.assertEqual(data["results"][0]["kind"], "name")
+
+    def test_그린란드는_옛_철자와_덴마크어로도_찾는다(self):
+        # 그린란드 지명(Nunat Aqqi)을 받은 꼴 — 이름 열이 넷이다 (wetherilli 096)
+        rows = json.dumps([
+            {"geometry": {"coordinates": [-51.736, 64.176]},
+             "properties": {"name": "Nuuk", "da": "Godthåb", "kind": "By", "mun": "Sermersooq"}},
+            {"geometry": {"coordinates": [-53.0, 70.0]},
+             "properties": {"name": "Qeqertarsuaq", "old": "ĸeĸertarssuaĸ", "kind": "Ø"}},
+        ]).encode()
+        with mock.patch.object(views, "point_features", return_value=rows) as got:
+            by_danish = self.client.get("/GSM/placenames/", {"q": "godthab", "region": "greenland"}).json()
+            by_old = self.client.get("/GSM/placenames/", {"q": "qeqertarssuaq", "region": "greenland"}).json()
+        self.assertEqual(got.call_args.args[0], "grportal:place_names")
+        self.assertEqual(by_danish["results"][0]["title"], "Nuuk (Godthåb)")      # 화면은 괄호를 떼고 간다
+        self.assertEqual(by_danish["results"][0]["sub"], "Godthåb · By · Sermersooq")
+        self.assertEqual(by_old["results"][0]["title"], "Qeqertarsuaq (ĸeĸertarssuaĸ)")
+
+    def test_북극_묶음은_품은_지역을_다_뒤지고_지명이_없는_지역은_건너뛴다(self):
+        rows = json.dumps(Places.FEATURES).encode()
+        with mock.patch.object(views, "point_features", return_value=rows) as got:
+            self.client.get("/GSM/placenames/", {"q": "longyear", "region": "greenland,svalbard,jan_mayen,arctic_ocean"})
+        self.assertEqual(sorted(c.args[0] for c in got.call_args_list),
+                         ["grportal:place_names", "npolar:place_names"])
+
+    def test_지명_색인은_메모리에_둔다(self):
+        rows = json.dumps(Places.FEATURES).encode()
+        with mock.patch.object(views, "point_features", return_value=rows) as got:
+            self.client.get("/GSM/placenames/", {"q": "longyear"})
+            self.client.get("/GSM/placenames/", {"q": "nordvag"})
+        self.assertEqual(got.call_count, 1)
+
+    def test_드로닝모드랜드_지명도_통째로_내주지_않는다(self):
+        self.assertEqual(self.client.get("/GSM/points/", {"layer": "npolar:dml_place_names"}).status_code, 404)
+        self.assertEqual(self.client.get("/GSM/points/", {"layer": "grportal:place_names"}).status_code, 404)
 
     def test_지명을_못_받으면_502(self):
         with mock.patch.object(npolar, "fetch", side_effect=npolar.NpolarError("x")):
