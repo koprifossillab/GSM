@@ -479,10 +479,11 @@
   }
 
   /** 레이어의 출처 표기. KIGAM·GEUS 는 비워 둔다 — 레이어 이름이 곧 출처다.
-   *  "지질 참고" 는 VWorld(국토지리정보원)에서 오므로 밝힌다 (devlog 020). */
+   *  VWorld 레이어는 밝힌다 (devlog 020). 만든 기관은 국토지리정보원·환경부·농촌진흥청·
+   *  항공 공역처럼 레이어마다 달라 VWorld 만 적는다 (wetherilli 084) */
   function sourceNote(name) {
     var row = byName[name];
-    return row && row.upstream === "vworld" ? T("국토지리정보원 · VWorld") : "";
+    return row && row.upstream === "vworld" ? "VWorld" : "";
   }
 
   /** 켤 레이어 하나를 만든다. 타일(WMS)이 거의 전부이고, 벡터는 따로 짓는다. */

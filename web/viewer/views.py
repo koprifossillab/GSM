@@ -1539,7 +1539,8 @@ def feature_info(request):
         if door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
-            props = vworld.friendly(props)        # riv_nm → 하천명 …
+            # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다
+            props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
