@@ -4,6 +4,7 @@ Trek 을 실제로 부르지 않는다. 응답의 꼴은 2026-09-29 에 받아 �
 열 이름을 `FIRST_Unit`·`FIRST_Un_1` 처럼 잘라 주고, 표고 `exportImage` 는 F32 TIFF 다.
 """
 import io
+import math
 import json
 import tempfile
 from unittest import mock
@@ -287,3 +288,48 @@ class Landings(TestCase):
         missions = {f["properties"]["mission"] for f in data["features"]}
         self.assertEqual(missions, {"Apollo 11", "Apollo 12", "Apollo 14", "Apollo 15", "Apollo 16", "Apollo 17"})
         self.assertIn("Esri UK", data["source"])
+
+
+class Profile(TestCase):
+    """잰 선을 따라 높이 그래프 (wetherilli 100). Trek 은 부르지 않는다 — `lola_values` 를 바꿔 끼운다."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-profile-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_대원을_따라_고르게_꼭짓점은_꼭(self):
+        pts = trek.profile_points([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)], 21)
+        self.assertEqual((pts[0][0], pts[0][1], pts[0][2]), (0.0, 0.0, 0.0))
+        self.assertAlmostEqual(pts[-1][0], 1.0, places=6)
+        self.assertAlmostEqual(pts[-1][1], 1.0, places=6)
+        one = trek.RADIUS * math.radians(1)                       # 적도의 1° 는 30.3 km
+        self.assertAlmostEqual(pts[-1][2], 2 * one, delta=1)
+        self.assertTrue(any(abs(p[0] - 1.0) < 1e-9 and abs(p[1]) < 1e-9 for p in pts))   # 꺾인 곳
+        gaps = [b[2] - a[2] for a, b in zip(pts, pts[1:])]
+        self.assertLess(max(gaps) - min(gaps), 1)                  # 고르게
+
+    def test_날짜변경선을_건너도_짧은_길로(self):
+        pts = trek.profile_points([(179.5, 0.0), (180.5, 0.0)], 5)
+        self.assertAlmostEqual(pts[-1][2], trek.RADIUS * math.radians(1), delta=1)
+        self.assertTrue(all(abs(abs(p[0]) - 180) <= 0.5 + 1e-9 for p in pts))
+
+    def test_화면이_받는_것(self):
+        with mock.patch("viewer.trek.lola_values", side_effect=lambda pts: {i: -1000.0 + i for i in pts if i != 3}) as get:
+            r = self.client.get(reverse("viewer:moon-profile"), {"line": "-11.36,-43.31;-11.0,-43.4", "n": "10"})
+            self.client.get(reverse("viewer:moon-profile"), {"line": "-11.36,-43.31;-11.0,-43.4", "n": "10"})
+        self.assertEqual(get.call_count, 1)                        # 같은 선은 캐시가 낸다
+        d = r.json()
+        self.assertEqual(len(d["dist"]), len(d["elev"]))
+        self.assertIsNone(d["elev"][3])                            # 못 읽은 점은 null
+        self.assertEqual(d["elev"][0], -1000.0)
+        self.assertEqual(d["source"], trek.ELEV_SOURCE)
+
+    def test_선이_아니면_400(self):
+        for line in ("", "1,2", "a,b;c,d", "0,95;1,1"):
+            self.assertEqual(self.client.get(reverse("viewer:moon-profile"), {"line": line}).status_code, 400)
+
+    def test_상류가_안_주면_502(self):
+        with mock.patch("viewer.trek.lola_values", side_effect=trek.TrekError("x")):
+            r = self.client.get(reverse("viewer:moon-profile"), {"line": "0,0;1,1"})
+        self.assertEqual(r.status_code, 502)

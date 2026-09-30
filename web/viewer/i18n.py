@@ -538,6 +538,14 @@ EN = {
     "찍고 잰 것": "Points & measurements",
     "저장 전까지 임시": "temporary until saved",
     "아직 잰 것이 없다": "Nothing measured yet",
+    # 달 — 높이 그래프 (wetherilli 100)
+    "높이 그래프": "Elevation profile",
+    "높이를 읽는 중…": "Reading elevations…",
+    "높이를 읽지 못했다": "Could not read the elevations",
+    "최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}": "low {lo} · high {hi} · ascent {up} · descent {down}",
+    "LOLA 256 ppd · 달 기준구 1737.4 km 에서 잰 높이": "LOLA 256 ppd · height above the 1737.4 km lunar sphere",
+    "거리 {d} · 높이 {h}": "distance {d} · elevation {h}",
+    "선이 없다": "No line given",
     "지도 오른쪽 위 <b>점</b> 도구로 찍는다": "Use the <b>Point</b> tool at the top right of the map",
     "점묶음으로 저장": "Save as point set",
     "찍은 점과 잰 것을 모두 지운다": "Clear all points and measurements",
@@ -1045,6 +1053,8 @@ PROP_EN = {
     "옛 철자": "Old spelling",
     "덴마크어 이름": "Danish name",
     "지자체": "Municipality",
+    # PGC 경사 (wetherilli 099) — "경사 (°)" 는 지층의 경사(dip)다
+    "사면 경사 (°)": "Slope (°)",
     "지질": "Geology",
     "시료 번호": "Sample no.",
     "연대 (Ma)": "Age (Ma)",
@@ -1516,6 +1526,7 @@ GROUP_EN = {
     "극지연구소 시료": "KOPRI samples",
     "KPDC 자료": "KPDC datasets",
     "KPDC 기본도": "KPDC base map",
+    "지형 (PGC)": "Terrain (PGC)",
 }
 
 LAYER_EN = {
@@ -1721,6 +1732,12 @@ LAYER_EN = {
     "kopri:lakes": "Lakes",
     "kopri:streams": "Streams (Antarctic Peninsula)",
     "kopri:moraines": "Moraines",
+    "pgc:greenland_slope": "Slope",
+    "pgc:greenland_contours": "Contours (25 m)",
+    "pgc:svalbard_slope": "Slope",
+    "pgc:svalbard_contours": "Contours (25 m)",
+    "pgc:antarctica_slope": "Slope",
+    "pgc:antarctica_contours": "Contours (25 m)",
     "kopri:rock_outcrops": "Rock outcrops",
     "kopri:contours": "Contours",
     "kopri:historic": "Historic sites & monuments (HSM)",

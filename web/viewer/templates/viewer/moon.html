@@ -270,6 +270,17 @@
     <output id="tool-out" class="tool-out" hidden></output>
   </div>
 
+  <!-- 높이 그래프 — 거리를 다 재면 뜬다 (wetherilli 100) -->
+  <section id="profile" class="profile-dock" hidden>
+    <header>
+      <strong>{% t "높이 그래프" %}</strong>
+      <span id="profile-sum" class="profile-sum"></span>
+      <button type="button" id="profile-close" class="profile-close" title="{% t "닫기" %}" aria-label="{% t "닫기" %}">×</button>
+    </header>
+    <svg id="profile-svg" class="profile-svg" viewBox="0 0 640 170" aria-hidden="true"></svg>
+    <p id="profile-read" class="profile-read"></p>
+  </section>
+
   <div id="scalebar"></div>
 
   <details class="legend-dock" id="legend-dock" open>

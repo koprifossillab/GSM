@@ -20,6 +20,7 @@ McMurdo 가 −39 m 와 14 m 로 갈렸다. `getSamples` 는 여러 점을 한 �
 담는다 — 한국 자리를 국토지리원에 거듭 묻지 않게.
 """
 import io
+import json
 import logging
 import math
 import threading
@@ -501,3 +502,101 @@ def japan_terrarium(z: int, x: int, y: int):
     png = buf.getvalue()
     tilecache.put(key, png)
     return png
+
+
+# ── 지질도 위에 겹치는 PGC 레이어 — 경사·등고선 (wetherilli 099) ──────────
+#
+# 배경의 음영(092)은 브라우저가 PGC 를 곧장 부른다. 배경은 맨 밑에 깔려 지질도를 덮으면 보이지 않는다.
+# 경사·등고선은 지질도 **위에** 겹쳐 보려는 것이라 레이어로 두고, 다른 레이어처럼 `/wms` 를 거쳐 캐시에 담는다
+# (PGC 는 한 장을 그 자리에서 1–2 초에 그린다). NPI 처럼 지역의 투영(3413·3031)으로 곧장 받는다 — 3857 로
+# 받아 옮기면 남위 85° 너머(남극점 둘레)가 빈다. 레이어 이름은 레이어군 하나에만 들어 지역마다 따로 둔다.
+#
+#   draw  그리는 법(`exportImage` 의 renderingRule)
+#   read  누른 자리에서 읽는 값의 renderingRule 과 팝업 이름
+
+PGC_IDENTIFY_URL = PGC_URL
+PGC_ATTRIBUTION = ('ArcticDEM·REMA © <a href="https://www.pgc.umn.edu/data/" target="_blank" rel="noopener">'
+                   'Polar Geospatial Center</a> (CC BY 4.0)')
+#: 경사는 평지까지 회색으로 꽉 채운 그림이라 `jpgpng` 로 받는다 — 꽉 차면 JPEG, 빈 자리가 있으면 PNG 가 온다.
+#: 512 px 한 장이 png32 370 KB, jpgpng 35 KB 다(2026-09-30). 등고선은 투명해야 해서 png32. "경사 (°)" 는 지층의 경사(dip)라
+#: 팝업 이름을 "사면 경사" 로 갈랐다
+_SLOPE = {"draw": "Slope Map", "read": ("Slope Degrees", "사면 경사 (°)"), "format": "jpgpng"}
+#: 25 m 간격이라 멀리서는 새까맣게 뭉개진다 — 줌 10(3413·3031 에서 한 픽셀 30 m 남짓)부터 그린다.
+#: `Contour 25` 보다 매끈하게 다듬은 판이 가까이서 읽기 좋다
+_CONTOURS = {"draw": "Contour Smoothed 25", "read": ("Height Orthometric", "높이 (m)"), "min": 10}
+PGC_LAYERS = {
+    "pgc:greenland_slope": {"service": "arcticdem_latest", "srs": "EPSG:3413", **_SLOPE},
+    "pgc:greenland_contours": {"service": "arcticdem_latest", "srs": "EPSG:3413", **_CONTOURS},
+    "pgc:svalbard_slope": {"service": "arcticdem_latest", "srs": "EPSG:3413", **_SLOPE},
+    "pgc:svalbard_contours": {"service": "arcticdem_latest", "srs": "EPSG:3413", **_CONTOURS},
+    "pgc:antarctica_slope": {"service": "rema_latest", "srs": "EPSG:3031", **_SLOPE},
+    "pgc:antarctica_contours": {"service": "rema_latest", "srs": "EPSG:3031", **_CONTOURS},
+}
+_PGC_MAX_SIZE = 1024
+
+
+def knows_layer(name: str) -> bool:
+    return name in PGC_LAYERS
+
+
+def _pgc_request(params: dict, key: str = "layers") -> tuple:
+    """WMS 꼴 → (명세, 투영 번호, bbox, (w, h)). 모르는 것은 ElevationError."""
+    name = (params.get(key) or params.get("layers") or "").split(",")[0].strip()
+    spec = PGC_LAYERS.get(name)
+    if not spec:
+        raise ElevationError("PGC 레이어가 아니다")
+    code = (params.get("crs") or params.get("srs") or "").upper()
+    if code != spec["srs"]:
+        raise ElevationError(f"받지 않는 투영이다: {code}")
+    try:
+        box = [float(v) for v in (params.get("bbox") or "").split(",")]
+        w, h = int(params.get("width") or 256), int(params.get("height") or 256)
+    except ValueError as exc:
+        raise ElevationError("BBOX·크기를 읽지 못했다") from exc
+    if len(box) != 4 or not (box[0] < box[2] and box[1] < box[3]):
+        raise ElevationError("BBOX 를 읽지 못했다")
+    if not (0 < w <= _PGC_MAX_SIZE and 0 < h <= _PGC_MAX_SIZE):
+        raise ElevationError("그림이 너무 크다")
+    return spec, int(code.split(":")[1]), box, (w, h)
+
+
+def get_map(params: dict):
+    """`GetMap` → PGC `exportImage`. (바이트, content-type)."""
+    spec, srs, box, (w, h) = _pgc_request(params)
+    r = _get(PGC_EXPORT_URL.format(service=spec["service"]), "pgc", params={
+        "bbox": ",".join(repr(v) for v in box), "bboxSR": srs, "imageSR": srs, "size": f"{w},{h}",
+        "format": spec.get("format", "png32"), "transparent": "true", "f": "image",
+        "renderingRule": json.dumps({"rasterFunction": spec["draw"]})})
+    ctype = r.headers.get("content-type", "")
+    if r.status_code != 200 or not ctype.startswith("image/"):
+        raise ElevationError(f"PGC 가 그림을 주지 않았다 (status={r.status_code}, type={ctype})")
+    return r.content, ctype
+
+
+def get_feature_info(params: dict) -> dict:
+    """`GetFeatureInfo` → 누른 픽셀 한 점의 값(경사 몇 도·해발). KIGAM 과 같은 꼴(`features`)."""
+    spec, srs, box, (w, h) = _pgc_request(params, "query_layers")
+    try:
+        i = float(params.get("i") if params.get("i") is not None else params.get("x"))
+        j = float(params.get("j") if params.get("j") is not None else params.get("y"))
+    except (TypeError, ValueError) as exc:
+        raise ElevationError("누른 자리를 읽지 못했다") from exc
+    x = box[0] + (i + 0.5) / w * (box[2] - box[0])
+    y = box[3] - (j + 0.5) / h * (box[3] - box[1])
+    rule, label = spec["read"]
+    r = _get(PGC_IDENTIFY_URL.format(service=spec["service"]), "pgc", params={
+        "geometry": json.dumps({"x": x, "y": y, "spatialReference": {"wkid": srs}}),
+        "geometryType": "esriGeometryPoint", "renderingRule": json.dumps({"rasterFunction": rule}),
+        "returnGeometry": "false", "returnCatalogItems": "false", "f": "json"})
+    if r.status_code != 200:
+        raise ElevationError(f"PGC 가 받지 않았다 (status={r.status_code})")
+    try:
+        value = float(r.json().get("value"))
+    except (TypeError, ValueError):
+        return {"features": []}                           # "NoData" — 모자이크 밖
+    return {"features": [{"id": "pgc", "properties": {label: f"{value:.1f}"}}]}
+
+
+def get_legend(layer: str):
+    """PGC 의 범례는 늘인 값(0–255)뿐이라 싣지 않는다 — 화면은 `noLegend` 로 묻지 않는다."""
+    raise ElevationError("PGC 레이어는 범례가 없다")

@@ -2167,7 +2167,7 @@
     if (!ll) return true;
     if (tool === "point") addTemp(ll);
     else if (tool === "line" || tool === "area") {
-      if (!sketch.length) { measured = null; lastMeasure = ""; renderDrawn(); }
+      if (!sketch.length) { measured = null; lastMeasure = ""; renderDrawn(); hideProfile(); }
       sketch.push(unwrap(sketch[sketch.length - 1], ll));
     }
     return true;
@@ -2195,7 +2195,110 @@
     var got = measureOf(measured);
     renderDrawn();
     showMeasure(got, true);
+    if (kind === "line") showProfile(coords); else hideProfile();
   }
+
+  // ── 높이 그래프 (wetherilli 100) ──
+  // 거리를 다 재면 그 선의 LOLA 표고를 받아 아래 가운데 판에 그린다. 가로는 대원 거리(재는 수와 같다), 세로는
+  // 달 기준구(1 737.4 km)에서 잰 높이다. 그래프 위를 훑으면 그 자리를 지도에도 찍는다
+  var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
+  var profileSeq = 0, profileData = null;
+  function hideProfile() {
+    profileSeq += 1;
+    profileData = null;
+    $("profile").hidden = true;
+  }
+  function showProfile(coords) {
+    var seq = ++profileSeq, box = $("profile");
+    profileData = null;
+    box.hidden = false;
+    $("profile-svg").innerHTML = "";
+    $("profile-sum").textContent = "";
+    $("profile-read").textContent = T("높이를 읽는 중…");
+    // 256 ppd 한 칸(118 m)에 한 점쯤, 64–512 점
+    var n = Math.max(64, Math.min(512, Math.round(lengthOf(coords) / 118)));
+    var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
+    fetch(BASE + "moon/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { if (seq === profileSeq) drawProfile(d); })
+      .catch(function () { if (seq === profileSeq) $("profile-read").textContent = T("높이를 읽지 못했다"); });
+  }
+  function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
+  function drawProfile(d) {
+    var P = PROFILE, pw = P.W - P.L - P.R, ph = P.H - P.T - P.B;
+    var got = d.elev.filter(function (e) { return e !== null; });
+    if (!got.length) { $("profile-read").textContent = T("높이를 읽지 못했다"); return; }
+    var lo = Math.min.apply(null, got), hi = Math.max.apply(null, got), total = d.dist[d.dist.length - 1] || 1;
+    var pad = Math.max(10, (hi - lo) * 0.08), y0 = lo - pad, y1 = hi + pad;
+    function X(dist) { return P.L + pw * dist / total; }
+    function Y(e) { return P.T + ph * (1 - (e - y0) / (y1 - y0)); }
+    // 못 읽은 점에서 선을 끊는다
+    var path = "", area = "", run = [];
+    function flush() {
+      if (run.length > 1) {
+        path += "M" + run.join("L");
+        area += "M" + run[0].split(",")[0] + "," + (P.T + ph) + "L" + run.join("L") + "L" +
+                run[run.length - 1].split(",")[0] + "," + (P.T + ph) + "Z";
+      }
+      run = [];
+    }
+    d.elev.forEach(function (e, i) {
+      if (e === null) { flush(); return; }
+      run.push(X(d.dist[i]).toFixed(1) + "," + Y(e).toFixed(1));
+    });
+    flush();
+    var up = 0, down = 0;
+    for (var i = 1; i < d.elev.length; i++) {
+      if (d.elev[i] === null || d.elev[i - 1] === null) continue;
+      var dh = d.elev[i] - d.elev[i - 1];
+      if (dh > 0) up += dh; else down -= dh;
+    }
+    var svg = '<g>';
+    [y0 + (y1 - y0) * 0.1, (y0 + y1) / 2, y1 - (y1 - y0) * 0.1].forEach(function (e) {
+      svg += '<line class="grid" x1="' + P.L + '" x2="' + (P.W - P.R) + '" y1="' + Y(e).toFixed(1) + '" y2="' + Y(e).toFixed(1) + '"/>' +
+             '<text class="tick" x="' + (P.L - 5) + '" y="' + (Y(e) + 3.5).toFixed(1) + '" text-anchor="end">' + esc(Math.round(e).toLocaleString()) + '</text>';
+    });
+    [0, 0.5, 1].forEach(function (f) {
+      svg += '<text class="tick" x="' + X(total * f).toFixed(1) + '" y="' + (P.H - 6) + '" text-anchor="' +
+             (f === 0 ? "start" : f === 1 ? "end" : "middle") + '">' + esc(asLength(total * f)) + '</text>';
+    });
+    svg += '</g><path class="area" d="' + area + '"/><path class="line" d="' + path + '"/>' +
+           '<line class="cursor" id="profile-cursor" y1="' + P.T + '" y2="' + (P.T + ph) + '" visibility="hidden"/>' +
+           '<circle class="dot" id="profile-dot" r="3.5" visibility="hidden"/>';
+    $("profile-svg").innerHTML = svg;
+    $("profile-sum").textContent = T("최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}",
+      { lo: asHeight(lo), hi: asHeight(hi), up: asHeight(up), down: asHeight(down) });
+    $("profile-read").textContent = T("LOLA 256 ppd · 달 기준구 1737.4 km 에서 잰 높이");
+    profileData = { d: d, X: X, Y: Y, total: total };
+  }
+  (function () {
+    var svg = $("profile-svg");
+    function at(evt) {
+      if (!profileData) return;
+      var r = svg.getBoundingClientRect(), P = PROFILE;
+      var x = (evt.clientX - r.left) * P.W / r.width;
+      var dist = Math.max(0, Math.min(1, (x - P.L) / (P.W - P.L - P.R))) * profileData.total;
+      var d = profileData.d, best = 0;
+      for (var i = 1; i < d.dist.length; i++) if (Math.abs(d.dist[i] - dist) < Math.abs(d.dist[best] - dist)) best = i;
+      var cx = profileData.X(d.dist[best]).toFixed(1), cur = $("profile-cursor"), dot = $("profile-dot");
+      cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.setAttribute("visibility", "visible");
+      if (d.elev[best] !== null) {
+        dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
+        dot.setAttribute("visibility", "visible");
+      } else dot.setAttribute("visibility", "hidden");
+      $("profile-read").textContent = T("거리 {d} · 높이 {h}", {
+        d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]) });
+      markAt([d.lon[best], d.lat[best]]);
+    }
+    svg.addEventListener("mousemove", at);
+    svg.addEventListener("mouseleave", function () {
+      if (!profileData) return;
+      $("profile-cursor").setAttribute("visibility", "hidden");
+      $("profile-dot").setAttribute("visibility", "hidden");
+      markAt(null);
+    });
+    $("profile-close").addEventListener("click", hideProfile);
+  })();
   function addTemp(ll) {
     var w = wrapLon(ll);
     tempSeq += 1;
@@ -2343,6 +2446,7 @@
   function clearDrawn() {
     cancelSketch();
     temps = []; ranges = []; measured = null;
+    hideProfile();
     tempSeq = rangeSeq = 0;
     lastMeasure = "";
     var out = $("measure-out");
