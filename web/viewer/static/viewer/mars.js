@@ -56,6 +56,13 @@
     { group: "화성 지질 (USGS 1:2000만, 2014)", layers: [
       { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS SIM 3292 · NASA Mars Trek" },
     ] },
+    // 옛 지질도 — 바이킹 시대의 전 지구판 세 장(I-1802-A·B·C). 우리가 파일을 굽는다 (`marsmap.py`, 068).
+    // 이름(`orig-*`)은 달 원도의 것 그대로다 — 두 화면을 나란히 고치기 쉽게
+    { group: "화성 옛 지질도 (USGS 1:1500만, 1986–87)", layers: [
+      { name: "orig-units", title: "옛 지질 단위", info: "orig", legend: "orig",
+        src: "USGS I-1802-A·B·C (Scott & Tanaka 1986, Greeley & Guest 1987, Tanaka & Scott 1987)" },
+      { name: "orig-lines", title: "옛 구조선", legend: "orig-lines", src: "USGS I-1802-A·B·C" },
+    ] },
     // 크레이터 38 만 개 — 서버가 제 디스크의 sqlite 에서 타일로 굽는다(`marscraters.py`, 067). 극 평면도 같다
     { group: "크레이터 (Robbins 2012)", layers: [
       { name: "craters", title: "크레이터 — 지름 1 km 넘는 것", info: "craters", legend: "craters",
@@ -78,7 +85,11 @@
   var GEO_MAX = 11;            // 서버의 `trek.MARS_MAX_ZOOM`
   function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png"; }
   var GEO_CREDIT = "Geologic Map of Mars 1:20M (Tanaka et al., 2014, USGS SIM 3292) via NASA Mars Trek";
-  function creditOf(name) { return name === "units" ? GEO_CREDIT : undefined; }
+  var ORIG_CREDIT = "Geologic Map of Mars 1:15M (USGS I-1802-A/B/C, 1986–87; digital Skinner et al. 2006)";
+  var CRATER_CREDIT = "Mars crater database (Robbins & Hynek 2012, USGS Astrogeology)";
+  function creditOf(name) {
+    return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : name === "craters" ? CRATER_CREDIT : undefined;
+  }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
@@ -1230,9 +1241,33 @@
       }).join("");
       return Promise.resolve(legends[kind]);
     }
-    var url = BASE + "mars/legend/";
+    var url = BASE + "mars/legend/" + (kind === "units" ? "" : "?layer=orig");
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
+      if (kind === "orig") {
+        // 옛 지질도(068) — 단위 95 가지를 SIM 3292 처럼 시대 상자로 묶는다. 크레이터 물질은 "시대 모름"
+        var oAges = [], oBy = {};
+        (data.units || []).forEach(function (u) {
+          var age = u.age || "";
+          if (!oBy[age]) { oBy[age] = []; oAges.push(age); }
+          oBy[age].push(u);
+        });
+        oAges.sort(function (a, b) { return ageRank(a) - ageRank(b); });
+        oAges.forEach(function (age) {
+          html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
+                  '<span class="age-n">' + oBy[age].length + "</span></div><ul>";
+          oBy[age].forEach(function (u) {
+            html += '<li><span class="chip" style="background:' + esc(u.color) + '"></span>' + esc(u.label) +
+                    " (" + esc(u.unit) + ")</li>";
+          });
+          html += "</ul></li>";
+        });
+      } else if (kind === "orig-lines") {
+        (data.lines || []).forEach(function (c) {
+          html += '<li><span class="chip line' + (c.dash ? " dash" : "") + '" style="border-color:' + esc(c.color) +
+                  '"></span>' + esc(c.label) + "</li>";
+        });
+      }
       if (kind === "units") {
         // 상류의 범례 차례는 이름의 가나다(알파벳)라 시대가 섞여 있다.
         // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는

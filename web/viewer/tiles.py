@@ -34,6 +34,8 @@ NO_IBCSO = "GSM: no IBCSO tiles"
 NO_MOON = "GSM: no lunar original maps file"
 #: 화성 크레이터 목록을 아직 굽지 않았다 — marscraters.py (067)
 NO_MARS_CRATERS = "GSM: no Mars crater file"
+#: 화성 옛 지질도를 아직 굽지 않았다 — marsmap.py (068)
+NO_MARS_ORIGINALS = "GSM: no Mars original maps file"
 
 
 def notice_tile(width: int, height: int, message: str) -> bytes:

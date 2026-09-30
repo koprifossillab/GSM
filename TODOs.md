@@ -116,6 +116,9 @@ v0.8.0 에서 일본 탭과 동아시아 묶음 탭이, v0.9.0 에서 중국 탭
 - [x] 화성 크레이터 38 만 개(Robbins & Hynek 2012) — sqlite 로 굽고 서버가 타일을 그린다 (067)
 - [x] 운영 서버에 `/srv/GSM/db/mars/mars_craters.sqlite` 를 구웠다(2026-09-30) — NAS 의
       `sources/mars/RobbinsCraterDatabase_20121016.tab.zip` 을 `GSM_MARS_DIR=/srv/GSM/db/mars` 로 (067)
+- [x] 화성 옛 지질도 USGS I-1802-A·B·C(1986–87, 1:1500만) — 달 원도처럼 굽는다. 운영에도 구웠다 (068)
+- [ ] 화성 지역 지질도를 옛 지질도에 더한다 — SIM 2888(북부 평원)·I-2650(타우마시아)·MTM 1:50만 지역도.
+      원본은 USGS `pigpen/mars/geology/` (068)
 - [x] 달 평면에서 재기(거리·넓이)·찍어 두기 — 도구 묶음, 달 반지름으로 잰다 (041)
 
 ## 서버 디스크 — 어드민과 상의할 것

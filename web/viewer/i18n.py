@@ -228,6 +228,11 @@ EN = {
     "1 — 많이 닳았다": "1 — heavily degraded",
     "매기지 않음": "not classified",
     "크레이터 파일이 서버에 없다": "The crater file is not on the server",
+    # 화성 옛 지질도 (068)
+    "화성 옛 지질도 (USGS 1:1500만, 1986–87)": "Mars original geologic map (USGS 1:15M, 1986–87)",
+    "옛 지질 단위": "Original geologic units",
+    "옛 구조선": "Original structures",
+    "옛 지질도 파일이 서버에 없다": "The original geologic map file is not on the server",
     "여기에는 지름 1 km 넘는 크레이터가 없다": "No crater larger than 1 km here",
     "바깥 자료를 화성에": "Outside data onto Mars",
     "좌표는 화성의 위도·경도(도, 행성 중심·동경)다. 평면 좌표계는 받지 않는다.":
@@ -972,6 +977,7 @@ PROP_EN = {
     "분출물 형태": "Ejecta morphology",
     "보존 상태": "Preservation state",
     "가운데": "Centre",
+    "지은이": "Authors",
 }
 
 
