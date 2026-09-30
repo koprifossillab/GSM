@@ -56,8 +56,17 @@ _TAG = re.compile(r"<[^>]+>")
 NOISE_PREFIXES = ("admin_boundary",)
 
 
+#: 5만 지질도 묶음이 같이 주는 자세 기호(층리·엽리·편리·절리). 받아 둔 자료가 있으면
+#: 화면이 같은 점을 제 칸으로 올린다(경사 방향·주향으로 풀어 적은 것, jikhanjung 004) —
+#: 그때는 상류의 날것(`심볼회전각` …)을 빼 같은 층리가 두 번 뜨지 않게 한다.
+ATTITUDE_PREFIXES = tuple(f"l_50k_geology_{k}_latest" for k in kigam50k.KINDS)
+
+
 def _is_noise(feature_id: str) -> bool:
-    return str(feature_id).lower().startswith(NOISE_PREFIXES)
+    fid = str(feature_id).lower()
+    if fid.startswith(NOISE_PREFIXES):
+        return True
+    return fid.startswith(ATTITUDE_PREFIXES) and kigam50k.available()
 
 
 def _split_links(value):

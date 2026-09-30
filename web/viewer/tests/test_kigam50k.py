@@ -75,3 +75,13 @@ class Kigam50k(TestCase):
 
     def test_bbox_가_없으면_400(self):
         self.assertEqual(self.client.get("/GSM/kigam50k/attitudes/").status_code, 400)
+
+    def test_자료가_있으면_상류의_자세_칸을_팝업에서_뺀다(self):
+        from viewer import views
+        fid = "l_50k_geology_bedding_latest.511"
+        self.assertFalse(views._is_noise(fid))          # 자료가 없으면 상류 것을 그대로 둔다
+        self.assertFalse(views._is_noise("l_50k_geology_litho_latest.1"))
+        _write(self.root / "raw" / "20260930", "bedding", [_pt(128.5, 36.5, roangle=1, dipangle=1)])
+        self.assertTrue(views._is_noise(fid))
+        self.assertFalse(views._is_noise("l_50k_geology_litho_latest.1"))
+        self.assertTrue(views._is_noise("admin_boundary_SGG_201907_NGII.267"))
