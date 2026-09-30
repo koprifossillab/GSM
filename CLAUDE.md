@@ -209,7 +209,10 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   지질도는 Macrostrat(`macrostrat.py`, CC BY 4.0)이고, 배경(NASA GIBS Blue Marble)·표고(AWS Terrarium)는 브라우저가
   곧장 부른다. 평면은 경위도(4326) 그대로이고 위도 65° 너머는 지역 탭과 같은 3413·3031 이다. **carto 는 한 대역
   아래만 채워**(세계 지질도뿐인 한반도는 줌 6 부터 빈다) 서버가 더 거친 대역의 타일을 늘려 밑에 깐다
-  (`macrostrat.fill`). 까는 법을 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다. 점묶음은 지역 탭의 것(`earth`)을 같이 읽는다
+  (`macrostrat.fill`). 까는 법을 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다. 점묶음은 지역 탭의 것(`earth`)을 같이 읽는다.
+  누른 자리는 **그때의 자리**(`paleo.py`, wetherilli 087)도 보인다 — PALEOMAP 2016 판 회전(`data/paleomap2016.json`, CC BY 4.0,
+  `manage.py build_paleomap <zip>`)으로 단위의 윗·밑 연대나 사람이 넣은 연대로 옮긴다. EarthThruTime3D 와 같은 모델·같은 줄임이다 —
+  건너갔을 때 같은 자리에 핀이 서게. 셈은 ETT 의 코드(MIT, `docs/licenses/`)를 옮겼다. **계산이지 관측이 아니다**
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
@@ -330,6 +333,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   marscraters.py  화성 크레이터 38 만 개(Robbins 2012) -> sqlite(3 차원 R*Tree) -> 화성 경위도·극 타일. 문이 아니다
   marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다
   spamap.py       남극–에이트켄 분지 지질도 원본(팔레트 GeoTIFF) -> 누른 자리의 단위. 타일은 Trek 의 것. 문이 아니다
+  paleo.py        PALEOMAP 2016 판 회전(data/paleomap2016.json) -> 오늘의 한 자리가 옛 연대에 있던 곳. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
@@ -346,7 +350,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`.**
 이 열하나 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 

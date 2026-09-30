@@ -43,6 +43,7 @@ urlpatterns = [
             name="earth-tile"),
     path("earth/info/", views.earth_info, name="earth-info"),
     path("earth/legend/", views.earth_legend, name="earth-legend"),
+    path("earth/paleo/", views.earth_paleo, name="earth-paleo"),
     path("mars/landings/", views.mars_landings, name="mars-landings"),
     path("mars/traverses/", views.mars_traverses, name="mars-traverses"),
 

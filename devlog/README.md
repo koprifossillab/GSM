@@ -117,3 +117,4 @@
 | wetherilli 085 | 2026-09-30 | [달 — 극 평면에서 Trek 판의 극지 짝을 받는다](20260930_wetherilli_085_moon_polar_trek_twins.md) |
 | wetherilli P06 | 2026-09-30 | [온 지구 화면 — 달·화성처럼 둥근 지구를, 그리고 그때 그 자리 (계획)](20260930_wetherilli_P06_whole_earth.md) |
 | wetherilli 086 | 2026-09-30 | [온 지구 — 달·화성처럼 둥근 지구에 Macrostrat 지질도를](20260930_wetherilli_086_whole_earth_globe.md) |
+| wetherilli 087 | 2026-09-30 | [온 지구 — 그때의 자리, PALEOMAP 2016 판 회전으로](20260930_wetherilli_087_paleo_position.md) |

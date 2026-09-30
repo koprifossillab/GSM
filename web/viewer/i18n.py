@@ -252,6 +252,17 @@ EN = {
         "Colours are the colours of the age — units dated to an epoch or stage differ a little",
     "지질도: Macrostrat (CC BY 4.0). 영상: NASA EOSDIS GIBS Blue Marble. 표고: Mapzen/AWS Terrain Tiles.":
         "Geology: Macrostrat (CC BY 4.0). Imagery: NASA EOSDIS GIBS Blue Marble. Elevation: Mapzen/AWS Terrain Tiles.",
+    # 그때의 자리 (wetherilli 087)
+    "그때의 자리": "Then",
+    "그때의 자리 ({age} Ma)": "Then ({age} Ma)",
+    "옮긴다": "Carry",
+    "PALEOMAP 2016 판 회전으로 셈한 것이다 — 관측이 아니다":
+        "Computed with the PALEOMAP 2016 plate rotations — not an observation",
+    "바다 밑이다 — 대륙 다각형이 없어 옮기지 못한다": "Ocean floor — no continental polygon to carry it",
+    "앞날은 셈하지 않는다": "The future is not computed",
+    "이 판은 {reach} Ma 까지만 거슬러 옮긴다": "This plate is carried back to {reach} Ma only",
+    "lat·lon·age 가 없다": "lat, lon and age are missing",
+    "판 회전 파일이 서버에 없다": "The plate rotation file is not on the server",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
