@@ -143,7 +143,7 @@
 
   // 지형 — LOLA 표고, 서버가 65×65 Terrarium 으로 옮겨 준다 (036)
   var DEM_SIZE = 65;
-  var DEM_MAX = 8;             // 서버의 `trek.DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
+  var DEM_MAX = 9;             // 서버의 `trek.DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
   var demMemo = {};
   function demGrid(x, y, level) {
     var id = level + "/" + x + "/" + y;

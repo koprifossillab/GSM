@@ -298,7 +298,7 @@ def moon_dem(request, z, x, y):
     z, x, y = int(z), int(x), int(y)
     if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    key = tilecache.key_text("trek-dem", f"{z}/{x}/{y}")
+    key = tilecache.key_text("trek-dem", f"{trek.DEM_SERVICE}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)
