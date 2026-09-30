@@ -1626,6 +1626,28 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 /* 좌표 막대 오른쪽 — 누르개 밑의 달 위경도 */
 .coord-readout { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft);
                  white-space: nowrap; }
+/* 높이 그래프 — 아래 가운데, 범례 왼쪽. 거리를 다 재면 뜬다 (wetherilli 100) */
+.profile-dock { position: absolute; left: 50%; bottom: 62px; z-index: 5; transform: translateX(-50%);
+                width: min(660px, calc(100% - 340px)); min-width: 280px;
+                background: var(--glass); border: 1px solid var(--glass-line); border-radius: 10px;
+                box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+.profile-dock[hidden] { display: none; }
+.profile-dock > header { display: flex; align-items: baseline; gap: 10px; padding: 7px 10px 2px 12px;
+                         font-size: 12px; color: var(--gold-bright); }
+.profile-dock > header strong { letter-spacing: .08em; }
+.profile-sum { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-soft); }
+.profile-close { margin-left: auto; border: 0; background: none; color: var(--ink-faint); font-size: 16px;
+                 line-height: 1; cursor: pointer; }
+.profile-close:hover { color: var(--gold-bright); }
+.profile-svg { display: block; width: 100%; height: 170px; cursor: crosshair; }
+.profile-svg .area { fill: var(--gold); fill-opacity: .16; stroke: none; }
+.profile-svg .line { fill: none; stroke: var(--gold-bright); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.profile-svg .grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.profile-svg .tick { fill: var(--ink-faint); font-family: var(--font-mono); font-size: 10.5px; }
+.profile-svg .cursor { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 3 3; }
+.profile-svg .dot { fill: var(--gold-bright); stroke: var(--glass); stroke-width: 1.5; }
+.profile-read { min-height: 1.5em; margin: 0; padding: 0 12px 7px; font-family: var(--font-mono); font-size: 11.5px;
+                color: var(--ink-soft); }
 /* 범례 — 오른쪽 아래, 좌표 막대 위에 펼쳐 둔다. 머리를 누르면 접힌다 */
 .legend-dock { position: absolute; right: 12px; bottom: 62px; z-index: 5; width: 290px; max-width: calc(100% - 24px);
                background: var(--glass); border: 1px solid var(--glass-line); border-radius: 10px;

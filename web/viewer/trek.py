@@ -338,6 +338,66 @@ def lola_values(points: dict) -> dict:
     return out
 
 
+# ── 높이 그래프 (wetherilli 100) ──────────────────────────────────────
+#
+# 잰 선을 따라 고르게 찍은 점의 표고. 선은 꼭짓점만 받아 **대원**을 따라 점을 찍는다 — 화면이 길이를 대원으로
+# 재므로(`moon.js` 의 `arc`) 그래프의 가로도 같은 길이가 된다. 높이는 점묶음의 ⛰ 와 같은 `lola_values` 다.
+
+#: 한 선에 찍는 점의 수 끝. 256 ppd 한 칸이 118 m 라 수십 km 선이면 이만큼이 칸마다 한 점쯤이다.
+#: `getSamples` 한 번에 100 점이라 512 점이면 여섯 번 묻는다
+PROFILE_MAX_POINTS = 512
+PROFILE_MAX_VERTICES = 100
+
+
+def _unit(lon: float, lat: float) -> tuple:
+    la, lo = math.radians(lat), math.radians(lon)
+    return (math.cos(la) * math.cos(lo), math.cos(la) * math.sin(lo), math.sin(la))
+
+
+def _slerp(a: tuple, b: tuple, t: float) -> tuple:
+    dot = max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b))))
+    omega = math.acos(dot)
+    if omega < 1e-12:
+        return a
+    s = math.sin(omega)
+    wa, wb = math.sin((1 - t) * omega) / s, math.sin(t * omega) / s
+    return tuple(wa * x + wb * y for x, y in zip(a, b))
+
+
+def profile_points(vertices: list, n: int) -> list:
+    """꼭짓점 `[(경도, 위도), …]` → 대원을 따라 고르게 `n` 점 `[(경도, 위도, 처음부터의 거리 m), …]`.
+    꼭짓점 자리에는 꼭 한 점을 둔다 — 꺾인 곳의 높이가 빠지지 않게."""
+    units = [_unit(lon, lat) for lon, lat in vertices]
+    seg = [RADIUS * math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b)))))
+           for a, b in zip(units, units[1:])]
+    total = sum(seg)
+    if total <= 0:
+        return [(vertices[0][0], vertices[0][1], 0.0)]
+    # 구간마다 길이에 비례해 나누되 적어도 한 칸
+    counts = [max(1, round((n - 1) * s / total)) for s in seg]
+    out, start = [], 0.0
+    for i, (a, b) in enumerate(zip(units, units[1:])):
+        for k in range(counts[i]):
+            x, y, z = _slerp(a, b, k / counts[i])
+            out.append((math.degrees(math.atan2(y, x)), math.degrees(math.asin(max(-1.0, min(1.0, z)))),
+                        start + seg[i] * k / counts[i]))
+        start += seg[i]
+    x, y, z = units[-1]
+    out.append((math.degrees(math.atan2(y, x)), math.degrees(math.asin(max(-1.0, min(1.0, z)))), total))
+    return out
+
+
+def profile(vertices: list, n: int = 256) -> dict:
+    """`{"dist": [m…], "elev": [m 또는 None…], "lon": […], "lat": […], "source", "datum"}`. 못 읽은 점은 None."""
+    n = max(2, min(int(n), PROFILE_MAX_POINTS))
+    pts = profile_points(vertices, n)
+    values = lola_values({i: (lat, lon) for i, (lon, lat, _) in enumerate(pts)})
+    return {"dist": [round(d, 1) for _, _, d in pts],
+            "elev": [round(values[i], 1) if i in values else None for i in range(len(pts))],
+            "lon": [round(lon, 6) for lon, _, _ in pts], "lat": [round(lat, 6) for _, lat, _ in pts],
+            "source": ELEV_SOURCE, "datum": ELEV_DATUM}
+
+
 # ── 착륙·충돌 지점 (046) ─────────────────────────────────────────────
 #
 # Trek 의 `Lunar_Landing_Impact_Sites` MapServer — 갈래마다 레이어 하나다(충돌·연착륙·유인 착륙·로버).

@@ -133,10 +133,10 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 
 ### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
 
-- [ ] 잰 선을 따라 높이 그래프 [코드] — 서버 `profile/`(지구 `elevation.elevations`·달 `lola_values`). 그래프 라이브러리가 없어 SVG 를
-      손으로. map.js ~150·moon.js ~120 행. 극지는 PGC 를 한 점씩 쉬며 묻는다 — `polar_terrarium` 을 쓰거나 점을 줄인다.
-      **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리 파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만.
-      달 DEM 을 바꾼 뒤에. 화성은 옆 세션(`mars.js`)에 넘긴다
+- [ ] 잰 선을 따라 높이 그래프 — **지구·화성** [코드]. 달은 섰다(wetherilli 100 — 서버가 꼭짓점을 받아 대원을 따라 점을
+      찍고, 화면은 SVG 를 손으로). 지구는 `map.js` 에 같은 판, 서버는 `elevation.elevations`. 극지는 PGC 를 한 점씩 쉬며
+      묻는다 — `polar_terrarium` 을 쓰거나 점을 줄인다. 화성은 `mars.js`·`trek.mars_values` 로 옮긴다(화성 세션).
+      **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리 파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만
 
 ### 한국 — 시료 지점 칸·KIGAM 자료
 
