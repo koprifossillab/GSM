@@ -785,7 +785,8 @@ IN_USE = {
              "LRO_LOLA_Shade_Global_256ppd_v06", "LRO_NAC_Apollo12_Mosaic_p", "LRO_NAC_Apollo15_Mosaic_p",
              "LRO_NAC_Apollo16_Mosaic_p", "NAC_DTM_APOLLO17_MOSAIC_120CM",
              "LRO_NAC_Post_Landing_OrthoMosaic_1mpp_IM_1_LandingSite",
-             "apollo11_26cm_mosaic_byte_geo_1_2_highContrast", "apollo14_28cm_mosaic_byte_geo_1_2_highContrast"},
+             "apollo11_26cm_mosaic_byte_geo_1_2_highContrast", "apollo14_28cm_mosaic_byte_geo_1_2_highContrast",
+             *LAYERS.values(), "Lunar_Anthropogenic_Impacts_and_Spacecraft"},
     "mars": {"Mars_Viking_MDIM21_ClrMosaic_global_232m", "THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018",
              "Mars_MGS_MOLA_ClrShade_merge_global_463m", "Mars_MOLA_blend200ppx_HRSC_Shade_clon0dd_200mpp_lzw"},
 }
