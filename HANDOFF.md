@@ -48,7 +48,7 @@
 | `npolar/` | 얀마옌 지질도 GeoJSON | 파일을 둔다 (022) |
 | `usgs/geo3al/` | 중국 geo3al `{shp,dbf,prj}` | 파일을 둔다 (025) |
 | `peninsula/` | 한반도 지질도 음영판·민판과 잘라 둔 타일 | `manage.py build_peninsula [--layer plain]` (027·028) |
-| `moon/` | 달 원도 6 장 sqlite | `manage.py build_moon_originals <zip>` (039) |
+| `moon/` | 달 원도 6 장 sqlite, SPA 지질도 원본 `spa_geomap_iqbal2026.tif`(112 MB) | `manage.py build_moon_originals <zip>` (039). SPA 는 Zenodo `GeoMap.tif.zip` 을 풀어 이름만 바꿔 둔다 (wetherilli 081) |
 | `ibcso/` | IBCSO 타일·수치 격자·TID | `manage.py build_ibcso` (047·051·071) |
 | `mars/` | 화성 크레이터·옛 지질도 sqlite | `manage.py build_mars_craters <zip>`·`build_mars_originals <zip>` (067·068) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |

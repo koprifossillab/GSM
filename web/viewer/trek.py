@@ -903,8 +903,9 @@ def load_catalog(body: str) -> list:
 
 
 #: 우리 레이어와 같은 자료를 다르게 그린 판 — 누르면 그 레이어의 속성을, 범례 칸에는 그 레이어의 범례를 낸다.
-#: Kaguya TC 지질도는 통합 지질도(`units`)의 단위를 Kaguya 지형 카메라 영상 위에 칠한 래스터다 — 단위 기호·색이 같다
-SAME_AS = {"moon": {"Unified_Geologic_Map_of_the_Moon_RASTER": "units"}}
+#: Kaguya TC 지질도는 통합 지질도(`units`)의 단위를 Kaguya 지형 카메라 영상 위에 칠한 래스터다 — 단위 기호·색이 같다.
+#: SPA 지질도(`spa`)는 Trek 이 속성 없이 주는 그림이고, 속성은 저자들이 낸 원본에서 우리가 읽는다(`spamap.py`)
+SAME_AS = {"moon": {"Unified_Geologic_Map_of_the_Moon_RASTER": "units", "SPA_GeoMap_lqbal_et_al": "spa"}}
 
 
 def client_catalog(body: str) -> dict:

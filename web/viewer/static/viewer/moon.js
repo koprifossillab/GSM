@@ -1348,8 +1348,12 @@
   // 달의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.AGES_KO`)
   var AGE_ORDER = [["코페르니쿠스기", "Copernican"], ["에라토스테네스기", "Eratosthenian"], ["임브리움기", "Imbrian"],
                    ["넥타리스기", "Nectarian"], ["선넥타리스기", "Pre-Nectarian"]];
+  // 두 시대에 걸친 단위(SPA 지질도의 "넥타리스기–선넥타리스기")는 젊은 쪽 시대 바로 밑에 선다
   function ageRank(age) {
-    for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
+    var parts = String(age).split("–");
+    for (var i = 0; i < AGE_ORDER.length; i++) {
+      if (AGE_ORDER[i].indexOf(parts[0]) >= 0) return parts.length > 1 ? i + 0.5 : i;
+    }
     return AGE_ORDER.length;
   }
   function legendHtml(kind) {
@@ -1380,13 +1384,14 @@
       }).join("");
       return Promise.resolve(legends[kind]);
     }
-    var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
+    // 원도의 단위·구조선은 한 번에 온다(`?layer=orig`)
+    var url = BASE + "moon/legend/" + (kind === "units" ? "" : kind === "spa" ? "?layer=spa" : "?layer=orig");
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
-      if (kind === "units") {
+      if (kind === "units" || kind === "spa") {
         // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
         // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는
-        // 처음 나온 차례대로 그 밑에 선다 (044)
+        // 처음 나온 차례대로 그 밑에 선다 (044). SPA 지질도는 그림 대신 색을 준다 (wetherilli 081)
         var ages = [], byAge = {};
         (data.items || []).forEach(function (item) {
           if (item.unit) swatches[item.unit] = item.image;
@@ -1399,7 +1404,8 @@
           html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
                   '<span class="age-n">' + byAge[age].length + "</span></div><ul>";
           byAge[age].forEach(function (item) {
-            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
+            html += "<li>" + (item.image ? '<img src="' + esc(item.image) + '" alt="">'
+                    : '<span class="chip" style="background:' + esc(item.color) + '"></span>') + esc(item.label) + "</li>";
           });
           html += "</ul></li>";
         });

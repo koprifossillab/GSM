@@ -171,6 +171,7 @@ EN = {
     "{n}점을 올렸다": "Uploaded {n} points",
     # 달 지질도 원도 (039)
     "원도 파일이 없다": "The original maps file is missing",
+    "SPA 지질도 파일이 없다": "The SPA geologic map file is missing",
     "달 지질 원도 (USGS 1:500만, 1971–1979)": "Lunar geology, original maps (USGS 1:5M, 1971–1979)",
     "원도 지질 단위": "Original map units",
     "원도 구조선": "Original map structures",
@@ -878,6 +879,7 @@ PROP_EN = {
     "단위": "Unit",
     "원도": "Source map",
     "무리": "Group",
+    "지표 특징": "Surface feature",
     "문헌": "Reference",
     "GEUS 상세": "GEUS details",
     "이름": "Name",

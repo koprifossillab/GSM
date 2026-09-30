@@ -27,6 +27,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
+from . import spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -326,6 +327,8 @@ def moon_info(request):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
     if request.GET.get("layer") == "orig":
         return _moon_original_info(lang, lon, lat)
+    if request.GET.get("layer") == "spa":
+        return _moon_spa_info(lang, lon, lat)
     # 1e-3° 는 달에서 30 m 남짓이다 — 1:500만 지도에는 한 점이다
     key = tilecache.key_text("trek-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -369,6 +372,27 @@ def _moon_original_info(lang, lon, lat):
     return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
 
 
+def _spa_age(age: str, lang: str) -> str:
+    """SPA 지질도의 시대 — 두 시대에 걸친 것("Nectarian–Pre-Nectarian")은 하나씩 옮긴다."""
+    return age if lang == "en" else "–".join(trek.AGES_KO.get(a, a) for a in age.split("–"))
+
+
+def _moon_spa_info(lang, lon, lat):
+    """남극–에이트켄 분지 지질도(Iqbal 외 2026)의 단위 — 원본 GeoTIFF 에서 읽는다 (wetherilli 081)."""
+    if not spamap.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("SPA 지질도 파일이 없다"), lang)})
+    try:
+        hit = spamap.identify(lon, lat)
+    except (spamap.SpaMapError, OSError) as exc:
+        log.warning("SPA 지질도 속성을 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("SPA 지질도 파일이 없다"), lang), "rows": []}, status=502)
+    if not hit:
+        return JsonResponse({"rows": []})
+    rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, _spa_age(v, lang) if k == "시대" else v]
+            for k, v in hit["rows"]]
+    return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
+
+
 @require_GET
 def moon_legend(request):
     """달 지질 단위 49 가지의 범례. 이름은 상류의 것 그대로다(값이라 옮기지 않는다).
@@ -376,6 +400,9 @@ def moon_legend(request):
     `?layer=orig` 면 원도의 29 갈래와 구조선 — 우리가 붙인 이름이라 한국어·영어가 따로 있다 (039)."""
     if request.GET.get("layer") == "orig":
         return JsonResponse(moonmap.legend(i18n.lang_of(request)))
+    if request.GET.get("layer") == "spa":
+        lang = i18n.lang_of(request)
+        return JsonResponse({"items": [dict(item, age=_spa_age(item["age"], lang)) for item in spamap.legend()]})
     key = tilecache.key_text("trek-legend", "units")
     data = _cached_json(key)
     if data is None:
