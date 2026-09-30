@@ -286,7 +286,7 @@ def polar_terrarium(z: int, x: int, y: int):
 
     타일 하나를 부르면 그 타일이 든 4×4 네모를 한 번에 받아 16 장을 다 담는다 — 3D 는 이웃
     타일을 곧 부른다. 같은 네모를 여럿이 한꺼번에 부르면 하나만 묻고 나머지는 기다린다."""
-    key = tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}")
+    key = polar_key(z, x, y)
     hit = tilecache.get(key)
     if hit is not None:
         return None if hit == _NONE else hit
@@ -299,6 +299,23 @@ def polar_terrarium(z: int, x: int, y: int):
             return None if hit == _NONE else hit
         tiles = _polar_block(z, bx, by, block)
     return tiles.get((x, y))
+
+
+def polar_key(z: int, x: int, y: int) -> str:
+    """3D 의 극지 표고 타일을 담는 열쇠 — `polar_terrarium` 과 미리 데우기(034)가 함께 쓴다."""
+    return tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}")
+
+
+def polar_block(z: int, x: int, y: int) -> int:
+    """(x, y) 가 든 4×4 네모를 받아 담는다 — 미리 데우기(`prewarm --layers dem`). 담은 타일 수.
+    네모의 타일이 벌써 다 있으면 묻지 않는다."""
+    block = min(POLAR_BLOCK, 2 ** z)
+    bx, by = x // block * block, y // block * block
+    with _block_lock((z, bx, by)):
+        if all(tilecache.get(polar_key(z, bx + dx, by + dy)) is not None
+               for dx in range(block) for dy in range(block)):
+            return 0
+        return len(_polar_block(z, bx, by, block))
 
 
 def _polar_block(z: int, bx: int, by: int, block: int) -> dict:
@@ -347,7 +364,7 @@ def _polar_block(z: int, bx: int, by: int, block: int) -> dict:
             x, y = bx + dx, by + dy
             piece = warped.crop((dx * 256, dy * 256, dx * 256 + 256, dy * 256 + 256))
             png = _terrarium_png(piece, z, x, y)
-            tilecache.put(tilecache.key_text("elev", f"pgc-terrarium/{z}/{x}/{y}"), png or _NONE)
+            tilecache.put(polar_key(z, x, y), png or _NONE)
             out[x, y] = png
     return out
 

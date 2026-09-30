@@ -155,3 +155,33 @@ class PrewarmPlans(TestCase):
         self.assertEqual(npi.key(6, 37, 20), tilecache.key_for("map", kigam.clean_params(params)))
         self.assertEqual(prewarm.plan_for("gsj:geology", "gsj").key(9, 1, 2),
                          views.gsj_tile_key("gsj:geology", 9, 1, 2))
+
+
+class PrewarmDem(SimpleTestCase):
+    """3D 의 극지 지형을 미리 받는다(`--layers dem`, 034) — 3D 가 서버에 묻는 타일만, 4×4 네모째."""
+
+    def test_위도_60_너머_줌_11_부터만(self):
+        from viewer.management.commands import prewarm
+        plan = prewarm.NOT_LAYERS["dem"]()
+        dasan = (11.9, 78.9, 12.0, 78.95)
+        self.assertEqual(list(plan.tiles_for(dasan, 10)), [])
+        self.assertTrue(list(plan.tiles_for(dasan, 11)))
+        self.assertEqual(list(plan.tiles_for(dasan, 16)), [])
+        self.assertEqual(list(plan.tiles_for((127.0, 37.0, 127.1, 37.1), 12)), [])   # 한국은 AWS 다
+        self.assertTrue(list(plan.tiles_for((164.2, -74.65, 164.3, -74.6), 12)))     # 장보고기지
+        self.assertEqual(plan.block(4), 4)
+
+    def test_열쇠는_3D_가_부르는_것과_같고_다_있으면_묻지_않는다(self):
+        from unittest import mock
+        from viewer import elevation
+        from viewer.management.commands import prewarm
+        plan = prewarm.NOT_LAYERS["dem"]()
+        self.assertEqual(plan.key(12, 2200, 300), elevation.polar_key(12, 2200, 300))
+        with mock.patch.object(elevation, "_polar_block", return_value={(0, 0): None}) as block, \
+                mock.patch.object(elevation.tilecache, "get", return_value=b"png"):
+            self.assertEqual(plan.fetch_block(12, 550, 75, 4), 0)
+        block.assert_not_called()
+        with mock.patch.object(elevation, "_polar_block", return_value={(i, 0): None for i in range(16)}) as block, \
+                mock.patch.object(elevation.tilecache, "get", return_value=None):
+            self.assertEqual(plan.fetch_block(12, 550, 75, 4), 16)
+        block.assert_called_once_with(12, 2200, 300, 4)
