@@ -22,6 +22,7 @@ services:
       GSM_URL_PREFIX: "GSM/"
     volumes:
       - /srv/GSM/db:/srv/GSM/db
-      - /srv/GSM/tiles:/srv/GSM/tiles
+      # 타일 캐시는 루트 SSD 가 아니라 8 TB 하드에 둔다 (wetherilli 082)
+      - /data/GSM/tiles:/srv/GSM/tiles
     ports:
       - "127.0.0.1:8094:9090"

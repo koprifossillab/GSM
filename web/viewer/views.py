@@ -298,7 +298,7 @@ def moon_dem(request, z, x, y):
     z, x, y = int(z), int(x), int(y)
     if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    key = tilecache.key_text("trek-dem", f"{z}/{x}/{y}")
+    key = tilecache.key_text("trek-dem", f"{trek.DEM_SERVICE}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)
@@ -458,6 +458,34 @@ def trek_map_tile(request, body, label, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("Trek 판 타일을 받지 못했다 (%s %s %s/%s/%s): %s", body, label, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def trek_map_polar_tile(request, body, label, pole, z, x, y):
+    """`trek/moon/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
+    극 격자는 달의 것이라 화성은 받지 않는다."""
+    z, x, y = int(z), int(x), int(y)
+    ms = trek.polar_map(body, label, pole) if body == "moon" else ""
+    if not ms:
+        return JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), i18n.lang_of(request))}, status=404)
+    if not trek.polar_valid(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-map-polar", f"{body}/{label}/{pole}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.map_polar_tile(body, ms, pole, z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("Trek 극지 판 타일을 받지 못했다 (%s %s %s %s/%s/%s): %s", body, label, pole, z, x, y, exc)
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
@@ -1666,7 +1694,8 @@ def feature_info(request):
         if door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
-            props = vworld.friendly(props)        # riv_nm → 하천명 …
+            # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다
+            props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)

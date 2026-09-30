@@ -89,7 +89,7 @@
       // `map` 은 WMTS 가 없어 우리 문이 굽는 판 — 누르면 속성을 읽는다. `same` 은 우리 레이어와 같은 자료를 다르게
       // 그린 판(Kaguya TC 지질도 = 통합 지질도) — 속성·범례를 그 레이어의 것으로 낸다
       return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
-               bbox: l.bbox, legend: l.same || (l.legend ? "trek:" + l.id : undefined),
+               bbox: l.bbox, polar: l.polar || {}, legend: l.same || (l.legend ? "trek:" + l.id : undefined),
                info: l.same || (l.kind === "map" ? "trek" : undefined),
                title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
                src: (l.src ? l.src + " · " : "") + "NASA Moon Trek" };
@@ -143,7 +143,7 @@
 
   // 지형 — LOLA 표고, 서버가 65×65 Terrarium 으로 옮겨 준다 (036)
   var DEM_SIZE = 65;
-  var DEM_MAX = 8;             // 서버의 `trek.DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
+  var DEM_MAX = 9;             // 서버의 `trek.DEM_MAX_ZOOM`. 그 너머는 부모 격자를 늘려 쓴다
   var demMemo = {};
   function demGrid(x, y, level) {
     var id = level + "/" + x + "/" + y;
@@ -546,8 +546,43 @@
       tile.set("gsmBox", l.bbox);                                          // 투영을 바꾸면 범위를 다시 잰다 (052)
       tile.setExtent(ol.proj.transformExtent(l.bbox, LL, proj, 16));
     }
+    tile.set("gsmTrekUrl", url.replace("{zz}", "{z}"));
     oGeo[name] = tile;
     oExtra.getLayers().push(tile);
+    if (proj !== EQC) trekFlat(name);
+  }
+  /** 평면의 Trek 판을 지금 투영에 맞춘다. 극이고 Trek 이 극지 짝(`<판>_SP`·`_NP`)을 구워 두었으면 그것을 곧장 받고
+   *  — 적도 판을 옮겨 그리면 극 가까이가 성기다 — 없으면 적도 판을 옮겨 그린다 (wetherilli 085) */
+  function trekFlat(name) {
+    var l = LAYER[name], tile = oGeo[name], p = proj !== EQC && l.polar[proj.pole];
+    if (!p) {
+      tile.setSource(tileSource(tile.get("gsmTrekUrl"), l.ms ? GEO_MAX : l.max, TREK_CREDIT, "anonymous", l.bbox,
+                                l.z0 || 0));
+      if (l.bbox) tile.setExtent(ol.proj.transformExtent(l.bbox, LL, proj, 16));
+      return;
+    }
+    var pole = proj.pole, projection = pole === "n" ? NPS : SPS;
+    if (p.kind === "map") {                                              // 우리 문이 극 좌표로 굽는다
+      tile.setSource(new ol.source.TileImage({
+        projection: projection, tileGrid: polarGrid(GEO_MAX), attributions: TREK_CREDIT,
+        url: BASE + "trek/moon/map/" + l.id + "/p/" + pole + "/{z}/{x}/{y}.png",
+      }));
+      tile.setExtent(undefined);
+      return;
+    }
+    // 판이 덮는 네모(m) 밖은 묻지 않는다 — Trek 이 404 에 CORS 를 달지 않아 콘솔이 붉어진다
+    var root = TREK_ROOT.replace(/\/EQ$/, pole === "n" ? "/NP" : "/SP"), tg = polarGrid(p.max), box = p.box;
+    tile.setSource(new ol.source.TileImage({
+      projection: projection, tileGrid: tg, attributions: TREK_CREDIT, crossOrigin: "anonymous",
+      tileUrlFunction: function (coord) {
+        var z = coord[0], x = coord[1], y = coord[2], n = Math.pow(2, z);
+        if (x < 0 || y < 0 || x >= n || y >= n) return undefined;
+        var e = tg.getTileCoordExtent(coord);
+        if (box && (e[0] > box[2] || e[2] < box[0] || e[1] > box[3] || e[3] < box[1])) return undefined;
+        return root + "/" + p.name + "/1.0.0/default/default028mm/" + z + "/" + y + "/" + x + "." + p.ext;
+      },
+    }));
+    tile.setExtent(box || undefined);
   }
   // ── 벡터 — 착륙·충돌 지점, EVA 동선. 처음 켤 때 받는다 ──
   function vectorLayer(name, draw) {
@@ -715,6 +750,9 @@
     oShade.setSource(p === EQC ? tileSource(SHADE.url, SHADE.max, SHADE.credit, "anonymous") : polarSource(p.pole, "lola"));
     GEO_NAMES.forEach(function (name) {
       oGeo[name].setSource(p === EQC ? tileSource(geoUrl(name), GEO_MAX, creditOf(name)) : polarGeoSource(p.pole, name));
+    });
+    Object.keys(oGeo).forEach(function (name) {
+      if (LAYER[name] && LAYER[name].kind === "trek") trekFlat(name);
     });
     placeBase();
     var polar = p !== EQC;

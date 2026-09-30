@@ -7,7 +7,7 @@
 
 - `trekarcgis3/rest/services/<지질도>/MapServer` — USGS 달 통합 지질도 1:500만(2020)을
   Trek 이 올려 둔 것. 타일(`export`)·속성(`identify`)·범례(`legend`)
-- `trekarcgis/rest/services/LRO_LOLA_DEM_Global_128ppd_v04/ImageServer` — LOLA 표고.
+- `trekarcgis/rest/services/LRO_LOLA_DEM_Global_256ppd_v06/ImageServer` — LOLA 표고.
   값(F32)을 TIFF 로 받아 Terrarium PNG 로 옮긴다 — 둥근 달의 지형이다
 - `TrekServices/ws/index/…` — 색인. 지명(IAU 행성 지명 사전을 옮긴 것)을 받는다.
   사람이 `manage.py fetch_moon_places` 를 부를 때만 간다
@@ -31,6 +31,7 @@ import json
 import logging
 import math
 import re
+import time
 import xml.etree.ElementTree as ET
 
 import requests
@@ -53,8 +54,8 @@ DEM_SIZE = 65
 #: 지질도는 1:500만이라 줌 9(한 픽셀 약 130 m) 너머는 같은 선을 크게 그릴 뿐이다.
 #: 그래도 가까이 가면 선이 흐려지지 않게 12 까지 받는다
 MAX_ZOOM = 12
-#: LOLA 128 ppd — 한 픽셀 0.0078°. 줌 8 에서 한 칸(0.7° ÷ 64)이 0.011° 로 그쯤이다
-DEM_MAX_ZOOM = 8
+#: LOLA 256 ppd — 한 픽셀 0.0039°(약 118 m). 줌 9 에서 한 칸(0.35° ÷ 64)이 0.0055° 로 그쯤이다 (wetherilli 083)
+DEM_MAX_ZOOM = 9
 
 #: 우리 이름 → Trek 의 MapServer. `units` 만 속성·범례가 있다
 LAYERS = {
@@ -62,7 +63,9 @@ LAYERS = {
     "contacts": "Unified_Global_Geologic_Map_of_the_Moon_Geologic_Contacts",
     "linear": "Unified_Global_Geologic_Map_of_the_Moon_Linear_Features",
 }
-DEM_SERVICE = "LRO_LOLA_DEM_Global_128ppd_v04"
+#: 표고 판. 바꾸면 캐시 열쇠(`views.moon_dem`)가 따라 바뀐다 — 옛 판의 격자가 섞이지 않는다.
+#: 128 ppd(`…_128ppd_v04`)에서 올렸다 — 높이 기준(1 737.4 km 구)이 같고 같은 자리 값이 수 m 안에서 맞다 (wetherilli 083)
+DEM_SERVICE = "LRO_LOLA_DEM_Global_256ppd_v06"
 
 #: `identify` 가 주는 열 → 팝업의 이름 (한국어 원문. 영어는 `i18n.PROP_EN`)
 FIELDS = (("FIRST_Unit", "단위"), ("FIRST_Un_1", "시대"), ("FIRST_Un_2", "이름"),
@@ -307,7 +310,7 @@ def dem_tile(z: int, x: int, y: int) -> bytes:
 # 한 번에 `SAMPLE_CHUNK` 점씩(100 점이 3 KB 남짓).
 
 #: 출처 이름과 높이 기준. `pointsets.ELEV_DATUMS` 에도 적는다
-ELEV_SOURCE = "lola-128ppd"
+ELEV_SOURCE = "lola-256ppd"
 ELEV_DATUM = "moon-sphere"
 SAMPLE_CHUNK = 100
 
@@ -889,6 +892,84 @@ def wmts_info(body: str, label: str) -> dict | None:
     return parse_wmts(r.content)
 
 
+# ── 극지 짝 (wetherilli 085) ────────────────────────────────────────
+#
+# 색인(`index/eq`)은 적도 판만 준다. 몇 판은 Trek 이 극 평사도법으로 따로 구운 짝(`<판>_SP`·`_NP`)을 둔다 —
+# 극 평면에서 적도 판을 옮겨 그리면 극 가까이가 성기니, 짝이 있으면 그것을 받는다. 짝을 알려 주는 색인이
+# 없어(`index/sp`·`rasters/sp/list.json` 은 404, 2026-09-30) ArcGIS 서비스 목록에서 이름으로 찾는다.
+
+
+def polar_twins(body: str, delay: float = 0.0) -> dict:
+    """`{판: {"s": (경로 뿌리, 서비스 이름, 갈래), …}}` — 서비스 목록에서 `_SP`·`_NP` 로 끝나는 것.
+    목록을 셋 받는다 — 사이에 `delay` 초 쉰다."""
+    out = {}
+    for i, root in enumerate(_SERVICE_ROOTS):
+        if i and delay:
+            time.sleep(delay)
+        data = _json(_get(f"{root}/rest/services", {"f": "json"}, base=_body_base(body)))
+        for s in data.get("services") or []:
+            name = str(s.get("name") or "")
+            for pole, suffix in POLES.items():
+                if name.endswith(suffix):
+                    out.setdefault(name[:-len(suffix)], {})[pole] = (root, name, s.get("type") or "")
+    return out
+
+
+def parse_polar_wmts(xml: bytes) -> dict | None:
+    """극지 판의 `WMTSCapabilities.xml` → `{"ext", "max", "box": [서, 남, 동, 북] m}`. 격자는 우리 극 격자와 같다
+    (왼쪽 위 ±1 095 930 m) — 다르면 None. 상류는 줌 0 을 가로 2·세로 1 로 적지만 실제로는 한 장이다."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return None
+    fmt = root.findtext(f".//{_WMTS}Layer/{_WMTS}Format") or ""
+    levels = []
+    for tm in root.iter(f"{_WMTS}TileMatrix"):
+        try:
+            corner = [float(v) for v in tm.findtext(f"{_WMTS}TopLeftCorner").split()]
+            levels.append(int(tm.findtext(f"{_OWS}Identifier")))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if abs(corner[0] + POLAR_HALF) > 1 or abs(corner[1] - POLAR_HALF) > 1:
+            return None
+    try:
+        lo = [float(v) for v in root.findtext(f".//{_OWS}BoundingBox/{_OWS}LowerCorner").split()]
+        hi = [float(v) for v in root.findtext(f".//{_OWS}BoundingBox/{_OWS}UpperCorner").split()]
+    except (AttributeError, ValueError):
+        lo, hi = [-POLAR_HALF, -POLAR_HALF], [POLAR_HALF, POLAR_HALF]
+    if not fmt.startswith("image/") or 0 not in levels:
+        return None
+    return {"ext": "jpg" if fmt.endswith(("jpeg", "jpg")) else fmt.split("/", 1)[1], "max": max(levels),
+            "box": [round(lo[0]), round(lo[1]), round(hi[0]), round(hi[1])]}
+
+
+def polar_wmts_info(body: str, name: str, pole: str) -> dict | None:
+    """극지 짝 하나의 WMTS — 없으면 None."""
+    root = tiles_root(body).rsplit("/", 1)[0] + ("/NP" if pole == "n" else "/SP")
+    r = _get(f"{name}/1.0.0/WMTSCapabilities.xml", {}, base=root)
+    if r.status_code == 404:
+        return None
+    if r.status_code != 200:
+        raise TrekError(f"NASA Trek 이 받지 않았다 (status={r.status_code})")
+    return parse_polar_wmts(r.content)
+
+
+def probe_polar(body: str, twins: dict, delay: float = 0.0) -> dict:
+    """판 하나의 극지 짝(`polar_twins` 의 값)을 물어 씨앗에 적을 꼴로 — `{"s": {"kind": "tile", "ext", "max",
+    "box", "name"}}` 나 `{"s": {"kind": "map", "ms"}}`. WMTS 가 먼저다. 둘 다 없는 극은 빠진다. 극 사이에
+    `delay` 초 쉰다."""
+    out = {}
+    for i, (pole, (root, name, kind)) in enumerate(sorted(twins.items())):
+        if i and delay:
+            time.sleep(delay)
+        info = polar_wmts_info(body, name, pole)
+        if info:
+            out[pole] = {"kind": "tile", "name": name, **info}
+        elif kind == "MapServer":
+            out[pole] = {"kind": "map", "ms": f"{root}/rest/services/{name}/MapServer"}
+    return out
+
+
 def catalog_file(body: str):
     """씨앗 자리 — `data/moon_trek_layers.json`·`data/mars_trek_layers.json`. 저장소에 담는다."""
     return settings.REPO_DIR / "data" / f"{body}_trek_layers.json"
@@ -906,6 +987,18 @@ def load_catalog(body: str) -> list:
 #: Kaguya TC 지질도는 통합 지질도(`units`)의 단위를 Kaguya 지형 카메라 영상 위에 칠한 래스터다 — 단위 기호·색이 같다.
 #: SPA 지질도(`spa`)는 Trek 이 속성 없이 주는 그림이고, 속성은 저자들이 낸 원본에서 우리가 읽는다(`spamap.py`)
 SAME_AS = {"moon": {"Unified_Geologic_Map_of_the_Moon_RASTER": "units", "SPA_GeoMap_lqbal_et_al": "spa"}}
+
+
+def _client_polar(polar) -> dict:
+    """씨앗의 극지 짝 → 화면이 쓰는 것. 타일이면 이름·포맷·줌 끝·범위(m), MapServer 면 갈래만(우리 문이 굽는다)."""
+    out = {}
+    for pole, p in (polar or {}).items():
+        if p.get("kind") == "tile":
+            out[pole] = {"kind": "tile", "name": p["name"], "ext": p.get("ext") or "png", "max": p.get("max") or 0,
+                         "box": p.get("box")}
+        elif p.get("kind") == "map":
+            out[pole] = {"kind": "map"}
+    return out
 
 
 def client_catalog(body: str) -> dict:
@@ -930,7 +1023,8 @@ def client_catalog(body: str) -> dict:
         g["layers"].append({"id": e["id"], "kind": e["kind"], "title": e["title"], "ko": e.get("ko") or "",
                             "ext": e.get("ext") or "png",
                             "max": e.get("max") or 0, "z0": e.get("z0") or 0, "bbox": bbox, "src": src,
-                            "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], "")})
+                            "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], ""),
+                            "polar": _client_polar(e.get("polar"))})
     out = sorted(groups.values(), key=lambda g: g["order"])
     for g in out:
         del g["order"]
@@ -974,6 +1068,24 @@ def find_mapserver(body: str, uuid: str, label: str) -> str:
             if isinstance(data, dict) and "error" not in data:
                 return path
     return ""
+
+
+def polar_map(body: str, label: str, pole: str) -> str:
+    """씨앗에 적힌 극지 MapServer 짝의 경로 — 없으면 빈 칸. 씨앗에 없는 것은 부르지 않는다."""
+    for e in _catalog_index(body):
+        if e["id"] == label:
+            p = (e.get("polar") or {}).get(pole) or {}
+            return p.get("ms", "") if p.get("kind") == "map" else ""
+    return ""
+
+
+def map_polar_tile(body: str, ms: str, pole: str, z: int, x: int, y: int) -> bytes:
+    """극지 MapServer 짝의 타일 한 장 — 극 격자(`polar_tile_bbox`). 서비스가 제 투영(WKT)으로 읽는다(052)."""
+    w, s, e, n = polar_tile_bbox(z, x, y)
+    return _image(_get(f"{ms}/export", {
+        "bbox": f"{w},{s},{e},{n}", "size": f"{TILE},{TILE}",
+        "format": "png32", "transparent": "true", "f": "image",
+    }, base=_body_base(body)))
 
 
 def map_entry(body: str, label: str) -> dict | None:

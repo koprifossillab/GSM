@@ -137,6 +137,7 @@ class Stored(TestCase):
         from viewer import trek
         expected = {k: v[1] for k, v in elevation.SOURCES.items()}
         expected[trek.ELEV_SOURCE] = trek.ELEV_DATUM
+        expected["lola-128ppd"] = "moon-sphere"   # 옛 판으로 채워 내보낸 것을 다시 올릴 때 (wetherilli 083)
         expected[trek.MARS_ELEV_SOURCE] = trek.MARS_ELEV_DATUM
         self.assertEqual(pointsets.ELEV_DATUMS, expected)
 
