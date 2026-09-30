@@ -134,12 +134,11 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
       `86S356E_3mp`)과 투영 좌표 NAC 둘(02N085E·07N022E), 아폴로 PanCam·메트릭 카메라 DEM 은 아직. NAC 판과 256 ppd 사이 턱은
       평균 0–8 m(20N010E 가 8 m 낮다) — 거슬리면 판마다 높이를 맞춘다
 
-### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
+### 표고 단면 — 화성 남음 (+ 지질 띠는 그 이상)
 
-- [ ] 잰 선을 따라 높이 그래프 — **지구·화성** [코드]. 달은 섰다(wetherilli 100 — 서버가 꼭짓점을 받아 대원을 따라 점을
-      찍고, 화면은 SVG 를 손으로). 지구는 `map.js` 에 같은 판, 서버는 `elevation.elevations`. 극지는 PGC 를 한 점씩 쉬며
-      묻는다 — `polar_terrarium` 을 쓰거나 점을 줄인다. 화성은 `mars.js`·`trek.mars_values` 로 옮긴다(화성 세션).
-      **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리 파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만
+- [ ] 잰 선을 따라 높이 그래프 — **화성** [코드]. 달(wetherilli 100)·지구 지역 탭(wetherilli 109)은 섰다. 화성은 `mars.js`·
+      `trek.mars_values` 로 옮긴다(화성 세션). **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리
+      파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만
 
 ### 한국 — 시료 지점 칸·KIGAM 자료
 

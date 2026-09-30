@@ -1801,3 +1801,5 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .render-failed button { padding: 5px 12px; font: inherit; color: var(--on-hi); background: var(--hi); border: 0;
                         border-radius: 6px; cursor: pointer; }
 .render-failed button + button { color: var(--ink); background: var(--raise); }
+/* 지역 탭의 높이 그래프(wetherilli 109) — 축척 막대(왼쪽 아래)를 덮지 않게 조금 올린다 */
+:root:not([data-region="moon"]):not([data-region="mars"]):not([data-region="earth"]) .profile-dock { bottom: 108px; }

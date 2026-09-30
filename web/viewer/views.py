@@ -432,6 +432,36 @@ def moon_profile(request):
 
 
 @require_GET
+def elevation_profile(request):
+    """`?line=경도,위도;경도,위도…&n=256` — 지구의 잰 선을 따라 고르게 찍은 점의 표고 (wetherilli 109, `elevation.profile`).
+    달의 것(`moon_profile`)과 같은 꼴이다. 같은 선은 캐시가 낸다."""
+    lang = i18n.lang_of(request)
+    vertices = []
+    for part in (request.GET.get("line") or "").split(";"):
+        lon, _, lat = part.partition(",")
+        lon, lat = _float(lon), _float(lat)
+        if lon is None or lat is None or not (-90 <= lat <= 90 and -540 <= lon <= 540):
+            vertices = []
+            break
+        vertices.append((lon, lat))
+    if not 2 <= len(vertices) <= elevation.PROFILE_MAX_VERTICES:
+        return JsonResponse({"error": i18n.t(msg("선이 없다"), lang)}, status=400)
+    n = int(_float(request.GET.get("n")) or 256)
+    text = ";".join(f"{lon:.5f},{lat:.5f}" for lon, lat in vertices)
+    key = tilecache.key_text("elev-profile", f"{n}/{text}")
+    data = _cached_json(key)
+    if data is None:
+        try:
+            data = elevation.profile(vertices, n)
+        except elevation.ElevationError as exc:
+            log.warning("높이 그래프를 받지 못했다: %s", exc)
+            return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
+        if any(v is not None for v in data["elev"]):
+            tilecache.put(key, json.dumps(data).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
+@require_GET
 def moon_values(request):
     """`?lon=&lat=&key=feo` — 켠 Trek 판의 값을 누른 자리 한 점에서 (wetherilli 103). `{"rows": [[이름, 값], …]}`.
     이름은 한국어판·영어판에 맞춘다. 값(숫자·단위)은 옮기지 않는다."""

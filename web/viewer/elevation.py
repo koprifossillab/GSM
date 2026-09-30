@@ -225,6 +225,38 @@ def elevations(points: dict, pause: float = PGC_PAUSE) -> dict:
     return out
 
 
+#: 높이 그래프의 점 수 끝 — 한 선에 타일을 수십 장 받는다
+PROFILE_MAX_POINTS = 512
+PROFILE_MAX_VERTICES = 200
+
+
+def profile(vertices: list, n: int = 256) -> dict:
+    """잰 선을 따라 고르게 찍은 점의 표고 (wetherilli 109). `{"dist", "elev", "lon", "lat", "sources"}`, 못 읽은 점은 None.
+
+    **타일로만 읽는다** — 일본은 국토지리원(10 m), 나머지는 AWS Terrarium(z12). 극지의 PGC(`pgc_value`)는 한 점에 한 번씩
+    쉬며 묻는 길이라 256 점이면 50 초가 넘는다 — 그래서 높이 그래프에서는 극지도 AWS 로 읽는다(위도 85° 너머는 없다).
+    시료 한 점의 고도(`elevations`)와 다른 까닭이다."""
+    from . import crs
+    n = max(2, min(int(n), PROFILE_MAX_POINTS))
+    pts = crs.great_circle_points(vertices, n)
+    points = {i: (lat, lon) for i, (lon, lat, _) in enumerate(pts)}
+    # 점 사이가 넓으면 거친 줌으로 — 타일 한 칸이 점 한 걸음쯤이면 된다. 긴 선(수백 km)이 z12 타일 수백 장을 받지 않게
+    step = max(1.0, pts[-1][2] / max(1, len(pts) - 1))
+    mid_lat = math.radians(sum(p[0] for p in points.values()) / len(points))
+    fit = int(math.log2(max(1.0, 40075016.7 * math.cos(mid_lat) / (256 * step)))) + 1   # 한 단계 더 — 봉우리가 덜 깎인다
+    japan = {k: p for k, p in points.items() if in_japan(*p)}
+    zj = max(5, min(GSI_ZOOM, fit))
+    got = {k: (v, f"gsi-dem-z{zj}") for k, v in _from_tiles(japan, zj, gsi_tile, gsi_value).items()}
+    rest = {k: p for k, p in points.items() if k not in got and abs(p[0]) < 85.05}
+    zt = max(4, min(TERRARIUM_ZOOM, fit))
+    got.update({k: (v, f"aws-terrarium-z{zt}") for k, v in
+                _from_tiles(rest, zt, terrarium_tile, terrarium_value).items()})
+    return {"dist": [round(d, 1) for _, _, d in pts],
+            "elev": [round(got[i][0], 1) if i in got else None for i in range(len(pts))],
+            "lon": [round(lon, 6) for lon, _, _ in pts], "lat": [round(lat, 6) for _, lat, _ in pts],
+            "sources": sorted({src for _, src in got.values()})}
+
+
 def _pixels(image):
     """픽셀 차례대로. Pillow 14 에서 `getdata` 가 없어진다."""
     flat = getattr(image, "get_flattened_data", None)
