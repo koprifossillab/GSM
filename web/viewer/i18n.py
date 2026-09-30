@@ -956,6 +956,9 @@ PROP_EN = {
     "낙차 (m)": "Drop height (m)",
     "도달 거리 (m)": "Runout (m)",
     "원자료": "Source data",
+    "관측일": "Date observed",
+    "원자료 (영상)": "Source image",
+    "전면 길이 (km)": "Front length (km)",
     "일어난 때": "When",
     "쓰나미 (1 = 일으켰다)": "Tsunami (1 = generated)",
     "킴벌라이트질": "Kimberlitic",
@@ -1430,6 +1433,7 @@ GROUP_EN = {
     # 노르웨이 극지연구소 (npolar.py, devlog 021)
     "스발바르 지질 (NPI)": "Svalbard geology (NPI)",
     "스발바르 시료·층서 (NPI)": "Svalbard samples & stratigraphy (NPI)",
+    "스발바르 빙하 (NPI)": "Svalbard glaciers (NPI)",
     "드로닝모드랜드 (NPI)": "Dronning Maud Land (NPI)",
     # 일본 (gsj.py, devlog 024)
     "심리스 지질도 (GSJ)": "Seamless geological map (GSJ)",
@@ -1584,6 +1588,7 @@ LAYER_EN = {
     "npolar:svalbard_sheets": "Map sheet scans (1:100 000 etc., all)",
     "npolar:svalbard_sheet_index": "Map sheet index",
     "npolar:svalbard_type_localities": "Lithostratigraphic type localities",
+    "npolar:svalbard_glacier_fronts": "Glacier fronts 1936–2025",
     "npolar:rock_archive": "Rock sample archive",
     "npolar:dml_units": "Geological units (1:250K · 1:5M)",
     "npolar:dml_structures": "Structures",

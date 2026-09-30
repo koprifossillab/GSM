@@ -122,3 +122,4 @@
 | wetherilli 089 | 2026-09-30 | [그린란드 포털 — 면과 갈래 색을 받는 틀, 그리고 레이어 넷](20260930_wetherilli_089_greenland_portal_areas.md) |
 | wetherilli 090 | 2026-09-30 | [Trek 판 목록 — 타일 한 장을 받아 보고 적는다](20260930_wetherilli_090_trek_probe_tile.md) |
 | wetherilli P07 | 2026-09-30 | [온 지구 — 시간 축, 그리고 그 위에 얹을 일곱 (계획)](20260930_wetherilli_P07_earth_time_axis.md) |
+| wetherilli 094 | 2026-09-30 | [스발바르 — 빙하 전면 변화 1936–2025 (NPI)](20260930_wetherilli_094_svalbard_glacier_fronts.md) |

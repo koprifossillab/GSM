@@ -93,6 +93,11 @@ TILES = {
     "npolar:svalbard_sheets": {
         "service": "Temadata/G_Geologi_Kartblad", "projection": "EPSG:3413", "show": [1], "info": None,
         "legend": None, "format": "png8"},
+    # 빙하 전면 변화(wetherilli 094) — 1936–2025 년의 빙하 끝선 4 064 줄. NPI 가 연도(`Date_year`)마다
+    # 색을 달리해 그려 준다(23 갈래). 줄마다 누르면 빙하 이름·관측일·영상·길이가 온다. CC BY 4.0
+    "npolar:svalbard_glacier_fronts": {
+        "service": "Temadata/I_Glacier_Fronts_Svalbard", "projection": "EPSG:3413", "show": [0], "info": [0],
+        "legend": [0], "format": "png32"},
     # 남극 드로닝모드랜드 — 1:25만(6)과 1:500만(7)이 스발바르처럼 축척으로 갈린다
     "npolar:dml_units": {
         "service": "Temadata/G_Geologi_DML", "projection": "EPSG:3031", "show": [6, 7], "info": [6, 7],
@@ -422,6 +427,10 @@ FRIENDLY = {
     "Reference": "문헌",
     "REMARKS": "비고",
     "URL": "층서 사전",
+    # 빙하 전면 (wetherilli 094). `Name` 은 위의 "이름", `Ident` 는 NPI 의 빙하 번호라 싣지 않는다
+    "Date": "관측일",
+    "Source": "원자료 (영상)",
+    "Length_km": "전면 길이 (km)",
 }
 #: 링크로 그릴 속성 (http·https 만)
 LINK_PROPS = {"URL"}
@@ -446,6 +455,13 @@ def friendly(props: dict, lang: str = "ko") -> dict:
             value = {"text": "", "links": [{"url": str(value), "label": "열기"}]}
         elif label in AGE_PROPS and lang == "ko":
             value = i18n.age_ko(value)
+        elif key == "Date" and re.fullmatch(r"\d{8}", str(value)):
+            value = f"{str(value)[:4]}-{str(value)[4:6]}-{str(value)[6:]}"     # 빙하 전면의 20230910
+        elif key == "Length_km":
+            try:       # identify 는 노르웨이 꼴로 소수점을 쉼표로 적는다("3,595676")
+                value = f"{float(str(value).replace(',', '.')):.2f}"
+            except (TypeError, ValueError):
+                pass
         out[label] = value
     return out
 

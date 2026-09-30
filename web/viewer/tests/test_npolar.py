@@ -123,6 +123,13 @@ class Friendly(SimpleTestCase):
         self.assertEqual(npolar.friendly(UNIT)["지질시대"], "팔레오세 후기")
         self.assertEqual(npolar.friendly(UNIT, "en")["지질시대"], "late Paleocene")
 
+    def test_빙하_전면은_날짜와_길이를_읽기_좋게(self):
+        # 2026-09-30 에 크로네브린을 누르고 받은 그대로 — 소수점이 쉼표다 (wetherilli 094)
+        props = npolar.friendly({"OBJECTID": "82", "Ident": "15511,2", "Name": "Kronebreen", "Date": "20230903",
+                                 "Source": "T33XVH_20230903T133731_B08", "Length_km": "3,595676", "Year": "2023"})
+        self.assertEqual(props, {"이름": "Kronebreen", "관측일": "2023-09-03",
+                                 "원자료 (영상)": "T33XVH_20230903T133731_B08", "전면 길이 (km)": "3.60"})
+
     def test_주소는_링크로(self):
         props = npolar.friendly({"URL": "http://nhm2.uio.no/norges/litho/svalbard/gips.htm#cp50",
                                  "Stratigraphic Unit": "Cadellfjellet Member"})
