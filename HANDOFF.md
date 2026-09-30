@@ -86,6 +86,10 @@ USGS 달 통합 지질도·LOLA 지형. 문이 아홉이 되었다(+ `trek.py`, 
 새 문 `kopri.py`(연구실 내부용) — 운영 `db/kopri/` 를 `manage.py fetch_kopri` 가 채운다. 3D 남극은 운영
 `db/ibcso/{dem,wide}-{bed,ice}/`(460 MB, 판 전에 옮겨 두었다).
 
+**v0.19.0 — NASA Trek 판 목록, 화성 극 평면, 남극 수심 읽기** (060·065·070–073). 세 세션을 모았다. 이주 없음.
+Trek 판은 씨앗 `data/<몸>_trek_layers.json`(`manage.py fetch_trek_catalog`, 사람은 `ko`·`hide` 만 손질)이고, WMTS 가 없는
+판은 `trek/<몸>/map/…` 이 굽는다. 운영 파일 — `db/ibcso/{tiles-tid,tid-raw}/`(판 전에 잘라 두었다).
+
 **영어판이 있다** (v0.4.0). 설정의 "언어 · Language" 로 고른다. 화면의 글을
 고치면 `viewer/i18n.py` 에 영어도 적는다 — CLAUDE.md "영어판", devlog 008.
 
