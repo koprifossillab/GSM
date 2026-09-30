@@ -51,6 +51,49 @@ def has_key() -> bool:
 #: devlog 006 을 볼 것. `/openapi/wms` 가 열어주면 여기서 지운다.
 DIRECT_REQUESTS = {"getfeatureinfo"}
 
+#: GeoServer 의 낱레이어를 엮어 만든 레이어 — `/openapi/wms` 에 없는 판이다.
+#: `L_50K_Geology_Map` 은 묶음(layer group)이라 층리·엽리 기호만 빼 달라는
+#: 요청이 WMS 에 없다. 그래서 묶음을 이루는 낱레이어 가운데 자세 기호가 아닌
+#: 것만 골라 부른다. `/openapi/wms` 는 낱레이어 이름에 빈 그림을 준다
+#: (docs/KIGAM_5만_구조요소.md §8).
+#:
+#: **그림(`GetMap`)만 GeoServer 로 간다.** 속성·범례는 `base` 묶음으로 바꿔
+#: 지금 길 그대로 묻는다 — 낱레이어의 속성은 칸 이름이 영어라 팝업이 달라진다.
+#: KIGAM 이 같은 판을 `/openapi/wms` 에 열어 주면 여기서 지운다.
+COMPOSED = {
+    "L_50K_Geology_Map_NoAttitude": {
+        "base": "L_50K_Geology_Map",
+        "layers": (
+            "Geology_map:l_50k_geology_litho_view_latest",
+            "Geology_map:l_50k_geology_alterationzone_latest",
+            "Geology_map:l_50k_geology_metamorphismzone_latest",
+            "Geology_map:l_50k_geology_boundary_latest",
+            "Geology_map:l_50k_geology_fold_latest",
+            "Geology_map:l_50k_geology_fault_latest",
+        ),
+    },
+}
+
+
+def _composed_name(params: dict) -> str:
+    """이번 요청이 엮은 레이어를 부르면 그 이름. 여럿을 한꺼번에 부르지 않는다."""
+    for key in ("layers", "layer"):
+        name = str(params.get(key) or "").split(",")[0].strip()
+        if name in COMPOSED:
+            return name
+    return ""
+
+
+def _as_base(params: dict, name: str) -> dict:
+    """엮은 레이어 이름을 그 바탕 묶음으로 바꾼다 — 속성·범례는 묶음에 묻는다."""
+    base = COMPOSED[name]["base"]
+    out = dict(params)
+    for key in ("layers", "query_layers", "layer"):
+        if out.get(key):
+            out[key] = ",".join(base if part.strip() == name else part
+                                for part in str(out[key]).split(","))
+    return out
+
 
 def _endpoint(request: str = ""):
     """이번 요청이 나갈 주소와, 레이어명에 붙일 워크스페이스 접두사.
@@ -112,9 +155,18 @@ def _qualify(params: dict, prefix: str) -> dict:
 
 def _get(params: dict, *, stream=False):
     request = str(params.get("request", ""))
+    composed = _composed_name(params)
+    if composed and request.lower() != "getmap":
+        params, composed = _as_base(params, composed), ""
     url, prefix = _endpoint(request)
     sent = _qualify(params, prefix)
-    if settings.DEV_DIRECT_WMS:
+    if composed:
+        # 엮은 레이어의 그림 — 낱레이어는 GeoServer 에만 있다. 이름에 이미
+        # 워크스페이스가 붙어 있고, 키는 붙이지 않는다(묻지 않는 곳이다)
+        url = settings.CAPABILITIES_URL
+        sent = dict(params, layers=",".join(COMPOSED[composed]["layers"]), styles="")
+        log.debug("%s 는 낱레이어를 엮어 GeoServer 에서 그린다", composed)
+    elif settings.DEV_DIRECT_WMS:
         log.debug("개발 스위치로 GeoServer 에 곧장 간다")
     elif request.lower() in DIRECT_REQUESTS:
         # 키를 붙이지 않는다 — GeoServer 는 묻지 않고, 묻지 않는 곳에

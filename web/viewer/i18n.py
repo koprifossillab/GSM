@@ -1562,6 +1562,7 @@ LAYER_EN = {
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",
     "L_50K_Geology_Map": "1:50K geology",
+    "L_50K_Geology_Map_NoAttitude": "1:50K geology (no bedding/foliation symbols)",
     "l_50k_geology_frame_latest": "1:50K sheet index",
     "L_10k_coalfield_geologic_map": "1:10K coalfield geology",
     "L_25k_coalfield_geologic_map": "1:25K coalfield geology",

@@ -200,7 +200,7 @@ KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")
-# 씨앗 뽑기 전용. 문서에 없는 주소이고 seed_catalog --from-upstream 만 부른다.
+# 문서에 없는 주소. 씨앗 뽑기, 속성(kigam.DIRECT_REQUESTS), 엮은 레이어의 그림(kigam.COMPOSED)만 여기로 간다.
 CAPABILITIES_URL = env("GSM_CAPABILITIES_URL",
                        "https://data.kigam.re.kr/mgeo/geoserver/wms")
 #: 브라우저에게 "이만큼 들고 있어라" 고 말하는 시간 (HTTP Cache-Control).
@@ -287,6 +287,9 @@ def _public() -> bool:
 PUBLIC = _public()
 
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
+#: KIGAM 낱레이어를 엮은 레이어(층리 뺀 5만 지질도)의 씨앗 — 상류가 뽑아 준 것이 아니라 사람이 적는다.
+#: 엮는 법은 `kigam.COMPOSED` (docs/KIGAM_5만_구조요소.md §8)
+KIGAM_COMPOSED_CATALOG_SEED = REPO_DIR / "data" / "kigam_composed_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
 #: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)

@@ -258,3 +258,53 @@ class ProbeOpenapiFeatureInfo(SimpleTestCase):
         got, get = self._probe(self._reply(200))
         get.assert_not_called()
         self.assertIn("인증키", got)
+
+
+class Composed(SimpleTestCase):
+    """층리 뺀 5만 지질도 — 그림만 낱레이어를 엮어 GeoServer 에서, 속성·범례는 묶음에 묻는다."""
+
+    NAME = "L_50K_Geology_Map_NoAttitude"
+
+    def _sent(self, params):
+        from unittest import mock
+        with mock.patch.object(kigam.requests, "get") as get:
+            get.return_value = mock.Mock(url="u", status_code=200, content=b"")
+            kigam._get(params)
+        return get.call_args
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False,
+                       WMS_URL="https://x/openapi/wms", CAPABILITIES_URL="https://x/mgeo/geoserver/wms")
+    def test_그림은_낱레이어를_엮어_GeoServer_로_키_없이(self):
+        call = self._sent({"request": "GetMap", "layers": self.NAME, "styles": "x"})
+        sent = call.kwargs["params"]
+        self.assertEqual(call.args[0], "https://x/mgeo/geoserver/wms")
+        self.assertNotIn("key", sent)
+        layers = sent["layers"].split(",")
+        self.assertIn("Geology_map:l_50k_geology_litho_view_latest", layers)
+        self.assertIn("Geology_map:l_50k_geology_fault_latest", layers)
+        self.assertFalse(any("bedding" in n or "foliation" in n or "joint" in n for n in layers))
+        self.assertEqual(sent["styles"], "")         # 낱레이어마다 제 기본 스타일
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False,
+                       WMS_URL="https://x/openapi/wms", CAPABILITIES_URL="https://x/mgeo/geoserver/wms")
+    def test_속성은_묶음에_묻는다(self):
+        call = self._sent({"request": "GetFeatureInfo", "layers": self.NAME, "query_layers": self.NAME})
+        sent = call.kwargs["params"]
+        self.assertEqual(call.args[0], "https://x/mgeo/geoserver/wms")
+        self.assertEqual(sent["layers"], "geoOpen:L_50K_Geology_Map")
+        self.assertEqual(sent["query_layers"], "geoOpen:L_50K_Geology_Map")
+        self.assertNotIn("key", sent)
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False,
+                       WMS_URL="https://x/openapi/wms", CAPABILITIES_URL="https://x/mgeo/geoserver/wms")
+    def test_범례는_묶음의_것을_제자리에서(self):
+        call = self._sent({"request": "GetLegendGraphic", "layer": self.NAME})
+        self.assertEqual(call.args[0], "https://x/openapi/wms")
+        self.assertEqual(call.kwargs["params"]["layer"], "L_50K_Geology_Map")
+        self.assertEqual(call.kwargs["params"]["key"], "abc")
+
+    @override_settings(KIGAM_KEY="abc", DEV_DIRECT_WMS=False, WMS_URL="https://x/openapi/wms")
+    def test_다른_레이어는_그대로다(self):
+        call = self._sent({"request": "GetMap", "layers": "L_50K_Geology_Map"})
+        self.assertEqual(call.args[0], "https://x/openapi/wms")
+        self.assertEqual(call.kwargs["params"]["layers"], "L_50K_Geology_Map")

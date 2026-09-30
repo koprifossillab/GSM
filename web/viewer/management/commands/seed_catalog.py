@@ -46,6 +46,8 @@ class Command(BaseCommand):
         # 다른 상류의 씨앗 — 그린란드(GEUS·정부 포털, 019), 남극(GeoMAP, 018), 한국의 "지질 참고"(VWorld, 020).
         # 상류를 타지 않고 저장소의 표만 쓴다
         for path, label, region, upstream in (
+                # KIGAM 낱레이어를 엮은 것(층리 뺀 5만 지질도) — 같은 "지질도" 레이어군에 든다
+                (settings.KIGAM_COMPOSED_CATALOG_SEED, "KIGAM 엮은 레이어", "korea", "kigam"),
                 (settings.GEUS_CATALOG_SEED, "그린란드", "greenland", "geus"),
                 (settings.VWORLD_CATALOG_SEED, "VWorld", "korea", "vworld"),
                 (settings.GRPORTAL_CATALOG_SEED, "그린란드 정부 포털", "greenland", "grportal"),

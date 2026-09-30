@@ -47,7 +47,7 @@
   var REGIONS = {
     korea: { title: "한국", proj: "EPSG:3857", center: [127.8, 36.2], zoom: 7, vworld: true,
              base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "L_50K_Geology_Map",
-                    "l_50k_geology_frame_latest", "G_tectonic"],
+                    "L_50K_Geology_Map_NoAttitude", "l_50k_geology_frame_latest", "G_tectonic"],
              first: "L_50K_Geology_Map" },
     greenland: { title: "그린란드", proj: "EPSG:3413", center: [-42.0, 72.0], zoom: 3, vworld: false,
                  home: [-750000, -3450000, 950000, -550000],
@@ -1497,7 +1497,7 @@
 
   /** 카탈로그.
    *
-   *  **기본 지질도 다섯 장만 펼치고 나머지는 모두 "추가 지질도" 안으로
+   *  **기본 지질도 몇 장만 펼치고 나머지는 모두 "추가 지질도" 안으로
    *  접는다.** 61 개를 한 줄로 늘어놓으면 패널이 화면보다 길어져서 아래의
    *  "그리기" 칸이 밀려 안 보인다. 늘 보는 것과 찾아서 켜는 것의 차이를
    *  접기로 나타낸다. 추가 지질도 안에서는 상류의 레이어군을 그대로 쓴다.
