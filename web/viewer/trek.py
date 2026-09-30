@@ -273,16 +273,88 @@ def _terrarium_rgb(value: float) -> tuple:
     return (max(0, min(255, int(r))), g, b)
 
 
-def dem_tile(z: int, x: int, y: int) -> bytes:
-    """표고 격자 한 장 — 65×65 Terrarium PNG. 가장자리 점이 이웃 장과 겹치게 받는다.
+#: 가까이서 쓰는 고운 표고 판 (wetherilli 107) — (서비스, 범위(서, 남, 동, 북), 줌 끝, 배율). 줌 `DEM_MAX_ZOOM` 너머에서만
+#: 쓴다. 판의 한 칸이 격자 한 칸(장 ÷ 64)에 맞는 줌까지다. 모두 경위도 판이다 — 극 평사도법 판(`…_NP`·`86S356E_3mp`)과
+#: 투영 좌표 NAC 둘(02N085E·07N022E)은 뺐다.
+#: 극 5 m 는 **0.5 m 단위 정수를 그대로** 준다(2026-09-30, 18 점이 모두 256 ppd 의 두 배) — 배율 0.5. 자료는 87.5° 너머뿐이라
+#: 범위를 거기로 잡았다. 북극 30 m 판은 한 칸(0.004°)이 256 ppd 와 같아 뺐다.
+DEM_PARTS = (
+    ("LRO_LOLA_DEM_SPole875_5mp_v04_EQ", (-180.0, -90.0, 180.0, -87.55), 11, 0.5),
+    ("LRO_LOLA_DEM_NPole875_5mp_v04_EQ", (-180.0, 87.55, 180.0, 90.0), 11, 0.5),
+    ("LRO_LOLA_DEM_SPole75_30mp_v04_EQ", (-180.0, -90.0, 180.0, -75.05), 10, 1.0),
+    # NAC DTM — 범위는 판의 네모다. 네모 안에서도 띠 밖은 비어 있어 256 ppd 로 메운다
+    ("LRO_NAC_DEM_00N234E_150cmp", (-125.9745, -0.5607, -125.1072, 0.7690), 15, 1.0),
+    ("LRO_NAC_DEM_02S167E_150cmp", (166.5794, -2.9192, 166.9710, -1.7502), 15, 1.0),
+    ("LRO_NAC_DEM_02S317E_150cmp", (-43.3346, -2.9501, -42.9085, -1.8250), 15, 1.0),
+    ("LRO_NAC_DEM_03S286E_150cmp", (-74.5352, -3.6993, -73.7101, -2.5608), 15, 1.0),
+    ("LRO_NAC_DEM_05N000E_150cmp", (-0.5939, 4.1055, -0.1652, 5.3704), 15, 1.0),
+    ("LRO_NAC_DEM_06N120E_200cmp", (119.5579, 5.9841, 120.1013, 7.1090), 15, 1.0),
+    ("LRO_NAC_DEM_07N301E_2mp", (-58.8657, 6.8589, -58.4104, 7.8233), 15, 1.0),
+    ("LRO_NAC_DEM_08N332E_2mp", (-28.0737, 7.0615, -27.1066, 8.7463), 15, 1.0),
+    ("LRO_NAC_DEM_09S015E_150cmp", (15.1403, -9.6470, 15.6962, -8.6196), 15, 1.0),
+    ("LRO_NAC_DEM_10N058E_150cmp", (58.6398, 10.6602, 58.9404, 11.1357), 15, 1.0),
+    ("LRO_NAC_DEM_13N356E_150cmp", (-3.9301, 12.5163, -3.6453, 13.4699), 15, 1.0),
+    ("LRO_NAC_DEM_13S358E_200cmp", (-2.6084, -13.1203, -2.0041, -12.0866), 15, 1.0),
+    ("LRO_NAC_DEM_14N304E_2mp", (-56.1364, 13.2130, -55.6417, 14.1965), 15, 1.0),
+    ("LRO_NAC_DEM_16S041E_150cmp", (40.4706, -16.5958, 41.2195, -15.2778), 15, 1.0),
+    ("LRO_NAC_DEM_17S173E_150cmp", (173.1571, -17.4360, 173.7186, -15.9753), 15, 1.0),
+    ("LRO_NAC_DEM_19N005E_2mp", (5.2291, 18.1295, 5.5045, 19.0863), 15, 1.0),
+    ("LRO_NAC_DEM_19S070E_150cmp", (69.5021, -19.3338, 70.2348, -17.6288), 15, 1.0),
+    ("LRO_NAC_DEM_19S129E_150cmp", (128.2948, -20.1831, 128.8312, -18.7234), 15, 1.0),
+    ("LRO_NAC_DEM_20N010E_2mp", (10.1997, 19.5487, 10.5707, 20.5179), 15, 1.0),
+    ("LRO_NAC_DEM_20S337E_400cmp", (-22.7927, -21.0659, -22.2073, -20.4841), 14, 1.0),
+    ("LRO_NAC_DEM_25N311E_2mp", (-49.0412, 24.0893, -48.4353, 25.2897), 15, 1.0),
+    ("LRO_NAC_DEM_26N004E_150cmp", (3.0272, 25.4546, 3.8496, 26.7641), 15, 1.0),
+    ("LRO_NAC_DEM_26N150E_200cmp", (150.1462, 25.6232, 150.6846, 26.8169), 15, 1.0),
+    ("LRO_NAC_DEM_26N178E_150cmp", (177.5399, 25.6718, 178.0041, 26.4303), 15, 1.0),
+    ("LRO_NAC_DEM_26S265E_200cmp", (-95.7877, -26.7175, -95.0620, -25.4910), 15, 1.0),
+    ("LRO_NAC_DEM_27N318E_150cmp", (-42.0125, 26.7587, -41.5623, 27.7138), 15, 1.0),
+    ("LRO_NAC_DEM_28N307E_150cmp", (-52.7440, 27.2168, -52.1656, 28.4802), 15, 1.0),
+    ("LRO_NAC_DEM_32N292E_2mp", (-68.2808, 31.0044, -66.8543, 32.3601), 15, 1.0),
+    ("LRO_NAC_DEM_36N320E_2mp", (-40.3344, 35.6677, -39.6430, 36.7432), 15, 1.0),
+    ("LRO_NAC_DEM_36S164E_2mp", (164.0231, -36.1359, 164.8637, -34.8575), 15, 1.0),
+    ("LRO_NAC_DEM_37S206E_150cmp", (-153.9540, -37.2488, -153.4460, -36.8352), 15, 1.0),
+    ("LRO_NAC_DEM_43S349E_150cmp", (-11.6454, -43.6577, -10.9236, -42.3481), 15, 1.0),
+    ("LRO_NAC_DEM_51S171E_2mp", (170.5026, -51.6683, 171.4013, -50.3714), 15, 1.0),
+    ("LRO_NAC_DEM_53N354E_150cmp", (-5.4833, 53.0779, -4.8128, 53.5177), 15, 1.0),
+    ("LRO_NAC_DEM_55N077E_200cmp", (76.9027, 53.7778, 77.3971, 54.9353), 15, 1.0),
+    ("LRO_NAC_DEM_60S200E_150cmp", (-160.6817, -60.6431, -159.4890, -59.3179), 15, 1.0),
+    ("LRO_NAC_DEM_61N099E_150cmp", (98.7326, 60.4580, 100.1981, 61.7296), 15, 1.0),
+    ("LRO_NAC_DEM_73N350E_150cmp", (-9.4369, 73.3188, -8.2911, 73.7132), 15, 1.0),
+)
+DEM_FINE_MAX = max(part[2] for part in DEM_PARTS)
 
-    ImageServer 의 `exportImage` 는 픽셀의 **가운데**를 잰다. 격자의 첫 점과 끝 점이 장의
-    가장자리에 오도록 네모를 반 칸씩 넓혀 묻는다 — 안 그러면 장과 장 사이에 금이 간다."""
+
+#: 줌 0(반구 한 장)은 256 ppd 판이 "Unable to complete operation" 으로 받지 않는다(2026-09-30, 0.21.0 부터 운영의 줌 0 이
+#: 502 였다). 65×65 로 줄이면 두 판이 같으니 128 ppd 판으로 받는다
+DEM_Z0_SERVICE = "LRO_LOLA_DEM_Global_128ppd_v04"
+
+
+def dem_source(z: int, x: int, y: int) -> tuple:
+    """그 장을 받을 판 — `(서비스, 배율)`. 캐시 열쇠도 이것을 쓴다."""
+    part = dem_part(z, x, y)
+    if part:
+        return part[0], part[3]
+    return (DEM_Z0_SERVICE if z == 0 else DEM_SERVICE), 1.0
+
+
+def dem_part(z: int, x: int, y: int):
+    """줌 `DEM_MAX_ZOOM` 너머의 한 장에 쓸 고운 판 — 그 장에 걸치고 줌 끝이 넉넉한 것 가운데 가장 고운 것. 없으면 None."""
+    if z <= DEM_MAX_ZOOM:
+        return None
+    w, s, e, n = tile_bbox(z, x, y)
+    got = [part for part in DEM_PARTS
+           if part[2] >= z and part[1][0] < e and part[1][2] > w and part[1][1] < n and part[1][3] > s]
+    return max(got, key=lambda part: part[2]) if got else None
+
+
+def _dem_values(service: str, box: tuple, scale: float = 1.0) -> list:
+    """`exportImage` 로 65×65 표고 — 못 읽은 칸은 None."""
     from PIL import Image
 
-    w, s, e, n = tile_bbox(z, x, y)
+    w, s, e, n = box
     half = (e - w) / (DEM_SIZE - 1) / 2
-    r = _get(f"trekarcgis/rest/services/{DEM_SERVICE}/ImageServer/exportImage", {
+    r = _get(f"trekarcgis/rest/services/{service}/ImageServer/exportImage", {
         "bbox": f"{w - half},{s - half},{e + half},{n + half}", "bboxSR": SR, "imageSR": SR,
         "size": f"{DEM_SIZE},{DEM_SIZE}", "format": "tiff", "pixelType": "F32",
         "interpolation": "RSP_BilinearInterpolation", "f": "image",
@@ -294,10 +366,30 @@ def dem_tile(z: int, x: int, y: int) -> bytes:
         raise TrekError(f"표고 TIFF 를 읽지 못했다: {exc}") from exc
     if image.mode != "F" or image.size != (DEM_SIZE, DEM_SIZE):
         raise TrekError(f"표고의 꼴이 다르다 ({image.mode}, {image.size})")
-    values = list(image.getdata())
+    # 자료 밖은 아주 큰 음수이거나, 정수 판이면 −32768 이다
+    return [v * scale if -20000 < v < 20000 and v != -32768 and not math.isnan(v) else None for v in image.getdata()]
+
+
+def dem_tile(z: int, x: int, y: int) -> bytes:
+    """표고 격자 한 장 — 65×65 Terrarium PNG. 가장자리 점이 이웃 장과 겹치게 받는다.
+
+    ImageServer 의 `exportImage` 는 픽셀의 **가운데**를 잰다. 격자의 첫 점과 끝 점이 장의
+    가장자리에 오도록 네모를 반 칸씩 넓혀 묻는다 — 안 그러면 장과 장 사이에 금이 간다.
+
+    줌 `DEM_MAX_ZOOM` 까지는 온 달 판(256 ppd), 그 너머는 고운 판(`dem_part`)이고 그 판의 빈 칸은 온 달 판으로
+    메운다 (wetherilli 107). 고운 판이 없는 자리는 부르는 쪽이 묻지 않는다(`views.moon_dem` 이 404)."""
+    from PIL import Image
+
+    box = tile_bbox(z, x, y)
+    part = dem_part(z, x, y)
+    service, scale = dem_source(z, x, y)
+    values = _dem_values(service, box, scale)
+    if part and any(v is None for v in values):
+        base = _dem_values(DEM_SERVICE, box)
+        values = [v if v is not None else b for v, b in zip(values, base)]
     out = Image.new("RGB", (DEM_SIZE, DEM_SIZE))
-    # 자료 밖(아주 큰 음수)은 0 m 로 둔다 — 구멍보다 평평한 것이 낫다
-    out.putdata([_terrarium_rgb(v if -20000 < v < 20000 and not math.isnan(v) else 0.0) for v in values])
+    # 그래도 빈 칸은 0 m 로 둔다 — 구멍보다 평평한 것이 낫다
+    out.putdata([_terrarium_rgb(v if v is not None else 0.0) for v in values])
     buf = io.BytesIO()
     out.save(buf, "PNG")
     return buf.getvalue()

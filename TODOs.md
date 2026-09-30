@@ -134,7 +134,9 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
       극지 광물·얼음 깊이(`sp_feo_mlemelin_031417`·`*_ice_depth_*`)는 2026-09-30 에 502 라 뺐다. 다누리 KGRS 열중성자
       (`KPLO_KGRS_Thermal_Neutron_2ppd`)는 씨앗에 판이 없어 못 켠다 — 단위를 확인하고 판을 세울지. 점묶음 열(새 JSONField,
       이주)은 아직. Kaguya 는 JAXA 조건(043)
-- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 온 달은 256 ppd 다(wetherilli 083). 장마다 원천을 고른다. 하루. 경계의 턱
+- [ ] 고운 지형 — 남은 것. 극 5 m·남극 30 m·NAC 38 곳은 섰다(wetherilli 107). 극 평사도법 판 둘(`LRO_NAC_DEM_73N350E_150cmp_NP`·
+      `86S356E_3mp`)과 투영 좌표 NAC 둘(02N085E·07N022E), 아폴로 PanCam·메트릭 카메라 DEM 은 아직. NAC 판과 256 ppd 사이 턱은
+      평균 0–8 m(20N010E 가 8 m 낮다) — 거슬리면 판마다 높이를 맞춘다
 
 ### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
 

@@ -188,6 +188,8 @@ def moon_view(request):
         "lang": lang,
         "pointsets": _script_json(_pointset_list("moon")),
         "trek_catalog": _script_json(trek.client_catalog("moon")),   # Trek 판 목록 (060)
+        # 가까이서 쓰는 고운 표고 판의 범위·줌 끝 — 화면이 그 자리에서만 깊은 줌을 묻는다 (wetherilli 107)
+        "dem_parts": _script_json([[*part[1], part[2]] for part in trek.DEM_PARTS]),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("moon", 1)[0],
         "version": VERSION,
@@ -297,9 +299,11 @@ def moon_dem(request, z, x, y):
     못 받으면 502 다. 화면은 그 자리를 평평하게 그린다 — 안내 타일을 표고로 읽으면
     엉뚱한 산이 솟는다."""
     z, x, y = int(z), int(x), int(y)
-    if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM):
+    # 줌 `DEM_MAX_ZOOM` 너머는 고운 판(극 5 m·NAC)이 걸친 장만 있다 (wetherilli 107)
+    part = trek.dem_part(z, x, y) if trek.valid_tile(z, x, y, trek.DEM_FINE_MAX) else None
+    if not trek.valid_tile(z, x, y, trek.DEM_MAX_ZOOM) and part is None:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    key = tilecache.key_text("trek-dem", f"{trek.DEM_SERVICE}/{z}/{x}/{y}")
+    key = tilecache.key_text("trek-dem", f"{trek.dem_source(z, x, y)[0]}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _tile(hit, cached=True)
