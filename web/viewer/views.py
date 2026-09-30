@@ -1760,6 +1760,9 @@ def _pointset_summary(ps):
         "lines": shapes.count("line"),
         "polygons": shapes.count("polygon"),
         "elevated": elevated,
+        # VWorld 둘레(074) — 물을 만한 점(대한민국 둘레)과 이미 채운 점
+        "korean": _korean_points(ps).count(),
+        "placed": ps.points.exclude(place={}).count(),
     }
 
 
@@ -1811,6 +1814,7 @@ def pointset_upload(request):
             for p in points if "geometry" in p
         ])
 
+    _auto_places(pointset)
     summary = _pointset_summary(pointset)
     log.info("점묶음 '%s' 생겼다 — 점 %d, 선 %d, 면 %d", pointset.name,
              summary["count"], summary["lines"], summary["polygons"])
@@ -1887,6 +1891,7 @@ def pointset_create(request):
             for s in shapes
         ])
 
+    _auto_places(pointset)
     log.info("찍은 점 %d개·모양 %d개를 '%s' 로 저장했다", len(points), len(shapes), pointset.name)
     return JsonResponse({"pointset": _pointset_summary(pointset)})
 
@@ -1907,6 +1912,7 @@ def _point_props(p, depth=None) -> dict:
     if p.elev is not None:
         props[ELEV_PROP] = round(p.elev, 1)
         props[ELEV_SOURCE_PROP] = p.elev_source
+    props.update(_place_props(p.place))
     if depth and "bed" in depth:
         props[IBCSO_BED_PROP] = depth["bed"]
         if "ice" in depth and depth["ice"] - depth["bed"] > 1:
@@ -1994,6 +2000,98 @@ def pointset_restore(request, pk):
     ps, _, _ = pointsets.restore(gone)
     log.info("지운 점묶음 '%s' 을 되살렸다 (%s)", ps.name, _client(request))
     return JsonResponse({"pointset": _pointset_summary(ps)})
+
+
+#: VWorld 둘레(074)를 GeoJSON·팝업에 싣는 이름. "(VWorld)" 를 붙여 원본의 `주소` 열과 부딪히지 않게 한다.
+#: 되살리기(`pointsets.restore`)가 이 이름들을 떼어 제 칸(`Point.place`)으로 돌린다
+PLACE_PROPS = (("road", "도로명(VWorld)"), ("parcel", "지번(VWorld)"), ("emd", "읍면동(VWorld)"))
+FAULT_PROP, PLACENAME_PROP = "가까운 단층(VWorld, m)", "둘레 지명(VWorld)"
+
+
+def _place_props(place: dict) -> dict:
+    out = {label: place[key] for key, label in PLACE_PROPS if place.get(key)}
+    if place.get("fault_m") is not None:
+        out[FAULT_PROP] = place["fault_m"]
+    if place.get("place"):
+        out[PLACENAME_PROP] = f"{place['place']} · {place['place_m']} m"
+    return out
+
+
+def _korean_points(ps):
+    """VWorld 에 물을 만한 점 — 지구 점묶음의 대한민국 둘레(`vworld.KOREA_BOX`)."""
+    if ps.body != "earth":
+        return ps.points.none()
+    w, s_, e, n = vworld.KOREA_BOX
+    return ps.points.filter(lat__gte=s_, lat__lte=n, lon__gte=w, lon__lte=e)
+
+
+#: 한 번의 요청 안에서 VWorld 에 묻는 점의 수. 한 점에 넷을 묻는다. 넘으면 명령(`fill_places`)으로
+PLACES_IN_REQUEST = 50
+#: 올리거나 찍을 때 곧바로 묻는 점의 수. 넘으면 사람이 📍 를 누른다 — 올리기가 느려지지 않게
+PLACES_AUTO = 20
+#: 점과 점 사이(초). 한도를 재지 않는 빠르기로 간다(010)
+PLACES_PAUSE = 0.2
+
+
+def fill_places(pointset, *, only_missing: bool = False, pause: float = PLACES_PAUSE) -> tuple:
+    """점묶음의 한국 점마다 VWorld 둘레를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
+    다시 부르면 덮는다. 한 점이 실패해도 나머지는 간다 — 다 실패하면 첫 오류를 올린다."""
+    import time
+    from django.utils import timezone
+    points = _korean_points(pointset)
+    if only_missing:
+        points = points.filter(place={})
+    rows = list(points)
+    filled, errors = [], []
+    today = timezone.localdate().isoformat()
+    for index, p in enumerate(rows):
+        if index and pause:
+            time.sleep(pause)
+        try:
+            facts = vworld.point_facts(p.lat, p.lon)
+        except vworld.VWorldError as exc:
+            errors.append(exc)
+            continue
+        p.place = dict(facts, at=today)
+        filled.append(p)
+    Point.objects.bulk_update(filled, ["place"])
+    if rows and not filled and errors:
+        raise errors[0]
+    return len(filled), len(rows) - len(filled)
+
+
+def _auto_places(pointset):
+    """올리거나 찍은 점이 적으면 곧바로 둘레를 채운다(074). 실패해도 점묶음은 생긴다."""
+    if not vworld.enabled():
+        return
+    n = _korean_points(pointset).count()
+    if not n or n > PLACES_AUTO:
+        return
+    try:
+        fill_places(pointset)
+    except vworld.VWorldError as exc:
+        log.info("둘레를 채우지 못했다 (%s): %s", pointset.id, exc)
+
+
+@require_POST
+def pointset_places(request, pk):
+    """`POST pointsets/<번호>/places/` — 한국 점마다 주소·읍면동·가까운 단층·둘레 지명을 채운다 (074)."""
+    lang = i18n.lang_of(request)
+    ps = PointSet.objects.filter(pk=pk).first()
+    if ps is None:
+        return JsonResponse({"error": i18n.t(msg("그런 점묶음이 없다"), lang)}, status=404)
+    if not vworld.enabled():
+        return JsonResponse({"error": i18n.t(msg("VWorld 열쇠가 없다"), lang)}, status=503)
+    if _korean_points(ps).count() > PLACES_IN_REQUEST:
+        return JsonResponse({"error": i18n.t(msg("점이 많아 화면에서 채우지 않는다 — 서버에서 "
+                                                 "manage.py fill_places {id} 를 부른다", id=ps.id), lang)},
+                            status=400)
+    try:
+        filled, missed = fill_places(ps)
+    except vworld.VWorldError as exc:
+        log.warning("둘레를 채우지 못했다 (%s): %s", ps.id, exc)
+        return JsonResponse({"error": i18n.t(msg("VWorld 에서 받지 못했다"), lang)}, status=502)
+    return JsonResponse({"filled": filled, "missed": missed, "pointset": _pointset_summary(ps)})
 
 
 #: 한 번의 요청 안에서 채우는 점의 수. 넘으면 명령(`fill_elevation`)으로 채운다.

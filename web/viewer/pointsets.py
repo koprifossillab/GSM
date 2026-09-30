@@ -390,6 +390,30 @@ ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
                "mola-hrsc-200m": "mars-areoid"}
 
 
+#: VWorld 둘레(074)의 이름 — `views.PLACE_PROPS` 와 같다. 이 파일은 뷰를 모르게 두려고 옮겨 적었다
+_PLACE_NAMES = {"도로명(VWorld)": "road", "지번(VWorld)": "parcel", "읍면동(VWorld)": "emd"}
+
+
+def _place_from(props: dict) -> dict:
+    """사본에 실린 VWorld 둘레를 떼어 `Point.place` 로 돌린다. `props` 에서 지운다."""
+    place = {}
+    for label, key in _PLACE_NAMES.items():
+        value = props.pop(label, None)
+        if value:
+            place[key] = str(value)
+    fault = props.pop("가까운 단층(VWorld, m)", None)
+    if isinstance(fault, (int, float)):
+        place["fault_m"] = round(fault)
+    near = props.pop("둘레 지명(VWorld)", None)
+    if isinstance(near, str) and " · " in near and near.endswith(" m"):
+        name, dist = near.rsplit(" · ", 1)
+        try:
+            place["place"], place["place_m"] = name, int(dist[:-2])
+        except ValueError:
+            pass
+    return place
+
+
 def restore(gone):
     """지운 기록(`PointSetDeletion`)의 사본으로 점묶음을 되살린다.
 
@@ -415,11 +439,14 @@ def restore(gone):
             # IBCSO 수심(070)은 부를 때마다 격자에서 읽어 붙이는 것이다 — 원본의 열이 아니다
             props.pop("해저·빙저(IBCSO)", None)
             props.pop("얼음 두께(IBCSO)", None)
+            place = _place_from(props)
             if geom.get("type") == "Point":
                 lon, lat = geom["coordinates"][:2]
                 extra = {}
                 if isinstance(elev, (int, float)) and source in ELEV_DATUMS:
                     extra = {"elev": float(elev), "elev_source": source, "elev_datum": ELEV_DATUMS[source]}
+                if place:
+                    extra["place"] = place
                 Point.objects.create(pointset=ps, lat=lat, lon=lon, label=label, props=props, **extra)
                 points += 1
             elif geom.get("type") in SHAPE_KINDS:

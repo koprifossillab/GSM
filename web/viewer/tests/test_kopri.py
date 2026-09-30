@@ -216,3 +216,48 @@ class WmsProps(SimpleTestCase):
     def test_이름표가_없으면_그대로(self):
         from viewer import kopri
         self.assertEqual(kopri._wms_props({"fid": 1, "a": 2}, ()), {"a": 2})
+
+
+class Arctic(SimpleTestCase):
+    """KPDC 자료의 북극 — 스발바르·그린란드 탭에 주제마다 한 벌 (075)."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.enterContext(override_settings(KOPRI_DIR=self.dir.name))
+        atmo = ["EARTH SCIENCE > ATMOSPHERE > AEROSOLS"]
+        kopri.save("kpdc", {"records": {
+            # 다산기지 — 스발바르에만
+            "ny": {"c": "KPDC", "title": "Aerosol at Dasan", "keywords": atmo,
+                   "shapes": [["POINT", [(78.92, 11.93)]]]},
+            # 남극과 스발바르 두 곳 — 스발바르 탭에는 스발바르의 것만 그린다
+            "both": {"c": "KPDC", "title": "Both poles", "keywords": atmo,
+                     "shapes": [["POINT", [(-62.22, -58.79)]], ["POINT", [(78.9, 11.9)]]]},
+            # 축치해 항해 — 어느 탭에도 들지 않는다
+            "chukchi": {"c": "KPDC", "title": "ARAON Chukchi", "keywords": atmo,
+                        "shapes": [["POINT", [(73.0, -168.0)]]]},
+            # 그린란드 북부
+            "nord": {"c": "KPDC", "title": "Sirius Passet", "keywords": ["EARTH SCIENCE > PALEOCLIMATE > X"],
+                     "shapes": [["POINT", [(82.79, -42.23)]]]},
+        }})
+
+    def ids(self, name):
+        return sorted(f["id"] for f in json.loads(kopri.file_body(name))["features"])
+
+    def test_탭마다_제_범위만(self):
+        self.assertEqual(self.ids("kopri:kpdc_atmo_svalbard"), ["both#0", "ny#0"])
+        both = [f for f in json.loads(kopri.file_body("kopri:kpdc_atmo_svalbard"))["features"]
+                if f["id"] == "both#0"][0]
+        self.assertEqual(both["geometry"]["coordinates"], [11.9, 78.9])     # 남극의 점은 싣지 않는다
+        self.assertEqual(self.ids("kopri:kpdc_atmo_greenland"), [])
+        self.assertEqual(self.ids("kopri:kpdc_paleo_greenland"), ["nord#0"])
+
+    def test_남극은_그대로(self):
+        south = json.loads(kopri.file_body("kopri:kpdc_atmo"))["features"]
+        self.assertEqual([f["geometry"]["coordinates"] for f in south], [[-58.79, -62.22]])
+
+    def test_씨앗의_레이어는_코드가_안다(self):
+        from django.conf import settings
+        for path in settings.KOPRI_CATALOG_SEEDS:
+            for row in json.loads(path.read_text(encoding="utf-8"))["레이어"]:
+                self.assertTrue(kopri.knows(row["name"]) or kopri.knows_wms(row["name"]), row["name"])

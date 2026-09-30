@@ -137,6 +137,10 @@ class Point(models.Model):
     elev = models.FloatField("표고 (m)", null=True, blank=True)
     elev_source = models.CharField("표고 출처", max_length=40, blank=True)
     elev_datum = models.CharField("높이 기준", max_length=20, blank=True)
+    # VWorld 에서 읽은 둘레(074) — 도로명·지번·읍면동·가장 가까운 단층·둘레 지명. 표고처럼 `props` 에
+    # 넣지 않는다 — 원본의 `주소` 열과 섞이면 어느 것이 적은 것인지 가를 수 없다. 키는 `vworld.point_facts`
+    # 의 것에 받은 날(`at`)을 더한다. 비어 있으면 아직 묻지 않은 것이다
+    place = models.JSONField("둘레 (VWorld)", default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]

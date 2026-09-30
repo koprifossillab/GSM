@@ -3420,6 +3420,31 @@
         });
       });
 
+      // VWorld 에서 한국 점마다 도로명·지번·읍면동·가장 가까운 단층·둘레 지명을 읽어 채운다(074).
+      // 점이 적으면 올릴 때 이미 채웠다. 원본의 `주소` 열은 건드리지 않고 "(VWorld)" 칸으로 따로 싣는다
+      var place = null;
+      if (vworldKey && ps.korean) {
+        place = iconButton("📍", T("둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명을 읽는다 ({n}/{m}점 채움)",
+                                   { n: ps.placed || 0, m: ps.korean }), false, function () {
+          place.disabled = true;
+          post(BASE + "pointsets/" + ps.id + "/places/").then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              if (!r.ok) throw new Error(d.error || "");
+              return d;
+            });
+          }).then(function (d) {
+            place.disabled = false;
+            if (d.pointset) Object.assign(ps, d.pointset, { visible: ps.visible });
+            if (pointLayers[ps.id]) pointLayers[ps.id].getSource().refresh();
+            alert(T("{n}점 채움 · {m}점은 받지 못했다", { n: d.filled, m: d.missed }));
+            renderPointSets();
+          }).catch(function (e) {
+            place.disabled = false;
+            alert((e && e.message) || T("VWorld 에서 받지 못했다"));
+          });
+        });
+      }
+
       // 올린 것을 GeoJSON 으로 돌려받는다. 원래 CSV 였어도 위경도와 속성이
       // 그대로 나온다 — QGIS 에 곧장 얹을 수 있다
       var save = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
@@ -3442,7 +3467,9 @@
       var label = document.createElement("span");
       label.className = "ps-text";
       label.append(name, count);
-      li.append(box, swatch, label, zoom, elev, save, del);
+      li.append(box, swatch, label, zoom, elev);
+      if (place) li.append(place);
+      li.append(save, del);
       host.appendChild(li);
     });
   }

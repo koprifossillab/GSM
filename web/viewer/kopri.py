@@ -283,9 +283,16 @@ TOPICS = (
     ("bio", "생물", "#66a61e", ("BIOSPHERE", "BIOLOGICAL CLASSIFICATION", "AGRICULTURE")),
     ("other", "그 밖", "#6b6b6b", ()),
 )
+#: 북극은 탭마다 한 벌이다 — 범위는 암석 시료와 같다 (075). 두 탭 밖의 북극 자료(축치해·베링해 항해,
+#: 캐나다 케임브리지베이 따위)는 싣지 않는다 — 그 자리를 보는 탭이 없다
+ARCTIC_BOXES = {"svalbard": LAYERS["kopri:rock_svalbard"]["box"],
+                "greenland": LAYERS["kopri:rock_greenland"]["box"]}
 for _code, _label, _color, _words in TOPICS:
     LAYERS[f"kopri:kpdc_{_code}"] = {"from": "kpdc", "collection": "KPDC", "topic": _code,
                                      "box": (-180, -90, 180, -50)}
+    for _region, _box in ARCTIC_BOXES.items():
+        LAYERS[f"kopri:kpdc_{_code}_{_region}"] = {"from": "kpdc", "collection": "KPDC", "topic": _code,
+                                                   "box": _box}
 
 #: 이보다 넓은 범위(경도 60° 또는 위도 20° 넘게)는 그리지 않는다 — 남극 전체·남빙양 전체를 덮는
 #: 위성 자료가 대륙을 네모로 덮어 다른 것을 가린다. 그런 자료는 KPDC 에서 찾는 편이 낫다

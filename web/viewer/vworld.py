@@ -145,18 +145,153 @@ def reverse(lat: float, lon: float) -> dict:
     바다 한가운데처럼 주소가 없는 자리는 VWorld 가 `NOT_FOUND` 를 준다.
     """
     try:
-        result = _get(ADDRESS_URL, {"service": "address", "request": "getAddress",
-                                    "type": "both", "point": f"{lon},{lat}"})
+        out = _reverse(lat, lon)
     except VWorldError:
         usage.record("vworld", ok=False)
         raise
     usage.record("vworld", ok=True)
+    return out
+
+
+def _reverse(lat: float, lon: float) -> dict:
+    """`reverse` 의 속 — 세지 않는다. 스레드 안에서 부르는 `point_facts` 가 쓴다."""
+    result = _get(ADDRESS_URL, {"service": "address", "request": "getAddress",
+                                "type": "both", "point": f"{lon},{lat}"})
     out = {"road": "", "parcel": ""}
     rows = result if isinstance(result, list) else []
     for row in rows:
         kind = (row.get("type") or "").lower()
         if kind in out and not out[kind]:
             out[kind] = row.get("text") or ""
+    return out
+
+
+# ── 점 하나로 묻는 것 — 시료 지점에 붙인다 (074) ────────────────────────
+#
+# 데이터 API 가 `geomFilter=POINT(경도 위도)` + `buffer=미터` 를 받는다(004). 한 점에 넷을 묻는다 —
+# 좌표→주소(위 `reverse`), 읍면동, 가장 가까운 단층, 둘레 국가지명. 단층·지명은 이름 대신 거리가 쓸모라
+# 기하를 받아 우리가 잰다(평면 근사 — 20 km 안이라 1% 안쪽이다).
+#
+# **함정**: 데이터 API 의 자료 이름이 WMS 레이어명과 다르다 — `LT_C_ADEMD` 는 `INVALID_RANGE` 로 멈추고
+# `LT_C_ADEMD_INFO` 라야 돈다(004).
+
+DATA_URL = "https://api.vworld.kr/req/data"
+#: 이 안에서 단층을 찾는다. 넘으면 "없다" 가 아니라 "20 km 안에 없다" 다
+FAULT_BUFFER = 20000
+#: 이 안에서 국가지명을 찾는다. 1 km 로는 도심에서 빈 곳이 많았다(2026-09-30)
+PLACE_BUFFER = 2000
+#: VWorld 가 아는 땅 — 대한민국 둘레. 밖이면 묻지 않는다(바다·북한·해외는 NOT_FOUND 뿐이다)
+KOREA_BOX = (124.0, 33.0, 132.0, 38.7)
+
+
+def in_korea(lat: float, lon: float) -> bool:
+    w, s, e, n = KOREA_BOX
+    return w <= lon <= e and s <= lat <= n
+
+
+def _features(data: str, lat: float, lon: float, *, buffer=None, geometry=False, size=10) -> list:
+    params = {"service": "data", "request": "GetFeature", "data": data, "size": size, "page": 1,
+              "geometry": "true" if geometry else "false", "attribute": "true",
+              "geomFilter": f"POINT({lon} {lat})"}
+    if buffer:
+        params["buffer"] = buffer
+    result = _get(DATA_URL, params)
+    return ((result or {}).get("featureCollection") or {}).get("features") or []
+
+
+def _meters(lat0: float, lon0: float, lat: float, lon: float) -> tuple:
+    """(lat0, lon0) 를 원점으로 한 평면 근사 (동, 북) 미터."""
+    import math
+    k = 111320.0
+    return (lon - lon0) * k * math.cos(math.radians(lat0)), (lat - lat0) * 110540.0
+
+
+def _to_segment(p, a, b) -> float:
+    import math
+    (px, py), (ax, ay), (bx, by) = p, a, b
+    dx, dy = bx - ax, by - ay
+    t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - ax - t * dx, py - ay - t * dy)
+
+
+def _lines(geometry) -> list:
+    kind, coords = (geometry or {}).get("type"), (geometry or {}).get("coordinates") or []
+    if kind == "LineString":
+        return [coords]
+    if kind == "MultiLineString":
+        return coords
+    return []
+
+
+def nearest_fault_m(lat: float, lon: float, features: list):
+    """단층 선들 가운데 가장 가까운 것까지의 거리(m). 없으면 None."""
+    best = None
+    for f in features:
+        for line in _lines(f.get("geometry")):
+            pts = [_meters(lat, lon, y, x) for x, y in line]
+            for a, b in zip(pts, pts[1:] or pts):
+                d = _to_segment((0.0, 0.0), a, b)
+                best = d if best is None or d < best else best
+    return best
+
+
+def nearest_place(lat: float, lon: float, features: list):
+    """국가지명 점들 가운데 가장 가까운 것 (이름, 거리 m). 없으면 None."""
+    import math
+    best = None
+    for f in features:
+        name = ((f.get("properties") or {}).get("land_kpyo") or "").strip()
+        coords = ((f.get("geometry") or {}).get("coordinates")) or []
+        if coords and isinstance(coords[0], list):          # MultiPoint
+            coords = coords[0]
+        if not name or len(coords) < 2:
+            continue
+        d = math.hypot(*_meters(lat, lon, coords[1], coords[0]))
+        if best is None or d < best[1]:
+            best = (name, d)
+    return best
+
+
+def point_facts(lat: float, lon: float) -> dict:
+    """한 점의 둘레 — `{"road", "parcel", "emd", "fault_m", "place", "place_m"}`. 모르는 것은 빠진다.
+
+    넷을 한꺼번에 묻는다(`search` 와 같다). 하나가 실패해도 나머지는 돌려주고, 다 실패하면 `VWorldError`."""
+    jobs = {
+        "address": lambda: _reverse(lat, lon),
+        "emd": lambda: _features("LT_C_ADEMD_INFO", lat, lon, size=1),
+        "fault": lambda: _features("LT_L_GIMSFAULT", lat, lon, buffer=FAULT_BUFFER, geometry=True, size=100),
+        "place": lambda: _features("LT_P_NSNMSSITENM", lat, lon, buffer=PLACE_BUFFER, geometry=True, size=50),
+    }
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        futures = {name: pool.submit(fn) for name, fn in jobs.items()}
+    out, errors = {}, []
+    for name, future in futures.items():
+        try:
+            got = future.result()
+        except VWorldError as exc:
+            errors.append(exc)
+            continue
+        if name == "address":
+            out.update({k: v for k, v in got.items() if v})
+        elif name == "emd" and got:
+            full = (got[0].get("properties") or {}).get("full_nm")
+            if full:
+                out["emd"] = full
+        elif name == "fault":
+            d = nearest_fault_m(lat, lon, got)
+            if d is not None:
+                out["fault_m"] = round(d)
+        elif name == "place":
+            hit = nearest_place(lat, lon, got)
+            if hit:
+                out["place"], out["place_m"] = hit[0], round(hit[1])
+    # 스레드 안에서 세지 않는다 — DB 연결이 스레드마다 생긴다(`search` 와 같다)
+    if len(errors) < len(jobs):
+        usage.record("vworld", ok=True, count=len(jobs) - len(errors))
+    if errors:
+        usage.record("vworld", ok=False, count=len(errors))
+    if errors and len(errors) == len(jobs):
+        raise errors[0]
     return out
 
 
