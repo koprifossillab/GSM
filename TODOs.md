@@ -59,9 +59,6 @@
 - [ ] (사람) 창어 2 호(CE-2 CCD, CNSA/CLEP) 정사 모자이크의 이용 조건 — 극 평면의 고해상 배경이다. Trek 을 거쳐
       받지만 자료의 주인은 중국 달 탐사 계획이다. 밖에 열기 전에 (052)
 - [ ] (사람) 달 Trek 판 한글 제목 초안(몸 전체를 덮는 114 판)을 읽고 고친다 — `data/moon_trek_layers.json` 의 `ko` (060)
-- [x] 화성 지역 지질도를 옛 지질도에 더했다 — SIM 2888·I-2650·MTM 열하나 (wetherilli 079)
-- [ ] 이 PR 이 운영에 오르면 `/srv/GSM/db/mars/mars_originals.sqlite` 를 다시 굽는다 — NAS `sources/mars/geology/` 의
-      zip 을 모두 `build_mars_originals` 에 준다. 그 전에 구우면 068 의 코드가 지역도를 누를 때 넘어진다 (wetherilli 079)
 - [ ] (사람) SPA 지질도 원본(Zenodo 10.5281/zenodo.19728952 의 `GeoMap.tif.zip`·`Mapplate.zip`)을 NAS `sources/moon/` 에 둔다.
       운영 `db/moon/` 에는 두었다 (wetherilli 081)
 - [ ] 극 평면의 Trek 판 — 적도 판을 옮겨 그려 극 가까이가 성기다. SPA 지질도처럼 `_SP`·`_NP` 판이 있는 것은 그것을 (wetherilli 081)
