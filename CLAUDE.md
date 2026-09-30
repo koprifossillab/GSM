@@ -209,7 +209,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   지질도는 Macrostrat(`macrostrat.py`, CC BY 4.0)이고, 배경(NASA GIBS Blue Marble)·표고(AWS Terrarium)는 브라우저가
   곧장 부른다. 평면은 경위도(4326) 그대로이고 위도 65° 너머는 지역 탭과 같은 3413·3031 이다. **carto 는 한 대역
   아래만 채워**(세계 지질도뿐인 한반도는 줌 6 부터 빈다) 서버가 더 거친 대역의 타일을 늘려 밑에 깐다
-  (`macrostrat.fill`). 까는 법을 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다. 점묶음은 지역 탭의 것(`earth`)을 같이 읽는다.
+  (`macrostrat.fill`) — 가장 가까운 칸으로 늘리면 계단이 져서 **색마다 매끄럽게** 늘린다(`macrostrat.enlarge`, wetherilli 105).
+  까는 법을 고치면 `views.MACROSTRAT_FILL_VERSION` 을 올린다. 점묶음은 지역 탭의 것(`earth`)을 같이 읽는다.
   누른 자리는 **그때의 자리**(`paleo.py`, wetherilli 087)도 보인다 — PALEOMAP 2016 판 회전(`data/paleomap2016.json`, CC BY 4.0,
   `manage.py build_paleomap <zip>`)으로 단위의 윗·밑 연대나 사람이 넣은 연대로 옮긴다. EarthThruTime3D 와 같은 모델·같은 줄임이다 —
   건너갔을 때 같은 자리에 핀이 서게. 셈은 ETT 의 코드(MIT, `docs/licenses/`)를 옮겼다. **계산이지 관측이 아니다**.

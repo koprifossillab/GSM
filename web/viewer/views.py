@@ -984,7 +984,7 @@ def earth_tile(request, z, x, y):
     return response
 
 
-MACROSTRAT_FILL_VERSION = "1"
+MACROSTRAT_FILL_VERSION = "2"                  # 2 — 조상을 색마다 매끄럽게 늘린다 (wetherilli 105)
 
 
 def _macrostrat_raw(z, x, y) -> bytes:
