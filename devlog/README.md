@@ -121,3 +121,4 @@
 | wetherilli 088 | 2026-09-30 | [온 지구 — 그때의 자리를 EarthThruTime3D 에서 본다](20260930_wetherilli_088_ett_link.md) |
 | wetherilli 089 | 2026-09-30 | [그린란드 포털 — 면과 갈래 색을 받는 틀, 그리고 레이어 넷](20260930_wetherilli_089_greenland_portal_areas.md) |
 | wetherilli P07 | 2026-09-30 | [온 지구 — 시간 축, 그리고 그 위에 얹을 일곱 (계획)](20260930_wetherilli_P07_earth_time_axis.md) |
+| wetherilli 092 | 2026-09-30 | [극지 배경 — PGC 음영의 다른 그리는 법 둘](20260930_wetherilli_092_pgc_hillshade_variants.md) |
