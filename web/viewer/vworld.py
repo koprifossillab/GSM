@@ -488,6 +488,39 @@ FRIENDLY = {
     "sig_kor_nm": "시군구",
     "emd_kor_nm": "읍면동",
     "li_kor_nm": "리",
+    # 보호구역·재해 지구 — 용도지역 꼴(`ucode`·`uname`)이 같다. 2026-09-30 에 모았다
+    # (wetherilli 084). `uname` 은 위의 "지구" 가 받는다
+    "remark": "비고",
+    "alias": "세부",
+    "dyear": "지정 연도",
+    "park_name": "공원",
+    "name": "이름",
+    # 해양보호구역
+    "mpa_nam": "보호구역",
+    "gos_num": "고시",
+    "gos_dat": "고시일",
+    "law": "근거 법",
+    "mng_org": "관리 기관",
+    "loc": "위치",
+    "ara_siz": "면적 (km²)",
+    # 공역 — `*_lbl_1` 이 이름, `_2`·`_3` 이 윗·아랫 고도다. 글꼴이 섞인 열(`prohibited`)은 뺀다
+    "prh_lbl_1": "공역",
+    "res_lbl_1": "공역",
+    "dng_lbl_1": "공역",
+    "uac_lbl_1": "공역",
+    "ctr_lbl_1": "공역",
+    "prh_lbl_2": "상한 고도",
+    "res_lbl_2": "상한 고도",
+    "dng_lbl_2": "상한 고도",
+    "uac_lbl_2": "상한 고도",
+    "prh_lbl_3": "하한 고도",
+    "res_lbl_3": "하한 고도",
+    "dng_lbl_3": "하한 고도",
+    "uac_lbl_3": "하한 고도",
+    # 유역
+    "bbsnnm": "대권역",
+    "mbsnnm": "중권역",
+    "sbsnnm": "표준유역",
 }
 
 
@@ -498,6 +531,13 @@ LAYER_FRIENDLY = {
     "lt_l_gimspoten": {"legend": "지하수위 표고 (m)", "info": None},
     "lt_l_gimsec": {"legend": "전기전도도 (µS/cm)"},
     "lt_l_gimsdepth": {"legend": "지하수 등수심 (m)", "info": None},
+    # 정밀토양도 넷은 모두 `label` 에 값을 싣는다 — 레이어마다 뜻이 다르다
+    "lt_c_asitsoildep": {"label": "유효토심 (cm)"},
+    "lt_c_asitsurston": {"label": "자갈 함량 (%)"},
+    "lt_c_asitdeepsoil": {"label": "심토 토성"},
+    "lt_c_asitsoildra": {"label": "배수 등급"},
+    # 산림입지도의 `name` 은 산림토양형이다
+    "lt_c_fsdifrsts": {"name": "산림토양", "toyanghyun": "토양형 기호"},
 }
 
 
@@ -508,6 +548,8 @@ def friendly(props: dict, layer: str = "") -> dict:
     for key, value in props.items():
         name = table.get(str(key).lower())
         if not name or value in (None, "", "null"):
+            continue
+        if name == "지정 연도" and str(value) == "0000":    # 모르는 해를 0000 으로 적는다
             continue
         if name == "길이 (m)":
             try:

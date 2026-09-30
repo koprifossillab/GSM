@@ -87,7 +87,22 @@ class Friendly(SimpleTestCase):
         self.assertEqual(vworld.friendly(FAULT["properties"]), {"구분": "1", "길이 (m)": "731"})
 
     def test_표에_없는_열뿐이면_그대로_둔다(self):
-        self.assertEqual(vworld.friendly({"park_name": "계룡산"}), {"park_name": "계룡산"})
+        self.assertEqual(vworld.friendly({"mnum": "138000044150"}), {"mnum": "138000044150"})
+
+    def test_토양도의_label_은_레이어마다_뜻이_다르다(self):
+        props = {"code_ad": 4, "label": ">100"}
+        self.assertEqual(vworld.friendly(props, "lt_c_asitsoildep"), {"유효토심 (cm)": ">100"})
+        self.assertEqual(vworld.friendly(props, "LT_C_ASITSOILDRA"), {"배수 등급": ">100"})
+
+    def test_모르는_지정_연도는_싣지_않는다(self):
+        props = {"dyear": "0000", "ucode": "UOC530", "uname": "문화재자료구역", "sigg_name": "고성군"}
+        self.assertEqual(vworld.friendly(props, "lt_c_uo301"), {"지구": "문화재자료구역", "시군구": "고성군"})
+
+    def test_공역은_이름과_고도만(self):
+        props = {"prohibited": "<FNT name='TW Cen MT'>RK P518</FNT>", "prh_lbl_1": "RK P518",
+                 "prh_lbl_2": "UNL", "prh_lbl_3": "GND", "prh_typ": "1"}
+        self.assertEqual(vworld.friendly(props, "lt_c_aisprhc"),
+                         {"공역": "RK P518", "상한 고도": "UNL", "하한 고도": "GND"})
 
 
 class Views(TestCase):
@@ -211,8 +226,8 @@ class Seed(TestCase):
         self.assertIsNotNone(fault.verified_at)                     # 씨앗을 만들 때 쏴 봤다
         self.assertEqual(fault.group.region, "korea")
         # KIGAM 의 레이어군과 차례가 겹치지 않는다 — 한국 목록의 맨 뒤
-        korea = list(LayerGroup.objects.filter(region="korea"))
-        self.assertEqual(korea[-1].name, "지질 참고")
+        korea = [g.name for g in LayerGroup.objects.filter(region="korea")]
+        self.assertEqual(korea[-4:], ["지질 참고", "보호구역", "토양·산림", "재해·공역"])
         self.assertEqual(Layer.objects.get(name="L_50K_Geology_Map").kind, "wms")
 
     def test_씨앗의_레이어는_모두_영어_제목이_있다(self):
