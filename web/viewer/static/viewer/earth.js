@@ -77,6 +77,11 @@
       { name: "fossils", title: "화석 산지", grid: "ll", always: true, legend: "geology",
         src: "Paleobiology Database · CC BY 4.0" },
     ] },
+    // 지구 속 — 구에서만. 땅을 비치게 하고 그 밑에 그린다. 모든 연대에 뜬다(가장 가까운 20 Myr 시점) (106)
+    { group: "지구 속 (OPT1 모의)", layers: [
+      { name: "mantle", title: "맨틀 슬랩·하부 더미", mantle: true, always: true,
+        src: "Müller et al. 2022 OPT1 · CC BY 4.0 — 모의 결과" },
+    ] },
     // 최근 빙기 — 1 ka–1 Ma 의 오늘의 지구에만 뜬다(`ka`). 25–1 ka 의 빙상 가장자리 (104)
     { group: "최근 빙기", layers: [
       { name: "icemargins", title: "빙상 가장자리", grid: "ll", ka: true,
@@ -91,7 +96,7 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -109,9 +114,10 @@
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
   var NE_CREDIT = "Natural Earth 10 m (public domain)";
   var ICE_CREDIT = "NADI-1 (Dalton et al. 2023, CC BY 4.0) · DATED-1 (Hughes et al. 2016, CC BY 3.0)";
+  var MANTLE_CREDIT = "Müller et al. (2022) OPT1, Solid Earth (CC BY 4.0)";
   function creditOf(name) {
     return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT,
-             names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT }[name];
+             names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
@@ -427,6 +433,77 @@
       }));
       oLabels.setOpacity(alpha);
     }).catch(function () { labelsAsked = false; });
+  }
+
+  // ══ 지구 속 — OPT1 의 섭입한 판·하부 더미·판 경계 (wetherilli 106) ══════
+  //
+  // 서버가 시점마다 구워 둔 삼각형(반지름 1 의 구, z 가 북)을 받아 Cesium 의 프리미티브로 땅 밑에 그린다. 방향은 그대로 두고
+  // 길이만 타원체의 겉에 맞춘다 — 반지름 비(깊이)가 지켜진다. 켜면 땅을 비치게 한다(`globe.translucency`). 평면에는 없다.
+  // **모의 결과이지 관측이 아니다.** 옛 연대에는 OPT1 의 맨틀 기준틀이라 PALEOMAP 판 조각과 맞지 않는다 — 캡션에 적는다
+  var MANTLE = THEN.mantle || {};                    // {시점: {slabs: 점 수, piles: …, boundaries: …}}
+  // 섭입한 판은 바다의 파랑에 묻히지 않게 옅은 청록 — 찬 것, 더미는 주황 — 뜨거운 것
+  var MANTLE_COLOURS = { slabs: "#7fe8d0", piles: "#e8833a", boundaries: "#ffe066" };
+  var mantleFrame = null, mantlePrims = [], mantleAsked = 0;
+  function mantleFrameOf(a) {                       // 서버의 `mantle.frame_of` 와 같다 — 가장 가까운 것, 같으면 오래된 쪽
+    return Math.max(0, Math.min(50, Math.floor((1000 - a) / 20 + 0.5 - 1e-9)));
+  }
+  function mantlePrimitive(buf, count, name, alpha) {
+    var f32 = new Float32Array(buf, 0, count * 3), idx = new Uint32Array(buf, count * 12);
+    var pos = new Float64Array(count * 3), scratch = new Cesium.Cartesian3(), onEll = new Cesium.Cartesian3();
+    for (var i = 0; i < count; i++) {
+      var x = f32[3 * i], y = f32[3 * i + 1], z = f32[3 * i + 2], r = Math.sqrt(x * x + y * y + z * z) || 1;
+      Cesium.Cartesian3.fromElements(x / r, y / r, z / r, scratch);
+      ELL.scaleToGeocentricSurface(scratch, onEll);
+      pos[3 * i] = onEll.x * r; pos[3 * i + 1] = onEll.y * r; pos[3 * i + 2] = onEll.z * r;
+    }
+    var lines = name === "boundaries";
+    var geometry = new Cesium.Geometry({
+      attributes: { position: new Cesium.GeometryAttribute({ componentDatatype: Cesium.ComponentDatatype.DOUBLE,
+                                                             componentsPerAttribute: 3, values: pos }) },
+      indices: idx, primitiveType: lines ? Cesium.PrimitiveType.LINES : Cesium.PrimitiveType.TRIANGLES,
+      boundingSphere: Cesium.BoundingSphere.fromVertices(pos),
+    });
+    var colour = Cesium.Color.fromCssColorString(MANTLE_COLOURS[name]).withAlpha(lines ? 1 : alpha);
+    if (lines) {
+      return new Cesium.Primitive({ asynchronous: false,
+        geometryInstances: new Cesium.GeometryInstance({ geometry: geometry,
+          attributes: { color: Cesium.ColorGeometryInstanceAttribute.fromColor(colour) } }),
+        appearance: new Cesium.PerInstanceColorAppearance({ flat: true, translucent: false }) });
+    }
+    Cesium.GeometryPipeline.computeNormal(geometry);
+    return new Cesium.Primitive({ asynchronous: false,
+      geometryInstances: new Cesium.GeometryInstance({ geometry: geometry }),
+      appearance: new Cesium.MaterialAppearance({ material: Cesium.Material.fromType("Color", { color: colour }),
+                                                   faceForward: true, translucent: alpha < 1, closed: false }) });
+  }
+  function dropMantle() {
+    mantlePrims.forEach(function (p) { scene.primitives.remove(p); });
+    mantlePrims = [];
+  }
+  function syncMantle(restyle) {
+    var e = entryOf("mantle"), on = !!e && visibleNow("mantle") && Object.keys(MANTLE).length > 0;
+    scene.globe.translucency.enabled = on;
+    scene.globe.translucency.frontFaceAlpha = 0.35;
+    scene.globe.translucency.backFaceAlpha = 0.0;
+    if (!on) { dropMantle(); mantleFrame = null; return; }
+    var frame = mantleFrameOf(age);
+    if (!MANTLE[frame]) { dropMantle(); mantleFrame = null; return; }        // 그 시점을 굽지 않았다
+    if (frame === mantleFrame && !restyle) return;
+    mantleFrame = frame;
+    var mine = ++mantleAsked, alpha = e.opacity;
+    Promise.all(["slabs", "piles", "boundaries"].map(function (name) {
+      return fetch(BASE + "earth/mantle/" + frame + "/" + name + ".bin").then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.arrayBuffer();
+      });
+    })).then(function (bufs) {
+      if (mine !== mantleAsked) return;
+      dropMantle();
+      ["slabs", "piles", "boundaries"].forEach(function (name, i) {
+        // 파일은 점(float32 xyz) 다음에 이음(uint32) — 점 수는 화면에 실어 보낸 목록에서
+        mantlePrims.push(scene.primitives.add(mantlePrimitive(bufs[i], MANTLE[frame][name], name, alpha)));
+      });
+    }).catch(function () { if (mine === mantleAsked) mantleFrame = null; });
   }
 
   // ══ 구 ⇄ 평면 ═════════════════════════════════════════════════════
@@ -784,6 +861,7 @@
     // 점묶음은 늘 지질 위다
     oPoints.setZIndex(100);
     syncLabels();
+    syncMantle();
     syncLegend();
   }
   function addLayer(name) {
@@ -834,7 +912,7 @@
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
         if (cGeo[e.name]) { cGeo[e.name].alpha = e.opacity; oGeo[e.name].setOpacity(e.opacity); }
-        else syncLabels();
+        else { syncLabels(); syncMantle(true); }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1504,12 +1582,16 @@
       note += " · " + (bits.length ? T("빙상 가장자리 — {what} (연대 측정을 모은 복원)", { what: bits.join(" · ") })
                                  : T("빙상 가장자리는 25–1 ka 에만 있다"));
     }
+    if (isOn("mantle") && Object.keys(MANTLE).length) {
+      note += " · " + T("맨틀은 OPT1 의 {ma} Ma — 모의 결과이지 관측이 아니다", { ma: 1000 - 20 * mantleFrameOf(age) }) +
+              (p ? " " + T("(맨틀 기준틀이라 판 조각과 어긋난다)") : "");
+    }
     if (p && isOn("coast")) {
       var c = coastStop(age);
       note += " · " + (c == null ? T("옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)")
                                 : T("옛 해안선은 {age} Ma 의 것 — 화석이 가리키는 가장 깊은 바다", { age: c }));
     }
-    $("age-note").textContent = note;
+    $("age-note").textContent = note.replace(/^ · /, "");
   }
   function applyAge(a) {
     a = snapAge(a);

@@ -138,4 +138,5 @@
 | wetherilli 103 | 2026-09-30 | [달 — 누른 자리의 광물·원소·지각 두께 값](20260930_wetherilli_103_moon_point_values.md) |
 | wetherilli 104 | 2026-09-30 | [온 지구 — 최근 빙기의 빙상 가장자리, 25–1 ka](20260930_wetherilli_104_ice_margins.md) |
 | wetherilli 105 | 2026-09-30 | [온 지구 — 지질도가 가까이 갈수록 깨지던 것, 색마다 매끄럽게 늘린다](20260930_wetherilli_105_geology_upscale.md) |
+| wetherilli 106 | 2026-09-30 | [온 지구 — 지구 속, OPT1 의 섭입한 판과 하부 더미](20260930_wetherilli_106_mantle_slabs.md) |
 | wetherilli 107 | 2026-09-30 | [달 — 극지 5 m·NAC DTM 으로 가까이서 고운 지형](20260930_wetherilli_107_moon_fine_terrain.md) |

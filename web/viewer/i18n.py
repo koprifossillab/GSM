@@ -322,6 +322,12 @@ EN = {
     "유라시아 {ka} ka": "Eurasia {ka} ka",
     "빙상 가장자리 — {what} (연대 측정을 모은 복원)": "Ice-sheet margins — {what} (a reconstruction from compiled dates)",
     "빙상 가장자리는 25–1 ka 에만 있다": "Ice-sheet margins exist only for 25–1 ka",
+    # 맨틀 슬랩 (wetherilli 106)
+    "지구 속 (OPT1 모의)": "Earth's interior (OPT1 model)",
+    "맨틀 슬랩·하부 더미": "Mantle slabs and basal piles",
+    "맨틀 파일이 서버에 없다": "The mantle files are not on the server",
+    "맨틀은 OPT1 의 {ma} Ma — 모의 결과이지 관측이 아니다": "Mantle from OPT1 at {ma} Ma — a model result, not an observation",
+    "(맨틀 기준틀이라 판 조각과 어긋난다)": "(mantle reference frame — offset from the plate pieces)",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
