@@ -53,3 +53,5 @@ geo3al.dbf
 /ibcso/
 # 극지연구소에서 모아 둔 것 — 기본 자리 <DB 옆>/kopri/. 우리 자료가 아니다 (devlog 053)
 /kopri/
+# 화성 크레이터 목록을 구운 것 — 기본 자리 <DB 옆>/mars/. 51 MB, 원본은 NAS 에 있다 (devlog 067)
+/mars/

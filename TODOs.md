@@ -113,6 +113,9 @@ v0.8.0 에서 일본 탭과 동아시아 묶음 탭이, v0.9.0 에서 중국 탭
 - [x] 화성 화면(058)에도 극 평면 — Trek 극지 판(극 반지름의 구, `IAU2000:49918`·`49920`)을 곧장, 지질도는
       Trek 이 WKT 로 옮겨 그린다 (065)
 - [x] 화성 주룽(祝融) 착륙 지점·주행 경로 — Trek 에 없어 논문의 CC BY 자료(NaTeCam 2CL)에서 굽는다 (066)
+- [x] 화성 크레이터 38 만 개(Robbins & Hynek 2012) — sqlite 로 굽고 서버가 타일을 그린다 (067)
+- [ ] 운영 서버에 `/srv/GSM/db/mars/mars_craters.sqlite` 를 굽는다 — `manage.py build_mars_craters` 에 NAS 의
+      `sources/mars/RobbinsCraterDatabase_20121016.tab.zip` 을 준다 (067)
 - [x] 달 평면에서 재기(거리·넓이)·찍어 두기 — 도구 묶음, 달 반지름으로 잰다 (041)
 
 ## 서버 디스크 — 어드민과 상의할 것

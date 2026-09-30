@@ -220,6 +220,15 @@ EN = {
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
     "화성에 얹은 내 것": "Yours on Mars",
+    # 화성 크레이터 (067)
+    "크레이터 (Robbins 2012)": "Craters (Robbins 2012)",
+    "크레이터 — 지름 1 km 넘는 것": "Craters — larger than 1 km",
+    "보존 상태": "Preservation state",
+    "4 — 갓 생긴 듯하다": "4 — fresh",
+    "1 — 많이 닳았다": "1 — heavily degraded",
+    "매기지 않음": "not classified",
+    "크레이터 파일이 서버에 없다": "The crater file is not on the server",
+    "여기에는 지름 1 km 넘는 크레이터가 없다": "No crater larger than 1 km here",
     "바깥 자료를 화성에": "Outside data onto Mars",
     "좌표는 화성의 위도·경도(도, 행성 중심·동경)다. 평면 좌표계는 받지 않는다.":
         "Coordinates are Mars latitude/longitude (degrees, planetocentric, east-positive). Projected systems are not accepted.",
@@ -956,6 +965,13 @@ PROP_EN = {
     "여름 최대 인원": "Peak population",
     "고도": "Altitude",
     "다른 이름": "Other names",
+    # 화성 크레이터 (067)
+    "지름": "Diameter",
+    "깊이": "Depth",
+    "안쪽 형태": "Interior morphology",
+    "분출물 형태": "Ejecta morphology",
+    "보존 상태": "Preservation state",
+    "가운데": "Centre",
 }
 
 

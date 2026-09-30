@@ -56,6 +56,11 @@
     { group: "화성 지질 (USGS 1:2000만, 2014)", layers: [
       { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS SIM 3292 · NASA Mars Trek" },
     ] },
+    // 크레이터 38 만 개 — 서버가 제 디스크의 sqlite 에서 타일로 굽는다(`marscraters.py`, 067). 극 평면도 같다
+    { group: "크레이터 (Robbins 2012)", layers: [
+      { name: "craters", title: "크레이터 — 지름 1 km 넘는 것", info: "craters", legend: "craters",
+        src: "Robbins & Hynek 2012 (JGR Planets) · USGS Astrogeology" },
+    ] },
     // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"` — 달에서 온 이름)
     { group: "착륙지", layers: [
       { name: "landings", title: "착륙선·로버 지점", kind: "vector", url: "mars/landings/", legend: "landings",
@@ -1200,12 +1205,22 @@
     for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
     return AGE_ORDER.length;
   }
+  var CRATER_STATES = [["#6fe3ff", "4 — 갓 생긴 듯하다"], ["#5b9dff", "3"], ["#a47bff", "2"],
+                        ["#e070c8", "1 — 많이 닳았다"], ["#ffffff", "매기지 않음"]];
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
     if (kind === "landings") {
       legends[kind] = LANDING_ORDER.map(function (k) {
         var st = LANDING_STYLE[k];
         return '<li><span class="chip dot" style="background:' + st.color + '"></span>' + esc(T(st.label)) + "</li>";
+      }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "craters") {
+      // 보존 상태 — 서버의 `marscraters.STATES` 와 같은 색
+      legends[kind] = "<li>" + esc(T("보존 상태")) + "</li>" + CRATER_STATES.map(function (st) {
+        return '<li><span class="chip dot" style="background:transparent;border:2px solid ' + st[0] + '"></span>' +
+               esc(T(st[1])) + "</li>";
       }).join("");
       return Promise.resolve(legends[kind]);
     }

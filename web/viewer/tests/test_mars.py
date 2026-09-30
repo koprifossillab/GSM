@@ -3,16 +3,18 @@
 Trek 을 실제로 부르지 않는다. 응답의 꼴은 2026-09-29 에 Mars Trek 에서 받아 본 그대로다 —
 SIM 3292 의 `identify` 는 `Unit`·`UnitDesc` 를 주고, 범례 이름에는 기호가 없다.
 """
+import io
 import json
 import re
 import tempfile
+from pathlib import Path
 from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
-from viewer import trek, zhurong
+from viewer import marscraters, trek, zhurong
 from viewer.models import PointSet, REGIONS
 from viewer.tests.test_trek import response, tiff
 
@@ -300,3 +302,61 @@ class Zhurong(SimpleTestCase):
         data = zhurong.load()
         walked = sum(((b[1] - a[1]) ** 2 + (b[2] - a[2]) ** 2) ** 0.5 for a, b in zip(data["stops"], data["stops"][1:]))
         self.assertAlmostEqual(walked, 1900, delta=60)
+
+
+#: Robbins 표의 머리와 세 줄 — 줄 끝은 원본처럼 CR 뿐이다. 게일(이름), 그 안의 작은 것, 날짜 변경선 위의 것
+ROBBINS_HEAD = ("CRATER_ID\tLATITUDE_CIRCLE_IMAGE\tLONGITUDE_CIRCLE_IMAGE\tDIAM_CIRCLE_IMAGE\tDEPTH_RIMFLOOR_TOPOG\t"
+                "MORPHOLOGY_CRATER_1\tMORPHOLOGY_EJECTA_1\tNUMBER_LOBES\tDEGRADATION_STATE\tCRATER_NAME")
+ROBBINS_ROWS = ["23-000004\t-5.367\t137.811\t154.08\t4.72\tCpxCPk\t\t\t2\tGale",
+                "23-100000\t-5.4\t137.4\t3.0\t0.2\tSmpl\tSLERS\t1\t4\t",
+                "10-000001\t10.0\t179.99\t20.0\t\t\t\t\t\t"]
+
+
+class MarsCraters(TestCase):
+    """화성 크레이터 (067) — 표를 sqlite 로 굽고, 타일을 그리고, 누른 자리의 가장 작은 것을 찾는다."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="gsm-craters-")
+        patch = override_settings(MARS_DIR=self.dir, TILE_CACHE_DIR=self.dir)
+        patch.enable()
+        self.addCleanup(patch.disable)
+        src = Path(self.dir) / "r.tab"
+        src.write_text("\r".join([ROBBINS_HEAD] + ROBBINS_ROWS) + "\r", encoding="latin-1")
+        # 굽는 쪽은 30 만 개 밑이면 멈춘다 — 시험에서는 문턱만 낮춘다
+        with mock.patch("viewer.marscraters.MIN_ROWS", 1):
+            self.assertEqual(marscraters.build(src, marscraters.data_file()), 3)
+
+    def test_누른_자리를_품은_가장_작은_것(self):
+        hit = marscraters.identify(137.4, -5.4)
+        self.assertEqual(hit["id"], "23-100000")
+        self.assertEqual(marscraters.identify(137.9, -5.3)["name"], "Gale")
+        self.assertIsNone(marscraters.identify(0, 0))
+
+    def test_날짜_변경선을_넘는_원(self):
+        self.assertEqual(marscraters.identify(-179.99, 10.0)["id"], "10-000001")
+
+    def test_타일은_큰_것만_멀리서(self):
+        from PIL import Image
+        png = marscraters.render_tile(0, 1, 0)                 # 줌 0 은 200 km 넘는 것만 — 여기엔 없다
+        self.assertIsNone(Image.open(io.BytesIO(png)).getbbox())
+        png = marscraters.render_tile(4, 28, 8)                # 게일 둘레 (경도 135–146°, 위도 0–−11°)
+        self.assertIsNotNone(Image.open(io.BytesIO(png)).getbbox())
+
+    def test_누르면_속성_표(self):
+        data = self.client.get(reverse("viewer:mars-info"), {"lon": 137.9, "lat": -5.3, "layer": "craters"}).json()
+        rows = dict(data["rows"])
+        self.assertEqual((rows["이름"], rows["지름"], rows["보존 상태"]), ("Gale", "154.08 km", "2"))
+        en = self.client.get(reverse("viewer:mars-info"), {"lon": 137.4, "lat": -5.4, "layer": "craters"},
+                             HTTP_ACCEPT_LANGUAGE="en").json()
+        self.assertIn(["Preservation state", "4 — fresh"], en["rows"])
+
+    def test_타일_길과_파일이_없을_때(self):
+        self.assertEqual(self.client.get(reverse("viewer:mars-tile", args=["craters", 4, 28, 8]))["Content-Type"],
+                         "image/png")
+        self.assertEqual(self.client.get(reverse("viewer:mars-polar-tile", args=["s", "craters", 0, 0, 0])).status_code,
+                         200)
+        with override_settings(MARS_DIR=self.dir + "/none"):
+            r = self.client.get(reverse("viewer:mars-tile", args=["craters", 1, 0, 0]))
+            self.assertEqual(r["Cache-Control"], "no-store")
+            note = self.client.get(reverse("viewer:mars-info"), {"lon": 1, "lat": 1, "layer": "craters"}).json()
+            self.assertEqual(note["rows"], [])

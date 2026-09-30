@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import re
+import sqlite3
 import threading
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
-               zhurong)
+               marscraters, zhurong)
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -555,10 +556,12 @@ def mars_view(request):
 
 @require_GET
 def mars_tile(request, layer, z, x, y):
-    """화성 지질도 타일 — `mars/tiles/units/<z>/<x>/<y>.png`."""
+    """화성 지질도 타일 — `mars/tiles/units/<z>/<x>/<y>.png`. `craters` 는 우리가 굽는다 (067)."""
     z, x, y = int(z), int(x), int(y)
-    if layer != "units" or not trek.valid_tile(z, x, y, trek.MARS_MAX_ZOOM):
+    if layer not in ("units", "craters") or not trek.valid_tile(z, x, y, trek.MARS_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if layer == "craters":
+        return _mars_crater_tile(lambda: marscraters.render_tile(z, x, y))
     key = tilecache.key_text("trek-mars", f"{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
@@ -584,8 +587,10 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     격자는 Trek 화성 극 WMTS 의 것(`trek.mars_polar_tile_bbox`)이다. SIM 3292 는 극지 판이 없어 Trek 이
     극 평사도법으로 옮겨 그린다."""
     z, x, y = int(z), int(x), int(y)
-    if layer != "units" or not trek.polar_valid(z, x, y) or z > trek.MARS_MAX_ZOOM:
+    if layer not in ("units", "craters") or not trek.polar_valid(z, x, y) or z > trek.MARS_MAX_ZOOM:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if layer == "craters":
+        return _mars_crater_tile(lambda: marscraters.render_polar_tile(pole, z, x, y))
     key = tilecache.key_text("trek-mars", f"{pole}p/{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
@@ -602,6 +607,17 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
     return response
+
+
+def _mars_crater_tile(render):
+    """크레이터 타일 (067) — 한 장에 10 ms 남짓이라 캐시에 담지 않고 그때그때 굽는다. 파일이 없으면 안내."""
+    if not marscraters.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_CRATERS), store=False)
+    try:
+        return _tile(render())
+    except (marscraters.MarsCraterError, sqlite3.Error) as exc:
+        log.warning("화성 크레이터 타일을 굽지 못했다: %s", exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_CRATERS), store=False)
 
 
 @require_GET
@@ -635,6 +651,8 @@ def mars_info(request):
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    if request.GET.get("layer") == "craters":
+        return _mars_crater_info(lon, lat, lang)
     # 1e-3° 는 화성에서 60 m 남짓이다 — 1:2000만 지도에는 한 점이다
     key = tilecache.key_text("trek-mars-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -656,6 +674,27 @@ def mars_info(request):
         age = hit["age"] if lang == "en" else trek.mars_age_ko(hit["age"])
         rows.insert(1, [i18n.PROP_EN.get("시대", "시대") if lang == "en" else "시대", age])
     return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
+
+
+def _mars_crater_info(lon, lat, lang):
+    """누른 자리를 품은 가장 작은 크레이터 (067). 값(이름·형태 기호)은 옮기지 않는다."""
+    if not marscraters.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("크레이터 파일이 서버에 없다"), lang)})
+    try:
+        hit = marscraters.identify(lon, lat)
+    except (marscraters.MarsCraterError, sqlite3.Error) as exc:
+        log.warning("화성 크레이터를 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("속성을 받지 못했다"), lang), "rows": []}, status=500)
+    if not hit:
+        return JsonResponse({"rows": [], "note": i18n.t(msg("여기에는 지름 1 km 넘는 크레이터가 없다"), lang)})
+    state = marscraters.STATES.get(hit["state"], marscraters.STATES[""])
+    rows = [("이름", hit["name"]), ("지름", f"{hit['d_km']:.2f} km"),
+            ("깊이", f"{hit['depth_km']:.2f} km" if hit["depth_km"] is not None else ""),
+            ("안쪽 형태", hit["morph"]), ("분출물 형태", hit["ejecta"]),
+            ("보존 상태", state[2] if lang == "en" else state[1]),
+            ("가운데", f"{hit['lat']:.3f}, {hit['lon']:.3f}"), ("번호", hit["id"])]
+    return JsonResponse({"unit": "", "color": state[0], "rows": [
+        [i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
 
 
 @require_GET

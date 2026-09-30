@@ -57,6 +57,8 @@ moon/
 ibcso/
 # 극지연구소에서 모아 둔 것 (devlog 053) — 운영은 /srv/GSM/db/kopri/
 kopri/
+# 화성 크레이터 목록을 구운 것 (devlog 067) — 운영은 /srv/GSM/db/mars/
+mars/
 # 자료 파일만 — `geo3al.*` 로 쓰면 코드(`web/viewer/geo3al.py`)까지 빠져 컨테이너가 못 뜬다
 **/geo3al.shp
 **/geo3al.shx
