@@ -1787,3 +1787,17 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .popup .today-go { margin: 4px 0 2px; padding: 2px 10px; font: inherit; font-size: 12px; color: var(--on-hi);
                    background: var(--hi); border: 0; border-radius: 5px; cursor: pointer; }
 @media (max-width: 720px) { .timebar { width: calc(100% - 24px); top: auto; bottom: 64px; } }
+/* 구의 그리기가 멈췄을 때 (wetherilli 110) */
+.render-failed { position: absolute; left: 50%; top: 50%; z-index: 20; width: min(460px, calc(100% - 32px));
+                 transform: translate(-50%, -50%); padding: 16px 18px; background: var(--panel); color: var(--ink);
+                 border: 1px solid var(--gold-edge); border-radius: 12px; box-shadow: var(--shadow); font-size: 13px;
+                 line-height: 1.55; }
+.render-failed[hidden] { display: none; }
+.render-failed .rf-head { margin: 0 0 6px; font-weight: 700; color: var(--gold-bright); }
+.render-failed p { margin: 0 0 8px; }
+.render-failed .rf-why { font: 11px var(--font-mono); color: var(--ink-faint); word-break: break-all; }
+.render-failed .rf-why:empty { display: none; }
+.render-failed .rf-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.render-failed button { padding: 5px 12px; font: inherit; color: var(--on-hi); background: var(--hi); border: 0;
+                        border-radius: 6px; cursor: pointer; }
+.render-failed button + button { color: var(--ink); background: var(--raise); }
