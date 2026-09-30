@@ -216,7 +216,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다.
   **시간 축**(wetherilli P07·091) — 연대 하나를 로그 막대로 고른다(`?age=`). 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
   서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
-  판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다
+  판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다. 레이어의 `then: true` 는 1 Ma 부터만 뜬다 — 옛 해안선
+  (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097)
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
@@ -256,7 +257,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - GEUS 는 부르는 이를 `whoami` 로 밝혀 달라고 한다. 이메일이라 **저장소에
   적지 않는다** — `GSM_GEUS_WHOAMI` 나 `<DB 옆>/geus_whoami`
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
-- **파일을 받아 우리가 그리는 것 여덟** — 달 지질도 원도 6 장(`GSM_MOON_DIR`, 기본 `<DB 옆>/moon`, 039 —
+- **파일을 받아 우리가 그리는 것 아홉** — 달 지질도 원도 6 장(`GSM_MOON_DIR`, 기본 `<DB 옆>/moon`, 039 —
   `manage.py build_moon_originals <zip>` 이 sqlite 한 장으로 굽는다. 같은 자리에 남극–에이트켄 분지 지질도 원본
   `spa_geomap_iqbal2026.tif` — 그리지는 않고 누른 자리만 읽는다, wetherilli 081), 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
   018), 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022), 중국 USGS geo3al
@@ -264,7 +265,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   기본 `<DB 옆>/peninsula`, 027·028 — PDF·PNG 를 `manage.py build_peninsula` 로 잘라 둔다), 남극 해저·빙저 지형
   IBCSO v2(`GSM_IBCSO_DIR`, 기본 `<DB 옆>/ibcso`, 047 — 칠한 GeoTIFF 둘을 `manage.py build_ibcso` 로 3031 에 잘라 둔다), 화성 크레이터
   목록 Robbins 2012(`GSM_MARS_DIR`, 기본 `<DB 옆>/mars`, 067 — `manage.py build_mars_craters <zip>` 이 sqlite 한 장으로 굽고 타일은 그때그때 그린다), 화성 옛 지질도·지역도 — I-1802·SIM 2888·I-2650·MTM(같은 자리, 068·wetherilli 079 —
-  `manage.py build_mars_originals <zip…>`, 달 원도의 틀을 빌렸다). 운영은
+  `manage.py build_mars_originals <zip…>`, 달 원도의 틀을 빌렸다), 온 지구의 옛 해안선(`GSM_EARTH_DIR`, 기본 `<DB 옆>/earth`,
+  wetherilli 097). 운영은
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
@@ -339,6 +341,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다
   spamap.py       남극–에이트켄 분지 지질도 원본(팔레트 GeoTIFF) -> 누른 자리의 단위. 타일은 Trek 의 것. 문이 아니다
   paleo.py        PALEOMAP 2016 판 회전(data/paleomap2016.json) -> 오늘의 한 자리가 옛 연대에 있던 곳. 문이 아니다
+  paleocoast.py   옛 해안선 PaleoCoastlines v7.1 -> 그때의 지구에 얹는 경위도 타일. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
@@ -355,7 +358,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`.**
 이 열하나 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 

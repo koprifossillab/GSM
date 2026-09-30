@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, macrostrat, paleo, spamap
+from . import arcpoints, macrostrat, paleo, paleocoast, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -896,6 +896,8 @@ def earth_view(request):
     return render(request, "viewer/earth.html", {
         "lang": lang,
         "pointsets": _script_json(_pointset_list("earth")),
+        # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
+        "then_data": _script_json({"coast": paleocoast.ages()}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
@@ -1037,12 +1039,15 @@ def earth_paleo(request):
 
 @require_GET
 def earth_paleo_tile(request, style, age, z, x, y):
-    """`earth/paleo/tiles/<land|edge>/<Ma>/<z>/<x>/<y>.png` — 그 연대의 판 조각 (wetherilli 091, `paleo.render_tile`).
+    """`earth/paleo/tiles/<land|edge|coast>/<Ma>/<z>/<x>/<y>.png` — 그 연대의 판 조각 (wetherilli 091, `paleo.render_tile`).
 
-    경위도 격자(줌 0 이 180° 두 장)다. `land` 는 칠한 땅(옛 연대의 지구), `edge` 는 경계선만(오늘의 배경 위에)."""
+    경위도 격자(줌 0 이 180° 두 장)다. `land` 는 칠한 땅(옛 연대의 지구), `edge` 는 경계선만(오늘의 배경 위에),
+    `coast` 는 가장 가까운 시점의 옛 해안선(wetherilli 097, `paleocoast.render_tile`)."""
     z, x, y, age = int(z), int(x), int(y), int(age)
-    if style not in paleo.STYLES or not paleo.valid_tile(z, x, y) or age > 1100:
+    if style not in paleo.STYLES + ("coast",) or not paleo.valid_tile(z, x, y) or age > 1100:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if style == "coast":
+        return _coast_tile(age, z, x, y)
     if paleo.model() is None:
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
     key = tilecache.key_text("paleomap", f"{paleo.RENDERER}/{style}/{age}/{z}/{x}/{y}")
@@ -1050,6 +1055,22 @@ def earth_paleo_tile(request, style, age, z, x, y):
     if hit is not None:
         return _tile(hit, cached=True)
     png = paleo.render_tile(float(age), style, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+def _coast_tile(age, z, x, y):
+    """옛 해안선 한 장. 10 Myr 안에 시점이 없거나 파일이 없으면 빈 타일 — 판 조각만 보인다."""
+    at = paleocoast.stop(age)
+    if at is None:
+        return _tile(tiles.blank_tile(), store=False)
+    key = tilecache.key_text("paleocoast", f"{paleocoast.RENDERER}/{at:g}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = paleocoast.render_tile(at, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
