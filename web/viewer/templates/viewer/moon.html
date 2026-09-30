@@ -206,6 +206,8 @@
   {% comment %}구(Cesium)와 평면(OpenLayers)이 한 자리를 나눠 쓴다. 보이는 것은 하나다 — `moon-globe`·`moon-flat`{% endcomment %}
   <div id="globe"></div>
   <div id="map"></div>
+  <button type="button" id="panel-handle" class="panel-handle" aria-controls="panel" aria-expanded="true"
+          title="{% t "패널을 접는다" %}">&lt;</button>
 
   <div id="popup" class="popup">
     <button id="popup-close" class="popup-close" title="{% t "닫는다" %}">&times;</button>
