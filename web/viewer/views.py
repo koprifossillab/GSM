@@ -1310,6 +1310,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         spec = npolar.TILES[layer.name]
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "pgc" and elevation.knows_layer(layer.name):
+        # PGC 경사·등고선(wetherilli 099) — 지역의 투영으로 곧장 받는다. 범례는 늘인 값뿐이라 싣지 않는다
+        spec = elevation.PGC_LAYERS[layer.name]
+        return {"attribution": elevation.PGC_ATTRIBUTION, "projection": spec["srs"], "noLegend": True,
+                **({"minZoom": spec["min"]} if spec.get("min") else {})}
     if layer.upstream == "kopri" and kopri.knows_wms(layer.name):
         # KPDC 지도 서버(057) — 남극은 3031 을, 북극은 3413 을 그대로 받는다(NPI 와 같다, wetherilli 095)
         return {"attribution": kopri.ATTRIBUTION, "projection": kopri.wms_projection(layer.name)}
@@ -1367,7 +1372,7 @@ def catalog_json(request):
 # 타일은 셋이 같이 쓴다.
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
-                   npolar.NpolarError, kopri.KopriError)
+                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -1390,14 +1395,16 @@ class _Door:
     판을 갈면 곧바로 새 것이 보인다.
     """
 
-    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri}
+    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
+               # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
+               "pgc": elevation}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -1838,6 +1845,8 @@ def _tile(png: bytes, *, cached: bool = False, store: bool = True, content_type:
     안내 타일은 `store=False` 다 — 브라우저가 들고 있으면 인증키가 생긴 뒤에도
     "키가 없다" 가 계속 뜬다. 캐시에서 꺼낸 것은 진짜 지도이므로 평소대로 둔다.
     """
+    if png[:2] == b"\xff\xd8":        # 캐시에 JPEG 가 든 것(PGC 경사, wetherilli 099) — 바이트를 보고 가른다
+        content_type = "image/jpeg"
     response = HttpResponse(png, content_type=content_type)
     if store and settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

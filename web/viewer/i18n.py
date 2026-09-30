@@ -1039,6 +1039,8 @@ PROP_EN = {
     "옛 철자": "Old spelling",
     "덴마크어 이름": "Danish name",
     "지자체": "Municipality",
+    # PGC 경사 (wetherilli 099) — "경사 (°)" 는 지층의 경사(dip)다
+    "사면 경사 (°)": "Slope (°)",
     "지질": "Geology",
     "시료 번호": "Sample no.",
     "연대 (Ma)": "Age (Ma)",
@@ -1510,6 +1512,7 @@ GROUP_EN = {
     "극지연구소 시료": "KOPRI samples",
     "KPDC 자료": "KPDC datasets",
     "KPDC 기본도": "KPDC base map",
+    "지형 (PGC)": "Terrain (PGC)",
 }
 
 LAYER_EN = {
@@ -1715,6 +1718,12 @@ LAYER_EN = {
     "kopri:lakes": "Lakes",
     "kopri:streams": "Streams (Antarctic Peninsula)",
     "kopri:moraines": "Moraines",
+    "pgc:greenland_slope": "Slope",
+    "pgc:greenland_contours": "Contours (25 m)",
+    "pgc:svalbard_slope": "Slope",
+    "pgc:svalbard_contours": "Contours (25 m)",
+    "pgc:antarctica_slope": "Slope",
+    "pgc:antarctica_contours": "Contours (25 m)",
     "kopri:rock_outcrops": "Rock outcrops",
     "kopri:contours": "Contours",
     "kopri:historic": "Historic sites & monuments (HSM)",
