@@ -63,9 +63,7 @@
 
 ## 온 지구 (P06·P07)
 
-- [ ] **운영에 둘 온 지구 파일 셋** — `/srv/GSM/db/earth/` 에 옛 해안선(`paleocoastlines_v7.json`)·화석 산지(`pbdb.sqlite`)·맨틀(`mantle/`).
-      컨테이너 안에서 `build_paleocoastlines <zip>`·`fetch_pbdb`·`build_mantle <zip>`. 원본은 NAS `sources/earth/`(`SHA256SUMS`).
-      없으면 그 레이어만 빈다 (wetherilli 097·098·106)
+(2026-09-30 운영 `/srv/GSM/db/earth/` 에 옛 해안선·화석 산지·맨틀을 두었다. 화석 산지는 가끔 `fetch_pbdb` 로 새로 받는다)
 
 ## 인증키 뒤에 남은 것
 
