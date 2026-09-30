@@ -2766,6 +2766,8 @@
       a.textContent = row.upstream === "geo3al"
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
         : row.upstream === "kopri" ? T("원본 자료 — 극지연구소 KPDC")
+        // 그린란드 포털의 면·갈래 레이어(wetherilli 089) — 이용 조건이 적혀 있지 않다(019)
+        : row.upstream === "grportal" ? T("포털의 원본 항목 — 이용 조건 표시 없음")
         : T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
       box.appendChild(a);
     }

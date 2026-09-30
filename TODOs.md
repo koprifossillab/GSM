@@ -111,15 +111,10 @@
 - [ ] 스발바르 빙하 전면 변화 [실측] NPI `Temadata/I_Glacier_Fronts_Svalbard` — `npolar.TILES` 한 줄. `npolar.FRIENDLY` 가 허용
       목록이라 연도·이름 열을 적는다. CC BY 4.0. 1–2시간–반나절(상류가 연도별로 칠하지 않으면 점 길로 가야 해 반나절 넘음)
 
-### 그린란드 포털 면 틀 — 하루 (세 건 합쳐)
+### 그린란드 포털 — 남은 것
 
-`arcpoints.collect` 에 `areal`·`generalize`, `grportal._query_url` 에 레이어 번호, 면 스타일(`rgb`→색)과 범례, 레이어별 캐시 주기.
-따로 하면 반나절씩이다.
-
-- [ ] 광물 잠재 구역 `gmom_tracts` [실측] — 면 162, 광상 모델·예상 광상 수(`n90`…`n01`)·보고서. 틀을 만드는 첫 건 (019)
-- [ ] 불안정 사면·매스무브먼트 [실측] `Map_of_unstable_slopes_and_registered_mass_movements_WFL1` — 작성 중이라 캐시를 짧게
-- [ ] 다이아몬드 산출지 [실측] `DED_GL_OCCURRENCES` 3 029 점 — 주향·경사는 팝업에. 암석군으로 칠하면 +1–2시간.
-      시추공·지시광물 화학은 뒤로
+- [ ] 다이아몬드 탐사 자료(DED)의 시추공(`DED_GL_DRILLHOLES`)·지시광물 화학(`DED_GL_thm_*`)·탐사 구역 면 — 산출지는
+      면 틀에 얹었다(wetherilli 089). 같은 틀이라 레이어마다 1–2시간
 
 ### 지명 찾기 일반화 — 하루 남짓 (두 건 합쳐)
 

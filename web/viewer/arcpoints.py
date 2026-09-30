@@ -45,11 +45,12 @@ def links(spec: dict) -> list:
     return sorted(k for k, f in spec["fields"].items() if f["kind"] == "link")
 
 
-def collect(get_page, fields: dict, *, page: int, max_pages: int, pause: float, name: str = "") -> list:
+def collect(get_page, fields: dict, *, page: int, max_pages: int, pause: float, name: str = "",
+            oid: str = "FID", areal: bool = False) -> list:
     """`get_page(offset)` 로 장을 넘기며 끝까지 받아 우리 꼴의 feature 목록으로.
 
     상류는 한 번에 `page` 점까지 준다. 덜 오거나 `exceededTransferLimit` 가
-    없으면 끝이다. 장과 장 사이에 `pause` 초 쉰다.
+    없으면 끝이다. 장과 장 사이에 `pause` 초 쉰다. `areal` 이면 면도 받는다(`compact`).
     """
     out, offset = [], 0
     for index in range(max_pages):
@@ -58,7 +59,7 @@ def collect(get_page, fields: dict, *, page: int, max_pages: int, pause: float, 
         data = get_page(offset)
         got = data.get("features") or []
         for feature in got:
-            row = compact(feature, fields)
+            row = compact(feature, fields, oid, areal=areal)
             if row is not None:
                 out.append(row)
         more = (data.get("exceededTransferLimit")
@@ -111,11 +112,13 @@ def clean(value, kind):
     """값 하나. 고치지 않는다 — 앞뒤 빈칸만 떼고, 빈 값은 뺀다."""
     if value is None:
         return None
-    if kind == "number":
+    if kind in ("number", "measure"):
         try:
-            return round(float(value), 3)
+            number = round(float(value), 3)
         except (TypeError, ValueError):
             return None
+        # `measure` — GEUS 의 다이아몬드 자료처럼 모르는 값을 -999 로 적는 열
+        return None if kind == "measure" and number <= -999 else number
     text = " ".join(str(value).split())       # 앞뒤 빈칸·줄바꿈("\r\n")을 한 칸으로
     if not text:
         return None
