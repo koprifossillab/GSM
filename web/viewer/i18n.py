@@ -267,6 +267,29 @@ EN = {
     "ETT 에서 {age} Ma": "{age} Ma in ETT",
     "EarthThruTime3D 의 고지리 지구본에서 이 자리를 그 연대로 본다 — 새 창":
         "See this place at that age on the EarthThruTime3D palaeogeographic globe — new window",
+    # 시간 축 (wetherilli 091)
+    "연대": "Age",
+    "오늘": "Today",
+    "연대를 넣는다 — 250, 20 ka, 1.2 Ga": "Type an age — 250, 20 ka, 1.2 Ga",
+    "오늘로 — 연대를 0 으로": "Back to today — age 0",
+    "판 조각 (PALEOMAP 2016)": "Plate pieces (PALEOMAP 2016)",
+    "판 조각 경계": "Plate piece outlines",
+    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구": "The Earth then, computed with the PALEOMAP 2016 plate rotations",
+    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
+        "The Earth then, computed with the PALEOMAP 2016 plate rotations — not an observation. "
+        "Today's imagery, terrain and geology appear only at the present",
+    "오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다":
+        "Today's Earth — within 1 Ma the plates moved a few tens of kilometres at most",
+    "그때의 지구 · {age}": "The Earth then · {age}",
+    "오늘의 그 자리로": "Go to that place today",
+    "오늘 그 자리의 지질 단위": "Geologic units there today",
+    "판 조각 밖이다 — 그때 바다였거나, 섭입으로 사라진 곳이다":
+        "Outside the plate pieces — ocean then, or crust since lost to subduction",
+    "판": "Plate",
+    "오늘의 자리": "Today",
+    "거슬러 옮기는 끝": "Carried back to",
+    "이 조각은 오늘까지 남지 않았다 — 오늘의 자리는 그 판이 가 있을 곳이다":
+        "This piece does not survive to the present — 'today' is where its plate would be",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
@@ -406,6 +429,16 @@ EN = {
         "EOX · OpenStreetMap. Non-commercial use only. The coastline is rough north of 82°N — use ArcticDEM",
     "ArcticDEM 음영": "ArcticDEM hillshade",
     "REMA 음영": "REMA hillshade",
+    "ArcticDEM 음영 (여러 방향)": "ArcticDEM hillshade (multidirectional)",
+    "REMA 음영 (여러 방향)": "REMA hillshade (multidirectional)",
+    "ArcticDEM 높이 색 음영": "ArcticDEM elevation-tinted hillshade",
+    "REMA 높이 색 음영": "REMA elevation-tinted hillshade",
+    "Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다":
+        "Polar Geospatial Center. Hillshade lit from several directions — slopes hidden in a single-light shadow show up",
+    "Polar Geospatial Center. 높이를 색으로 칠한 음영": "Polar Geospatial Center. Hillshade tinted by elevation",
+    "세종·장보고 기지 위성 (VWorld)": "King Sejong & Jang Bogo station imagery (VWorld)",
+    "VWorld · 2013 년 위성영상. 두 기지 둘레 10 km 남짓에만 있고 그 밖은 REMA 음영이다":
+        "VWorld · 2013 satellite imagery. Only about 10 km around the two stations; REMA hillshade elsewhere",
     "IBCSO 해저·빙저 지형": "IBCSO seafloor and subglacial bed",
     "IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0":
         "IBCSO v2 (500 m). Seafloor and the bed beneath ice shelves and the ice sheet. CC BY 4.0",
@@ -847,6 +880,13 @@ PROP_EN = {
     # KPDC 지도 서버 (073)
     "그린 근거": "Source of the line",
     "고친 날": "Revised",
+    # KPDC 기본도 (wetherilli 095)
+    "표면": "Surface",
+    "확실성": "Certainty",
+    "HSM 번호": "HSM no.",
+    "제안국": "Proposed by",
+    "관리국": "Managed by",
+    "수심 (m)": "Depth (m)",
     "바닥": "Bed type",
     "도폭 (IMW)": "IMW sheet",
     "출처 날짜": "Source date",
@@ -1649,4 +1689,9 @@ LAYER_EN = {
     "kopri:lakes": "Lakes",
     "kopri:streams": "Streams (Antarctic Peninsula)",
     "kopri:moraines": "Moraines",
+    "kopri:rock_outcrops": "Rock outcrops",
+    "kopri:contours": "Contours",
+    "kopri:historic": "Historic sites & monuments (HSM)",
+    "kopri:arctic_depth_contours": "Arctic Ocean depth contours",
+    "kopri:greenland_ice_contours": "Ice sheet contours",
 }

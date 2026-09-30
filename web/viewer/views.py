@@ -1034,6 +1034,77 @@ def earth_paleo(request):
     return JsonResponse({**got, "text": _paleo_text(got, lang), "model": m.meta.get("title", "")})
 
 
+@require_GET
+def earth_paleo_tile(request, style, age, z, x, y):
+    """`earth/paleo/tiles/<land|edge>/<Ma>/<z>/<x>/<y>.png` — 그 연대의 판 조각 (wetherilli 091, `paleo.render_tile`).
+
+    경위도 격자(줌 0 이 180° 두 장)다. `land` 는 칠한 땅(옛 연대의 지구), `edge` 는 경계선만(오늘의 배경 위에)."""
+    z, x, y, age = int(z), int(x), int(y), int(age)
+    if style not in paleo.STYLES or not paleo.valid_tile(z, x, y) or age > 1100:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if paleo.model() is None:
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    key = tilecache.key_text("paleomap", f"{paleo.RENDERER}/{style}/{age}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = paleo.render_tile(float(age), style, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_paleo_at(request):
+    """`?lon=105&lat=30.6&age=250` — **그때의 지구**를 눌렀을 때. 그 자리에 있던 판 조각과 그 자리의 오늘의 좌표
+    (wetherilli 091). 화면은 그 오늘의 좌표로 지질 단위를 다시 묻는다."""
+    lang = i18n.lang_of(request)
+    lat, lon, age = _float(request.GET.get("lat")), _float(request.GET.get("lon")), _float(request.GET.get("age"))
+    if lat is None or lon is None or age is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon·age 가 없다"), lang)}, status=400)
+    m = paleo.model()
+    if m is None:
+        return JsonResponse({"error": i18n.t(msg("판 회전 파일이 서버에 없다"), lang)}, status=503)
+    hit = m.plate_then(lon, lat, age)
+    if hit is None:
+        return JsonResponse({"age": age, "text": i18n.t(msg("판 조각 밖이다 — 그때 바다였거나, 섭입으로 사라진 곳이다"), lang)})
+    rows = [[i18n.t(msg("판"), lang), str(hit["pid"])],
+            [i18n.t(msg("오늘의 자리"), lang), _lonlat_text(hit["today_lon"], hit["today_lat"], lang)],
+            [i18n.t(msg("거슬러 옮기는 끝"), lang), f"{hit['reach']:g} Ma"]]
+    if hit["gone"]:
+        rows.append([i18n.t(msg("오늘"), lang), i18n.t(msg("이 조각은 오늘까지 남지 않았다 — 오늘의 자리는 그 판이 가 있을 곳이다"), lang)])
+    return JsonResponse({**hit, "age": age, "rows": rows, "model": m.meta.get("title", "")})
+
+
+@require_GET
+def earth_paleo_set(request, pk):
+    """`pointsets/<id>/paleo/?age=250` — 점묶음의 점을 그 연대의 자리로 옮긴 GeoJSON (wetherilli 091).
+
+    점만 옮긴다 — 선·면의 꼭짓점은 서로 다른 판에 걸칠 수 있다. 점마다 `_today`(오늘의 좌표)를 싣고, 못 옮긴 점은
+    오늘의 자리에 두고 `_paleo` 에 까닭을 적는다."""
+    lang = i18n.lang_of(request)
+    pointset = get_object_or_404(PointSet, pk=pk)
+    age = _float(request.GET.get("age"))
+    m = paleo.model()
+    if age is None or m is None:
+        return JsonResponse({"error": i18n.t(msg("판 회전 파일이 서버에 없다"), lang)}, status=400 if age is None else 503)
+    out = []
+    for f in _pointset_features(pointset)["features"]:
+        g = f.get("geometry") or {}
+        if g.get("type") != "Point":
+            continue
+        lon, lat = g["coordinates"][:2]
+        got = m.carry(lon, lat, age, m.plate_at_cached(lon, lat))
+        props = dict(f.get("properties") or {}, _today=[lon, lat])
+        if "lon" in got:
+            g = {"type": "Point", "coordinates": [got["lon"], got["lat"]]}
+        else:
+            props["_paleo"] = _paleo_text(got, lang)
+        out.append({"type": "Feature", "geometry": g, "properties": props})
+    return JsonResponse({"type": "FeatureCollection", "features": out}, json_dumps_params={"ensure_ascii": False})
+
+
 def _age_span(oldest, youngest) -> str:
     if oldest is None:
         return ""
@@ -1154,8 +1225,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
                 **({} if spec["info"] else {"queryable": False})}
     if layer.upstream == "kopri" and kopri.knows_wms(layer.name):
-        # KPDC 지도 서버(057) — 3031 을 그대로 받는다(NPI 드로닝모드랜드와 같다)
-        return {"attribution": kopri.ATTRIBUTION, "projection": "EPSG:3031"}
+        # KPDC 지도 서버(057) — 남극은 3031 을, 북극은 3413 을 그대로 받는다(NPI 와 같다, wetherilli 095)
+        return {"attribution": kopri.ATTRIBUTION, "projection": kopri.wms_projection(layer.name)}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -1414,7 +1485,7 @@ def vworld_tile(request, layer, z, y, x):
 
     **브라우저가 `api.vworld.kr` 에 곧장 닿지 못할 때만 온다** — 사내 VPN 이
     그 연결을 끊는다 (033). 캐시에 담지 않는다. 자료 밖은 투명한 빈 타일이다."""
-    if layer not in vworld.WMTS_LAYERS:
+    if not vworld.knows_wmts(layer):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))},
                             status=404)
     try:

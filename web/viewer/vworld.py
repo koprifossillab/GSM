@@ -576,6 +576,19 @@ WMTS_URL = "https://api.vworld.kr/req/wmts/1.0.0/{key}/{layer}/{z}/{y}/{x}.{ext}
 #: 중계하는 레이어와 그 확장자. 브라우저가 쓰는 것뿐이다 (`map.js`·`map3d.js`)
 WMTS_LAYERS = {"Base": "png", "white": "png", "midnight": "png", "Hybrid": "png", "Satellite": "jpeg"}
 
+#: 테마 위성영상 — 남극 세종·장보고기지 둘레(2013). 캐퍼빌리티의 `ResourceURL` 이 이 경로다.
+#: **자리 차례가 z/x/y 로 배경지도(z/y/x)와 반대다**(004). 중계 주소는 배경지도와 같은
+#: `vworld/<레이어>/<z>/<y>/<x>` 로 받고 여기서 바꿔 부른다 (wetherilli 093)
+WMTS_THEMES = {
+    "AntarcticaSejong": "Satellite/themes/cities/2013/AntarcticaSejong",
+    "AntarcticaJangbogo": "Satellite/themes/cities/2013/AntarcticaJangbogo",
+}
+WMTS_THEME_URL = "https://api.vworld.kr/req/wmts/1.0.0/{key}/{path}/{z}/{x}/{y}.png"
+
+
+def knows_wmts(layer: str) -> bool:
+    return layer in WMTS_LAYERS or layer in WMTS_THEMES
+
 
 def get_wmts_tile(layer: str, z: int, y: int, x: int):
     """배경지도 타일 한 장. (바이트, content-type). 자료가 없는 자리는 `None`.
@@ -587,8 +600,11 @@ def get_wmts_tile(layer: str, z: int, y: int, x: int):
     left = usage.paused()
     if left:
         raise VWorldError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
-    url = WMTS_URL.format(key=settings.VWORLD_KEY, layer=layer, z=z, y=y, x=x,
-                          ext=WMTS_LAYERS[layer])
+    if layer in WMTS_THEMES:
+        url = WMTS_THEME_URL.format(key=settings.VWORLD_KEY, path=WMTS_THEMES[layer], z=z, x=x, y=y)
+    else:
+        url = WMTS_URL.format(key=settings.VWORLD_KEY, layer=layer, z=z, y=y, x=x,
+                              ext=WMTS_LAYERS[layer])
     where = f"{layer}/{z}/{y}/{x}"
     try:
         r = requests.get(url, timeout=settings.UPSTREAM_TIMEOUT,

@@ -260,6 +260,15 @@ class Basemap(SimpleTestCase):
             vworld.get_wmts_tile("Satellite", 10, 402, 874)
         self.assertTrue(get.call_args.args[0].endswith("/Satellite/10/402/874.jpeg"))
 
+    def test_남극_기지_테마는_자리_차례를_바꿔_부른다(self):
+        # 중계 주소는 배경지도처럼 z/y/x 로 오고, 테마는 z/x/y 로 부른다 (wetherilli 093)
+        with mock.patch.object(vworld.requests, "get", return_value=resp(PNG)) as get:
+            r = self.client.get("/GSM/vworld/AntarcticaSejong/15/22987/10866.png")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(get.call_args.args[0],
+                         "https://api.vworld.kr/req/wmts/1.0.0/SECRET/Satellite/themes/cities/2013/"
+                         "AntarcticaSejong/15/10866/22987.png")
+
     def test_자료_밖의_XML_은_빈_자리(self):
         with mock.patch.object(vworld.requests, "get",
                                return_value=resp(b"<xml/>", "application/xml;charset=UTF-8")):

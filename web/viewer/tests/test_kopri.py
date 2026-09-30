@@ -163,6 +163,9 @@ class View(TestCase):
         group = LayerGroup.objects.create(name="극지연구소 시료", region="antarctica")
         Layer.objects.create(name="kopri:rock_antarctica", title="암석 시료", group=group, upstream="kopri")
         Layer.objects.create(name="kopri:coast_change", title="해안선 변화", group=group, upstream="kopri")
+        Layer.objects.create(name="kopri:historic", title="역사 유적", group=group, upstream="kopri")
+        north = LayerGroup.objects.create(name="KPDC 기본도", region="greenland")
+        Layer.objects.create(name="kopri:greenland_ice_contours", title="빙상 등고선", group=north, upstream="kopri")
 
     def test_모으지_않았으면_503(self):
         with tempfile.TemporaryDirectory() as d, override_settings(KOPRI_DIR=d):
@@ -182,6 +185,9 @@ class View(TestCase):
         self.assertEqual(rows["kopri:rock_antarctica"]["kind"], "points")
         self.assertEqual(rows["kopri:rock_antarctica"]["style"], "class")
         self.assertEqual(rows["kopri:coast_change"]["projection"], "EPSG:3031")
+        # 북극 것은 3413 으로 받는다 — KPDC 는 3995 만 적어 두지만 GeoServer 가 그려 준다 (wetherilli 095)
+        self.assertEqual(rows["kopri:greenland_ice_contours"]["projection"], "EPSG:3413")
+        self.assertEqual(rows["kopri:historic"]["projection"], "EPSG:3031")
 
     def test_밖에_열면_내린다(self):
         with override_settings(PUBLIC=True):

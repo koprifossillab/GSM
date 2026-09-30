@@ -105,7 +105,6 @@
     활단층도 `afm`[실측]처럼 지질도 위에 겹칠 것은 **곧장 부르는 카탈로그 레이어의 선례가 없어** 반나절
   - 일본 주소 찾기 [실측] `msearch.gsi.go.jp/address-search/AddressSearch?q=` — 스발바르 지명 분기(`searchNames`)를 본떠 1–2시간.
     CORS 확인, 동아시아 탭은 VWorld 로 가므로 가르는 분기. 좌표→주소(`mreversegeocoder`)는 시군구 코드만 줘 표가 들고 문도 든다(반나절)
-- [ ] PGC 음영 변형(Multidirectional·Elevation Tinted) [실측] — 배경 `pgcHillshade` 에 함수 이름을 인자로. 1–2시간
 
 ### 그린란드 포털 — 남은 것
 
@@ -120,13 +119,6 @@
 - [ ] 그린란드 공식 지명 [실측] `Nunat_Aqqi_pisortatigut_aug2018` 33 006 건 — `grportal.LAYERS` 에 넣으면 `fetch_grportal` 이 모은다.
       셋 가운데 하나를 사람이 고른다. 그린란드어 `ĸ`·덴마크어 이름 접기. 첫 건 하루
 - [ ] 드로닝모드랜드 지명 [실측] NPI `NPI_Place_Names_Dronning_Maud_Land` — 위 뒤면 1–2시간. CC BY 4.0
-
-### KPDC 안 쓴 레이어 — 반나절 (+ 레이어별 투영)
-
-- [ ] [실측] 54 개 가운데 6 개만 쓴다. 북극해 수심·등심선(`arctic_topography_bathymetry`·`_bathymetric_contours`), 영구동토
-      (`arctic_topography_permafrost_ice`), 남극 등고선(`antarctic_topography_contours_high`·`_low`), 역사 유적. `kopri.WMS` 에 줄,
-      `WMS_PROPS`, 씨앗. **`views._layer_extra` 가 kopri 를 3031 로 박아 두어** 북극 것은 레이어마다 투영을 두게 먼저 고친다.
-      `LAB_ONLY` (057·073)
 
 ### GSJ 새 호스트 — 사흘 (두 건)
 
@@ -172,8 +164,6 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
   - ("더 나중에" 의 데이터셋 검색 API 가 이 묶음이다)
 - [ ] 주소만 적힌 CSV 를 점묶음으로 [004·009] — `vworld.py` 에 `getCoord` 가 **없어** `geocode()` 를 새로. 올리기가 60 초에
       끊겨(gunicorn) 150 줄쯤이 한계라 넘으면 명령으로. 옛 행정구역은 못 찾는다. 하루
-- [ ] VWorld 남극 기지 위성영상 [004] WMTS `AntarcticaSejong`·`AntarcticaJangbogo` — `vworldSource()` 가 차례를 이미 맞춘다.
-      남극의 `vworld:false` 와 CLAUDE.md "VWorld 는 한국·동아시아에서만" 을 고친다. 반나절
 
 ### 더 큰 것
 

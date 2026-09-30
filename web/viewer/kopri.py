@@ -314,7 +314,24 @@ WMS = {
     "kopri:lakes": "antarctic_water_lakes",
     "kopri:streams": "antarctic_water_streams",
     "kopri:moraines": "antarctic_topography_moraines",
+    # 2026-09-30 에 더했다 (wetherilli 095). `_group` 은 KPDC 가 축척마다 고해상·중해상 판을 바꿔 주는 묶음이다
+    "kopri:rock_outcrops": "antarctic_topography_rock_group",
+    "kopri:contours": "antarctic_topography_contours_group",
+    "kopri:historic": "antarctic_human_historic",
+    "kopri:arctic_depth_contours": "arctic_topography_bathymetric_contours",
+    "kopri:greenland_ice_contours": "arctic_topography_ice_contours",
 }
+
+#: 3031 이 아닌 레이어의 받을 투영. 북극 것은 KPDC 가 3995 로만 적어 두지만 GeoServer 가 3413 으로도 그려 준다
+#: — 우리 북극 화면이 3413 이라 그대로 받는다 (wetherilli 095)
+WMS_PROJECTION = {
+    "kopri:arctic_depth_contours": "EPSG:3413",
+    "kopri:greenland_ice_contours": "EPSG:3413",
+}
+
+
+def wms_projection(name: str) -> str:
+    return WMS_PROJECTION.get(name, "EPSG:3031")
 
 LABELS = {
     "rock": {"no": "시료 번호", "type": "암석 갈래", "strat": "지층", "age": "지질시대",
@@ -337,6 +354,13 @@ WMS_PROPS = {
     "kopri:streams": (("imw_sheet", "도폭 (IMW)"), ("source", "출처"), ("sourcedate", "출처 날짜"),
                       ("revdate", "고친 날")),
     "kopri:moraines": (("surface", "갈래"), ("subsurface", "밑"), ("source", "출처")),
+    "kopri:rock_outcrops": (("type", "갈래"), ("surface", "표면"), ("source", "출처"), ("revdate", "고친 날")),
+    "kopri:contours": (("height", "높이 (m)"), ("bedtype", "바닥"), ("surface", "표면"), ("certainty", "확실성"),
+                       ("sourcedate", "출처 날짜")),
+    "kopri:historic": (("no", "HSM 번호"), ("name", "이름"), ("descriptio", "설명"), ("proposing_", "제안국"),
+                       ("managing_c", "관리국"), ("lat", "위도"), ("lon", "경도")),
+    "kopri:arctic_depth_contours": (("depth", "수심 (m)"),),
+    "kopri:greenland_ice_contours": (("contour", "높이 (m)"),),
 }
 
 STATION_CLASSES = (

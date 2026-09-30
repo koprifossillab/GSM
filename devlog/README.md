@@ -122,4 +122,8 @@
 | wetherilli 089 | 2026-09-30 | [그린란드 포털 — 면과 갈래 색을 받는 틀, 그리고 레이어 넷](20260930_wetherilli_089_greenland_portal_areas.md) |
 | wetherilli 090 | 2026-09-30 | [Trek 판 목록 — 타일 한 장을 받아 보고 적는다](20260930_wetherilli_090_trek_probe_tile.md) |
 | wetherilli P07 | 2026-09-30 | [온 지구 — 시간 축, 그리고 그 위에 얹을 일곱 (계획)](20260930_wetherilli_P07_earth_time_axis.md) |
+| wetherilli 091 | 2026-09-30 | [온 지구 — 시간 축, 그리고 판을 돌린 그때의 지구](20260930_wetherilli_091_earth_time_axis.md) |
+| wetherilli 092 | 2026-09-30 | [극지 배경 — PGC 음영의 다른 그리는 법 둘](20260930_wetherilli_092_pgc_hillshade_variants.md) |
+| wetherilli 093 | 2026-09-30 | [남극 — 세종·장보고 기지 위성영상 (VWorld 테마)](20260930_wetherilli_093_vworld_antarctic_stations.md) |
 | wetherilli 094 | 2026-09-30 | [스발바르 — 빙하 전면 변화 1936–2025 (NPI)](20260930_wetherilli_094_svalbard_glacier_fronts.md) |
+| wetherilli 095 | 2026-09-30 | [극지연구소 — KPDC 기본도 다섯 (노출암·등고선·역사 유적·북극 등심선·빙상 등고선)](20260930_wetherilli_095_kpdc_base_map_layers.md) |
