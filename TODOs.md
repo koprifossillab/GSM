@@ -105,8 +105,6 @@
     활단층도 `afm`[실측]처럼 지질도 위에 겹칠 것은 **곧장 부르는 카탈로그 레이어의 선례가 없어** 반나절
   - 일본 주소 찾기 [실측] `msearch.gsi.go.jp/address-search/AddressSearch?q=` — 스발바르 지명 분기(`searchNames`)를 본떠 1–2시간.
     CORS 확인, 동아시아 탭은 VWorld 로 가므로 가르는 분기. 좌표→주소(`mreversegeocoder`)는 시군구 코드만 줘 표가 들고 문도 든다(반나절)
-- [ ] 스발바르 빙하 전면 변화 [실측] NPI `Temadata/I_Glacier_Fronts_Svalbard` — `npolar.TILES` 한 줄. `npolar.FRIENDLY` 가 허용
-      목록이라 연도·이름 열을 적는다. CC BY 4.0. 1–2시간–반나절(상류가 연도별로 칠하지 않으면 점 길로 가야 해 반나절 넘음)
 
 ### 그린란드 포털 — 남은 것
 
