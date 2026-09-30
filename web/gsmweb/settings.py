@@ -154,6 +154,8 @@ CRUST_FILE = BASE_DIR.parent / "data" / "crust2_thickness.json"
 EARTH_PLACES_FILE = BASE_DIR.parent / "data" / "earth_places.json"
 EARTH_WATER_FILE = BASE_DIR.parent / "data" / "earth_water.json"
 EARTH_ICE_FILE = BASE_DIR.parent / "data" / "earth_ice.json"
+#: 최근 빙기의 빙상 가장자리 NADI-1·DATED-1 (`viewer/icemargins.py`, wetherilli 104, `manage.py build_ice_margins`). 저장소에 둔다
+ICE_MARGINS_FILE = BASE_DIR.parent / "data" / "ice_margins.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")

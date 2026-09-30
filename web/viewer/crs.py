@@ -190,6 +190,35 @@ def latlon_to_lcc(lat, lon, lon0, lat1, lat2, lat0=0.0, fe=0.0, fn=0.0, ellipsoi
     return fe + rho * math.sin(theta), fn + rho0 - rho * math.cos(theta)
 
 
+# ── 북극 람베르트 등적 방위도법 (DATED-1 의 빙상 가장자리, wetherilli 104) ──
+
+def _laea_q(phi, e):
+    s = math.sin(phi)
+    return (1 - e * e) * (s / (1 - e * e * s * s) - math.log((1 - e * s) / (1 + e * s)) / (2 * e))
+
+
+def laea_north_to_latlon(x, y, lon0=0.0, ellipsoid=WGS84):
+    """북극 람베르트 등적 방위도법(타원체) (x, y) → (위도, 경도). Snyder (1987) 24-15–24-19·3-18 — 위도는 수렴 급수다."""
+    a, f = ellipsoid
+    e2 = f * (2 - f)
+    e = math.sqrt(e2)
+    qp = _laea_q(math.pi / 2, e)
+    beta = math.asin(max(-1.0, min(1.0, (qp - (x * x + y * y) / (a * a)) / qp)))
+    phi = (beta + (e2 / 3 + 31 * e2 ** 2 / 180 + 517 * e2 ** 3 / 5040) * math.sin(2 * beta)
+           + (23 * e2 ** 2 / 360 + 251 * e2 ** 3 / 3780) * math.sin(4 * beta)
+           + (761 * e2 ** 3 / 45360) * math.sin(6 * beta))
+    return math.degrees(phi), lon0 + math.degrees(math.atan2(x, -y))
+
+
+def latlon_to_laea_north(lat, lon, lon0=0.0, ellipsoid=WGS84):
+    """(위도, 경도) → 북극 람베르트 등적 방위도법 (x, y). 시험과 되짚기에 쓴다."""
+    a, f = ellipsoid
+    e = math.sqrt(f * (2 - f))
+    rho = a * math.sqrt(max(0.0, _laea_q(math.pi / 2, e) - _laea_q(math.radians(lat), e)))
+    lam = math.radians(lon - lon0)
+    return rho * math.sin(lam), -rho * math.cos(lam)
+
+
 # ── 옛 측지계 (Bessel ↔ GRS80) ────────────────────────────────────────
 
 def _geodetic_to_ecef(lat, lon, ell, h=0.0):

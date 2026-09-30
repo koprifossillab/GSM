@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, macrostrat, naturalearth, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, icemargins, macrostrat, naturalearth, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -928,7 +928,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
-                                   "crust": crust.legend() if crust.grid() else []}),
+                                   "crust": crust.legend() if crust.grid() else [],
+                                   "icemargins": icemargins.stops()}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
@@ -1190,6 +1191,29 @@ def earth_labels(request):
     """산맥·고원·사막·바다 따위의 이름표 — `[이름, 경도, 위도, 순위]`, 큰 것부터."""
     return JsonResponse({"labels": naturalearth.labels(i18n.lang_of(request)), "credit": naturalearth.CREDIT},
                         json_dumps_params={"ensure_ascii": False})
+
+
+# ── 최근 빙기의 빙상 가장자리 (wetherilli 104) ────────────────────────
+
+@require_GET
+def earth_icemargin_tile(request, ka, z, x, y):
+    """`earth/icemargins/tiles/<ka>/<z>/<x>/<y>.png` — 그 연대(천 년 단위)의 빙상 가장자리 (`icemargins.render_tile`)."""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not paleo.valid_tile(z, x, y) or ka > 1000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    picked = icemargins.pick(float(ka))
+    if not picked:
+        return _tile(tiles.blank_tile(), store=False)
+    tag = "-".join(f"{k}{v:g}" for k, v in sorted(picked.items()))
+    key = tilecache.key_text("icemargins", f"{icemargins.RENDERER}/{tag}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = icemargins.render_tile(float(ka), z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
 
 
 # ── 지각 두께 (wetherilli 101) ───────────────────────────────────────

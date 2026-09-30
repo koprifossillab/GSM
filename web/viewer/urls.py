@@ -56,6 +56,8 @@ urlpatterns = [
     path("earth/crust/at/", views.earth_crust_at, name="earth-crust-at"),
     re_path(r"^earth/ne/tiles/(?P<style>water|ice)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_ne_tile, name="earth-ne-tile"),
+    re_path(r"^earth/icemargins/tiles/(?P<ka>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+            views.earth_icemargin_tile, name="earth-icemargin-tile"),
     path("earth/places/", views.earth_places, name="earth-places"),
     path("earth/labels/", views.earth_labels, name="earth-labels"),
     path("pointsets/<int:pk>/paleo/", views.earth_paleo_set, name="pointset-paleo"),

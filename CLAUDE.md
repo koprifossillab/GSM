@@ -223,7 +223,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   오늘의 레이어로 **지각 두께**(CRUST 2.0, `crust.py`, 1° 격자 `data/crust2_thickness.json` — `manage.py build_crust <zip>` 은
   h5py 가 있는 파이썬으로만 돈다. 제품은 h5py 를 쓰지 않는다, wetherilli 101)와 **지명 찾기·산맥·바다 이름·강·호수·빙하**
   (Natural Earth 10 m, `naturalearth.py`, `data/earth_places.json`·`earth_water.json`·`earth_ice.json` — `manage.py build_natural_earth`,
-  wetherilli 102). 이름표는 타일이 아니라 화면이 쓴다(`labels: true` 레이어)
+  wetherilli 102). 이름표는 타일이 아니라 화면이 쓴다(`labels: true` 레이어). `ka: true` 는 0 보다 오래고 1 Ma 안쪽일 때만 —
+  **최근 빙기의 빙상 가장자리**(NADI-1·DATED-1, `icemargins.py`, `data/ice_margins.json` — `manage.py build_ice_margins`, wetherilli 104)
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
@@ -350,12 +351,13 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   paleo.py        PALEOMAP 2016 판 회전(data/paleomap2016.json) -> 오늘의 한 자리가 옛 연대에 있던 곳. 문이 아니다
   paleocoast.py   옛 해안선 PaleoCoastlines v7.1 -> 그때의 지구에 얹는 경위도 타일. 문이 아니다
   naturalearth.py 온 지구의 지명·강·호수·빙하 Natural Earth (data/earth_*.json) -> 찾기·이름표·경위도 타일. 문이 아니다
+  icemargins.py   최근 빙기의 빙상 가장자리 NADI-1·DATED-1 (data/ice_margins.json) -> 연대마다 경위도 타일. 문이 아니다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
   fossils.py      PBDB 화석 산지 CSV -> sqlite(R*Tree) -> 연대마다 그 자리의 점 타일·누른 자리. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
-  crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트) <-> 위경도. pyproj 없이
+  crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트·북극 람베르트 등적) <-> 위경도. pyproj 없이
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
   models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
@@ -368,7 +370,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`.**
 이 열둘 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`crust.py`·`naturalearth.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`crust.py`·`naturalearth.py`·`icemargins.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 

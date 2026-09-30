@@ -77,6 +77,11 @@
       { name: "fossils", title: "화석 산지", grid: "ll", always: true, legend: "geology",
         src: "Paleobiology Database · CC BY 4.0" },
     ] },
+    // 최근 빙기 — 1 ka–1 Ma 의 오늘의 지구에만 뜬다(`ka`). 25–1 ka 의 빙상 가장자리 (104)
+    { group: "최근 빙기", layers: [
+      { name: "icemargins", title: "빙상 가장자리", grid: "ll", ka: true,
+        src: "NADI-1 (Dalton et al. 2023) · DATED-1 (Hughes et al. 2016)" },
+    ] },
     { group: "그때의 지구", layers: [
       { name: "coast", title: "옛 해안선", grid: "ll", then: true,
         src: "PaleoCoastlines v7.1 (Kocsis & Scotese 2021) · CC BY 4.0" },
@@ -92,6 +97,7 @@
     if (name === "plates") return paleoUrl("edge", 0);
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
     if (name === "crust") return BASE + "earth/crust/tiles/{z}/{x}/{y}.png";
+    if (name === "icemargins") return BASE + "earth/icemargins/tiles/" + Math.min(1000, Math.round(age * 1000)) + "/{z}/{x}/{y}.png";
     if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png";
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
@@ -102,9 +108,10 @@
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
   var NE_CREDIT = "Natural Earth 10 m (public domain)";
+  var ICE_CREDIT = "NADI-1 (Dalton et al. 2023, CC BY 4.0) · DATED-1 (Hughes et al. 2016, CC BY 3.0)";
   function creditOf(name) {
     return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT,
-             names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT }[name];
+             names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
@@ -140,16 +147,18 @@
   })();
   // 옛 해안선(097)은 처음 한 번 켜 둔다 — 전에 기억한 목록에도. 사람이 끄면 그대로 꺼진다
   // 화석 산지(098)도 그렇게 한 번 켜 둔다
-  [["coast", "gsm.earth.coast.added"], ["fossils", "gsm.earth.fossils.added"]].forEach(function (pair) {
+  [["coast", "gsm.earth.coast.added"], ["fossils", "gsm.earth.fossils.added"],
+   ["icemargins", "gsm.earth.icemargins.added"]].forEach(function (pair) {
     if (saved(pair[1], "") === "1") return;
     if (!active.some(function (e) { return e.name === pair[0]; })) active.unshift({ name: pair[0], opacity: 1 });
     save(pair[1], "1");
     save("gsm.earth.layers", JSON.stringify(active));
   });
-  /** 지금의 연대에 이 레이어가 뜨나 — 오늘의 것은 오늘에만, 그때의 것(`then`)은 1 Ma 부터, `always` 는 늘 (P07 §2) */
+  /** 지금의 연대에 이 레이어가 뜨나 — 오늘의 것은 오늘에만(1 Ma 안쪽까지), 그때의 것(`then`)은 1 Ma 부터, `always` 는 늘,
+   *  최근 빙기의 것(`ka`)은 0 보다 오래고 1 Ma 안쪽일 때만 (P07 §2) */
   function visibleNow(name) {
     var l = LAYER[name];
-    return l.always ? true : l.then ? paleoOn() : !paleoOn();
+    return l.always ? true : l.then ? paleoOn() : l.ka ? age > 0 && !paleoOn() : !paleoOn();
   }
   function entryOf(name) { return active.filter(function (e) { return e.name === name; })[0]; }
   function isOn(name) { return !!entryOf(name); }
@@ -1401,6 +1410,21 @@
   ];
   var COAST_AGES = (THEN.coast || []).filter(function (a) { return a >= PALEO_FROM; });
   if (COAST_AGES.length) AGE_BANDS.push({ title: "옛 해안선", from: COAST_AGES[0], to: COAST_AGES[COAST_AGES.length - 1] + 10 });
+  var ICE_AGES = THEN.icemargins || {};
+  var iceAll = (ICE_AGES.nadi || []).concat(ICE_AGES.dated || []);
+  if (iceAll.length) {
+    AGE_BANDS.push({ title: "빙상 가장자리", from: Math.min.apply(null, iceAll) / 1000, to: Math.max.apply(null, iceAll) / 1000 });
+  }
+  /** 빙상 가장자리의 조각 — 묶음마다 가장 가까운 것, 반 조각 간격 안에서만 (서버의 `icemargins.pick` 과 같다) */
+  function iceStops(a) {
+    var ka = a * 1000, out = {};
+    [["nadi", 0.5], ["dated", 1]].forEach(function (pair) {
+      var best = null;
+      (ICE_AGES[pair[0]] || []).forEach(function (c) { if (best == null || Math.abs(c - ka) < Math.abs(best - ka)) best = c; });
+      if (best != null && Math.abs(best - ka) <= pair[1] / 2 + 1e-9) out[pair[0]] = best;
+    });
+    return out;
+  }
   /** 옛 해안선의 시점 — 가장 가까운 것, 10 Myr 안에서만 (서버의 `paleocoast.stop` 과 같다) */
   function coastStop(a) {
     var best = null;
@@ -1473,9 +1497,16 @@
     var note = !age ? "" : p
       ? T("PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다")
       : T("오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다");
+    if (!p && age > 0 && isOn("icemargins")) {
+      var ice = iceStops(age), bits = [];
+      if (ice.nadi != null) bits.push(T("북미 {ka} ka", { ka: ice.nadi }));
+      if (ice.dated != null) bits.push(T("유라시아 {ka} ka", { ka: ice.dated }));
+      note += " · " + (bits.length ? T("빙상 가장자리 — {what} (연대 측정을 모은 복원)", { what: bits.join(" · ") })
+                                 : T("빙상 가장자리는 25–1 ka 에만 있다"));
+    }
     if (p && isOn("coast")) {
       var c = coastStop(age);
-      note += " " + (c == null ? T("옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)")
+      note += " · " + (c == null ? T("옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)")
                                 : T("옛 해안선은 {age} Ma 의 것 — 화석이 가리키는 가장 깊은 바다", { age: c }));
     }
     $("age-note").textContent = note;
