@@ -109,3 +109,4 @@
 | jikhanjung 002 | 2026-09-30 | [제목 옆에 판 번호](20260930_jikhanjung_002_title_version.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
+| wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |

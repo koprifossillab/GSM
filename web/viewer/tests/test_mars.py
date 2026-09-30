@@ -360,3 +360,24 @@ class MarsCraters(TestCase):
             self.assertEqual(r["Cache-Control"], "no-store")
             note = self.client.get(reverse("viewer:mars-info"), {"lon": 1, "lat": 1, "layer": "craters"}).json()
             self.assertEqual(note["rows"], [])
+
+
+class MarsTrekSeed(SimpleTestCase):
+    """화성 Trek 씨앗 손질 (wetherilli 080) — 한글 제목, 화면에 이미 있는 판과 타일이 빈 판은 숨긴다."""
+
+    def test_화면에_있는_판은_목록에_없다(self):
+        ids = {l["id"] for g in trek.client_catalog("mars")["groups"] for l in g["layers"]}
+        for dup in ("SIM3292_Global_Geology", "Perseverance_Traverse_Path", "curiosity_hirise_mosaic",
+                    "HiRISE_Global", "CTX_beta01_uncontrolled_5m_Caltech"):
+            self.assertNotIn(dup, ids)
+        self.assertIn("TES_Thermal_Inertia", ids)
+
+    def test_골짜기망과_사구는_우리_문으로(self):
+        layers = {l["id"]: l for g in trek.client_catalog("mars")["groups"] for l in g["layers"]}
+        self.assertEqual(layers["Hynek_Valley_Networks"]["kind"], "map")
+        self.assertEqual(layers["Dune_Field"]["kind"], "map")
+        self.assertTrue(trek.map_entry("mars", "Hynek_Valley_Networks"))
+
+    def test_보이는_판은_모두_한글_제목이_있다(self):
+        layers = [l for g in trek.client_catalog("mars")["groups"] for l in g["layers"]]
+        self.assertEqual([l["title"] for l in layers if not l["ko"]], [])
