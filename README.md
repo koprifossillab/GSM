@@ -57,6 +57,12 @@ python manage.py runserver
 
 ## 라이선스와 자료의 출처
 
-코드는 이 저장소의 라이선스를 따른다. **지도 자료의 저작권은 한국지질자원연구원에
-있다** — 이 뷰어는 오픈API 로 받아 그릴 뿐 자료를 재배포하지 않는다.
-이용 조건은 [플랫폼 이용약관](https://data.kigam.re.kr/)을 따른다.
+**코드는 GNU Affero General Public License v3.0(AGPL-3.0)을 따른다** — 전문은 [LICENSE](LICENSE).
+AGPL 이라 **고친 판을 네트워크로 남에게 쓰게 하면 그 사람에게 소스를 내줄 길을 열어 두어야 한다**(13조).
+이 저장소는 공개(https://github.com/koprifossillab/GSM)다.
+
+- 옮겨 온 남의 코드는 제 라이선스를 지닌다 — EarthThruTime3D 의 옛 위치 셈(MIT, [docs/licenses/](docs/licenses/))
+- **라이선스는 코드에만 걸린다. 지도 자료는 저마다 주인의 조건을 따른다.** KIGAM 자료의 저작권은
+  한국지질자원연구원에 있고([플랫폼 이용약관](https://data.kigam.re.kr/)) 5만 수치지질도는 CC BY-NC 다.
+  다른 상류(GEUS·NPI·GSJ·USGS geo3al·Esri·EOX·극지연구소 …)의 조건과 밖에 열 때 내릴 것은 CLAUDE.md "지역" 에 있다
+- 이 뷰어는 받아 그릴 뿐 자료를 재배포하지 않는다. `data/` 의 씨앗은 레이어 목록(이름·제목·범위)이다
