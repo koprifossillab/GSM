@@ -197,6 +197,17 @@
 <main id="map-wrap" class="moon-globe">
   {% comment %}구(Cesium)와 평면(OpenLayers)이 한 자리를 나눠 쓴다. 보이는 것은 하나다 — `moon-globe`·`moon-flat`{% endcomment %}
   <div id="globe"></div>
+  {% comment %}구의 그리기가 멈췄을 때 (wetherilli 110) — WebGL 문맥을 잃으면 Cesium 은 되살리지 못한다{% endcomment %}
+  <div id="render-failed" class="render-failed" role="alert" hidden>
+    <p class="rf-head">{% t "구를 더 그리지 못한다" %}</p>
+    <p>{% t "그래픽 메모리가 모자라거나 GPU 가 다시 시작되면 브라우저가 3D 그리기를 멈춘다. 켠 레이어를 줄이고 다시 연다." %}</p>
+    <p class="rf-why" id="render-failed-why"></p>
+    <div class="rf-buttons">
+      <button type="button" id="render-failed-reload">{% t "새로고침" %}</button>
+      <button type="button" id="render-failed-light" title="{% t "지형 세우기와 지구 속을 끄고 다시 연다" %}">{% t "가볍게 다시 연다" %}</button>
+      <button type="button" id="render-failed-flat" title="{% t "평면 지도는 구와 따로 돈다" %}">{% t "평면으로" %}</button>
+    </div>
+  </div>
   <div id="map"></div>
   <button type="button" id="panel-handle" class="panel-handle" aria-controls="panel" aria-expanded="true"
           title="{% t "패널을 접는다" %}">&lt;</button>

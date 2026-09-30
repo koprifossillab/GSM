@@ -328,6 +328,16 @@ EN = {
     "맨틀 파일이 서버에 없다": "The mantle files are not on the server",
     "맨틀은 OPT1 의 {ma} Ma — 모의 결과이지 관측이 아니다": "Mantle from OPT1 at {ma} Ma — a model result, not an observation",
     "(맨틀 기준틀이라 판 조각과 어긋난다)": "(mantle reference frame — offset from the plate pieces)",
+    # 그리기가 멈추면 (wetherilli 110)
+    "WebGL 문맥을 잃었다": "The WebGL context was lost",
+    "구를 더 그리지 못한다": "The globe can no longer be drawn",
+    "그래픽 메모리가 모자라거나 GPU 가 다시 시작되면 브라우저가 3D 그리기를 멈춘다. 켠 레이어를 줄이고 다시 연다.":
+        "When graphics memory runs out or the GPU restarts, the browser stops 3D drawing. Turn off some layers and reopen.",
+    "새로고침": "Reload",
+    "지형 세우기와 지구 속을 끄고 다시 연다": "Reopen with terrain and the Earth's interior turned off",
+    "가볍게 다시 연다": "Reopen lighter",
+    "평면 지도는 구와 따로 돈다": "The flat map runs separately from the globe",
+    "평면으로": "Go flat",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
