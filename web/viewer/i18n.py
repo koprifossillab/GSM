@@ -315,6 +315,13 @@ EN = {
     "강·호수": "Rivers and lakes",
     "빙하·빙붕": "Glaciers and ice shelves",
     "좌표·지명으로 이동 — 37.57, 126.98 · 바이칼호 · Andes": "Go to coordinates or a place — 37.57, 126.98 · Baikal · Andes",
+    # 빙상 가장자리 (wetherilli 104)
+    "최근 빙기": "Last glaciation",
+    "빙상 가장자리": "Ice-sheet margins",
+    "북미 {ka} ka": "North America {ka} ka",
+    "유라시아 {ka} ka": "Eurasia {ka} ka",
+    "빙상 가장자리 — {what} (연대 측정을 모은 복원)": "Ice-sheet margins — {what} (a reconstruction from compiled dates)",
+    "빙상 가장자리는 25–1 ka 에만 있다": "Ice-sheet margins exist only for 25–1 ka",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",
