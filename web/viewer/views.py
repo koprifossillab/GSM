@@ -27,7 +27,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import macrostrat, spamap
+from . import macrostrat, paleo, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -975,10 +975,60 @@ def earth_info(request):
         rows = [("단위", u["name"]), ("지층", u["strat"]), ("시대", u["age"]),
                 ("연대 (Ma)", _age_span(u["b_age"], u["t_age"])), ("암상", u["lith"]),
                 ("설명", u["descrip"]), ("원도", raw.get("refs", {}).get(str(u["source_id"]), ""))]
-        units.append({"rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v],
+        # 그때의 자리 (wetherilli 087) — 단위의 윗·밑 연대에서 한 줄씩. 젊은 쪽이 먼저다
+        then = _paleo_rows(lon, lat, [a for a in (u["t_age"], u["b_age"]) if a is not None], lang)
+        units.append({"rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v] + then,
                       "name": u["name"], "color": u["color"], "b_age": u["b_age"], "t_age": u["t_age"],
                       "scale": u["scale"]})
     return JsonResponse({"units": units})
+
+
+def _lonlat_text(lon: float, lat: float, lang: str) -> str:
+    if lang == "en":
+        return f"{abs(lat):.2f}° {'N' if lat >= 0 else 'S'} · {abs(lon):.2f}° {'E' if lon >= 0 else 'W'}"
+    return f"{'북위' if lat >= 0 else '남위'} {abs(lat):.2f}° · {'동경' if lon >= 0 else '서경'} {abs(lon):.2f}°"
+
+
+def _paleo_text(got: dict, lang: str) -> str:
+    """`paleo.Model.carry` 의 답 하나를 사람이 읽는 말로."""
+    if "lon" in got:
+        return _lonlat_text(got["lon"], got["lat"], lang)
+    if got["reason"] == "ocean":
+        return i18n.t(msg("바다 밑이다 — 대륙 다각형이 없어 옮기지 못한다"), lang)
+    if got["reason"] == "future":
+        return i18n.t(msg("앞날은 셈하지 않는다"), lang)
+    return i18n.t(msg("이 판은 {reach} Ma 까지만 거슬러 옮긴다", reach=f"{got['reach']:g}"), lang)
+
+
+def _paleo_rows(lon: float, lat: float, ages: list, lang: str) -> list:
+    """`[[그때의 자리 (N Ma), 좌표]…]`. 모델 파일이 없으면 빈 목록이다 — 팝업은 그 줄 없이 돈다."""
+    m = paleo.model()
+    if m is None or not ages:
+        return []
+    plate = m.plate_at(lon, lat)
+    if plate is None:                                   # 바다 밑 — 연대마다 같은 말을 되풀이하지 않는다
+        return [[i18n.t(msg("그때의 자리"), lang), _paleo_text({"reason": "ocean"}, lang)]]
+    rows = []
+    for age in dict.fromkeys(float(a) for a in ages):
+        label = i18n.t(msg("그때의 자리 ({age} Ma)", age=f"{age:g}"), lang)
+        rows.append([label, _paleo_text(m.carry(lon, lat, age, plate), lang)])
+    return rows
+
+
+@require_GET
+def earth_paleo(request):
+    """`?lon=126.98&lat=37.57&age=250` — 오늘의 한 자리가 그 연대에 있던 곳 (PALEOMAP 2016, `paleo.py`).
+
+    팝업의 "옛 위치" 칸과 점묶음이 부른다. 계산이지 관측이 아니다."""
+    lang = i18n.lang_of(request)
+    lat, lon, age = _float(request.GET.get("lat")), _float(request.GET.get("lon")), _float(request.GET.get("age"))
+    if lat is None or lon is None or age is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon·age 가 없다"), lang)}, status=400)
+    m = paleo.model()
+    if m is None:
+        return JsonResponse({"error": i18n.t(msg("판 회전 파일이 서버에 없다"), lang)}, status=503)
+    got = m.carry(lon, lat, age)
+    return JsonResponse({**got, "text": _paleo_text(got, lang), "model": m.meta.get("title", "")})
 
 
 def _age_span(oldest, youngest) -> str:

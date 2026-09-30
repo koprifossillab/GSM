@@ -806,6 +806,27 @@
            '</span><span class="k">' + esc(T("경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
+  // 그때의 자리 (wetherilli 087) — 누른 자리를 아무 연대로나 옮겨 본다. 서버가 PALEOMAP 2016 판 회전으로 셈한다
+  // (`paleo.py`). 점묶음의 점에 연대(Ma) 열이 있으면 그 값을 미리 넣는다
+  function paleoForm(ll, age) {
+    return '<form class="paleo-form" data-lon="' + ll[0].toFixed(5) + '" data-lat="' + ll[1].toFixed(5) + '">' +
+           '<label title="' + esc(T("PALEOMAP 2016 판 회전으로 셈한 것이다 — 관측이 아니다")) + '">' + esc(T("그때의 자리")) +
+           ' <input type="number" name="age" min="0" max="1100" step="any" placeholder="250" value="' +
+           (age == null ? "" : esc(age)) + '"> Ma</label><button type="submit">' + esc(T("옮긴다")) + "</button>" +
+           '<output class="paleo-out"></output></form>';
+  }
+  popupBody.addEventListener("submit", function (e) {
+    var form = e.target.closest(".paleo-form");
+    if (!form) return;
+    e.preventDefault();
+    var out = form.querySelector(".paleo-out"), age = form.elements.age.value;
+    if (age === "") return;
+    out.textContent = T("읽는 중");
+    fetch(BASE + "earth/paleo/?lon=" + form.dataset.lon + "&lat=" + form.dataset.lat + "&age=" + encodeURIComponent(age))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { out.textContent = d.error || d.text; })
+      .catch(function () { out.textContent = T("속성을 받지 못했다"); });
+  });
   // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달·화성에서 온 틀이다. 지구는 지질도 하나다.
   // Macrostrat 는 줌마다 그리는 판(축척)이 달라, 보는 줌을 함께 보낸다 — 타일과 같은 판을 읽는다
   function hereZoom() {
@@ -820,7 +841,7 @@
   }
   function askUnit(ll, pixel) {
     markAt(ll);
-    var head = coordHead(ll);
+    var head = coordHead(ll) + paleoForm(ll);
     var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
     if (!layers.length) { showPopup(head, pixel); return; }
     var mine = ++asked;
@@ -852,7 +873,10 @@
     var rows = Object.keys(props).filter(function (k) {
       return k !== "이름표" && k.charAt(0) !== "_" && props[k] !== "" && props[k] != null && typeof props[k] !== "object";
     });
-    showPopup((ll ? coordHead(ll) : "") + "<h3>" + esc(title) + '</h3><p class="from"><span class="swatch" style="background:' +
+    // 연대(Ma) 열 — "연대 (Ma)"·"age_ma" 따위. 숫자면 옛 위치 칸에 미리 넣는다
+    var ageKey = rows.filter(function (k) { return /Ma\)?$|_ma$|^age$/i.test(k) && isFinite(parseFloat(props[k])); })[0];
+    showPopup((ll ? coordHead(ll) + paleoForm(ll, ageKey ? parseFloat(props[ageKey]) : null) : "") +
+              "<h3>" + esc(title) + '</h3><p class="from"><span class="swatch" style="background:' +
               esc(ps.color) + '"></span>' + esc(ps.name) + "</p>" +
               (rows.length ? "<table>" + rows.map(function (k) {
                 return "<tr><th>" + esc(T(k)) + "</th><td>" + esc(props[k]) + "</td></tr>";
