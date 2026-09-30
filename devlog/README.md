@@ -148,3 +148,4 @@
 | wetherilli 106 | 2026-09-30 | [온 지구 — 지구 속, OPT1 의 섭입한 판과 하부 더미](20260930_wetherilli_106_mantle_slabs.md) |
 | wetherilli 107 | 2026-09-30 | [달 — 극지 5 m·NAC DTM 으로 가까이서 고운 지형](20260930_wetherilli_107_moon_fine_terrain.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
+| koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |

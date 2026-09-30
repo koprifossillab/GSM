@@ -170,6 +170,12 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 `kigam_key` 를 `600` 으로 만들었더니 컨테이너가 못 읽어 "인증키가 없다" 띠가
 떴다. 설정은 기동할 때 읽으므로 고친 뒤에는 `docker restart gsm-web-1`.
 
+### 백업
+
+매주 월요일 01:40 `deploy/host/weekly_backup.sh` — 다시 못 얻는 것(GSM.db·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
+와 NAS 에, 캐시·원본은 거울로. 그 뒤 `fetch_kopri`. 무엇이 어디에 있고 어떻게 되살리나는 [docs/백업.md](docs/백업.md)
+(koprifossillab 001). **crontab 에 `deploy/host/crontab.GSM` 을 붙여야 돈다.**
+
 ### 판을 올릴 때
 
 - 기동할 때 이주와 씨앗(`seed_catalog`)이 저절로 들어간다
