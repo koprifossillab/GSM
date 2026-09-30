@@ -109,104 +109,123 @@
 
 ## 노는 자료 — 이미 가진 API 로 더 할 수 있는 것 (2026-09-30 조사)
 
-열쇠·문이 이미 있는데 받지 않는 자료다. 새 문 없이 되는 것만 적었다. [실측] 은 2026-09-30 에 한 번 불러 본 것,
-[문서] 는 목록에 이름만 본 것이다. 차례는 값 대비 품이다.
+열쇠·문이 이미 있는데 받지 않는 자료다. [실측] 은 2026-09-30 에 한 번 불러 본 것, [문서] 는 목록에 이름만 본 것이다.
+**품은 코드를 읽고 다시 쟀다** — 선례 코드와 바뀌는 파일을 세었다. 같은 틀을 타는 것끼리 묶었고, 묶음 안에서는 첫 건이
+틀을 만들고 뒤의 것은 싸다. 단위는 1–2시간·반나절·하루·이틀.
 
-### 극지 — PGC·그린란드 포털·NPI·KPDC
+### 빨리 되는 것 — 씨앗·배경 한 줄
 
-- [ ] **PGC 경사·경사향·25 m 등고선** [실측] — 음영은 이미 배경(`map.js` 의 `pgcHillshade`)으로 쓴다. 같은 ImageServer 의
-      `rasterFunctionInfos` 에 Slope Degrees·Aspect Degrees·Contour 25·Hillshade Multidirectional·Elevation Tinted 가 더 있다.
-      함수 이름만 바꿔 그린란드·스발바르·남극에 경사도·등고선 레이어를 두고, 누르면 경사 몇 도(`identify`, `elevation.py`).
-      CC BY 4.0. 반나절–하루
-- [ ] **그린란드 광물 잠재 구역 `gmom_tracts`** [실측] — 면 162, `mineralisa`·`deposit_de`·예상 광상 수(`n90`…`n01`)·
-      포털 색 `rgb`·보고서 `report`. `arcpoints` 의 면 틀로 `grportal.py` 에 서비스 하나. 반나절 (019)
-- [ ] **그린란드 공식 지명 찾기** [실측] — `Nunat_Aqqi_pisortatigut_aug2018` 33 006 건(같은 조직에 `Gazetteer_v20170620`·
-      `Stednavne_03_08_2018_official` — 하나를 고른다). 스발바르 지명 찾기(P01 §7)의 짝, `fetch_grportal` 로 모은다. 반나절–하루
-- [ ] **남극 드로닝모드랜드 지명** [실측, 건수 안 셈] — NPI `NPI_Place_Names_Dronning_Maud_Land`, CC BY 4.0. 남극 찾기 칸. 반나절
-- [ ] **KPDC 지도 서버의 안 쓴 레이어** [실측] — GetCapabilities 54 개 가운데 6 개만 쓴다. 북극해 수심·등심선
-      (`arctic_topography_bathymetry`·`_bathymetric_contours`, 북극해 탭의 배경감), 영구동토(`arctic_topography_permafrost_ice`),
-      남극 등고선(`antarctic_topography_contours_high`·`_low`), 역사 유적(`antarctic_human_historic`). `kopri.WMS` 표와 씨앗에 줄만.
-      `LAB_ONLY` 다. 반나절 (057·073)
-- [ ] **스발바르 빙하 전면 변화** [실측] — NPI `Temadata/I_Glacier_Fronts_Svalbard`(연도별 전면), 같은 폴더에 빙하 면·범위.
-      CC BY 4.0, `Basisdata_Intern` 이 아니다. 빙하가 물러나며 드러난 노두를 본다. 반나절
-- [ ] 그린란드 불안정 사면·매스무브먼트 [실측] — `Map_of_unstable_slopes_and_registered_mass_movements_WFL1` 면 넷.
-      작성 중인 자료라 캐시 주기를 짧게. 반나절
-- [ ] 그린란드 다이아몬드 탐사 DB [실측] — `DED_GL_OCCURRENCES` 3 029 점(암석군·주향·경사), 같은 묶음에 시추공·지시광물 화학.
-      산출지만 반나절–하루
-- [ ] 그린란드 전암 화학 [실측] — `Rock_Chemical_Analysis_from_Greenland` 31 769 점, 원소가 열 하나씩. U/Th 하나만 하루,
-      원소 고르개·분위수 색까지 이틀 넘게. 위 "지화학 원소 하나를 골라 색으로" 가 이것이다
-- [ ] (사람) 그린란드 50만 지질도 원본 면 [실측] — 포털 `GEUS_Greenland_500k_geology_polygon` 102 859 면(2020-05).
-      GEUS WMS `_search` 의 빈 곳을 메울 수 있지만 받아온 길이 다르다 — 섞을지 사람이 정한다. 한다면 파일로 받아 굽는다. 이틀 넘게
+- [ ] VWorld WMS 한 번에 — 아래 레이어 25 개 남짓을 `vworld_layers.json` 에 넣고 020 처럼 한 장·속성 한 번씩 받아 본다.
+      레이어군은 "채취·출입 제한"·"토양·산림"·"안전·공역"·"물" 쯤. 레이어마다 10–15 분이라 **하루**. 코드 수정 없음
+  - 보호구역 [실측: 데이터 API `LT_C_UO301`] — 국립·도립·군립공원(`lt_c_wgisnpgug`·`npdo`·`npgun`), 백두대간(`lt_c_uf901`),
+    산림보호구역(`lt_c_uf151`), 자연환경보전지역(`lt_c_uq114`), 습지(`lt_c_wgisarwet`·`lt_c_um901`), 해양보호구역(`lt_c_tfismpa`).
+    020 이 "지질 참고가 아니다" 로 뺀 것을 다른 레이어군으로. 천연기념물 화석산지처럼 허가가 드는 자리를 채취 전에 안다
+  - 토양·산림입지 [실측: `LT_C_ASITSOILDEP`·`LT_C_FSDIFRSTS`] — `lt_c_asitsoildep`·`asitsurston`·`asitdeepsoil`·`asitsoildra`·
+    `fsdifrsts`. 값이 코드로만 오면 코드→뜻 표가 든다
+  - 급경사재해예방지역·재해위험지구 [문서] `lt_c_up401`·`up201`, 드론 공역 [문서] `lt_c_aisprhc`·`aisresc`·`aisctrc`·`aisuac`·
+    `aisdronezone`(데이터 API 이름은 달라 `NOT_FOUND` 였다), 유역 [문서] `lt_c_wkmbbsn`·`wkmmbsn`·`wkmsbsn`, 지적 경계
+  - 측정망 점(`lt_p_weissite*`·`lt_p_sgisgwchg`)을 벡터로 받으려면 077 의 칸 조정이 들어 따로 뗀다 (+반나절)
+- [ ] 브라우저가 곧장 부르는 것 셋 — 한나절에 몰아서. map.js 만 고친다
+  - AWS `normal` 타일 음영·경사 [실측] — 달 화면의 `WebGLTile` 스타일 식(moon.js)을 빌린다. 중국·동아시아 배경. 반나절
+  - 국토지리원 경사량도 `slopemap` [실측]·토지조건도 `lcmfc2`·화산기본도 `vbm` [문서] — `gsiLayer()` 배경으로 1–2시간.
+    활단층도 `afm`[실측]처럼 지질도 위에 겹칠 것은 **곧장 부르는 카탈로그 레이어의 선례가 없어** 반나절
+  - 일본 주소 찾기 [실측] `msearch.gsi.go.jp/address-search/AddressSearch?q=` — 스발바르 지명 분기(`searchNames`)를 본떠 1–2시간.
+    CORS 확인, 동아시아 탭은 VWorld 로 가므로 가르는 분기. 좌표→주소(`mreversegeocoder`)는 시군구 코드만 줘 표가 들고 문도 든다(반나절)
+- [ ] PGC 음영 변형(Multidirectional·Elevation Tinted) [실측] — 배경 `pgcHillshade` 에 함수 이름을 인자로. 1–2시간
+- [ ] 스발바르 빙하 전면 변화 [실측] NPI `Temadata/I_Glacier_Fronts_Svalbard` — `npolar.TILES` 한 줄. `npolar.FRIENDLY` 가 허용
+      목록이라 연도·이름 열을 적는다. CC BY 4.0. 1–2시간–반나절(상류가 연도별로 칠하지 않으면 점 길로 가야 해 반나절 넘음)
+- [ ] 달 DEM 256ppd [실측] — `trek.DEM_SERVICE`·`DEM_MAX_ZOOM` 8→9. **캐시 열쇠(`trek-dem/…`)에 서비스 이름이 없어 올려야 한다.**
+      ⛰ 출처가 바뀐다. 1–2시간
+
+### 그린란드 포털 면 틀 — 하루 (세 건 합쳐)
+
+`arcpoints.collect` 에 `areal`·`generalize`, `grportal._query_url` 에 레이어 번호, 면 스타일(`rgb`→색)과 범례, 레이어별 캐시 주기.
+따로 하면 반나절씩이다.
+
+- [ ] 광물 잠재 구역 `gmom_tracts` [실측] — 면 162, 광상 모델·예상 광상 수(`n90`…`n01`)·보고서. 틀을 만드는 첫 건 (019)
+- [ ] 불안정 사면·매스무브먼트 [실측] `Map_of_unstable_slopes_and_registered_mass_movements_WFL1` — 작성 중이라 캐시를 짧게
+- [ ] 다이아몬드 산출지 [실측] `DED_GL_OCCURRENCES` 3 029 점 — 주향·경사는 팝업에. 암석군으로 칠하면 +1–2시간.
+      시추공·지시광물 화학은 뒤로
+
+### 지명 찾기 일반화 — 하루 남짓 (두 건 합쳐)
+
+지명 찾기가 스발바르 하나로 박혀 있다(`PLACE_NAMES`, `point_layer` 막는 목록, JS 문구, `REGIONS[].places`). 지역→지명 표로
+풀고 북극 탭은 합친다. 찾을 때마다 수 MB JSON 을 읽으니 메모리에 들고 있게.
+
+- [ ] 그린란드 공식 지명 [실측] `Nunat_Aqqi_pisortatigut_aug2018` 33 006 건 — `grportal.LAYERS` 에 넣으면 `fetch_grportal` 이 모은다.
+      셋 가운데 하나를 사람이 고른다. 그린란드어 `ĸ`·덴마크어 이름 접기. 첫 건 하루
+- [ ] 드로닝모드랜드 지명 [실측] NPI `NPI_Place_Names_Dronning_Maud_Land` — 위 뒤면 1–2시간. CC BY 4.0
+
+### KPDC 안 쓴 레이어 — 반나절 (+ 레이어별 투영)
+
+- [ ] [실측] 54 개 가운데 6 개만 쓴다. 북극해 수심·등심선(`arctic_topography_bathymetry`·`_bathymetric_contours`), 영구동토
+      (`arctic_topography_permafrost_ice`), 남극 등고선(`antarctic_topography_contours_high`·`_low`), 역사 유적. `kopri.WMS` 에 줄,
+      `WMS_PROPS`, 씨앗. **`views._layer_extra` 가 kopri 를 3031 로 박아 두어** 북극 것은 레이어마다 투영을 두게 먼저 고친다.
+      `LAB_ONLY` (057·073)
+
+### GSJ 새 호스트 — 사흘 (두 건)
+
+GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만 `gbank`). 둘 다 CLAUDE.md 의 GSJ 줄과 CORS 확인을 탄다.
+
+- [ ] **CCOP 동·동남아시아 200만 지질도** [실측] `ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms`
+      (`EASIA_CCOP_2M_Combined_BLT_SLT_BA`). **밖에 열 때 geo3al 을 대신할 후보**(조건: 개인·교육·연구·비상업, 025).
+      NPI 처럼 `projection: "EPSG:4326"` 으로 받으면 4326 전용 속성도 새 코드 없이 풀린다. 상류 이름은 `gsj` 로 못 둔다
+      (z/x/y 로 간다) — `ccop` 로 두고 문은 `gsj.py`. 하루. 속성이 `MAJOR_CODE` 뿐이라 코드표를 구하면 +반나절
+- [ ] 지질도Navi WMTS 1 849 판 [실측] `gbank.gsj.jp/geonavi/maptile/wmts/1.0.0/WMTSCapabilities.xml` — 달 Trek 판(060)을 옮긴다.
+      `fetch_trek_catalog`·`client_catalog` 는 거의 그대로, 품은 map.js 에 DB 밖 목록 틀(moon.js `renderTrek` ~120 행)을 새로
+      옮기는 데 있다. 이틀. CORS 가 없으면 서버 중계 +반나절, 제목이 일본어뿐이면 제목 방침
+
+### 달 — Trek ImageServer
+
+- [ ] 광물·원소·지각 두께 값 [실측] — Kaguya MI(FeO·감람석·휘석·사장석, 50°N–S)·LP Th·GRAIL 지각 두께·극지 광물·얼음 깊이.
+      `lola_values`·`mars_values` 를 `trek.samples()` 로 묶는다. ImageServer 는 씨앗에 없어 판마다 단위·배율·빈 값 표를 손으로.
+      한 번 누르면 판 6–8 개라 느리다(병렬, 켠 판만). 팝업만 하루, 점묶음 열까지 이틀(새 JSONField, 이주 0016). Kaguya 는 JAXA 조건(043)
+- [ ] 달 극지 5 m·NAC DTM 40여 곳 — 256ppd(위) 뒤에, 장마다 원천을 고른다. 하루. 경계의 턱
+
+### 표고 단면 — 이틀 (+ 지질 띠는 그 이상)
+
+- [ ] 잰 선을 따라 높이 그래프 [코드] — 서버 `profile/`(지구 `elevation.elevations`·달 `lola_values`). 그래프 라이브러리가 없어 SVG 를
+      손으로. map.js ~150·moon.js ~120 행. 극지는 PGC 를 한 점씩 쉬며 묻는다 — `polar_terrarium` 을 쓰거나 점을 줄인다.
+      **지질 띠는 점마다 상류 속성 요청이라 호출 제한(010)과 부딪힌다** — 우리 파일(geomap·geo3al·moonmap·marsmap)로 읽는 곳만.
+      달 DEM 을 바꾼 뒤에. 화성은 옆 세션(`mars.js`)에 넘긴다
+
+### PGC 경사·등고선 레이어 — 하루
+
+- [ ] Slope Degrees·Aspect·Contour 25 [실측] — 지질도 위에 겹치려면 배경 길(브라우저가 곧장)을 못 쓴다. `elevation.py` 에
+      `exportImage`+`renderingRule` 타일 길(`_polar_block` 선례), urls·views, 씨앗 `pgc_layers.json`. 레이어 이름이 레이어군 하나에만
+      들어 지역마다 따로. 등고선은 `minZoom`. 누르면 경사 몇 도. CC BY 4.0
+
+### 한국 — 시료 지점 칸·KIGAM 자료
+
+- [ ] 시료 지점 속성에 "보호구역 안"·"지목·소유구분" [실측: `LT_C_UO301`] — `point_facts`(074)에 일 둘. `uname` 이 온천의 뜻과
+      부딪혀 `LAYER_FRIENDLY` 로 가른다. 소유자 이름은 싣지 않는다. 자동으로 묻는 20 점마다 호출이 는다. 반나절
+- [ ] **KIGAM `/openapi/data` 모으기 — 이틀 반** [실측] — 목록 3 450 건. `page` 는 0 부터, `collection=` 거르기가 안 먹고 목록엔 좌표가
+      없어 한 건씩 상세 → `fetch_kopri` 꼴(2 초, 두 시간, 다음부터 `lastModified`). `kigam.py` 에 더하고 씨앗은 따로
+      (`kigam_data_layers.json`). CC BY-NC, DOI 로 출처, 밖에 열 때 `LAB_ONLY` 를 정한다. `POINT` 의 축 차례를 먼저 본다
+  - 표본(시료·분석) 점 레이어 — 연대·지질단위·채취지·보관처. 이틀
+  - 누른 자리를 덮는 도폭의 저자·발간일·DOI — 같은 모으기라 반나절 더. `/openapi/file` 은 확인 못 했다
+  - ("더 나중에" 의 데이터셋 검색 API 가 이 묶음이다)
+- [ ] 주소만 적힌 CSV 를 점묶음으로 [004·009] — `vworld.py` 에 `getCoord` 가 **없어** `geocode()` 를 새로. 올리기가 60 초에
+      끊겨(gunicorn) 150 줄쯤이 한계라 넘으면 명령으로. 옛 행정구역은 못 찾는다. 하루
+- [ ] VWorld 남극 기지 위성영상 [004] WMTS `AntarcticaSejong`·`AntarcticaJangbogo` — `vworldSource()` 가 차례를 이미 맞춘다.
+      남극의 `vworld:false` 와 CLAUDE.md "VWorld 는 한국·동아시아에서만" 을 고친다. 반나절
+
+### 더 큰 것
+
+- [ ] 그린란드 전암 화학 [실측] `Rock_Chemical_Analysis_from_Greenland` 31 769 점 — **연속값 색 틀이 map.js 에 없다**(램프·분위수·
+      연속 범례). U/Th 하나 하루, 원소 고르개(서버가 원소별로 잘라 줌)까지 이틀–사흘. 위 "지화학 원소 하나를 골라 색으로" 와 같은 일,
+      점묶음의 색에도 쓴다
+- [ ] (사람) 그린란드 50만 지질도 원본 면 [실측] 102 859 면 — 브라우저로 못 보낸다. moonmap·marsmap 틀로 sqlite 에 굽는다.
+      이틀–사흘. GEUS WMS 와 받아온 길이 달라 섞을지 사람이 정한다
+- [ ] **(사람) KIGAM GeoServer 에만 있는 레이어 338 개** [실측] — 5만 지질도의 층리·엽리·절리·선구조·화석·시료·광산
+      (`Geology_map:l_50k_geology_*_latest`), 노두(`outcrop_korea`), 응력도, 방사능, Li·U 지화학, **5만 원도 스캔 50 장**
+      (`Geology_origin_raster_50k:*_rectified`), 탄전 지질도 126, 드론 음영기복도. `/openapi/wms` 는 `geoOpen` 에 묶여
+      `LayerNotDefined` 다. KIGAM 에 열어 달라 묻거나 속성처럼 예외로 둘지 사람이 정한다. 예외면 `kigam._endpoint` 를 레이어 단위로
+      바꿔 이틀 넘게, 열어 주면 씨앗·영어만 하루. 값은 가장 크다
 
 개발 머신에서 그린란드 포털(`services5.arcgis.com`)을 부르면 인증서가 막힌다(사내망이 끼워 넣는 인증서) —
 `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt` 를 주면 돈다. 운영과는 상관없다.
-
-### 일본·동아시아 — GSJ·국토지리원
-
-- [ ] **CCOP 동·동남아시아 200만 지질도** [실측] — `ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms`,
-      레이어 `EASIA_CCOP_2M_Combined_BLT_SLT_BA`, 동경 92–156°·남위 16.6°–북위 47.6°. 베이징 둘레가 칠해져 왔다. 3857 GetMap 은
-      되지만 GetFeatureInfo 는 4326 으로만(`MAJOR_CODE` 한 칸 — GML 은 안 봤다). 조건이 "개인·교육·연구·비상업" 이라
-      **밖에 열 때 geo3al 을 대신할 후보**다(025). `gsj.py`. 반나절–하루
-- [ ] **GSJ 지질도Navi WMTS — 판 1 849 개** [실측] — `gbank.gsj.jp/geonavi/maptile/wmts/1.0.0/WMTSCapabilities.xml`,
-      타일 `tiles.gsj.jp/tiles/geomap/<ID>/{z}/{x}/{y}.png`(3857). 5만·20만 도폭 1 006, 해양지질 339, 공중자기 96, 중력 40,
-      화산지질도 30, 활구조도 21 따위. 일본 탭 "원도 도폭" 레이어군 — Trek 판처럼 씨앗으로 두고 보는 자리를 덮는 것만.
-      정부표준이용규약 2.0(판마다는 안 봤다), CORS 안 봤다. 이틀
-- [ ] **국토지리원 주제 타일** [실측: 경사량도 `slopemap`·도시권 활단층도 `afm` / 문서: 토지조건도 `lcmfc2`·화산기본도 `vbm`] —
-      `gsiLayer()` 에 한 줄씩, 브라우저가 곧장. 반나절
-- [ ] 일본 찾기 칸 [실측] — `msearch.gsi.go.jp/address-search/AddressSearch?q=` 가 GeoJSON 을 준다(위 "일본의 찾기 칸").
-      좌표→주소 `mreversegeocoder.gsi.go.jp` 도 산다. 새 문(`gsi.py`)이거나, CORS 가 열렸으면 브라우저가 곧장. 반나절
-
-GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다. 심리스 V2 타일만 `gbank.gsj.jp` 에 남았다 — 위를 지으면
-CLAUDE.md 의 GSJ 줄에 호스트를 적는다.
-
-### 달 — Trek
-
-- [ ] **광물·원소·지각 두께를 눌러 값으로** [실측] — Trek ImageServer 161 개 가운데 Kaguya MI 광물(FeO wt%·감람석·휘석·
-      사장석 %, 50°N–S), Lunar Prospector Th, GRAIL 지각 두께, 극지 광물·얼음 깊이. `lola_values` 와 같은 `getSamples` 라
-      `trek.py` 에 붙는다. 팝업에 "FeO 14.2 wt% · 사장석 71 % · 지각 38 km", 달 점묶음에 열로. Kaguya 는 JAXA 조건(043). 하루.
-      화성 ImageServer 17 개는 DEM·모자이크뿐이다
-- [ ] 달 고해상 DEM [실측] — 지금 `LOLA_DEM_Global_128ppd_v04`. 같은 서버에 `256ppd_v06`, 극지 5 m, NAC DTM 40여 곳(1.5–2 m).
-      3D 지형·⛰ 가 고와진다. 하루
-
-### 어디나 — 표고
-
-- [ ] **표고 단면** [코드] — 잰 선을 따라 높이 그래프. 지구 `elevation.elevations`·달 `trek.lola_values`·화성 `trek.mars_values`
-      가 이미 있다. 같은 점의 지질 단위를 긁어 밑에 띠를 깔면 모의 지질 단면. 새 상류 없음, 그래프 UI 가 품. 화성은 옆 세션의
-      `mars.js` 와 맞춘다. 이틀
-- [ ] AWS `normal` 타일 [실측] — `elevation-tiles-prod/normal/` 이 온다. 음영 배경이 빈약한 중국·동아시아에 방향 고르는 음영,
-      경사도. 브라우저가 곧장. 반나절–하루
-
-phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapSheet`) JSON API 를 그쪽에 먼저 더해야 한다(아래 "더 나중에").
-
-### 한국 — VWorld·KIGAM
-
-- [ ] **"채취·출입 제한" 레이어군과 시료 지점의 "보호구역 안"** [실측] — VWorld 데이터 API `LT_C_UO301`(국가유산 지정·
-      보호구역, `alias`·`uname`·`remark`)이 온다. WMS 짝은 [문서]: 국립·도립·군립공원(`lt_c_wgisnpgug`·`npdo`·`npgun`),
-      백두대간(`lt_c_uf901`), 산림보호구역(`lt_c_uf151`), 자연환경보전지역(`lt_c_uq114`), 습지(`lt_c_wgisarwet`·`lt_c_um901`),
-      해양보호구역(`lt_c_tfismpa`). 천연기념물 화석산지처럼 허가가 드는 자리를 채취 전에 안다. 020 이 "지질 참고가 아니다" 로
-      뺀 것을 다른 레이어군으로 세운다. `point_facts`(074)에 한 칸. 반나절–하루
-- [ ] **KIGAM 표본(시료·분석) 점 레이어** [실측] — `/openapi/data` 목록 3 450 건, 첫 100 건 가운데 48 건이 시료·분석.
-      상세에 `POINT`·시료 분류·지질연대·지질단위·채취지·보관처·DOI. 함정: `page` 는 0 부터, `collection=` 거르기가 안 먹고,
-      목록엔 좌표가 없어 한 건씩 상세를 불러야 한다 → `fetch_kopri` 처럼 모아 둔다(2 초 간격 두 시간, 다음부터 `lastModified`).
-      CC BY-NC, DOI 로 출처. 이틀 (아래 "더 나중에" 의 데이터셋 검색 API 가 이것이다)
-- [ ] **이 자리를 덮는 KIGAM 자료 — 도폭의 저자·발간일·DOI** [실측] — 같은 API 상세에 도폭 외곽 `POLYGON`·저자·발간일·DOI.
-      누른 자리의 5만 도폭 원전을 인용 꼴로. 위와 모으기를 같이 쓰면 하루 더. 파일 내려받기(`/openapi/file`)는 확인 못 했다
-- [ ] **주소만 적힌 CSV 를 점묶음으로** [004·009] — VWorld `getCoord` 로 좌표를 붙인다. 옛 야장. 0.2 초 간격. 반나절
-- [ ] **토양·산림입지** [실측] — 데이터 API `LT_C_ASITSOILDEP`(유효토심)·`LT_C_FSDIFRSTS`(산림토양형) 가 온다. WMS 짝 [문서]
-      `lt_c_asitsoildep`·`asitsurston`·`asitdeepsoil`·`asitsoildra`·`fsdifrsts`. 옛 토양도(`gimsscs`)가 비어 있던 자리를 메운다. 반나절
-- [ ] 급경사재해예방지역·재해위험지구 [문서] — `lt_c_up401`·`lt_c_up201`. 야외 안전. 반나절
-- [ ] 드론 비행 제한 공역 [문서] — `lt_c_aisprhc`·`aisresc`·`aisctrc`·`aisuac`·`aisdronezone`. 데이터 API 이름은 달라
-      `NOT_FOUND` 였다 — WMS 로 다시 본다. 노두 드론 촬영 계획. 반나절
-- [ ] 수질·지하수 측정망과 유역 [문서] — `lt_p_weissite*`·`lt_p_sgisgwchg`·`lt_c_wkmbbsn`·`wkmmbsn`·`wkmsbsn`.
-      지하수 등수위선·등수심선(029·077)의 짝. 반나절
-- [ ] 연속지적·토지 소유 [004·문서] — `lp_pa_cbnd_bubun`(WFS 로만)·`dt_d160`. 출입 허가를 받을 상대. 개인정보를 먼저 본다. 하루
-- [ ] VWorld 남극 기지 위성영상 [004] — WMTS 테마 `AntarcticaSejong`·`AntarcticaJangbogo`. 남극 탭 기지 둘레 배경감.
-      `z/x/y` 차례가 배경지도와 반대, 도는지 확인 안 함. 반나절
-- [ ] **(사람) KIGAM GeoServer 에만 있는 레이어 338 개** [실측] — 5만 지질도의 층리·엽리·절리·선구조·화석·시료·광산
-      (`Geology_map:l_50k_geology_*_latest`), 노두(`outcrop_korea`), 응력도(`korea_stress_map_2020`), 방사능(`radioactive_*`),
-      Li·U 지화학, **5만 원도 스캔 50 장**(`Geology_origin_raster_50k:*_rectified`), 탄전 지질도 126, 드론 음영기복도.
-      `/openapi/wms` 는 `geoOpen` 에 묶여 `LayerNotDefined` 다 — 제품 길 규칙(CLAUDE.md "두 개의 상류 주소") 아래서는 못 쓴다.
-      KIGAM 에 `geoOpen` 으로 열어 달라 묻거나, 속성처럼 예외로 둘지 사람이 정한다. 값은 가장 크다
+phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapSheet`) JSON API 를 그쪽에 먼저.
 
 ## 캐시·미리 받기 (007·010)
 
