@@ -39,7 +39,7 @@ d = json.load(sys.stdin)
 print("  상태", d["status"], "· 판", d.get("version"), "· DB", d.get("db"))
 b = d.get("backup") or {}
 if b:
-    print("  백업", b.get("result"), b.get("at"), f"({b.get(\"age_days\")} 일 전)")
+    print("  백업", b.get("result"), b.get("at"), "(%s 일 전)" % b.get("age_days"))
 for n in d.get("notes", []):
     print("  !", n)
 sys.exit(1 if d["status"] == "unhealthy" else 0)
