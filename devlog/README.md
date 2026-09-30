@@ -107,3 +107,4 @@
 | 077 | 2026-09-30 | [VWorld 벡터의 칸을 레이어마다 — 지하수 등수심선](20260930_077_vworld-vector-cells.md) |
 | jikhanjung 001 | 2026-09-30 | [화면 투영의 EPSG 번호를 축척 막대 옆에](20260930_jikhanjung_001_epsg_badge.md) |
 | jikhanjung 002 | 2026-09-30 | [제목 옆에 판 번호](20260930_jikhanjung_002_title_version.md) |
+| wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |

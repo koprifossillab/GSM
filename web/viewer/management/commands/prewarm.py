@@ -27,9 +27,18 @@
 | NPI | WMS, 지역의 투영(3413·3031), 512 px (021) | 된다 |
 | GSJ | z/x/y, 256 px, 줌 13 까지 (024) | 안 된다 — 한 장씩 |
 | GeoMAP | 우리가 굽는다, 3031, 256 px (018) | 안 된다. 상류가 없어 쉬지 않는다 |
+| 3D 극지 표고(`dem`) | PGC 를 3857 Terrarium 으로 편다, 줌 11–15 (032) | 4×4 네모째 (034) |
 
     manage.py prewarm --bbox 10,76,30,81 --zooms 3-8 --layers npolar:svalbard_units
     manage.py prewarm --bbox -180,-90,180,-60 --zooms 0-5 --layers geomap_simple_geology
+
+**`dem` 은 레이어가 아니라 3D 의 극지 지형이다** — 위도 60° 너머, 줌 11 부터 3D 가 서버에 묻는
+타일(`dem/<z>/<x>/<y>.png`)이다. 빈 캐시에서 처음 가는 자리는 20 초 남짓 걸린다(034). 네모 하나에
+5 초 남짓이라 반지름 몇 km 만 받는다.
+
+    manage.py prewarm --around 78.925,11.93 --km 5 --zooms 11-15 --layers dem     # 다산기지
+    manage.py prewarm --around -74.62,164.23 --km 5 --zooms 11-15 --layers dem    # 장보고기지
+    manage.py prewarm --around -62.22,-58.79 --km 5 --zooms 11-15 --layers dem    # 세종기지
 
 밤에 돌리려면 cron 에 건다. 이 명령 자체는 시간을 가리지 않는다.
 """
@@ -41,7 +50,7 @@ from PIL import Image
 
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import geomap, gsj, kigam, npolar, tilecache, tilegrid, usage, views
+from viewer import elevation, geomap, gsj, kigam, npolar, tilecache, tilegrid, usage, views
 from viewer.models import Layer
 
 DEFAULT_LAYERS = ["L_50K_Geology_Map"]
@@ -79,10 +88,11 @@ class Command(BaseCommand):
         zooms = parse_zooms(o["zooms"])
         layers = [n.strip() for n in o["layers"].split(",") if n.strip()]
         rows = dict(Layer.objects.filter(name__in=layers, enabled=True).values_list("name", "upstream"))
-        unknown = [n for n in layers if n not in rows]
+        unknown = [n for n in layers if n not in rows and n not in NOT_LAYERS]
         if unknown:
             raise CommandError(f"카탈로그에 없거나 꺼진 레이어: {', '.join(unknown)}")
-        plans = {name: plan_for(name, rows[name]) for name in layers}
+        plans = {name: NOT_LAYERS[name]() if name in NOT_LAYERS else plan_for(name, rows[name])
+                 for name in layers}
         cannot = [n for n, p in plans.items() if p is None]
         if cannot:
             raise CommandError(f"미리 받을 수 없는 레이어(타일이 아니다): {', '.join(cannot)}")
@@ -91,11 +101,11 @@ class Command(BaseCommand):
         if meta not in (1, 2, 4, 8):
             raise CommandError("--meta 는 1·2·4·8 가운데 하나")
 
-        # 타일을 meta×meta 블록으로 묶는다(큰 그림을 못 받는 꼴은 1×1). 빠진 타일이
+        # 타일을 블록으로 묶는다 — WMS 는 meta×meta, 표고는 4×4, 나머지는 1×1. 빠진 타일이
         # 하나라도 있는 블록만 묻는다
         blocks, have, missing = {}, 0, 0
         for name, plan in plans.items():
-            m = meta if plan.meta else 1
+            m = plan.block(meta)
             for z in zooms:
                 for _, x, y in plan.tiles_for(bbox, z):
                     if tilecache.get(plan.key(z, x, y)) is None:
@@ -105,9 +115,10 @@ class Command(BaseCommand):
                         have += 1
         todo = list(blocks)
         batch = todo[:o["max"]]
+        wms = f"(WMS 는 큰 그림 {512 * meta}px)" if any(isinstance(p, WmsPlan) for p in plans.values()) else ""
         self.stdout.write(
             f"타일 {have + missing:,}장 — 이미 있는 것 {have:,}, 받을 것 {missing:,}. "
-            f"{len(todo):,}번에 나눠 묻는다(WMS 는 큰 그림 {512 * meta}px). 이번에 {len(batch):,}번, "
+            f"{len(todo):,}번에 나눠 묻는다{wms}. 이번에 {len(batch):,}번, "
             f"약 {math.ceil(sum(plans[b[0]].seconds(rate, meta) for b in batch) / 60)}분.")
         if o["dry_run"] or not batch:
             return
@@ -120,7 +131,7 @@ class Command(BaseCommand):
             plan = plans[name]
             started = time.monotonic()
             try:
-                got += plan.fetch_block(z, bx, by, meta if plan.meta else 1)
+                got += plan.fetch_block(z, bx, by, plan.block(meta))
             except PREWARM_ERRORS as exc:
                 fails += 1
                 in_a_row += 1
@@ -157,7 +168,7 @@ class Command(BaseCommand):
 
 # ── 상류마다 받는 꼴 ────────────────────────────────────────────────
 
-PREWARM_ERRORS = views.UPSTREAM_ERRORS + (gsj.GsjError, OSError, ValueError)
+PREWARM_ERRORS = views.UPSTREAM_ERRORS + (gsj.GsjError, elevation.ElevationError, OSError, ValueError)
 
 
 def _crop(content, nx, ny, size):
@@ -176,8 +187,10 @@ def _crop(content, nx, ny, size):
 class WmsPlan:
     """WMS 로 받는 것 — KIGAM·GEUS·VWorld(3857)와 NPI(지역의 투영).
     열쇠는 브라우저가 `/wms/` 로 보내는 변수 그대로다 (`views.wms`)."""
-    meta = True
     remote = True
+
+    def block(self, meta):
+        return meta
 
     def __init__(self, name, upstream, grid=None):
         self.name, self.upstream, self.grid = name, upstream, grid
@@ -222,9 +235,11 @@ class WmsPlan:
 
 class GsjPlan:
     """GSJ — z/x/y 타일을 한 장씩 (`views.gsj_tile`). 줌 밖은 묻지 않는다."""
-    meta = False
     remote = True
     upstream = "gsj"
+
+    def block(self, meta):
+        return 1
 
     def __init__(self, name):
         self.name = name
@@ -248,9 +263,11 @@ class GsjPlan:
 
 class GeomapPlan:
     """남극 GeoMAP — 상류가 없다. 화면이 부를 256 px 타일을 미리 굽는다 (`views.geomap_tile`)."""
-    meta = False
     remote = False
     upstream = "geomap"
+
+    def block(self, meta):
+        return 1
 
     def __init__(self, name):
         if not geomap.available():
@@ -278,6 +295,37 @@ class GeomapPlan:
         png = geomap.render(self.name, geomap.tile_bbox(z, x, y), geomap.TILE, geomap.TILE)
         tilecache.put(self.key(z, x, y), png)
         return 1
+
+
+class DemPlan:
+    """3D 의 극지 지형 — PGC ArcticDEM·REMA 를 편 Terrarium 타일 (`views.dem_tile`, 034).
+    서버가 부를 때처럼 4×4 네모를 한 번에 받는다(`elevation.polar_block`). 위도 60° 안쪽과
+    줌 11 밑은 3D 가 AWS 를 곧장 부르므로 받지 않는다."""
+    remote = True
+    upstream = "pgc"
+
+    def block(self, meta):
+        return elevation.POLAR_BLOCK
+
+    def seconds(self, rate, meta):
+        return max(1 / rate, 5.0)  # 네모 하나에 5 초 남짓 (2026-09-29)
+
+    def tiles_for(self, bbox, z):
+        if not (elevation.POLAR_MIN_ZOOM <= z <= elevation.POLAR_MAX_ZOOM):
+            return
+        for _, x, y in tilegrid.tiles_for(bbox, z):
+            if abs(elevation._tile_lat(z, y)) >= elevation.POLAR_LAT:
+                yield z, x, y
+
+    def key(self, z, x, y):
+        return elevation.polar_key(z, x, y)
+
+    def fetch_block(self, z, bx, by, block):
+        return elevation.polar_block(z, bx * block, by * block)
+
+
+#: 카탈로그의 레이어가 아닌데 미리 받을 수 있는 것
+NOT_LAYERS = {"dem": DemPlan}
 
 
 def plan_for(name, upstream):
