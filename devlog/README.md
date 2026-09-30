@@ -149,6 +149,7 @@
 | wetherilli 107 | 2026-09-30 | [달 — 극지 5 m·NAC DTM 으로 가까이서 고운 지형](20260930_wetherilli_107_moon_fine_terrain.md) |
 | wetherilli 108 | 2026-09-30 | [동·동남아시아 — CCOP 200만 지질도](20260930_wetherilli_108_ccop_geology.md) |
 | wetherilli 110 | 2026-09-30 | [온 지구 — 구의 그리기가 멈췄을 때](20260930_wetherilli_110_earth_render_failure.md) |
+| wetherilli 111 | 2026-09-30 | [지역 탭 — "+ 추가 지역" 목록을 묶음 아래 들여 세운다](20260930_wetherilli_111_region_menu_nesting.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |

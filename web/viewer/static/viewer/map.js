@@ -3893,14 +3893,30 @@
     var menu = document.createElement("ul");
     menu.className = "region-menu";
     menu.hidden = true;
-    more.forEach(function (key) {
+    // 묶음(`includes` — 동아시아·북극) 밑에 딸린 지역을 들여 세운다 (wetherilli 111). 묶음을 이미 더했으면 머리는
+    // 누를 수 없는 제목으로만 남는다. 어느 묶음에도 들지 않는 지역(남극)은 그대로
+    function item(key, cls) {
       var li = document.createElement("li");
+      li.className = cls || "";
       li.textContent = T(REGIONS[key].title) + (REGIONS[key].pending ? " — " + T("준비 중") : "");
-      li.addEventListener("click", function () {
-        addedRegions.push(key);
-        switchRegion(key);
-      });
+      if (more.indexOf(key) >= 0) {
+        li.addEventListener("click", function () {
+          addedRegions.push(key);
+          switchRegion(key);
+        });
+      } else li.className += " head";
       menu.appendChild(li);
+    }
+    var parentOf = {};
+    Object.keys(REGIONS).forEach(function (k) {
+      (REGIONS[k].includes || []).forEach(function (c) { if (!parentOf[c]) parentOf[c] = k; });
+    });
+    Object.keys(REGIONS).forEach(function (key) {
+      if (parentOf[key]) return;                                           // 묶음 밑에서 세운다
+      var kids = (REGIONS[key].includes || []).filter(function (c) { return more.indexOf(c) >= 0; });
+      if (more.indexOf(key) < 0 && !kids.length) return;
+      item(key, kids.length ? "group" : "");
+      kids.forEach(function (c) { item(c, "sub"); });
     });
     btn.addEventListener("click", function (e) { e.stopPropagation(); menu.hidden = !menu.hidden; });
     document.addEventListener("click", function () { menu.hidden = true; });
