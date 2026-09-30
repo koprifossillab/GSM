@@ -27,7 +27,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import spamap
+from . import macrostrat, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -851,6 +851,133 @@ def _mars_places():
 def mars_places(request):
     """`?q=gale` — 화성 지명·착륙지 찾기. 저장소의 `data/mars_places.json` 만 뒤진다."""
     return JsonResponse({"results": trek.search_places(_mars_places(), request.GET.get("q", "")[:80])})
+
+
+# ── 온 지구 (wetherilli P06·082) ─────────────────────────────────────
+#
+# 달·화성 화면의 틀에 지구를 얹는다. 지질도는 Macrostrat(`macrostrat.py`) 하나이고, 배경(NASA GIBS)·표고(AWS
+# Terrarium)는 브라우저가 곧장 부른다 — 지역 탭의 극지 배경·3D 가 이미 그렇게 쓴다
+
+@require_GET
+def earth_view(request):
+    """온 지구 (wetherilli P06). 지역 탭과 따로, 달·화성처럼 둥근 지구로 본다.
+
+    대돌여지도 아이콘의 숨은 차림에서 들어온다. 점묶음은 지역 화면과 같은 `earth` 의 것이다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/earth.html", {
+        "lang": lang,
+        "pointsets": _script_json(_pointset_list("earth")),
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "base": request.path.rsplit("earth", 1)[0],
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+@require_GET
+def earth_tile(request, z, x, y):
+    """온 지구의 지질도 타일 — `earth/tiles/geology/<z>/<x>/<y>.png`, 3857 z/x/y (Macrostrat carto)."""
+    z, x, y = int(z), int(x), int(y)
+    if not macrostrat.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    # 밑에 거친 대역을 깐 것(`macrostrat.fill`)을 따로 담는다. 까는 법을 고치면 `FILL_VERSION` 을 올린다
+    key = tilecache.key_text("macrostrat", f"filled/{MACROSTRAT_FILL_VERSION}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = macrostrat.fill(z, x, y, _macrostrat_raw)
+    except macrostrat.MacrostratError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("Macrostrat 타일을 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)                   # 바다의 빈 타일도 담는다 — 다시 물을 까닭이 없다
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+MACROSTRAT_FILL_VERSION = "1"
+
+
+def _macrostrat_raw(z, x, y) -> bytes:
+    """상류의 carto 타일 그대로 — 캐시를 거친다. 조상 타일(줌 5·9)은 여러 타일이 나눠 쓴다."""
+    key = tilecache.key_text("macrostrat", f"carto/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return hit
+    try:
+        png = macrostrat.get_tile(z, x, y)
+    except macrostrat.MacrostratError:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return old
+        raise
+    tilecache.put(key, png)
+    return png
+
+
+@require_GET
+def earth_info(request):
+    """`?lon=126.98&lat=37.57&z=6` — 누른 자리의 지질 단위. 그 줌의 판으로 읽는다(`macrostrat.identify`).
+
+    단위마다 `rows`(팝업의 표)와 밑·윗 연대(Ma)를 준다. 원도 인용은 `refs` 로 따로."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = max(0, min(macrostrat.MAX_ZOOM, _int(request.GET.get("z"), 6)))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang), "units": []}, status=400)
+    # 1e-4° 는 10 m 남짓이다. 축척(줌의 갈래)이 같으면 같은 판이라 같은 답이다
+    key = tilecache.key_text("macrostrat-info", f"{macrostrat.scale_of(z)}/{lang}/{lat:.4f},{lon:.4f}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = macrostrat.identify(lon, lat, z, lang)
+        except macrostrat.MacrostratError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("Macrostrat 속성을 읽지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "units": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    units = []
+    for u in raw.get("units", []):
+        rows = [("단위", u["name"]), ("지층", u["strat"]), ("시대", u["age"]),
+                ("연대 (Ma)", _age_span(u["b_age"], u["t_age"])), ("암상", u["lith"]),
+                ("설명", u["descrip"]), ("원도", raw.get("refs", {}).get(str(u["source_id"]), ""))]
+        units.append({"rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v],
+                      "name": u["name"], "color": u["color"], "b_age": u["b_age"], "t_age": u["t_age"],
+                      "scale": u["scale"]})
+    return JsonResponse({"units": units})
+
+
+def _age_span(oldest, youngest) -> str:
+    if oldest is None:
+        return ""
+    if youngest is None or youngest == oldest:
+        return f"{oldest:g}"
+    return f"{oldest:g} – {youngest:g}"
+
+
+@require_GET
+def earth_legend(request):
+    """온 지구 지질도의 범례 — 기(period)의 색 (`macrostrat.legend`). 한 번 받아 담는다."""
+    lang = i18n.lang_of(request)
+    key = tilecache.key_text("macrostrat-legend", f"periods/{lang}")
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = macrostrat.legend(lang)
+        except macrostrat.MacrostratError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("Macrostrat 범례를 받지 못했다: %s", exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse({"rows": rows})
 
 
 # ── 카탈로그 ──────────────────────────────────────────────────────────

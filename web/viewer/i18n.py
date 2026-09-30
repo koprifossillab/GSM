@@ -229,6 +229,29 @@ EN = {
     "1 — 많이 닳았다": "1 — heavily degraded",
     "매기지 않음": "not classified",
     "크레이터 파일이 서버에 없다": "The crater file is not on the server",
+    # 온 지구 (wetherilli P06·082)
+    "온 지구": "Whole Earth",
+    "온 지구 지질도 (Macrostrat)": "Whole-Earth geologic map (Macrostrat)",
+    "Blue Marble — 지형 음영·바다 깊이": "Blue Marble — shaded relief and bathymetry",
+    "Blue Marble — 위성 영상 그대로": "Blue Marble — satellite imagery",
+    "Blue Marble — 육지 음영": "Blue Marble — land relief",
+    "바깥 자료를 지구에": "Outside data onto the Earth",
+    "지구에 얹은 내 것 — 지역 탭과 같다": "Mine on the Earth — the same as in the region tabs",
+    "좌표는 WGS84 위도·경도(도)다. 평면 좌표계는 지역 탭의 불러오기에서 받는다.":
+        "Coordinates are WGS84 latitude/longitude (degrees). Projected systems are accepted by the loader in the region tabs.",
+    "방위 — 바늘이 지구의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":
+        "Heading — the needle points to the Earth's north. Click to turn north up and keep the tilt",
+    "지구의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다": "The Earth's spin axis — show or hide the line from pole to pole",
+    "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(지구의 북쪽 0°)":
+        "Tilt (0° straight down) and heading (0° to the Earth's north) seen from the point at the centre of the view",
+    "처음 자리로 — 한반도를 멀리서": "Back to the start — the Korean Peninsula from afar",
+    "좌표로 이동 — 위도, 경도 (37.57, 126.98)": "Go to coordinates — latitude, longitude (37.57, 126.98)",
+    "위도 {lat}° · 경도 {lon}°": "Lat {lat}° · Lon {lon}°",
+    "표고 타일로 세운다 (SRTM·GMTED·ETOPO1)": "Raise with elevation tiles (SRTM, GMTED, ETOPO1)",
+    "색은 시대의 색이다 — 세·절까지 가른 단위는 조금 다르다":
+        "Colours are the colours of the age — units dated to an epoch or stage differ a little",
+    "지질도: Macrostrat (CC BY 4.0). 영상: NASA EOSDIS GIBS Blue Marble. 표고: Mapzen/AWS Terrain Tiles.":
+        "Geology: Macrostrat (CC BY 4.0). Imagery: NASA EOSDIS GIBS Blue Marble. Elevation: Mapzen/AWS Terrain Tiles.",
     # 화성 옛 지질도 (068)
     "화성 USGS 옛 지질도·지역도 (1986–2005)": "Mars USGS original and regional geologic maps (1986–2005)",
     "옛 지질 단위": "Original geologic units",

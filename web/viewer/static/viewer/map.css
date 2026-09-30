@@ -1568,6 +1568,31 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #c1552a; --hi-deep: #8e3a12; --on-hi: #ffffff; --hi-ink: #8e3a12;
   --glass: rgba(255, 250, 246, .94); --glass-line: #e0c8b8;
 }
+/* ══ 온 지구 (wetherilli P06) — 화성의 틀 그대로, 색만 깊은 바다의 남색과 산호초의 청록이다 ══ */
+:root[data-region="earth"] {
+  --bg: #07111c; --panel: #0c1826; --panel-tint: #09141f; --raise: #132336;
+  --ink: #e6f0fa; --ink-soft: #a9bfd4; --ink-faint: #6f879e;
+  --line: #1f3650; --line-soft: #162a3f;
+  --gold: #4fc3c7; --gold-bright: #7fe0e0; --gold-muted: #3a9699;
+  --gold-wash: rgba(79, 195, 199, .1); --gold-edge: rgba(79, 195, 199, .42);
+  --hi: #3fb4b8; --hi-deep: #7fe0e0; --on-hi: #07111c; --hi-ink: #7fe0e0;
+  --glass: rgba(8, 19, 31, .9); --glass-line: rgba(79, 195, 199, .32);
+}
+:root[data-region="earth"][data-theme="light"] {
+  --bg: #eaf2f7; --panel: #fbfdff; --panel-tint: #f1f7fb; --raise: #e0ecf4;
+  --ink: #0b1d2c; --ink-soft: #33526b; --ink-faint: #7890a4;
+  --line: #c6d8e6; --line-soft: #deeaf2;
+  --gold: #1d7f86; --gold-bright: #0f5e66; --gold-muted: #4f8c92;
+  --gold-wash: #dff1f2; --gold-edge: #9fd0d3;
+  --hi: #1d8f96; --hi-deep: #0f5e66; --on-hi: #ffffff; --hi-ink: #0f5e66;
+  --glass: rgba(251, 253, 255, .94); --glass-line: #c6d8e6;
+}
+:root[data-region="earth"] .count { color: var(--on-hi); background: var(--hi); }
+:root[data-region="earth"] #map { background: #0b1a2a; }
+:root[data-region="earth"] .popup { z-index: 8; }
+:root[data-region="earth"] .temp-no { color: var(--on-hi); background: var(--hi); }
+:root[data-region="earth"] .range-box { border-color: #7fe0e0; background: rgba(127, 224, 224, .14); }
+.hidden-menu .moon-dot.whole-dot { background: radial-gradient(circle at 35% 35%, #9ff0e0, #2f8f9a 55%, #123a52); }
 :root[data-region="moon"] .count, :root[data-region="mars"] .count { color: var(--on-hi); background: var(--hi); }
 :root[data-region="moon"] #map, :root[data-region="mars"] #map { background: #000; }
 /* 구와 평면 — 한 자리를 나눠 쓴다. 넘어가는 것은 `moon.js` 의 `setMode` */

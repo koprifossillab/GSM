@@ -36,6 +36,11 @@ urlpatterns = [
     path("mars/info/", views.mars_info, name="mars-info"),
     path("mars/legend/", views.mars_legend, name="mars-legend"),
     path("mars/places/", views.mars_places, name="mars-places"),
+    path("earth/", views.earth_view, name="earth"),
+    re_path(r"^earth/tiles/geology/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.earth_tile,
+            name="earth-tile"),
+    path("earth/info/", views.earth_info, name="earth-info"),
+    path("earth/legend/", views.earth_legend, name="earth-legend"),
     path("mars/landings/", views.mars_landings, name="mars-landings"),
     path("mars/traverses/", views.mars_traverses, name="mars-traverses"),
 
