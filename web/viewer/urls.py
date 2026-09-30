@@ -23,6 +23,8 @@ urlpatterns = [
     # NASA Trek 의 MapServer 판 — 달·화성이 함께 쓴다 (060)
     re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.trek_map_tile, name="trek-map-tile"),
+    re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/p/(?P<pole>[ns])/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+            views.trek_map_polar_tile, name="trek-map-polar-tile"),
     re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/info/$", views.trek_map_info, name="trek-map-info"),
     re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/legend/$", views.trek_map_legend,
             name="trek-map-legend"),

@@ -112,4 +112,5 @@
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |
 | wetherilli 081 | 2026-09-30 | [달 — Trek 의 지질도 그림 둘에 속성과 범례를 붙인다](20260930_wetherilli_081_moon_geologic_rasters.md) |
 | wetherilli 082 | 2026-09-30 | [운영 — 타일 캐시를 /data 하드로 옮긴다](20260930_wetherilli_082_tile_cache_to_data_disk.md) |
+| wetherilli 085 | 2026-09-30 | [달 — 극 평면에서 Trek 판의 극지 짝을 받는다](20260930_wetherilli_085_moon_polar_trek_twins.md) |
 | wetherilli P06 | 2026-09-30 | [온 지구 화면 — 달·화성처럼 둥근 지구를, 그리고 그때 그 자리 (계획)](20260930_wetherilli_P06_whole_earth.md) |

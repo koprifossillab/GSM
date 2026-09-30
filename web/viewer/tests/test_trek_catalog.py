@@ -93,12 +93,20 @@ class Seed(TestCase):
         self.items.append(item("regional", coverage="Regional", bbox=[23.4, 0.1, 23.5, 1.1]))
         self.items.append(item("nowmts", cat="Landforms"))
 
+    twins = {}
+
     def run_command(self, **kw):
         def wmts(body, label):
             return None if label == "nowmts" else {"ext": "png", "max": 5, "z0": 0}
+
+        def polar_wmts(body, name, pole):
+            return {"ext": "png", "max": 5, "box": [-931135, -931138, 931165, 931162]} if name == "layer_0_SP" else None
         with mock.patch("viewer.trek.catalog_items", return_value=self.items), \
                 mock.patch("viewer.trek.wmts_info", side_effect=wmts) as probe, \
-                mock.patch("viewer.management.commands.fetch_trek_catalog.time.sleep"):
+                mock.patch("viewer.trek.polar_twins", return_value=self.twins), \
+                mock.patch("viewer.trek.polar_wmts_info", side_effect=polar_wmts) as self.polar_probe, \
+                mock.patch("viewer.management.commands.fetch_trek_catalog.time.sleep"), \
+                mock.patch("viewer.trek.time.sleep"):
             call_command("fetch_trek_catalog", "--body", "moon", stdout=StringIO(), stderr=StringIO(), **kw)
         return probe.call_count
 
@@ -147,11 +155,106 @@ class Seed(TestCase):
         self.assertEqual(layers["Unified_Geologic_Map_of_the_Moon_RASTER"]["same"], "units")
         self.assertEqual(layers["layer_0"]["same"], "")
 
+    def test_극지_짝(self):
+        """극 WMTS 가 있으면 타일, 없고 MapServer 만 있으면 우리 문이 굽는 것 (wetherilli 085)."""
+        self.twins = {"layer_0": {"s": ("trekarcgis3", "layer_0_SP", "ImageServer")},
+                      "regional": {"s": ("trekarcgis3", "regional_SP", "MapServer"),
+                                   "n": ("trekarcgis2", "regional_NP", "ImageServer")}}
+        self.run_command()
+        seed = self.seed()
+        self.assertEqual(seed["layer_0"]["polar"], {"s": {"kind": "tile", "name": "layer_0_SP", "ext": "png", "max": 5,
+                                                          "box": [-931135, -931138, 931165, 931162]}})
+        self.assertEqual(seed["regional"]["polar"],
+                         {"s": {"kind": "map", "ms": "trekarcgis3/rest/services/regional_SP/MapServer"}})
+        self.assertNotIn("polar", seed["layer_1"])
+        layers = {l["id"]: l for g in trek.client_catalog("moon")["groups"] for l in g["layers"]}
+        self.assertEqual(layers["layer_0"]["polar"]["s"]["name"], "layer_0_SP")
+        self.assertEqual(layers["regional"]["polar"], {"s": {"kind": "map"}})     # 경로는 내리지 않는다
+        self.assertEqual(layers["layer_1"]["polar"], {})
+        self.run_command()
+        self.assertEqual(self.polar_probe.call_count, 0)                         # 한 번 물은 판은 다시 묻지 않는다
+
     def test_달_화면에_실린다(self):
         self.run_command()
         html = self.client.get(reverse("viewer:moon")).content.decode()
         self.assertIn('id="trek-data"', html)
         self.assertIn("layer_0", html)
+
+
+class PolarWmts(SimpleTestCase):
+    """극지 판의 `WMTSCapabilities.xml` — 2026-09-30 에 받은 `SPA_GeoMap_lqbal_et_al_SP` 의 꼴 (wetherilli 085)."""
+
+    def caps(self, corner="-1095930 1095930"):
+        matrices = "".join(
+            f"<TileMatrix><ows:Identifier>{i}</ows:Identifier><TopLeftCorner>{corner}</TopLeftCorner>"
+            f"<MatrixWidth>{2 ** (i + 1)}.0</MatrixWidth><MatrixHeight>{2 ** i}.0</MatrixHeight></TileMatrix>"
+            for i in range(6))
+        return ('<?xml version="1.0"?><Capabilities xmlns="http://www.opengis.net/wmts/1.0" '
+                'xmlns:ows="http://www.opengis.net/ows/1.1"><Contents><Layer>'
+                "<ows:BoundingBox><ows:LowerCorner>-931134.753 -931138.445</ows:LowerCorner>"
+                "<ows:UpperCorner>931165.247 931161.555</ows:UpperCorner></ows:BoundingBox>"
+                f"<Format>image/png</Format></Layer><TileMatrixSet>{matrices}</TileMatrixSet></Contents>"
+                "</Capabilities>").encode()
+
+    def test_줌_끝과_범위(self):
+        self.assertEqual(trek.parse_polar_wmts(self.caps()),
+                         {"ext": "png", "max": 5, "box": [-931135, -931138, 931165, 931162]})
+
+    def test_격자가_다르면_없다(self):
+        self.assertIsNone(trek.parse_polar_wmts(self.caps("-2000000 2000000")))
+        self.assertIsNone(trek.parse_polar_wmts(b"<html>"))
+
+    def test_극마다_뿌리가_다르다(self):
+        r = mock.Mock(status_code=404, url="…", content=b"", headers={})
+        with mock.patch("viewer.trek.requests.get", return_value=r) as get:
+            self.assertIsNone(trek.polar_wmts_info("moon", "X_NP", "n"))
+        self.assertEqual(get.call_args[0][0], "https://trek.nasa.gov/tiles/Moon/NP/X_NP/1.0.0/WMTSCapabilities.xml")
+
+    def test_서비스_목록에서_짝을_찾는다(self):
+        lists = {"trekarcgis": [{"name": "A_SP", "type": "ImageServer"}, {"name": "A", "type": "ImageServer"}],
+                 "trekarcgis2": [{"name": "B_NP", "type": "MapServer"}], "trekarcgis3": []}
+
+        def fake(url, params=None, **kw):
+            body = {"services": lists[url.split("/")[-3]]}
+            return mock.Mock(status_code=200, url=url, headers={}, content=b"", json=lambda: body)
+        with mock.patch("viewer.trek.requests.get", side_effect=fake):
+            self.assertEqual(trek.polar_twins("moon"), {"A": {"s": ("trekarcgis", "A_SP", "ImageServer")},
+                                                        "B": {"n": ("trekarcgis2", "B_NP", "MapServer")}})
+
+
+class PolarMap(TestCase):
+    """극지 MapServer 짝 — 우리 문이 극 격자로 굽는다 (wetherilli 085)."""
+
+    def setUp(self):
+        self.repo = Path(tempfile.mkdtemp(prefix="gsm-trek-pmap-"))
+        (self.repo / "data").mkdir()
+        (self.repo / "data" / "moon_trek_layers.json").write_text(json.dumps({"layers": [
+            dict(item("A3_Named_regions", cat="Landforms"), kind="map",
+                 ms="trekarcgis2/rest/services/A3_Named_regions/MapServer",
+                 polar={"s": {"kind": "map", "ms": "trekarcgis2/rest/services/A3_Named_regions_SP/MapServer"}}),
+        ]}), encoding="utf-8")
+        for patch in (override_settings(REPO_DIR=self.repo),
+                      override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-trek-pmap-cache-"))):
+            patch.enable()
+            self.addCleanup(patch.disable)
+
+    def test_극_격자로_묻는다(self):
+        png = mock.Mock(status_code=200, headers={"Content-Type": "image/png"}, content=b"\x89PNG", url="…")
+        with mock.patch("viewer.trek.requests.get", return_value=png) as get:
+            r = self.client.get(reverse("viewer:trek-map-polar-tile", args=["moon", "A3_Named_regions", "s", 0, 0, 0]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(get.call_args[0][0],
+                         "https://trek.nasa.gov/moon/trekarcgis2/rest/services/A3_Named_regions_SP/MapServer/export")
+        params = get.call_args[1]["params"]
+        self.assertEqual(params["bbox"], "-1095930.0,-1095930.0,1095930.0,1095930.0")
+        self.assertNotIn("bboxSR", params)                                       # 서비스의 투영(WKT)으로 읽는다
+
+    def test_짝이_없는_극과_화성은_부르지_않는다(self):
+        with mock.patch("viewer.trek.requests.get") as get:
+            for args in (["moon", "A3_Named_regions", "n", 0, 0, 0], ["mars", "A3_Named_regions", "s", 0, 0, 0],
+                         ["moon", "anything", "s", 0, 0, 0]):
+                self.assertEqual(self.client.get(reverse("viewer:trek-map-polar-tile", args=args)).status_code, 404)
+        get.assert_not_called()
 
 
 class MapServer(TestCase):

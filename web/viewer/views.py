@@ -466,6 +466,34 @@ def trek_map_tile(request, body, label, z, x, y):
 
 
 @require_GET
+def trek_map_polar_tile(request, body, label, pole, z, x, y):
+    """`trek/moon/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
+    극 격자는 달의 것이라 화성은 받지 않는다."""
+    z, x, y = int(z), int(x), int(y)
+    ms = trek.polar_map(body, label, pole) if body == "moon" else ""
+    if not ms:
+        return JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), i18n.lang_of(request))}, status=404)
+    if not trek.polar_valid(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-map-polar", f"{body}/{label}/{pole}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.map_polar_tile(body, ms, pole, z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("Trek 극지 판 타일을 받지 못했다 (%s %s %s %s/%s/%s): %s", body, label, pole, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
 def trek_map_info(request, body, label):
     """`?lon=&lat=&z=` — 누른 자리의 것. `{"hits": [{"layer", "rows": [[열, 값], …]}]}`. 옮기지 않는다."""
     lang = i18n.lang_of(request)
