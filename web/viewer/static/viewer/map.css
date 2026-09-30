@@ -939,6 +939,28 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   bottom: 60px;
   z-index: 5;
   pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+/* 화면 투영의 EPSG 번호. 축척 막대 오른쪽에 늘 떠 있다 */
+.projbadge {
+  order: 2;
+  pointer-events: auto;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-bright);
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.projbadge:empty { display: none; }
+.projbadge.flash { animation: projflash 1.6s ease-out; }
+@keyframes projflash {
+  0%, 30% { background: var(--gold); color: var(--panel-tint); }
+  100% { background: var(--glass); color: var(--gold-bright); }
 }
 #scalebar .ol-scale-bar,
 #scalebar .ol-scale-line {

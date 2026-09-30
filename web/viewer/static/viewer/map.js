@@ -1113,6 +1113,7 @@
     });
     map.addOverlay(popupOverlay);
 
+    showProjection(false);
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
     map.on("moveend", refreshExtentLegends);
@@ -1178,6 +1179,26 @@
     renderPointSets();
     // 나란히 보기의 오른쪽 지도는 같은 보기를 나눠 쓴다
     if (map2) map2.setView(map.getView());
+    showProjection(true);
+  }
+
+  /** 화면 투영의 이름표 — 축척 막대 옆에 EPSG 번호를 적는다. 극지와 중위도를
+   *  오가면 투영이 바뀌는데 화면만 보고는 모르니, 늘 적어 두고 바뀔 때 잠깐 밝힌다. */
+  var PROJ_NAMES = {
+    "EPSG:3857": "웹 메르카토르",
+    "EPSG:3413": "북극 평사도법",
+    "EPSG:3031": "남극 평사도법",
+  };
+  function showProjection(changed) {
+    var el = document.getElementById("projbadge");
+    if (!el) return;
+    var code = viewProj().getCode();
+    el.textContent = code;
+    el.title = PROJ_NAMES[code] ? T(PROJ_NAMES[code]) : code;
+    if (!changed) return;
+    el.classList.remove("flash");
+    void el.offsetWidth;  // 애니메이션을 처음부터 다시 돌린다
+    el.classList.add("flash");
   }
 
   /** 켠 레이어를 화면 순서에 맞춰 다시 쌓는다.
