@@ -122,6 +122,12 @@
       7 천 장, 0.4 GB, 호출 450 번 남짓). 줌 13~14 는 10 만 장·5 GB 라 디스크
       상의(맨 위)와 함께 본다. 줌 15 위는 전국으로는 받지 않고 현장 권역만
 
+## 배포
+
+- [ ] **(사람)** 저장소 비밀값 `DOCKERHUB_USERNAME`·`DOCKERHUB_TOKEN` 을 넣는다 — 없어서 릴리스 태그의 "이미지 굽기" 가
+      Docker Hub 로그인에서 멈춘다(v0.19.0·v0.19.1). 시험은 돈다. WegenersDream 은 저장소 변수 `DOCKERHUB_PUSH` 가
+      `true` 일 때만 올리게 막아 두었다(WegenersDream koprifossillab 031) — 같이 옮길지 본다
+
 ## 더 나중에
 
 - [ ] 데이터셋 검색 API(`/openapi/data`) 붙이기 — 시료 자료를 지도에서 바로 찾기.
