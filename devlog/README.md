@@ -133,3 +133,4 @@
 | wetherilli 099 | 2026-09-30 | [극지 — PGC 경사·등고선을 지질도 위에 겹치는 레이어로](20260930_wetherilli_099_pgc_slope_contour_layers.md) |
 | wetherilli 100 | 2026-09-30 | [달 — 잰 선을 따라 높이 그래프](20260930_wetherilli_100_moon_elevation_profile.md) |
 | wetherilli 101 | 2026-09-30 | [온 지구 — 지각 두께, CRUST 2.0](20260930_wetherilli_101_crust_thickness.md) |
+| wetherilli 102 | 2026-09-30 | [온 지구 — 지명 찾기, 산맥·바다 이름, 강·호수, 빙하](20260930_wetherilli_102_natural_earth_places.md) |

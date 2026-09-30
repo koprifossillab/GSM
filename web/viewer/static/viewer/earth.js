@@ -61,6 +61,12 @@
     ] },
     // 그때의 지구에만 뜨는 것 — 연대(1 Ma 부터)를 따라 타일이 바뀐다 (P07·wetherilli 097)
     //   then  1 Ma 부터만 뜬다. 오늘의 레이어는 그 반대다
+    // 오늘의 지리 — Natural Earth(퍼블릭 도메인). 이름표는 타일이 아니라 화면이 쓴다(`labels`) (102)
+    { group: "지리 (Natural Earth)", layers: [
+      { name: "names", title: "산맥·바다 이름", labels: true, src: "Natural Earth 10 m · public domain" },
+      { name: "water", title: "강·호수", grid: "ll", max: 7, src: "Natural Earth 10 m · public domain" },
+      { name: "ice", title: "빙하·빙붕", grid: "ll", max: 7, src: "Natural Earth 10 m · public domain" },
+    ] },
     // 지각 두께 — 오늘의 것(2° 모형). 누르면 두께가 뜬다 (101)
     { group: "지각 (CRUST 2.0)", layers: [
       { name: "crust", title: "지각 두께", grid: "ll", info: "crust", legend: "crust", max: 5,
@@ -80,12 +86,13 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES;
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
     if (name === "crust") return BASE + "earth/crust/tiles/{z}/{x}/{y}.png";
+    if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png";
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
@@ -94,8 +101,10 @@
   var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
+  var NE_CREDIT = "Natural Earth 10 m (public domain)";
   function creditOf(name) {
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT }[name];
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT,
+             names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
   var PALEO_MAX = 6;           // 서버의 `paleo.MAX_ZOOM`
@@ -362,6 +371,54 @@
   window.__gsmEarthFlat = flat;
   var cRaise = {};
   GEO_NAMES.forEach(function (n) { cRaise[n] = [cGeo[n]]; });
+
+  // ══ 이름표 — 산맥·고원·사막·바다 (wetherilli 102) ═══════════════════
+  //
+  // Natural Earth 의 이름을 화면이 쓴다 — 타일에 구워 넣으면 구를 돌릴 때 글자가 누워 읽히지 않는다. 순위(scalerank,
+  // 작을수록 크다)로 멀리서는 큰 것만. 구에서는 땅 위 10 km 에 띄워 지구 뒤쪽 것은 지구가 가린다
+  var labelRows = null, labelsAsked = false;
+  var cLabels = scene.primitives.add(new Cesium.LabelCollection());
+  var oLabels = new ol.layer.Vector({ source: new ol.source.Vector(), declutter: true, zIndex: 90, visible: false,
+                                      style: function (f, resolution) {
+    var rank = f.get("rank"), ground = resolution * groundScale(proj, 0);
+    if (rank > Math.max(0, 9 - Math.log(ground / 60) / Math.LN2)) return null;        // 멀수록 큰 것만
+    return new ol.style.Style({ text: new ol.style.Text({
+      text: f.get("name"), font: (rank <= 2 ? "600 14px " : "600 12px ") + "system-ui, sans-serif",
+      fill: new ol.style.Fill({ color: "#fff4d6" }), stroke: new ol.style.Stroke({ color: "rgba(0,0,0,.85)", width: 3 }) }) });
+  } });
+  flat.addLayer(oLabels);
+  function labelDistance(rank) { return rank <= 1 ? Number.POSITIVE_INFINITY : 2.4e7 * Math.pow(0.62, rank); }
+  function syncLabels() {
+    var e = entryOf("names"), on = !!e && visibleNow("names");
+    cLabels.show = on;
+    oLabels.setVisible(on);
+    if (!on) return;
+    var alpha = e.opacity;
+    if (labelRows) {
+      for (var i = 0; i < cLabels.length; i++) {
+        cLabels.get(i).fillColor = Cesium.Color.fromCssColorString("#fff4d6").withAlpha(alpha);
+      }
+      oLabels.setOpacity(alpha);
+      return;
+    }
+    if (labelsAsked) return;
+    labelsAsked = true;
+    fetch(BASE + "earth/labels/").then(function (r) { return r.json(); }).then(function (d) {
+      labelRows = d.labels || [];
+      labelRows.forEach(function (row) {
+        cLabels.add({ position: Cesium.Cartesian3.fromDegrees(row[1], row[2], 10000, ELL), text: row[0],
+                      font: (row[3] <= 2 ? "600 15px " : "600 13px ") + "system-ui, sans-serif",
+                      fillColor: Cesium.Color.fromCssColorString("#fff4d6").withAlpha(alpha),
+                      outlineColor: Cesium.Color.BLACK.withAlpha(0.85), outlineWidth: 3,
+                      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                      distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, labelDistance(row[3])) });
+      });
+      oLabels.getSource().addFeatures(labelRows.map(function (row) {
+        return new ol.Feature({ geometry: new ol.geom.Point(fromLL([row[1], row[2]])), name: row[0], rank: row[3] });
+      }));
+      oLabels.setOpacity(alpha);
+    }).catch(function () { labelsAsked = false; });
+  }
 
   // ══ 구 ⇄ 평면 ═════════════════════════════════════════════════════
   //
@@ -713,10 +770,11 @@
     active.slice().reverse().forEach(function (e, i) {
       (cRaise[e.name] || []).forEach(function (l) { viewer.imageryLayers.raiseToTop(l); });
       // 평면도 구처럼 벡터(착륙 지점·동선)는 영상 레이어 위에 둔다 — 사진을 나중에 켜도 점을 덮지 않게
-      oGeo[e.name].setZIndex((LAYER[e.name].kind === "vector" ? 50 : 0) + i + 1);
+      if (oGeo[e.name]) oGeo[e.name].setZIndex((LAYER[e.name].kind === "vector" ? 50 : 0) + i + 1);
     });
     // 점묶음은 늘 지질 위다
     oPoints.setZIndex(100);
+    syncLabels();
     syncLegend();
   }
   function addLayer(name) {
@@ -766,8 +824,8 @@
       num.textContent = range.value + "%";
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
-        cGeo[e.name].alpha = e.opacity;
-        oGeo[e.name].setOpacity(e.opacity);
+        if (cGeo[e.name]) { cGeo[e.name].alpha = e.opacity; oGeo[e.name].setOpacity(e.opacity); }
+        else syncLabels();
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1584,20 +1642,69 @@
     });
   });
 
-  // ══ 좌표로 이동 — 좌표 막대 ════════════════════════════════════
+  // ══ 좌표·지명으로 이동 — 좌표 막대 ══════════════════════════════
   //
-  // 지명 찾기는 아직 없다 — 지역 탭의 찾기는 VWorld(한국)라 온 지구를 덮지 못한다
-  var gotoForm = $("goto-form"), gotoInput = $("goto-input");
+  // 지명은 Natural Earth 의 도시·산맥·바다·호수·강 1 만여 이름이다(`earth/places/`, 102). 한국어·영어 이름으로 찾는다.
+  // 화성의 찾기(058)와 같은 꼴이다. 오늘의 자리라 옛 연대에서 고르면 오늘로 돌아온다
+  var gotoForm = $("goto-form"), gotoInput = $("goto-input"), results = $("search-results");
+  var found = [], picked = -1, findTimer = null, findAsked = 0;
   function parseLatLon(text) {
     var m = /^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(text);
     if (!m) return null;
     var lat = +m[1], lon = +m[2];
     return Math.abs(lat) <= 90 && Math.abs(lon) <= 360 ? { lat: lat, lon: lon > 180 ? lon - 360 : lon } : null;
   }
+  function renderFound() {
+    if (!found.length) {
+      results.innerHTML = '<li class="note">' + esc(T("찾은 것이 없다")) + "</li>";
+    } else {
+      results.innerHTML = found.map(function (p, i) {
+        return '<li data-i="' + i + '"' + (i === picked ? ' class="on"' : "") + '><span class="kind">' + esc(p.kind) +
+               '</span><span class="title">' + esc(p.title) + '</span><span class="sub">' +
+               p.lat.toFixed(3) + ", " + p.lon.toFixed(3) + "</span></li>";
+      }).join("") + '<li class="note src">Natural Earth 10 m</li>';
+    }
+    results.hidden = false;
+    results.querySelectorAll("li[data-i]").forEach(function (li) {
+      li.addEventListener("mousedown", function (e) { e.preventDefault(); choose(found[+li.dataset.i]); });
+    });
+  }
+  function choose(place) {
+    results.hidden = true;
+    gotoInput.value = place.title.replace(/ \(.*\)$/, "");
+    if (paleoOn()) applyAge(0);
+    // 도시는 가까이, 강·호수는 조금 멀리, 산맥·바다는 멀리
+    var h = /도시|city/.test(place.kind) ? 80000 : /강|호수|river|lake/.test(place.kind) ? 400000 : 1500000;
+    goTo(place.lon, place.lat, h);
+  }
+  gotoInput.addEventListener("input", function () {
+    clearTimeout(findTimer);
+    var q = gotoInput.value.trim();
+    if (!q || parseLatLon(q)) { results.hidden = true; return; }
+    findTimer = setTimeout(function () {
+      var mine = ++findAsked;
+      fetch(BASE + "earth/places/?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (data) {
+        if (mine !== findAsked) return;
+        found = data.results || [];
+        picked = found.length ? 0 : -1;
+        renderFound();
+      });
+    }, 200);
+  });
+  gotoInput.addEventListener("keydown", function (e) {
+    if (results.hidden || !found.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      picked = (picked + (e.key === "ArrowDown" ? 1 : found.length - 1)) % found.length;
+      renderFound();
+    } else if (e.key === "Escape") results.hidden = true;
+  });
+  gotoInput.addEventListener("blur", function () { setTimeout(function () { results.hidden = true; }, 150); });
   gotoForm.addEventListener("submit", function (e) {
     e.preventDefault();
     var ll = parseLatLon(gotoInput.value);
-    if (ll) goTo(ll.lon, ll.lat, 120000);
+    if (ll) { results.hidden = true; goTo(ll.lon, ll.lat, 120000); return; }
+    if (found.length) choose(found[Math.max(0, picked)]);
   });
 
   // ══ 자전축 — 구에서 방향을 잡는 꼬챙이 (041·045) ═════════════════

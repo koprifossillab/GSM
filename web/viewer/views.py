@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, macrostrat, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, macrostrat, naturalearth, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1156,6 +1156,40 @@ def earth_paleo_set(request, pk):
             props["_paleo"] = _paleo_text(got, lang)
         out.append({"type": "Feature", "geometry": g, "properties": props})
     return JsonResponse({"type": "FeatureCollection", "features": out}, json_dumps_params={"ensure_ascii": False})
+
+
+# ── 지명·강·호수·빙하 (wetherilli 102) ─────────────────────────────
+
+@require_GET
+def earth_ne_tile(request, style, z, x, y):
+    """`earth/ne/tiles/<water|ice>/<z>/<x>/<y>.png` — Natural Earth 의 강·호수, 빙하·빙붕 (`naturalearth.render_tile`)."""
+    z, x, y = int(z), int(x), int(y)
+    if style not in naturalearth.STYLES or not naturalearth.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("naturalearth", f"{naturalearth.RENDERER}/{style}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = naturalearth.render_tile(style, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_places(request):
+    """`?q=바이칼` — 온 지구의 지명 찾기(도시·산맥·바다·호수·강). 저장소의 Natural Earth 만 뒤진다."""
+    lang = i18n.lang_of(request)
+    return JsonResponse({"results": naturalearth.search(request.GET.get("q", "")[:80], lang)})
+
+
+@require_GET
+@gzip_page
+def earth_labels(request):
+    """산맥·고원·사막·바다 따위의 이름표 — `[이름, 경도, 위도, 순위]`, 큰 것부터."""
+    return JsonResponse({"labels": naturalearth.labels(i18n.lang_of(request)), "credit": naturalearth.CREDIT},
+                        json_dumps_params={"ensure_ascii": False})
 
 
 # ── 지각 두께 (wetherilli 101) ───────────────────────────────────────
