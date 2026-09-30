@@ -31,6 +31,7 @@ import json
 import logging
 import math
 import re
+import time
 import xml.etree.ElementTree as ET
 
 import requests
@@ -891,6 +892,84 @@ def wmts_info(body: str, label: str) -> dict | None:
     return parse_wmts(r.content)
 
 
+# ── 극지 짝 (wetherilli 085) ────────────────────────────────────────
+#
+# 색인(`index/eq`)은 적도 판만 준다. 몇 판은 Trek 이 극 평사도법으로 따로 구운 짝(`<판>_SP`·`_NP`)을 둔다 —
+# 극 평면에서 적도 판을 옮겨 그리면 극 가까이가 성기니, 짝이 있으면 그것을 받는다. 짝을 알려 주는 색인이
+# 없어(`index/sp`·`rasters/sp/list.json` 은 404, 2026-09-30) ArcGIS 서비스 목록에서 이름으로 찾는다.
+
+
+def polar_twins(body: str, delay: float = 0.0) -> dict:
+    """`{판: {"s": (경로 뿌리, 서비스 이름, 갈래), …}}` — 서비스 목록에서 `_SP`·`_NP` 로 끝나는 것.
+    목록을 셋 받는다 — 사이에 `delay` 초 쉰다."""
+    out = {}
+    for i, root in enumerate(_SERVICE_ROOTS):
+        if i and delay:
+            time.sleep(delay)
+        data = _json(_get(f"{root}/rest/services", {"f": "json"}, base=_body_base(body)))
+        for s in data.get("services") or []:
+            name = str(s.get("name") or "")
+            for pole, suffix in POLES.items():
+                if name.endswith(suffix):
+                    out.setdefault(name[:-len(suffix)], {})[pole] = (root, name, s.get("type") or "")
+    return out
+
+
+def parse_polar_wmts(xml: bytes) -> dict | None:
+    """극지 판의 `WMTSCapabilities.xml` → `{"ext", "max", "box": [서, 남, 동, 북] m}`. 격자는 우리 극 격자와 같다
+    (왼쪽 위 ±1 095 930 m) — 다르면 None. 상류는 줌 0 을 가로 2·세로 1 로 적지만 실제로는 한 장이다."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return None
+    fmt = root.findtext(f".//{_WMTS}Layer/{_WMTS}Format") or ""
+    levels = []
+    for tm in root.iter(f"{_WMTS}TileMatrix"):
+        try:
+            corner = [float(v) for v in tm.findtext(f"{_WMTS}TopLeftCorner").split()]
+            levels.append(int(tm.findtext(f"{_OWS}Identifier")))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if abs(corner[0] + POLAR_HALF) > 1 or abs(corner[1] - POLAR_HALF) > 1:
+            return None
+    try:
+        lo = [float(v) for v in root.findtext(f".//{_OWS}BoundingBox/{_OWS}LowerCorner").split()]
+        hi = [float(v) for v in root.findtext(f".//{_OWS}BoundingBox/{_OWS}UpperCorner").split()]
+    except (AttributeError, ValueError):
+        lo, hi = [-POLAR_HALF, -POLAR_HALF], [POLAR_HALF, POLAR_HALF]
+    if not fmt.startswith("image/") or 0 not in levels:
+        return None
+    return {"ext": "jpg" if fmt.endswith(("jpeg", "jpg")) else fmt.split("/", 1)[1], "max": max(levels),
+            "box": [round(lo[0]), round(lo[1]), round(hi[0]), round(hi[1])]}
+
+
+def polar_wmts_info(body: str, name: str, pole: str) -> dict | None:
+    """극지 짝 하나의 WMTS — 없으면 None."""
+    root = tiles_root(body).rsplit("/", 1)[0] + ("/NP" if pole == "n" else "/SP")
+    r = _get(f"{name}/1.0.0/WMTSCapabilities.xml", {}, base=root)
+    if r.status_code == 404:
+        return None
+    if r.status_code != 200:
+        raise TrekError(f"NASA Trek 이 받지 않았다 (status={r.status_code})")
+    return parse_polar_wmts(r.content)
+
+
+def probe_polar(body: str, twins: dict, delay: float = 0.0) -> dict:
+    """판 하나의 극지 짝(`polar_twins` 의 값)을 물어 씨앗에 적을 꼴로 — `{"s": {"kind": "tile", "ext", "max",
+    "box", "name"}}` 나 `{"s": {"kind": "map", "ms"}}`. WMTS 가 먼저다. 둘 다 없는 극은 빠진다. 극 사이에
+    `delay` 초 쉰다."""
+    out = {}
+    for i, (pole, (root, name, kind)) in enumerate(sorted(twins.items())):
+        if i and delay:
+            time.sleep(delay)
+        info = polar_wmts_info(body, name, pole)
+        if info:
+            out[pole] = {"kind": "tile", "name": name, **info}
+        elif kind == "MapServer":
+            out[pole] = {"kind": "map", "ms": f"{root}/rest/services/{name}/MapServer"}
+    return out
+
+
 def catalog_file(body: str):
     """씨앗 자리 — `data/moon_trek_layers.json`·`data/mars_trek_layers.json`. 저장소에 담는다."""
     return settings.REPO_DIR / "data" / f"{body}_trek_layers.json"
@@ -908,6 +987,18 @@ def load_catalog(body: str) -> list:
 #: Kaguya TC 지질도는 통합 지질도(`units`)의 단위를 Kaguya 지형 카메라 영상 위에 칠한 래스터다 — 단위 기호·색이 같다.
 #: SPA 지질도(`spa`)는 Trek 이 속성 없이 주는 그림이고, 속성은 저자들이 낸 원본에서 우리가 읽는다(`spamap.py`)
 SAME_AS = {"moon": {"Unified_Geologic_Map_of_the_Moon_RASTER": "units", "SPA_GeoMap_lqbal_et_al": "spa"}}
+
+
+def _client_polar(polar) -> dict:
+    """씨앗의 극지 짝 → 화면이 쓰는 것. 타일이면 이름·포맷·줌 끝·범위(m), MapServer 면 갈래만(우리 문이 굽는다)."""
+    out = {}
+    for pole, p in (polar or {}).items():
+        if p.get("kind") == "tile":
+            out[pole] = {"kind": "tile", "name": p["name"], "ext": p.get("ext") or "png", "max": p.get("max") or 0,
+                         "box": p.get("box")}
+        elif p.get("kind") == "map":
+            out[pole] = {"kind": "map"}
+    return out
 
 
 def client_catalog(body: str) -> dict:
@@ -932,7 +1023,8 @@ def client_catalog(body: str) -> dict:
         g["layers"].append({"id": e["id"], "kind": e["kind"], "title": e["title"], "ko": e.get("ko") or "",
                             "ext": e.get("ext") or "png",
                             "max": e.get("max") or 0, "z0": e.get("z0") or 0, "bbox": bbox, "src": src,
-                            "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], "")})
+                            "legend": legend, "same": SAME_AS.get(body, {}).get(e["id"], ""),
+                            "polar": _client_polar(e.get("polar"))})
     out = sorted(groups.values(), key=lambda g: g["order"])
     for g in out:
         del g["order"]
@@ -976,6 +1068,24 @@ def find_mapserver(body: str, uuid: str, label: str) -> str:
             if isinstance(data, dict) and "error" not in data:
                 return path
     return ""
+
+
+def polar_map(body: str, label: str, pole: str) -> str:
+    """씨앗에 적힌 극지 MapServer 짝의 경로 — 없으면 빈 칸. 씨앗에 없는 것은 부르지 않는다."""
+    for e in _catalog_index(body):
+        if e["id"] == label:
+            p = (e.get("polar") or {}).get(pole) or {}
+            return p.get("ms", "") if p.get("kind") == "map" else ""
+    return ""
+
+
+def map_polar_tile(body: str, ms: str, pole: str, z: int, x: int, y: int) -> bytes:
+    """극지 MapServer 짝의 타일 한 장 — 극 격자(`polar_tile_bbox`). 서비스가 제 투영(WKT)으로 읽는다(052)."""
+    w, s, e, n = polar_tile_bbox(z, x, y)
+    return _image(_get(f"{ms}/export", {
+        "bbox": f"{w},{s},{e},{n}", "size": f"{TILE},{TILE}",
+        "format": "png32", "transparent": "true", "f": "image",
+    }, base=_body_base(body)))
 
 
 def map_entry(body: str, label: str) -> dict | None:

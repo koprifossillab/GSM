@@ -114,4 +114,5 @@
 | wetherilli 082 | 2026-09-30 | [운영 — 타일 캐시를 /data 하드로 옮긴다](20260930_wetherilli_082_tile_cache_to_data_disk.md) |
 | wetherilli 083 | 2026-09-30 | [달 — 지형을 LOLA 256 ppd 로 올린다](20260930_wetherilli_083_moon_dem_256ppd.md) |
 | wetherilli 084 | 2026-09-30 | [VWorld — 보호구역·토양·공역·유역 26 개를 더한다](20260930_wetherilli_084_vworld_more_layers.md) |
+| wetherilli 085 | 2026-09-30 | [달 — 극 평면에서 Trek 판의 극지 짝을 받는다](20260930_wetherilli_085_moon_polar_trek_twins.md) |
 | wetherilli P06 | 2026-09-30 | [온 지구 화면 — 달·화성처럼 둥근 지구를, 그리고 그때 그 자리 (계획)](20260930_wetherilli_P06_whole_earth.md) |

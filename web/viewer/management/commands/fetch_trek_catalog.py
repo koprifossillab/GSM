@@ -5,6 +5,9 @@
 **1 초에 한 번**이고 달은 1 200 남짓이라 20 분쯤 걸린다. 한 번 물은 판은 다시 묻지 않는다(`--reprobe` 로 다시).
 실패가 잇따르면 멈추고 그때까지 물은 것을 적는다 — 다시 부르면 이어서 묻는다.
 
+끝에 극지 짝(`<판>_SP`·`_NP`)을 찾는다 — 서비스 목록 셋에서 이름으로 모으고, 짝이 있는 판만 극 WMTS 를 묻는다
+(달은 70 판 남짓, wetherilli 085). 이것도 한 번 물은 판은 다시 묻지 않는다.
+
 씨앗의 `ko`(한글 제목)·`hide`(목록에서 숨김)는 **사람이 손질하는 칸**이라 다시 받아도 지키지 않는다 — 없을 때만
 채운다. 상류에서 사라진 판은 씨앗에서도 지운다. 사람이 가끔 부른다.
 """
@@ -48,7 +51,7 @@ class Command(BaseCommand):
             entry = dict(item)
             entry["ko"] = prev.get("ko", "")
             entry["hide"] = prev["hide"] if "hide" in prev else trek.hidden_by_default(body, item)
-            for key in ("kind", "ext", "max", "z0", "ms", "probed"):
+            for key in ("kind", "ext", "max", "z0", "ms", "probed", "polar"):
                 if key in prev:
                     entry[key] = prev[key]
             layers.append(entry)
@@ -89,12 +92,44 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {i}/{len(todo)}")
             time.sleep(delay)
         self._write(body, layers, today)
+        if fails < MAX_FAILS:
+            self._polar(body, layers, today, delay, o["reprobe"])
         tiles = sum(1 for e in layers if e.get("kind") == "tile")
         maps = sum(1 for e in layers if e.get("kind") == "map")
         shown = sum(1 for e in layers if e.get("kind") in ("tile", "map") and not e["hide"])
         waiting = sum(1 for e in layers if "probed" not in e)
         self.stdout.write(f"{trek.catalog_file(body)} — WMTS {tiles} 개·MapServer {maps} 개(목록에 {shown}), "
                           f"둘 다 없음 {len(layers) - tiles - maps - waiting} 개, 아직 안 물음 {waiting} 개")
+
+    def _polar(self, body, layers, today, delay, reprobe):
+        """극지 짝을 찾아 `polar` 칸에 적는다. 짝이 없는 판에는 칸을 두지 않는다."""
+        try:
+            twins = trek.polar_twins(body, delay)
+            time.sleep(delay)
+        except trek.TrekError as exc:
+            self.stderr.write(f"극지 짝의 서비스 목록을 받지 못했다: {exc}")
+            return
+        for entry in layers:
+            if entry["id"] not in twins:
+                entry.pop("polar", None)
+        todo = [e for e in layers if e["id"] in twins and (reprobe or "polar" not in e)]
+        self.stdout.write(f"극지 짝이 있는 판 {sum(1 for e in layers if e['id'] in twins)} 개 — 물을 것 {len(todo)} 개")
+        fails = 0
+        for entry in todo:
+            try:
+                entry["polar"] = trek.probe_polar(body, twins[entry["id"]], delay)
+            except trek.TrekError as exc:
+                fails += 1
+                self.stderr.write(f"  {entry['id']} (극): {exc}")
+                if fails >= MAX_FAILS:
+                    self.stderr.write(f"실패가 {fails} 번 잇따랐다 — 멈춘다. 다시 부르면 이어서 묻는다")
+                    break
+            else:
+                fails = 0
+            time.sleep(delay)
+        self._write(body, layers, today)
+        found = sum(len(e.get("polar") or {}) for e in layers)
+        self.stdout.write(f"  극지 판 {found} 개")
 
     def _write(self, body, layers, today):
         def order(e):

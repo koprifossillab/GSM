@@ -61,7 +61,6 @@
 - [ ] (사람) 달 Trek 판 한글 제목 초안(몸 전체를 덮는 114 판)을 읽고 고친다 — `data/moon_trek_layers.json` 의 `ko` (060)
 - [ ] (사람) SPA 지질도 원본(Zenodo 10.5281/zenodo.19728952 의 `GeoMap.tif.zip`·`Mapplate.zip`)을 NAS `sources/moon/` 에 둔다.
       운영 `db/moon/` 에는 두었다 (wetherilli 081)
-- [ ] 극 평면의 Trek 판 — 적도 판을 옮겨 그려 극 가까이가 성기다. SPA 지질도처럼 `_SP`·`_NP` 판이 있는 것은 그것을 (wetherilli 081)
 
 ## 인증키 뒤에 남은 것
 
