@@ -229,7 +229,7 @@ EN = {
     "1 — 많이 닳았다": "1 — heavily degraded",
     "매기지 않음": "not classified",
     "크레이터 파일이 서버에 없다": "The crater file is not on the server",
-    # 온 지구 (wetherilli P06·082)
+    # 온 지구 (wetherilli P06·086)
     "온 지구": "Whole Earth",
     "온 지구 지질도 (Macrostrat)": "Whole-Earth geologic map (Macrostrat)",
     "Blue Marble — 지형 음영·바다 깊이": "Blue Marble — shaded relief and bathymetry",

@@ -1,4 +1,4 @@
-"""온 지구 — Macrostrat 의 문과 화면 (wetherilli P06·082).
+"""온 지구 — Macrostrat 의 문과 화면 (wetherilli P06·086).
 
 Macrostrat 을 실제로 부르지 않는다. 응답의 꼴은 2026-09-30 에 받아 본 그대로다 — 콜로라도(1:50만 주 지질도)와
 서울(GSC 세계 지질도, tiny 판에만 있다).

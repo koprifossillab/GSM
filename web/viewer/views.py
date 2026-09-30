@@ -853,7 +853,7 @@ def mars_places(request):
     return JsonResponse({"results": trek.search_places(_mars_places(), request.GET.get("q", "")[:80])})
 
 
-# ── 온 지구 (wetherilli P06·082) ─────────────────────────────────────
+# ── 온 지구 (wetherilli P06·086) ─────────────────────────────────────
 #
 # 달·화성 화면의 틀에 지구를 얹는다. 지질도는 Macrostrat(`macrostrat.py`) 하나이고, 배경(NASA GIBS)·표고(AWS
 # Terrarium)는 브라우저가 곧장 부른다 — 지역 탭의 극지 배경·3D 가 이미 그렇게 쓴다

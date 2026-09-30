@@ -1,4 +1,4 @@
-"""Macrostrat 으로 나가는 문 — 온 지구의 지질도 (wetherilli P06·082).
+"""Macrostrat 으로 나가는 문 — 온 지구의 지질도 (wetherilli P06·086).
 
 온 지구 화면(`/GSM/earth/`)의 지질 레이어는 여기로만 나간다 (CLAUDE.md "상류마다 문이 하나").
 
