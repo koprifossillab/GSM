@@ -1340,6 +1340,13 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
 .region-menu[hidden] { display: none; }
 .region-menu li { padding: 7px 10px; font-size: 12.5px; border-radius: calc(var(--radius) - 2px); cursor: pointer; }
 .region-menu li:hover { color: var(--on-hi); background: var(--hi); }
+/* 묶음 밑의 지역은 들여 세운다. 이미 더한 묶음은 누를 수 없는 제목으로만 (wetherilli 111) */
+.region-menu li.group { font-weight: 600; }
+.region-menu li.sub { padding-left: 24px; position: relative; }
+.region-menu li.sub::before { content: ""; position: absolute; left: 12px; top: 0; bottom: 50%; width: 6px;
+                              border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.region-menu li.head { cursor: default; color: var(--ink-faint); font-weight: 600; font-size: 11.5px; }
+.region-menu li.head:hover { color: var(--ink-faint); background: none; }
 .region-note { margin-left: 16px; margin-right: 16px; }
 .region-note[hidden] { display: none; }
 
