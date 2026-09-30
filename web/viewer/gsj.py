@@ -206,3 +206,125 @@ def legend_row(row: dict, lang: str = "ko") -> dict:
         color = "#" + str(row.get("value") or "cccccc")
     return {"color": color, "symbol": row.get("symbol") or "",
             "lithology": lithology(row, lang), "age": age(row, lang)}
+
+
+# ── CCOP 동·동남아시아 200만 지질도 (wetherilli 108) ─────────────────────
+#
+# GSJ 가 2024-05 에 옮긴 새 호스트 `ows.gsj.jp` 의 MapServer WMS 다. 상류 이름은 `ccop` 로 따로 두되(심리스 V2 의 z/x/y 와
+# 길이 다르다) **문은 여기 하나다** — 같은 GSJ 서버다.
+#
+# - 조건: "개인·교육·연구·비상업 용도로 자유롭게"(GetCapabilities 의 AccessConstraints). 밖에 열 때 geo3al(025, 재배포 금지)을
+#   대신할 후보다. 출처는 CCOP 와 GSJ
+# - 그림은 3857(`EPSG:900913` 도 같다)로 그대로 준다. **속성은 4326 으로만, `text/html` 로만** 준다 — 3857 로 물으면 "no results",
+#   `text/plain` 도 비고 JSON 은 안 받는다(2026-09-30). 그래서 누른 픽셀을 위경도로 풀어 4326 의 작은 네모로 다시 묻고,
+#   HTML 표의 한 줄(`Geology | J_Pf: Felsic Plutonic Rocks, Jurassic`)을 기호·암석·시대로 나눈다
+# - CORS 가 없어 브라우저가 곧장 부르지 못한다 — 늘 `/GSM/wms/` 를 거친다
+import html as _html
+import math as _math
+import re as _re
+from types import SimpleNamespace as _NS
+
+CCOP_LAYER = "EASIA_CCOP_2M_Combined_BLT_SLT_BA"
+
+
+def _ccop_get(params: dict):
+    left = usage.paused()
+    if left:
+        raise GsjError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
+    try:
+        r = requests.get(settings.CCOP_WMS_URL, params=params, timeout=settings.UPSTREAM_TIMEOUT,
+                         verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("ccop", ok=False)
+        raise GsjError(f"CCOP(GSJ) 에 닿지 못했다: {exc}") from exc
+    log.info("CCOP %s -> %s", r.url, r.status_code)
+    usage.record("ccop", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    return r
+
+
+def ccop_get_map(params: dict):
+    """`GetMap`. (바이트, content-type)."""
+    params = dict(params, service="WMS", request="GetMap", version="1.1.1")
+    if "crs" in params and "srs" not in params:
+        params["srs"] = params.pop("crs")
+    r = _ccop_get(params)
+    ctype = r.headers.get("content-type", "")
+    if r.status_code != 200 or not ctype.startswith("image/"):
+        raise GsjError(f"그림이 아닌 것이 왔다 (status={r.status_code}, type={ctype})")
+    return r.content, ctype
+
+
+def ccop_get_legend(layer: str):
+    r = _ccop_get({"service": "WMS", "version": "1.1.1", "request": "GetLegendGraphic", "format": "image/png",
+                   "layer": CCOP_LAYER})
+    if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+        raise GsjError(f"범례가 아닌 것이 왔다 (status={r.status_code})")
+    return r.content, r.headers.get("content-type")
+
+
+def _clicked_lonlat(params: dict):
+    """WMS `GetFeatureInfo` 의 범위·크기·픽셀 → 누른 자리의 (경도, 위도). 3857·900913·4326 을 안다."""
+    srs = (params.get("srs") or params.get("crs") or "EPSG:3857").upper()
+    bbox = [float(v) for v in str(params.get("bbox", "")).split(",")]
+    width, height = float(params.get("width", 256)), float(params.get("height", 256))
+    i = float(params.get("i", params.get("x", width / 2)))
+    j = float(params.get("j", params.get("y", height / 2)))
+    if srs in ("EPSG:4326", "CRS:84"):
+        if srs == "EPSG:4326" and str(params.get("version", "")).startswith("1.3"):
+            bbox = [bbox[1], bbox[0], bbox[3], bbox[2]]      # 1.3.0 의 4326 은 위도가 먼저다
+        return bbox[0] + (bbox[2] - bbox[0]) * i / width, bbox[3] - (bbox[3] - bbox[1]) * j / height
+    x = bbox[0] + (bbox[2] - bbox[0]) * i / width
+    y = bbox[3] - (bbox[3] - bbox[1]) * j / height
+    r = 6378137.0
+    return _math.degrees(x / r), _math.degrees(2 * _math.atan(_math.exp(y / r)) - _math.pi / 2)
+
+
+_CELL = _re.compile(r"<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>", _re.S)
+
+
+def parse_ccop_html(text: str) -> list:
+    """MapServer 의 HTML 표 → feature 목록. 한 줄(`Geology`)의 값을 기호·암석·시대로 나눈다."""
+    features = []
+    for key, value in _CELL.findall(text or ""):
+        key = _html.unescape(_re.sub(r"<[^>]+>", "", key)).strip()
+        value = _html.unescape(_re.sub(r"<[^>]+>", "", value)).strip()
+        if not value:
+            continue
+        props = {"_raw": value}
+        m = _re.match(r"^([^:]+):\s*(.+?)(?:,\s*([^,]+))?$", value)
+        if m:
+            props = {"code": m.group(1).strip(), "rock": m.group(2).strip(), "age": (m.group(3) or "").strip()}
+        features.append({"id": f"ccop.{len(features)}", "properties": props, "key": key})
+    return features
+
+
+def ccop_get_feature_info(params: dict) -> dict:
+    """`GetFeatureInfo` — 누른 자리를 가운데 둔 4326 의 1° 네모(101 픽셀, 한 칸 0.01°)로 다시 묻는다. 네모를 더 좁히면
+    (0.2° 에 256 픽셀도) "no results" 다 — 이 판은 200만 축척이라 그보다 가까운 축척에서는 속성을 내주지 않는다(2026-09-30)."""
+    lon, lat = _clicked_lonlat(params)
+    half = 0.5
+    q = {"service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": CCOP_LAYER,
+         "query_layers": CCOP_LAYER, "styles": "", "srs": "EPSG:4326",
+         "bbox": f"{lon - half:.6f},{lat - half:.6f},{lon + half:.6f},{lat + half:.6f}",
+         "width": 101, "height": 101, "x": 50, "y": 50, "info_format": "text/html", "feature_count": 3}
+    r = _ccop_get(q)
+    if r.status_code != 200:
+        raise GsjError(f"속성을 읽지 못했다 (status={r.status_code})")
+    return {"features": parse_ccop_html(r.text)}
+
+
+#: 팝업에 보일 이름 — 시대는 ICS 한글판으로 옮긴다(한국어판)
+CCOP_FRIENDLY = {"code": "지질기호", "rock": "암석", "age": "지질시대", "_raw": "지질"}
+
+
+def ccop_friendly(props: dict, lang: str = "ko") -> dict:
+    out = {}
+    for key, value in props.items():
+        if key == "age" and lang == "ko":
+            value = i18n.age_ko(value)
+        out[CCOP_FRIENDLY.get(key, key)] = value
+    return out
+
+
+#: `views._Door` 가 쓰는 꼴 — 다른 문(모듈)과 같은 이름의 셋
+CCOP = _NS(get_map=ccop_get_map, get_feature_info=ccop_get_feature_info, get_legend=ccop_get_legend)

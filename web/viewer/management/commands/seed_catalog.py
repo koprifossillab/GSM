@@ -59,6 +59,8 @@ class Command(BaseCommand):
                 (settings.NPOLAR_DML_CATALOG_SEED, "드로닝모드랜드 (NPI)", "antarctica", "npolar"),
                 # 일본 — GSJ 심리스 지질도 (024)
                 (settings.GSJ_CATALOG_SEED, "일본 (GSJ)", "japan", "gsj"),
+                # 동·동남아시아 — CCOP 200만 지질도, GSJ 새 호스트의 WMS (wetherilli 108)
+                (settings.CCOP_CATALOG_SEED, "동아시아 (CCOP)", "china", "ccop"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)

@@ -1546,6 +1546,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
@@ -1589,6 +1590,7 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    "EASIA_CCOP_2M_Combined_BLT_SLT_BA": "CCOP 1:2M geology (bedrock, superficial, age)",
     "ibcso:tid": "Bathymetry data source (TID)",
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",
