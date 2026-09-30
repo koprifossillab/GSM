@@ -831,6 +831,14 @@
     regions: ["antarctica"], needs: "EPSG:3031",
     make: function () { return pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA, "Hillshade Elevation Tinted"); },
   };
+  // 이름을 `vworld` 로 시작하지 않는다 — 그런 배경은 한국·동아시아에서만 고르게 거른다(`fillBasemaps`).
+  // 영상은 VWorld 것이라 열쇠가 없으면 두지 않는다 (wetherilli 093)
+  if (vworldKey) BASEMAPS.antarctic_stations = {
+    title: T("세종·장보고 기지 위성 (VWorld)"),
+    note: T("VWorld · 2013 년 위성영상. 두 기지 둘레 10 km 남짓에만 있고 그 밖은 REMA 음영이다"),
+    regions: ["antarctica"], needs: "EPSG:3031",
+    make: vworldStationsLayer,
+  };
 
   // ── 스발바르 배경 — 노르웨이 극지연구소 (devlog 021) ──
   //
@@ -1031,10 +1039,38 @@
   var vworldProbed = false;
   var vworldSources = [];
 
+  /** VWorld 테마 위성영상 — 남극 두 기지 둘레(2013) 와 그 범위(서, 남, 동, 북). 캐퍼빌리티가 준 범위다.
+   *  **자리 차례가 z/x/y** 로 배경지도와 반대다(004). 중계 길은 배경지도와 같은 꼴로 받고
+   *  서버(`vworld.WMTS_THEMES`)가 바꿔 부른다 (wetherilli 093) */
+  var VWORLD_THEMES = {
+    AntarcticaSejong: [-58.8196, -62.2679, -58.6073, -62.1697],
+    AntarcticaJangbogo: [163.9775, -74.6491, 164.3443, -74.5501],
+  };
+
   function vworldUrl(layer, ext) {
     if (vworldRelay) return BASE + "vworld/" + layer + "/{z}/{y}/{x}." + ext;
+    if (VWORLD_THEMES[layer]) {
+      return "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
+             + "/Satellite/themes/cities/2013/" + layer + "/{z}/{x}/{y}.png";
+    }
     return "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(vworldKey)
            + "/" + layer + "/{z}/{y}/{x}." + ext;
+  }
+
+  /** 세종·장보고 기지 위성 — 영상이 기지 둘레 10 km 남짓뿐이라 밑에 REMA 음영을 깔고 그 위에
+   *  두 기지를 제 범위 안에서만 부른다. 줌 10–18 (2026-09-30 에 받아 봤다) */
+  function vworldStationsLayer() {
+    var layers = [pgcHillshade("rema_latest", "EPSG:3031", PGC_REMA)];
+    Object.keys(VWORLD_THEMES).forEach(function (name) {
+      layers.push(new ol.layer.Tile({
+        extent: ol.proj.transformExtent(VWORLD_THEMES[name], "EPSG:4326", "EPSG:3031"),
+        source: vworldSource(name, "png", {
+          minZoom: 10, maxZoom: 18,
+          attributions: '© <a href="https://www.vworld.kr/" target="_blank" rel="noopener">VWorld</a>',
+        }),
+      }));
+    });
+    return new ol.layer.Group({ layers: layers });
   }
 
   /** VWorld WMTS 한 겹의 소스. 자리 차례가 z/y/x 다. */

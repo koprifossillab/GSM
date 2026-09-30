@@ -413,6 +413,9 @@ EN = {
     "Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다":
         "Polar Geospatial Center. Hillshade lit from several directions — slopes hidden in a single-light shadow show up",
     "Polar Geospatial Center. 높이를 색으로 칠한 음영": "Polar Geospatial Center. Hillshade tinted by elevation",
+    "세종·장보고 기지 위성 (VWorld)": "King Sejong & Jang Bogo station imagery (VWorld)",
+    "VWorld · 2013 년 위성영상. 두 기지 둘레 10 km 남짓에만 있고 그 밖은 REMA 음영이다":
+        "VWorld · 2013 satellite imagery. Only about 10 km around the two stations; REMA hillshade elsewhere",
     "IBCSO 해저·빙저 지형": "IBCSO seafloor and subglacial bed",
     "IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0":
         "IBCSO v2 (500 m). Seafloor and the bed beneath ice shelves and the ice sheet. CC BY 4.0",

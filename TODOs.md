@@ -173,8 +173,6 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
   - ("더 나중에" 의 데이터셋 검색 API 가 이 묶음이다)
 - [ ] 주소만 적힌 CSV 를 점묶음으로 [004·009] — `vworld.py` 에 `getCoord` 가 **없어** `geocode()` 를 새로. 올리기가 60 초에
       끊겨(gunicorn) 150 줄쯤이 한계라 넘으면 명령으로. 옛 행정구역은 못 찾는다. 하루
-- [ ] VWorld 남극 기지 위성영상 [004] WMTS `AntarcticaSejong`·`AntarcticaJangbogo` — `vworldSource()` 가 차례를 이미 맞춘다.
-      남극의 `vworld:false` 와 CLAUDE.md "VWorld 는 한국·동아시아에서만" 을 고친다. 반나절
 
 ### 더 큰 것
 
