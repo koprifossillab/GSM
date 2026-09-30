@@ -129,6 +129,8 @@ NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
 #: 일본 산업기술종합연구소 지질조사종합센터(GSJ)의 심리스 지질도 V2 Web API
 #: (`viewer/gsj.py`, devlog 024). 열쇠가 없다. 판이 오르면 주소의 `1.3` 이 바뀐다.
 GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
+#: CCOP 동·동남아시아 200만 지질도 — GSJ 의 새 호스트 MapServer WMS (`gsj.py` 의 CCOP, wetherilli 108)
+CCOP_WMS_URL = env("GSM_CCOP_WMS_URL", "https://ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -310,6 +312,7 @@ NPOLAR_CATALOG_SEED = REPO_DIR / "data" / "npolar_layers.json"
 NPOLAR_DML_CATALOG_SEED = REPO_DIR / "data" / "npolar_dml_layers.json"
 #: 일본 — GSJ 심리스 지질도 (devlog 024)
 GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
+CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)
