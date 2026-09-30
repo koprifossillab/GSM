@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import re
+import sqlite3
 import threading
 from pathlib import Path
 
@@ -24,7 +25,9 @@ from django.views.decorators.http import require_GET, require_POST
 from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
-               patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp)
+               patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
+               marscraters, marsmap, zhurong)
+from . import spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -324,6 +327,8 @@ def moon_info(request):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
     if request.GET.get("layer") == "orig":
         return _moon_original_info(lang, lon, lat)
+    if request.GET.get("layer") == "spa":
+        return _moon_spa_info(lang, lon, lat)
     # 1e-3° 는 달에서 30 m 남짓이다 — 1:500만 지도에는 한 점이다
     key = tilecache.key_text("trek-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -367,6 +372,27 @@ def _moon_original_info(lang, lon, lat):
     return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
 
 
+def _spa_age(age: str, lang: str) -> str:
+    """SPA 지질도의 시대 — 두 시대에 걸친 것("Nectarian–Pre-Nectarian")은 하나씩 옮긴다."""
+    return age if lang == "en" else "–".join(trek.AGES_KO.get(a, a) for a in age.split("–"))
+
+
+def _moon_spa_info(lang, lon, lat):
+    """남극–에이트켄 분지 지질도(Iqbal 외 2026)의 단위 — 원본 GeoTIFF 에서 읽는다 (wetherilli 081)."""
+    if not spamap.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("SPA 지질도 파일이 없다"), lang)})
+    try:
+        hit = spamap.identify(lon, lat)
+    except (spamap.SpaMapError, OSError) as exc:
+        log.warning("SPA 지질도 속성을 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("SPA 지질도 파일이 없다"), lang), "rows": []}, status=502)
+    if not hit:
+        return JsonResponse({"rows": []})
+    rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, _spa_age(v, lang) if k == "시대" else v]
+            for k, v in hit["rows"]]
+    return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
+
+
 @require_GET
 def moon_legend(request):
     """달 지질 단위 49 가지의 범례. 이름은 상류의 것 그대로다(값이라 옮기지 않는다).
@@ -374,6 +400,9 @@ def moon_legend(request):
     `?layer=orig` 면 원도의 29 갈래와 구조선 — 우리가 붙인 이름이라 한국어·영어가 따로 있다 (039)."""
     if request.GET.get("layer") == "orig":
         return JsonResponse(moonmap.legend(i18n.lang_of(request)))
+    if request.GET.get("layer") == "spa":
+        lang = i18n.lang_of(request)
+        return JsonResponse({"items": [dict(item, age=_spa_age(item["age"], lang)) for item in spamap.legend()]})
     key = tilecache.key_text("trek-legend", "units")
     data = _cached_json(key)
     if data is None:
@@ -554,10 +583,14 @@ def mars_view(request):
 
 @require_GET
 def mars_tile(request, layer, z, x, y):
-    """화성 지질도 타일 — `mars/tiles/units/<z>/<x>/<y>.png`."""
+    """화성 지질도 타일 — `mars/tiles/units/<z>/<x>/<y>.png`. `craters` 는 우리가 굽는다 (067)."""
     z, x, y = int(z), int(x), int(y)
-    if layer != "units" or not trek.valid_tile(z, x, y, trek.MARS_MAX_ZOOM):
+    if not (layer in ("units", "craters") or marsmap.knows(layer)) or not trek.valid_tile(z, x, y, trek.MARS_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if layer == "craters":
+        return _mars_crater_tile(lambda: marscraters.render_tile(z, x, y))
+    if marsmap.knows(layer):
+        return _mars_original_tile(f"{layer}/{z}/{x}/{y}", lambda: marsmap.render_tile(layer, z, x, y))
     key = tilecache.key_text("trek-mars", f"{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
@@ -583,8 +616,14 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     격자는 Trek 화성 극 WMTS 의 것(`trek.mars_polar_tile_bbox`)이다. SIM 3292 는 극지 판이 없어 Trek 이
     극 평사도법으로 옮겨 그린다."""
     z, x, y = int(z), int(x), int(y)
-    if layer != "units" or not trek.polar_valid(z, x, y) or z > trek.MARS_MAX_ZOOM:
+    if not (layer in ("units", "craters") or marsmap.knows(layer)) or not trek.polar_valid(z, x, y) \
+            or z > trek.MARS_MAX_ZOOM:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if layer == "craters":
+        return _mars_crater_tile(lambda: marscraters.render_polar_tile(pole, z, x, y))
+    if marsmap.knows(layer):
+        return _mars_original_tile(f"{pole}p/{layer}/{z}/{x}/{y}",
+                                   lambda: marsmap.render_polar_tile(layer, pole, z, x, y))
     key = tilecache.key_text("trek-mars", f"{pole}p/{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
@@ -601,6 +640,36 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
     return response
+
+
+def _mars_original_tile(path, render):
+    """화성 옛 지질도 타일 (068) — 달 원도(039)처럼 구운 것을 캐시에 담는다. 파일이 없으면 안내."""
+    if not marsmap.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_ORIGINALS), store=False)
+    key = tilecache.key_text("marsmap", f"{marsmap.RENDERER}/{path}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = render()
+    except (marsmap.MarsMapError, sqlite3.Error, OSError) as exc:
+        log.warning("화성 옛 지질도 타일을 굽지 못했다 (%s): %s", path, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_ORIGINALS), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+def _mars_crater_tile(render):
+    """크레이터 타일 (067) — 한 장에 10 ms 남짓이라 캐시에 담지 않고 그때그때 굽는다. 파일이 없으면 안내."""
+    if not marscraters.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_CRATERS), store=False)
+    try:
+        return _tile(render())
+    except (marscraters.MarsCraterError, sqlite3.Error) as exc:
+        log.warning("화성 크레이터 타일을 굽지 못했다: %s", exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_CRATERS), store=False)
 
 
 @require_GET
@@ -634,6 +703,10 @@ def mars_info(request):
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    if request.GET.get("layer") == "craters":
+        return _mars_crater_info(lon, lat, lang)
+    if request.GET.get("layer") == "orig":
+        return _mars_original_info(lon, lat, lang)
     # 1e-3° 는 화성에서 60 m 남짓이다 — 1:2000만 지도에는 한 점이다
     key = tilecache.key_text("trek-mars-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -657,9 +730,53 @@ def mars_info(request):
     return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
 
 
+def _mars_original_info(lon, lat, lang):
+    """옛 지질도·지역도의 단위 — 판·단위·이름·시대·지형구·축척 (068, wetherilli 079). 시대만 한국어판에서 옮긴다."""
+    if not marsmap.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("옛 지질도 파일이 서버에 없다"), lang)})
+    try:
+        hit = marsmap.identify(lon, lat)
+    except (marsmap.MarsMapError, sqlite3.Error) as exc:
+        log.warning("화성 옛 지질도 속성을 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("속성을 받지 못했다"), lang), "rows": []}, status=500)
+    if not hit:
+        return JsonResponse({"rows": []})
+    age = hit["age"] if lang == "en" else trek.mars_age_ko(hit["age"])
+    # 판 — 한국어판은 "I-1802-A — 서쪽 적도", 영어판은 번호만. MTM 지역도는 사각형 이름이 곧 이름이다
+    source = hit["map"] if lang == "en" or not hit["map_ko"] else f"{hit['map']} — {hit['map_ko']}"
+    rows = [("원도", source), ("단위", hit["unit"]), ("이름", hit["name"]), ("시대", age), ("지형구", hit["note"]),
+            ("축척", hit["scale"]), ("지은이", hit["citation"])]
+    rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+    return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": rows})
+
+
+def _mars_crater_info(lon, lat, lang):
+    """누른 자리를 품은 가장 작은 크레이터 (067). 값(이름·형태 기호)은 옮기지 않는다."""
+    if not marscraters.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("크레이터 파일이 서버에 없다"), lang)})
+    try:
+        hit = marscraters.identify(lon, lat)
+    except (marscraters.MarsCraterError, sqlite3.Error) as exc:
+        log.warning("화성 크레이터를 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("속성을 받지 못했다"), lang), "rows": []}, status=500)
+    if not hit:
+        return JsonResponse({"rows": [], "note": i18n.t(msg("여기에는 지름 1 km 넘는 크레이터가 없다"), lang)})
+    state = marscraters.STATES.get(hit["state"], marscraters.STATES[""])
+    rows = [("이름", hit["name"]), ("지름", f"{hit['d_km']:.2f} km"),
+            ("깊이", f"{hit['depth_km']:.2f} km" if hit["depth_km"] is not None else ""),
+            ("안쪽 형태", hit["morph"]), ("분출물 형태", hit["ejecta"]),
+            ("보존 상태", state[2] if lang == "en" else state[1]),
+            ("가운데", f"{hit['lat']:.3f}, {hit['lon']:.3f}"), ("번호", hit["id"])]
+    return JsonResponse({"unit": "", "color": state[0], "rows": [
+        [i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
+
+
 @require_GET
 def mars_legend(request):
     """화성 지질 단위의 범례. 이름은 상류의 것 그대로, 묶는 머리(시대)만 한국어판에서 옮긴다."""
+    if request.GET.get("layer") == "orig":
+        # 옛 지질도(068) — 단위 95 가지와 구조선 갈래. 단위 이름은 원문 값이라 옮기지 않는다
+        return JsonResponse(marsmap.legend(i18n.lang_of(request)))
     key = tilecache.key_text("trek-mars-legend", "units")
     data = _cached_json(key)
     if data is None:
@@ -705,6 +822,7 @@ def mars_landings(request):
     sites = _mars_cached(request, "landings", trek.mars_landings, "착륙 지점")
     if sites is None:
         return _mars_failed(request)
+    sites = sites + zhurong.landings()              # Trek 에 없는 주룽 — 저장소의 파일 (066)
     return JsonResponse({"type": "FeatureCollection", "features": [{
         "type": "Feature", "geometry": {"type": "Point", "coordinates": [s["lon"], s["lat"]]},
         "properties": {"이름표": s["name"], "임무": s["mission"], "kind": s["kind"]},
@@ -717,6 +835,7 @@ def mars_traverses(request):
     items = _mars_cached(request, "traverses", trek.mars_traverses, "로버 동선")
     if items is None:
         return _mars_failed(request)
+    items = items + [t for t in [zhurong.traverse()] if t]    # 주룽 (066)
     return JsonResponse({"type": "FeatureCollection", "features": [{
         "type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": t["paths"]},
         "properties": {"임무": t["mission"]},
@@ -725,7 +844,7 @@ def mars_traverses(request):
 
 @functools.lru_cache(maxsize=1)
 def _mars_places():
-    return trek.load_places(settings.MARS_PLACES_FILE)
+    return trek.load_places(settings.MARS_PLACES_FILE) + zhurong.place()
 
 
 @require_GET
@@ -764,7 +883,9 @@ def _catalog(lang="ko"):
             # 타일이 아니라 모양을 받아 그린다 (`map.js` 의 `vectorLayerFor`)
             "upstream": l.upstream,
             "kind": l.kind,
-            **({"cell": VECTOR_CELL} if l.kind == "vector" else {}),
+            **({"cell": vector_grid(l.name)["cell"],
+                **({"minZoom": vector_grid(l.name)["minZoom"]} if vector_grid(l.name)["minZoom"] else {})}
+               if l.kind == "vector" else {}),
             **_point_fields(l),
             **_layer_extra(l, lang),
         } for l in group.layers.filter(enabled=True)
@@ -1507,6 +1628,24 @@ def legend(request):
 
 #: 칸의 크기(도). 화면(`map.js`)은 카탈로그의 `cell` 로 이 값을 받는다
 VECTOR_CELL = 1
+#: 칸을 달리 두는 레이어 (077). 지하수 등수심선은 1° 칸에서 1000 줄(WFS 상한 — 더 달라면 오류를 준다)에 잘린다.
+#: 0.25° 칸도 김포·인천 둘레에서 잘려 0.125° 로 줄였다 — 그 칸을 넷으로 나누니 많은 것이 902 줄(2026-09-30). 선의 점이
+#: 5 m 마다 찍혀 무거워 솎아(`thin`, 도 — 50 m 남짓, 칸 하나가 절반 밑으로) 담고, 줌 11 부터 받는다(`minZoom`).
+#: 관정 자료로 그은 등치선이라 50 m 보다 정확하지 않다. 칸은 1 을 2 의 거듭제곱으로 나눈 것만 쓴다 — 브라우저가
+#: 더해 가며 칸 이름을 셈하는데 그래야 소수가 어긋나지 않는다
+VECTOR_GRIDS = {
+    "lt_l_gimsdepth": {"cell": 0.125, "thin": 0.0005, "minZoom": 11},
+}
+
+
+def vector_grid(name: str) -> dict:
+    """레이어의 칸 — {cell, thin, minZoom}. 적지 않은 것은 1° 칸, 솎지 않음, 줌 제한 없음."""
+    return {"cell": VECTOR_CELL, "thin": 0, "minZoom": 0, **VECTOR_GRIDS.get(name, {})}
+
+
+def _deg(value: float) -> str:
+    """칸 이름의 글자 — 127.0 은 `127`, 127.25 는 `127.25`. 1° 칸의 캐시 열쇠가 앞 판과 같다."""
+    return f"{value:g}"
 
 
 @require_GET
@@ -1514,11 +1653,14 @@ def vector(request):
     """`?layer=lt_l_gimsfault&lon=127&lat=36` — 칸 하나의 모양. 서남 모서리가 칸 이름이다."""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
+    grid = vector_grid(name)
+    cell = grid["cell"]
     try:
-        lon, lat = int(request.GET.get("lon", "")), int(request.GET.get("lat", ""))
+        lon, lat = float(request.GET.get("lon", "")), float(request.GET.get("lat", ""))
     except ValueError:
         return JsonResponse({"error": "lon·lat"}, status=400)
-    if not (-180 <= lon < 180 and -90 <= lat < 90) or lon % VECTOR_CELL or lat % VECTOR_CELL:
+    if (not (-180 <= lon < 180 and -90 <= lat < 90)
+            or not (lon / cell).is_integer() or not (lat / cell).is_integer()):
         return JsonResponse({"error": "lon·lat"}, status=400)
     layer = Layer.objects.filter(name=name, kind="vector", enabled=True).first()
     if layer is None or layer.upstream != "vworld":
@@ -1526,17 +1668,21 @@ def vector(request):
 
     empty = {"type": "FeatureCollection", "features": []}
     box = layer.bbox
-    if box and (lon + VECTOR_CELL <= box[0] or lon >= box[2]
-                or lat + VECTOR_CELL <= box[1] or lat >= box[3]):
+    if box and (lon + cell <= box[0] or lon >= box[2]
+                or lat + cell <= box[1] or lat >= box[3]):
         return _vector_response(empty)             # 레이어 범위 밖이다. 상류에 묻지 않는다
 
-    key = tilecache.key_text("vector", f"{name}|{lon}|{lat}|{VECTOR_CELL}")
+    # 솎은 것은 솎은 채 담는다 — 솎는 정도가 바뀌면 열쇠도 바뀐다
+    key = tilecache.key_text("vector", f"{name}|{_deg(lon)}|{_deg(lat)}|{_deg(cell)}"
+                             + (f"|thin={_deg(grid['thin'])}" if grid["thin"] else ""))
     data = _cache_get(key)
     if data is None:
         try:
             if not vworld.enabled():
                 raise vworld.VWorldError("VWorld 열쇠가 없다")
-            data = vworld.get_features(name, lon, lat, lon + VECTOR_CELL, lat + VECTOR_CELL)
+            data = vworld.get_features(name, lon, lat, lon + cell, lat + cell)
+            if grid["thin"]:
+                data = vworld.thin(data, grid["thin"])
         except vworld.VWorldError as exc:
             data = _cache_get(key, stale=True)     # 빈 자리보다 옛것이 낫다
             if data is None:
@@ -1757,6 +1903,9 @@ def _pointset_summary(ps):
         "lines": shapes.count("line"),
         "polygons": shapes.count("polygon"),
         "elevated": elevated,
+        # VWorld 둘레(074) — 물을 만한 점(대한민국 둘레)과 이미 채운 점
+        "korean": _korean_points(ps).count(),
+        "placed": ps.points.exclude(place={}).count(),
     }
 
 
@@ -1808,6 +1957,7 @@ def pointset_upload(request):
             for p in points if "geometry" in p
         ])
 
+    _auto_places(pointset)
     summary = _pointset_summary(pointset)
     log.info("점묶음 '%s' 생겼다 — 점 %d, 선 %d, 면 %d", pointset.name,
              summary["count"], summary["lines"], summary["polygons"])
@@ -1884,6 +2034,7 @@ def pointset_create(request):
             for s in shapes
         ])
 
+    _auto_places(pointset)
     log.info("찍은 점 %d개·모양 %d개를 '%s' 로 저장했다", len(points), len(shapes), pointset.name)
     return JsonResponse({"pointset": _pointset_summary(pointset)})
 
@@ -1904,6 +2055,7 @@ def _point_props(p, depth=None) -> dict:
     if p.elev is not None:
         props[ELEV_PROP] = round(p.elev, 1)
         props[ELEV_SOURCE_PROP] = p.elev_source
+    props.update(_place_props(p.place))
     if depth and "bed" in depth:
         props[IBCSO_BED_PROP] = depth["bed"]
         if "ice" in depth and depth["ice"] - depth["bed"] > 1:
@@ -1991,6 +2143,98 @@ def pointset_restore(request, pk):
     ps, _, _ = pointsets.restore(gone)
     log.info("지운 점묶음 '%s' 을 되살렸다 (%s)", ps.name, _client(request))
     return JsonResponse({"pointset": _pointset_summary(ps)})
+
+
+#: VWorld 둘레(074)를 GeoJSON·팝업에 싣는 이름. "(VWorld)" 를 붙여 원본의 `주소` 열과 부딪히지 않게 한다.
+#: 되살리기(`pointsets.restore`)가 이 이름들을 떼어 제 칸(`Point.place`)으로 돌린다
+PLACE_PROPS = (("road", "도로명(VWorld)"), ("parcel", "지번(VWorld)"), ("emd", "읍면동(VWorld)"))
+FAULT_PROP, PLACENAME_PROP = "가까운 단층(VWorld, m)", "둘레 지명(VWorld)"
+
+
+def _place_props(place: dict) -> dict:
+    out = {label: place[key] for key, label in PLACE_PROPS if place.get(key)}
+    if place.get("fault_m") is not None:
+        out[FAULT_PROP] = place["fault_m"]
+    if place.get("place"):
+        out[PLACENAME_PROP] = f"{place['place']} · {place['place_m']} m"
+    return out
+
+
+def _korean_points(ps):
+    """VWorld 에 물을 만한 점 — 지구 점묶음의 대한민국 둘레(`vworld.KOREA_BOX`)."""
+    if ps.body != "earth":
+        return ps.points.none()
+    w, s_, e, n = vworld.KOREA_BOX
+    return ps.points.filter(lat__gte=s_, lat__lte=n, lon__gte=w, lon__lte=e)
+
+
+#: 한 번의 요청 안에서 VWorld 에 묻는 점의 수. 한 점에 넷을 묻는다. 넘으면 명령(`fill_places`)으로
+PLACES_IN_REQUEST = 50
+#: 올리거나 찍을 때 곧바로 묻는 점의 수. 넘으면 사람이 📍 를 누른다 — 올리기가 느려지지 않게
+PLACES_AUTO = 20
+#: 점과 점 사이(초). 한도를 재지 않는 빠르기로 간다(010)
+PLACES_PAUSE = 0.2
+
+
+def fill_places(pointset, *, only_missing: bool = False, pause: float = PLACES_PAUSE) -> tuple:
+    """점묶음의 한국 점마다 VWorld 둘레를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
+    다시 부르면 덮는다. 한 점이 실패해도 나머지는 간다 — 다 실패하면 첫 오류를 올린다."""
+    import time
+    from django.utils import timezone
+    points = _korean_points(pointset)
+    if only_missing:
+        points = points.filter(place={})
+    rows = list(points)
+    filled, errors = [], []
+    today = timezone.localdate().isoformat()
+    for index, p in enumerate(rows):
+        if index and pause:
+            time.sleep(pause)
+        try:
+            facts = vworld.point_facts(p.lat, p.lon)
+        except vworld.VWorldError as exc:
+            errors.append(exc)
+            continue
+        p.place = dict(facts, at=today)
+        filled.append(p)
+    Point.objects.bulk_update(filled, ["place"])
+    if rows and not filled and errors:
+        raise errors[0]
+    return len(filled), len(rows) - len(filled)
+
+
+def _auto_places(pointset):
+    """올리거나 찍은 점이 적으면 곧바로 둘레를 채운다(074). 실패해도 점묶음은 생긴다."""
+    if not vworld.enabled():
+        return
+    n = _korean_points(pointset).count()
+    if not n or n > PLACES_AUTO:
+        return
+    try:
+        fill_places(pointset)
+    except vworld.VWorldError as exc:
+        log.info("둘레를 채우지 못했다 (%s): %s", pointset.id, exc)
+
+
+@require_POST
+def pointset_places(request, pk):
+    """`POST pointsets/<번호>/places/` — 한국 점마다 주소·읍면동·가까운 단층·둘레 지명을 채운다 (074)."""
+    lang = i18n.lang_of(request)
+    ps = PointSet.objects.filter(pk=pk).first()
+    if ps is None:
+        return JsonResponse({"error": i18n.t(msg("그런 점묶음이 없다"), lang)}, status=404)
+    if not vworld.enabled():
+        return JsonResponse({"error": i18n.t(msg("VWorld 열쇠가 없다"), lang)}, status=503)
+    if _korean_points(ps).count() > PLACES_IN_REQUEST:
+        return JsonResponse({"error": i18n.t(msg("점이 많아 화면에서 채우지 않는다 — 서버에서 "
+                                                 "manage.py fill_places {id} 를 부른다", id=ps.id), lang)},
+                            status=400)
+    try:
+        filled, missed = fill_places(ps)
+    except vworld.VWorldError as exc:
+        log.warning("둘레를 채우지 못했다 (%s): %s", ps.id, exc)
+        return JsonResponse({"error": i18n.t(msg("VWorld 에서 받지 못했다"), lang)}, status=502)
+    return JsonResponse({"filled": filled, "missed": missed, "pointset": _pointset_summary(ps)})
 
 
 #: 한 번의 요청 안에서 채우는 점의 수. 넘으면 명령(`fill_elevation`)으로 채운다.

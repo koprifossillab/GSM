@@ -82,8 +82,18 @@
                 basemap: "npi_sat", places: true,
                 base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
                 first: "npolar:svalbard_units" },
+    // ── 북극해 (devlog 076) ──
+    // 스발바르·그린란드 탭 밖의 북극 — 지금은 KPDC 자료(아라온의 축치해·베링해 항해, 캐나다
+    // 케임브리지베이, 시베리아·스칸디나비아 관측소)뿐이다. 3413 은 경도 -45° 가 아래라 베링 해협이
+    // 왼쪽 위에 선다. 처음엔 베링해·축치해·보퍼트해를 연다. 바다라 배경은 해저 음영이 든 Blue Marble.
+    // 지질도가 없어 "기본 지질도" 칸을 두지 않는다(`base` 가 비면 레이어군을 펼친다)
+    arctic_ocean: { title: "북극해", proj: "EPSG:3413", center: [-160.0, 72.0], zoom: 3, vworld: false,
+                    home: [-3100000, -1400000, -400000, 2600000],
+                    basemap: "gibs_bm_n", example: "71.5, -156.8",
+                    base: [],
+                    first: "kopri:kpdc_ocean_arctic_ocean" },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
-              includes: ["greenland", "svalbard", "jan_mayen"],
+              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean"],
               home: [-612000, -3344000, 1380000, -212000],
               basemap: "eox_s2", places: true,
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
@@ -155,7 +165,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "japan", "china"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "japan", "china"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -501,7 +511,8 @@
   // 우리가 정하므로 어느 줌에서도 또렷하고, 누르면 그 선의 속성이 곧장 뜬다
   // (상류를 다시 안 탄다). 지금은 단층 하나다 (devlog 020).
   //
-  // **위경도 칸(`row.cell`, 1°)으로 나눠 받는다.** 칸 이름은 좌표계와 상관이
+  // **위경도 칸(`row.cell`, 대개 1°)으로 나눠 받는다.** 선이 빽빽한 레이어는 칸이 작고
+  // 줌 `row.minZoom` 부터 받는다(지하수 등수심선 0.125°·줌 11, 077). 칸 이름은 좌표계와 상관이
   // 없어서 지역마다 투영이 달라도 같은 칸을 같은 주소로 부른다 — 브라우저·서버
   // 캐시가 그대로 맞는다. 받은 칸은 다시 받지 않는다. 칸 경계를 넘는 선은 양쪽
   // 칸에 다 오는데, 모양의 `id` 가 같아 소스가 하나만 둔다.
@@ -522,6 +533,7 @@
     // 지하수 등치선 — 갈래가 아니라 값이다. 한 색으로 긋고 가까이서 값을 선에 적는다
     lt_l_gimspoten: { color: "#1f5fa8", width: 1.2, dash: null, labelBy: "legend", unit: "m" },
     lt_l_gimsec: { color: "#2a7f62", width: 1.2, dash: [6, 3], labelBy: "legend", unit: "µS/cm" },
+    lt_l_gimsdepth: { color: "#6a3fa0", width: 1.1, dash: [2, 3], labelBy: "legend", unit: "m" },
   };
   //: 등치선 값을 적기 시작하는 줌. 멀리서는 글자가 선을 덮는다
   var VECTOR_LABEL_ZOOM = 11;
@@ -571,8 +583,9 @@
           }
         }
         // 세계가 다 들어오는 줌에서 한꺼번에 부르지 않는다. 레이어 범위가
-        // 있으면 이 한계에 닿을 일이 없다 (남한은 50 칸 남짓)
-        if (cells.length > 80) { success([]); return; }
+        // 있으면 1° 칸은 이 한계에 닿을 일이 없다 (남한은 50 칸 남짓). 0.125° 칸은 큰 화면의
+        // 줌 11 에서 닿는다 — 받은 범위로 적히지 않게 지워 두어, 당겨 보면 다시 부른다
+        if (cells.length > 80) { source.removeLoadedExtent(extent); success([]); return; }
         if (!cells.length) { success([]); return; }
         var pending = cells.length, got = [], failed = false;
         cells.forEach(function (c) {
@@ -598,6 +611,8 @@
     var layer = new ol.layer.Vector({
       source: source,
       opacity: DEFAULT_OPACITY,
+      // 이 줌 밑에서는 그리지도 받지도 않는다. 타일 레이어(`setMinZoom`)와 같게 반 단계 당긴다
+      minZoom: row.minZoom ? row.minZoom - 0.5 : undefined,
       style: function (feature, resolution) {
         var spec = vectorSpec(row.name, feature);
         var styles = vectorStyleOf(spec);
@@ -738,25 +753,25 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -1488,7 +1503,8 @@
 
     var more = folder("group more", T("추가 지질도"), restCount, !base.length);
     rest.forEach(function (group) {
-      var details = folder("group", group.name, group.layers.length, false);
+      // 기본 칸이 없고 레이어군이 하나뿐이면(북극해) 그것까지 펼친다 — 두 번 눌러야 레이어가 보이지 않게
+      var details = folder("group", group.name, group.layers.length, !base.length && rest.length === 1);
       group.layers.forEach(function (layer) { details.appendChild(layerRow(layer)); });
       more.appendChild(details);
     });
@@ -3441,6 +3457,31 @@
         });
       });
 
+      // VWorld 에서 한국 점마다 도로명·지번·읍면동·가장 가까운 단층·둘레 지명을 읽어 채운다(074).
+      // 점이 적으면 올릴 때 이미 채웠다. 원본의 `주소` 열은 건드리지 않고 "(VWorld)" 칸으로 따로 싣는다
+      var place = null;
+      if (vworldKey && ps.korean) {
+        place = iconButton("📍", T("둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명을 읽는다 ({n}/{m}점 채움)",
+                                   { n: ps.placed || 0, m: ps.korean }), false, function () {
+          place.disabled = true;
+          post(BASE + "pointsets/" + ps.id + "/places/").then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              if (!r.ok) throw new Error(d.error || "");
+              return d;
+            });
+          }).then(function (d) {
+            place.disabled = false;
+            if (d.pointset) Object.assign(ps, d.pointset, { visible: ps.visible });
+            if (pointLayers[ps.id]) pointLayers[ps.id].getSource().refresh();
+            alert(T("{n}점 채움 · {m}점은 받지 못했다", { n: d.filled, m: d.missed }));
+            renderPointSets();
+          }).catch(function (e) {
+            place.disabled = false;
+            alert((e && e.message) || T("VWorld 에서 받지 못했다"));
+          });
+        });
+      }
+
       // 올린 것을 GeoJSON 으로 돌려받는다. 원래 CSV 였어도 위경도와 속성이
       // 그대로 나온다 — QGIS 에 곧장 얹을 수 있다
       var save = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
@@ -3463,7 +3504,9 @@
       var label = document.createElement("span");
       label.className = "ps-text";
       label.append(name, count);
-      li.append(box, swatch, label, zoom, elev, save, del);
+      li.append(box, swatch, label, zoom, elev);
+      if (place) li.append(place);
+      li.append(save, del);
       host.appendChild(li);
     });
   }

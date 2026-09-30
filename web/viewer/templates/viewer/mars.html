@@ -104,6 +104,13 @@
 
       <div id="layer-catalog"></div>
 
+      <h3 class="sub-head">{% t "NASA Trek 판" %} <span class="count" id="count-trek">0</span></h3>
+      <div class="trek-filter">
+        <input type="search" id="trek-q" placeholder="{% t "판 이름으로 거르기" %}" aria-label="{% t "판 이름으로 거르기" %}">
+        <label><input type="checkbox" id="trek-here"> {% t "보는 자리를 덮는 것만" %}</label>
+      </div>
+      <div id="trek-catalog"></div>
+
       <h3 class="sub-head">{% t "지형" %} <span class="hint">{% t "구에서만" %}</span></h3>
       <div class="moon-layer">
         <div class="layer-row"><input type="checkbox" id="moon-terrain" checked>
@@ -281,6 +288,7 @@
 
 <script id="i18n-data" type="application/json">{{ i18n_json|safe }}</script>
 <script id="pointset-data" type="application/json">{{ pointsets|safe }}</script>
+<script id="trek-data" type="application/json">{{ trek_catalog|safe }}</script>
 <script>window.CESIUM_BASE_URL = "{% static 'viewer/vendor/cesium/' %}";</script>
 <script src="{% static 'viewer/vendor/ol.js' %}"></script>
 <script src="{% static 'viewer/vendor/cesium/Cesium.js' %}"></script>

@@ -101,6 +101,8 @@ class Views(TestCase):
         Layer.objects.create(name="lt_c_wkmstrm", title="하천망", group=g, upstream="vworld", **box)
         Layer.objects.create(name="lt_l_gimsfault", title="단층", group=g, upstream="vworld",
                              kind="vector", **box)
+        Layer.objects.create(name="lt_l_gimsdepth", title="지하수 등수심선", group=g, upstream="vworld",
+                             kind="vector", **box)
 
     def test_타일은_VWorld_문으로_가고_캐시에_담긴다(self):
         q = {"LAYERS": "lt_c_wkmstrm", "BBOX": "0,0,1,1", "WIDTH": "512", "HEIGHT": "512"}
@@ -163,6 +165,36 @@ class Views(TestCase):
         self.assertEqual(rows["lt_l_gimsfault"]["cell"], 1)
         self.assertEqual(rows["lt_c_wkmstrm"]["upstream"], "vworld")
         self.assertNotIn("cell", rows["lt_c_wkmstrm"])
+        self.assertNotIn("minZoom", rows["lt_l_gimsfault"])
+        self.assertEqual((rows["lt_l_gimsdepth"]["cell"], rows["lt_l_gimsdepth"]["minZoom"]), (0.125, 11))
+
+    def test_등수심선은_작은_칸으로_받아_솎아_담는다(self):
+        # 5 m 마다 찍힌 점 — 0.0005° 안의 것은 버리고 끝점은 둔다 (077)
+        pts = [[127.1 + i * 0.00005, 36.1] for i in range(41)]
+        fc = {"type": "FeatureCollection", "features": [
+            {"type": "Feature", "id": "lt_l_gimsdepth.1", "properties": {"legend": "20", "info": "1"},
+             "geometry": {"type": "MultiLineString", "coordinates": [pts]}}]}
+        q = {"layer": "lt_l_gimsdepth", "lon": "127.125", "lat": "36"}
+        with mock.patch.object(vworld, "get_features", return_value=fc) as up:
+            first = self.client.get("/GSM/vector/", q).json()
+            self.client.get("/GSM/vector/", q)
+        self.assertEqual(up.call_count, 1)
+        up.assert_called_with("lt_l_gimsdepth", 127.125, 36, 127.25, 36.125)
+        line = first["features"][0]["geometry"]["coordinates"][0]
+        self.assertLess(len(line), 7)                                # 41 점이 다섯 남짓으로
+        self.assertEqual(line[-1], [127.102, 36.1])
+        self.assertEqual(first["features"][0]["properties"]["_popup"], {"지하수 등수심 (m)": "20"})
+        # 칸의 서남 모서리가 아니면 거절한다 — 1° 칸 레이어는 여전히 정수만
+        self.assertEqual(self.client.get("/GSM/vector/", {**q, "lon": "127.2"}).status_code, 400)
+        self.assertEqual(self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127.25",
+                                                          "lat": "36"}).status_code, 400)
+
+    def test_1도_칸의_캐시_열쇠는_앞_판과_같다(self):
+        from viewer import tilecache, views
+        fc = {"type": "FeatureCollection", "features": []}
+        with mock.patch.object(vworld, "get_features", return_value=fc):
+            self.client.get("/GSM/vector/", {"layer": "lt_l_gimsfault", "lon": "127", "lat": "36"})
+        self.assertIsNotNone(views._cache_get(tilecache.key_text("vector", "lt_l_gimsfault|127|36|1")))
 
     @override_settings(VWORLD_KEY="")
     def test_열쇠가_없으면_목록에서_뺀다(self):

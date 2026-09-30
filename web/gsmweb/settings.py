@@ -138,9 +138,16 @@ MOON_PLACES_FILE = BASE_DIR.parent / "data" / "moon_places.json"
 TREK_MARS_URL = env("GSM_TREK_MARS_URL", "https://trek.nasa.gov/mars")
 #: 화성 지명 — `manage.py fetch_moon_places --body mars` 가 적는다
 MARS_PLACES_FILE = BASE_DIR.parent / "data" / "mars_places.json"
+#: 주룽 로버의 착륙 지점·주행 경로 (066, `manage.py build_zhurong`)
+MARS_ZHURONG_FILE = BASE_DIR.parent / "data" / "mars_zhurong.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")
+#: 화성 크레이터 목록(Robbins & Hynek 2012)을 구운 sqlite(`mars_craters.sqlite`)와 옛 지질도(`mars_originals.sqlite`,
+#: 068)가 있는 곳 (`viewer/marscraters.py`·`marsmap.py`, devlog 067). 우리 디스크의 파일이다. 없으면 크레이터 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/mars
+MARS_DIR = env("GSM_MARS_DIR") or str(_data_dir() / "mars")
+#: 화성 옛 지질도(068)의 단위 색·구조선 모양 — 저장소에 담는다
+MARS_ORIGINAL_STYLES_FILE = BASE_DIR.parent / "data" / "mars_original_styles.json"
 #: 연구실의 phyloserver — 암맥 기록 (`viewer/phyloserver.py`, devlog 026). 열쇠가 없다.
 #: 같은 서버라 컨테이너에서 호스트의 nginx 를 부른다. `paleolab` 은 컨테이너 안에서
 #: 풀리지 않을 수 있어 주소로 둔다. 비우면 암맥 레이어에 "주소가 없다" 가 뜬다.
@@ -283,9 +290,10 @@ PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
 #: 남극 IBCSO 자료 출처(TID) — 우리가 잘라 둔 3031 타일 (071)
 IBCSO_CATALOG_SEED = REPO_DIR / "data" / "ibcso_layers.json"
-#: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료) (053–057)
+#: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료·KPDC 자료),
+#: 북극해(KPDC 자료) (053–057·075·076)
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
-                       for region in ("antarctica", "svalbard", "greenland")]
+                       for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────

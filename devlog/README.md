@@ -18,8 +18,8 @@
   | jschoi | `tupandactyl` |
 
 - `title` 은 영어 snake_case
-- 번호는 **그 글쓴이의 다음 번호**다(저장소의 다음 번호가 아니다). 옛 꼴 001~073·P01~P05 는 sclee 계정이 적었으므로
-  `wetherilli` 는 **074**·**P06** 부터, 다른 사람은 001·P01 부터
+- 번호는 **그 글쓴이의 다음 번호**다(저장소의 다음 번호가 아니다). 옛 꼴 001~077·P01~P05 는 sclee 계정이 적었으므로
+  `wetherilli` 는 **078**·**P06** 부터, 다른 사람은 001·P01 부터
 - **옛 꼴(`YYYYMMDD_NNN_slug.md`)은 이름을 바꾸지 않는다.** 가리킬 때는 번호만("devlog 017", "(017)")
 - 새 꼴은 링크나 "jikhanjung 001" 로 가리킨다. 커밋 메시지 끝도 `(jikhanjung 001)`
 - 머리줄 아래에 `날짜 · \`브랜치\` · 글쓴이` 를 적는다
@@ -94,9 +94,20 @@
 | P05 | 2026-09-29 | [달 — 둥근 달로 들어가 평면에서 일한다 (계획)](20260929_P05_moon.md) |
 | 060 | 2026-09-30 | [NASA Trek 판 목록 — 달·화성이 함께 쓰는 틀](20260930_060_trek-catalog.md) |
 | 065 | 2026-09-30 | [화성 — 극 평사도법 평면](20260930_065_mars-polar-flat.md) |
+| 066 | 2026-09-30 | [화성 — 주룽(祝融) 착륙 지점과 주행 경로](20260930_066_zhurong.md) |
+| 067 | 2026-09-30 | [화성 — 크레이터 38 만 개 (Robbins & Hynek 2012)](20260930_067_mars-craters.md) |
+| 068 | 2026-09-30 | [화성 — 옛 지질도 (USGS I-1802-A·B·C, 1986–87)](20260930_068_mars-originals.md) |
 | 070 | 2026-09-30 | [누른 자리의 수심·표고 — IBCSO 수치 격자에서 읽는다](20260930_070_ibcso-depth.md) |
 | 071 | 2026-09-30 | [IBCSO 자료 출처(TID) 레이어 — 잰 곳과 메운 곳](20260930_071_ibcso-tid.md) |
 | 072 | 2026-09-30 | [GeoMAP 암층 — 무늬 채우기를 옮겼다](20260930_072_geomap-lithostrat.md) |
 | 073 | 2026-09-30 | [KPDC 지도 서버 속성의 이름](20260930_073_kpdc-wms-props.md) |
+| 074 | 2026-09-30 | [시료 지점에 VWorld 둘레를 붙인다](20260930_074_pointset-vworld-places.md) |
+| 075 | 2026-09-30 | [KPDC 자료의 북극 — 스발바르·그린란드 탭에](20260930_075_kpdc-arctic.md) |
+| 076 | 2026-09-30 | [북극해 탭 — KPDC 북극 자료의 나머지](20260930_076_arctic-ocean-tab.md) |
+| 077 | 2026-09-30 | [VWorld 벡터의 칸을 레이어마다 — 지하수 등수심선](20260930_077_vworld-vector-cells.md) |
 | jikhanjung 001 | 2026-09-30 | [화면 투영의 EPSG 번호를 축척 막대 옆에](20260930_jikhanjung_001_epsg_badge.md) |
 | jikhanjung 002 | 2026-09-30 | [제목 옆에 판 번호](20260930_jikhanjung_002_title_version.md) |
+| wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
+| wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
+| wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |
+| wetherilli 081 | 2026-09-30 | [달 — Trek 의 지질도 그림 둘에 속성과 범례를 붙인다](20260930_wetherilli_081_moon_geologic_rasters.md) |

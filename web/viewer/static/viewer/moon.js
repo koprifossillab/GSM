@@ -86,9 +86,11 @@
   var TREK_ROOT = TREK_DATA.root || "https://trek.nasa.gov/tiles/Moon/EQ";
   var TREK_GROUPS = (TREK_DATA.groups || []).map(function (g) {
     return { group: LANG === "en" ? g.en : g.ko, layers: g.layers.map(function (l) {
-      // `map` 은 WMTS 가 없어 우리 문이 굽는 판 — 누르면 속성을 읽는다
+      // `map` 은 WMTS 가 없어 우리 문이 굽는 판 — 누르면 속성을 읽는다. `same` 은 우리 레이어와 같은 자료를 다르게
+      // 그린 판(Kaguya TC 지질도 = 통합 지질도) — 속성·범례를 그 레이어의 것으로 낸다
       return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
-               bbox: l.bbox, legend: l.legend ? "trek:" + l.id : undefined, info: l.kind === "map" ? "trek" : undefined,
+               bbox: l.bbox, legend: l.same || (l.legend ? "trek:" + l.id : undefined),
+               info: l.same || (l.kind === "map" ? "trek" : undefined),
                title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
                src: (l.src ? l.src + " · " : "") + "NASA Moon Trek" };
     }) };
@@ -1238,11 +1240,20 @@
            '</span><span class="k">' + esc(T("달 경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
+  // 켠 레이어 가운데 `key`(속성·범례의 갈래)가 있는 것을 위에서부터, 같은 갈래는 한 번만 — 통합 지질도와
+  // Kaguya TC 지질도(060)를 함께 켜도 같은 표·범례가 두 번 서지 않는다
+  function onceBy(layers, key) {
+    var seen = {};
+    return layers.filter(function (l) {
+      if (!l[key] || seen[l[key]]) return false;
+      return (seen[l[key]] = true);
+    });
+  }
   // 켠 레이어 가운데 읽을 수 있는 것(통합·원도)을 위에서부터 다 묻는다 — 둘을 켜 두면 견줘 읽는다
   function askUnit(ll, pixel) {
     markAt(ll);
     var head = coordHead(ll);
-    var layers = active.filter(function (e) { return LAYER[e.name].info; }).map(function (e) { return LAYER[e.name]; });
+    var layers = onceBy(active.map(function (e) { return LAYER[e.name]; }), "info");
     if (!layers.length) { showPopup(head, pixel); return; }
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
@@ -1337,8 +1348,12 @@
   // 달의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.AGES_KO`)
   var AGE_ORDER = [["코페르니쿠스기", "Copernican"], ["에라토스테네스기", "Eratosthenian"], ["임브리움기", "Imbrian"],
                    ["넥타리스기", "Nectarian"], ["선넥타리스기", "Pre-Nectarian"]];
+  // 두 시대에 걸친 단위(SPA 지질도의 "넥타리스기–선넥타리스기")는 젊은 쪽 시대 바로 밑에 선다
   function ageRank(age) {
-    for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
+    var parts = String(age).split("–");
+    for (var i = 0; i < AGE_ORDER.length; i++) {
+      if (AGE_ORDER[i].indexOf(parts[0]) >= 0) return parts.length > 1 ? i + 0.5 : i;
+    }
     return AGE_ORDER.length;
   }
   function legendHtml(kind) {
@@ -1369,13 +1384,14 @@
       }).join("");
       return Promise.resolve(legends[kind]);
     }
-    var url = BASE + "moon/legend/" + (kind === "units" ? "" : "?layer=orig");
+    // 원도의 단위·구조선은 한 번에 온다(`?layer=orig`)
+    var url = BASE + "moon/legend/" + (kind === "units" ? "" : kind === "spa" ? "?layer=spa" : "?layer=orig");
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
-      if (kind === "units") {
+      if (kind === "units" || kind === "spa") {
         // 상류의 범례 차례는 시대가 섞여 있다(에라토스테네스기 바다 `Em` 이 임브리움기 크레이터 뒤에 온다).
         // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는
-        // 처음 나온 차례대로 그 밑에 선다 (044)
+        // 처음 나온 차례대로 그 밑에 선다 (044). SPA 지질도는 그림 대신 색을 준다 (wetherilli 081)
         var ages = [], byAge = {};
         (data.items || []).forEach(function (item) {
           if (item.unit) swatches[item.unit] = item.image;
@@ -1388,7 +1404,8 @@
           html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
                   '<span class="age-n">' + byAge[age].length + "</span></div><ul>";
           byAge[age].forEach(function (item) {
-            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
+            html += "<li>" + (item.image ? '<img src="' + esc(item.image) + '" alt="">'
+                    : '<span class="chip" style="background:' + esc(item.color) + '"></span>') + esc(item.label) + "</li>";
           });
           html += "</ul></li>";
         });
@@ -1408,7 +1425,7 @@
   }
   var legendAsked = 0;
   function syncLegend() {
-    var layers = active.filter(function (e) { return LAYER[e.name].legend; }).map(function (e) { return LAYER[e.name]; });
+    var layers = onceBy(active.map(function (e) { return LAYER[e.name]; }), "legend");
     dock.hidden = !layers.length;
     if (!layers.length) return;
     var mine = ++legendAsked;

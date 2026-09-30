@@ -1392,6 +1392,28 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(255, 255, 255, .95); --glass-line: #cdd5e6;
 }
 
+/* ── 북극해 (devlog 076) — 극야의 바다: 먹보라 바탕에 얼음 라일락 ──
+   품은 묶음(북극, 흰 얼음빛)과 이웃 탭(그린란드 빙하 청·스발바르 남색 빨강·얀마옌 용암 주황·
+   남극 오로라 청록) 어느 것과도 겹치지 않게 보랏빛으로 갔다 */
+:root[data-region="arctic_ocean"] {
+  --bg: #13111f; --panel: #1a1829; --panel-tint: #100e1a; --raise: #242138;
+  --ink: #ece9f7; --ink-soft: #b7b1d4; --ink-faint: #7a7499;
+  --line: #2f2b48; --line-soft: #221f36;
+  --gold: #a99cff; --gold-bright: #cfc7ff; --gold-muted: #9187d6;
+  --gold-wash: rgba(169, 156, 255, .13); --gold-edge: rgba(169, 156, 255, .42);
+  --hi: #a99cff; --hi-deep: #cfc7ff; --on-hi: #100e1a; --hi-ink: #cfc7ff;
+  --glass: rgba(16, 14, 26, .93); --glass-line: rgba(169, 156, 255, .35);
+}
+:root[data-region="arctic_ocean"][data-theme="light"] {
+  --bg: #eeedf6; --panel: #fbfbfe; --panel-tint: #f3f2f9; --raise: #e3e1ef;
+  --ink: #16142a; --ink-soft: #4a4668; --ink-faint: #8a86a3;
+  --line: #d4d1e5; --line-soft: #e3e1ef;
+  --gold: #6a5acd; --gold-bright: #4b3db0; --gold-muted: #7a6fc0;
+  --gold-wash: #ece9fb; --gold-edge: #c3bbf0;
+  --hi: #3b3175; --hi-deep: #231c52; --on-hi: #f6f4ff; --hi-ink: #4b3db0;
+  --glass: rgba(251, 251, 254, .95); --glass-line: #d4d1e5;
+}
+
 /* ── 북극 (devlog 021) — 그린란드·스발바르·얀마옌을 한 화면에. 극야: 먹청 바탕에
    흰 얼음빛. 품은 지역의 색(빙하 청·국기 빨강·용암 주황) 어느 것과도 겹치지 않게
    색을 빼고 밝기로만 가른다 */

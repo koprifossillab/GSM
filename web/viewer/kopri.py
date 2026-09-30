@@ -283,9 +283,26 @@ TOPICS = (
     ("bio", "생물", "#66a61e", ("BIOSPHERE", "BIOLOGICAL CLASSIFICATION", "AGRICULTURE")),
     ("other", "그 밖", "#6b6b6b", ()),
 )
+#: 북극은 탭마다 한 벌이다 — 스발바르·그린란드는 암석 시료와 같은 네모다 (075). 북극해 탭은 두 탭을 뺀
+#: 북위 50° 너머 전부다 — 축치해·베링해 항해, 캐나다 케임브리지베이, 시베리아·스칸디나비아 관측소 (076)
+ARCTIC_BOXES = {"svalbard": LAYERS["kopri:rock_svalbard"]["box"],
+                "greenland": LAYERS["kopri:rock_greenland"]["box"]}
+ARCTIC_OCEAN_BOX = (-180, 50, 180, 90)
+#: 북극해의 넓은 범위 한계(경도, 위도). 아라온 항해 백여 건이 같은 기본 네모(북위 60–80°, 160°E–150°W —
+#: 경도 50°·위도 20°, 남극의 한계에 딱 걸린다)를 적어, 겹쳐 칠하면 축치해가 한 덩이로 덮인다. 그 네모는 "어디서"
+#: 를 말하지 않으므로 뺀다 — 항적(선·점)이 있는 자료는 그대로 나온다 (076)
+ARCTIC_OCEAN_WIDE = (45, 15)
 for _code, _label, _color, _words in TOPICS:
     LAYERS[f"kopri:kpdc_{_code}"] = {"from": "kpdc", "collection": "KPDC", "topic": _code,
                                      "box": (-180, -90, 180, -50)}
+    for _region, _box in ARCTIC_BOXES.items():
+        LAYERS[f"kopri:kpdc_{_code}_{_region}"] = {"from": "kpdc", "collection": "KPDC", "topic": _code,
+                                                   "box": _box}
+    # `outside` — 이 네모 안의 점은 제 탭이 있어 여기 싣지 않는다. `wide` — 넓은 범위의 한계를 좁힌다
+    LAYERS[f"kopri:kpdc_{_code}_arctic_ocean"] = {"from": "kpdc", "collection": "KPDC", "topic": _code,
+                                                  "box": ARCTIC_OCEAN_BOX,
+                                                  "outside": tuple(ARCTIC_BOXES.values()),
+                                                  "wide": ARCTIC_OCEAN_WIDE}
 
 #: 이보다 넓은 범위(경도 60° 또는 위도 20° 넘게)는 그리지 않는다 — 남극 전체·남빙양 전체를 덮는
 #: 위성 자료가 대륙을 네모로 덮어 다른 것을 가린다. 그런 자료는 KPDC 에서 찾는 편이 낫다
@@ -359,6 +376,11 @@ def _inside(box, lat, lon) -> bool:
     return box[0] <= lon <= box[2] and box[1] <= lat <= box[3]
 
 
+def _covers(spec, lat, lon) -> bool:
+    """레이어가 이 점을 싣나 — `box` 안이고 `outside` 의 어느 네모에도 들지 않는다."""
+    return _inside(spec["box"], lat, lon) and not any(_inside(b, lat, lon) for b in spec.get("outside", ()))
+
+
 def _pt(lat, lon):
     return [round(lon, DIGITS), round(lat, DIGITS)]
 
@@ -410,17 +432,25 @@ def _box_ring(a, b, step: float = 1.0) -> list:
     return ring
 
 
-def _shape_geometry(kind: str, pts: list):
-    """KPDC 의 공간 범위 하나 → GeoJSON 기하. 넓은 범위면 None."""
+def _lon_span(lons: list) -> float:
+    """경도들을 덮는 가장 짧은 호의 폭 — 360 에서 가장 큰 빈틈을 뺀다. 날짜변경선을 넘는 베링해 네모
+    (160°E–150°W)는 50°, 한 위선을 빙 두른 고리(-180·-90·0·90·180)는 270° 다. 앞 판은 양 끝만 보아
+    그 고리를 0° 로 읽었다 (076)."""
+    xs = sorted(x % 360 for x in lons)
+    gaps = [b - a for a, b in zip(xs, xs[1:])] + [xs[0] + 360 - xs[-1]]
+    return 360 - max(gaps)
+
+
+def _shape_geometry(kind: str, pts: list, wide=None):
+    """KPDC 의 공간 범위 하나 → GeoJSON 기하. 넓은 범위면 None. `wide` 는 (경도, 위도) 한계."""
     lats = [p[0] for p in pts]
     lons = [p[1] for p in pts]
     if kind == "POINT":
         if len(pts) == 1:
             return {"type": "Point", "coordinates": _pt(*pts[0])}
         return {"type": "MultiPoint", "coordinates": [_pt(*p) for p in pts]}
-    lon_span = max(lons) - min(lons)
-    lon_span = min(lon_span, 360 - lon_span)
-    if lon_span > WIDE_LON or max(lats) - min(lats) > WIDE_LAT:
+    wide_lon, wide_lat = wide or (WIDE_LON, WIDE_LAT)
+    if _lon_span(lons) > wide_lon or max(lats) - min(lats) > wide_lat:
         return None
     if kind in ("LINE", "LINESTRING"):
         return {"type": "LineString", "coordinates": [_pt(*p) for p in pts]}
@@ -442,7 +472,7 @@ def kpdc_features(records: dict, spec: dict, lang: str = "ko") -> tuple:
         if not meteor and topic_of(rec.get("keywords")) != spec["topic"]:
             continue
         shapes = [(kind, pts) for kind, pts in rec.get("shapes") or []
-                  if any(_inside(spec["box"], lat, lon) for lat, lon in pts)]
+                  if any(_covers(spec, lat, lon) for lat, lon in pts)]
         if not shapes:
             continue
         doi = rec.get("doi") or ""
@@ -459,7 +489,7 @@ def kpdc_features(records: dict, spec: dict, lang: str = "ko") -> tuple:
         props = {k: v for k, v in props.items() if v}
         drawn = 0
         for index, (kind, pts) in enumerate(shapes):
-            geom = _shape_geometry(kind, pts)
+            geom = _shape_geometry(kind, pts, spec.get("wide"))
             if geom is None:
                 continue
             drawn += 1

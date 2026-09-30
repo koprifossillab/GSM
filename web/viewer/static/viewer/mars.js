@@ -56,24 +56,55 @@
     { group: "화성 지질 (USGS 1:2000만, 2014)", layers: [
       { name: "units", title: "지질 단위", info: "units", legend: "units", src: "USGS SIM 3292 · NASA Mars Trek" },
     ] },
+    // 옛 지질도·지역도 — 바이킹 시대의 전 지구판(I-1802) 위에 북부 평원(SIM 2888)·타우마시아(I-2650)·MTM 지역도
+    // 열하나를 좁은 것이 위에 오게 얹었다. 우리가 파일을 굽는다 (`marsmap.py`, 068·wetherilli 079).
+    // 이름(`orig-*`)은 달 원도의 것 그대로다 — 두 화면을 나란히 고치기 쉽게
+    { group: "화성 USGS 옛 지질도·지역도 (1986–2005)", layers: [
+      { name: "orig-units", title: "옛 지질 단위", info: "orig", legend: "orig",
+        src: "USGS I-1802-A·B·C · SIM 2888 · I-2650 · MTM 1:500K (I-1696 … I-2351)" },
+      { name: "orig-lines", title: "옛 구조선", legend: "orig-lines", src: "USGS I-1802 · SIM 2888 · I-2650" },
+    ] },
+    // 크레이터 38 만 개 — 서버가 제 디스크의 sqlite 에서 타일로 굽는다(`marscraters.py`, 067). 극 평면도 같다
+    { group: "크레이터 (Robbins 2012)", layers: [
+      { name: "craters", title: "크레이터 — 지름 1 km 넘는 것", info: "craters", legend: "craters",
+        src: "Robbins & Hynek 2012 (JGR Planets) · USGS Astrogeology" },
+    ] },
     // 착륙지 — 지점·동선은 벡터(`kind: "vector"`), 착륙지 사진은 여러 장 모자이크(`kind: "nac"` — 달에서 온 이름)
     { group: "착륙지", layers: [
       { name: "landings", title: "착륙선·로버 지점", kind: "vector", url: "mars/landings/", legend: "landings",
-        src: "NASA Mars Trek · JPL" },
+        src: "NASA Mars Trek · JPL · Zhurong: Zhang et al. 2026, Ding et al. 2022 (CC BY)" },
       { name: "eva", title: "로버 주행 경로", kind: "vector", url: "mars/traverses/", legend: "traverses",
-        src: "NASA Mars Trek · JPL" },
+        src: "NASA Mars Trek · JPL · Zhurong: Zhang et al. 2026, Ding et al. 2022 (CC BY)" },
       { name: "nac", title: "착륙지 고해상 사진 (MRO HiRISE)", kind: "nac", src: "NASA/JPL/University of Arizona" },
     ] },
   ];
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
+  // NASA Trek 판 (달의 060 을 옮겼다, wetherilli 080) — 서버가 씨앗(`data/mars_trek_layers.json`)에서 추린 것을 페이지에
+  // 싣는다. 브라우저가 Trek 을 곧장 부른다(영상 배경과 같다). 수백 장이라 켤 때 레이어를 짓는다(`ensureTrek`).
+  // 이름은 `trek:<판>`. MapServer 판(골짜기망·선상지 …)은 우리 문(`trek/mars/map/…`)이 굽고 누르면 속성을 읽는다
+  var TREK_DATA = JSON.parse(($("trek-data") || {}).textContent || "{}");
+  var TREK_ROOT = TREK_DATA.root || "https://trek.nasa.gov/tiles/Mars/EQ";
+  var TREK_GROUPS = (TREK_DATA.groups || []).map(function (g) {
+    return { group: LANG === "en" ? g.en : g.ko, layers: g.layers.map(function (l) {
+      return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
+               bbox: l.bbox, legend: l.legend ? "trek:" + l.id : undefined, info: l.kind === "map" ? "trek" : undefined,
+               title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
+               src: (l.src ? l.src + " · " : "") + "NASA Mars Trek" };
+    }) };
+  });
+  TREK_GROUPS.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
   var GEO_MAX = 11;            // 서버의 `trek.MARS_MAX_ZOOM`
   function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png"; }
   var GEO_CREDIT = "Geologic Map of Mars 1:20M (Tanaka et al., 2014, USGS SIM 3292) via NASA Mars Trek";
-  function creditOf(name) { return name === "units" ? GEO_CREDIT : undefined; }
+  var ORIG_CREDIT = "USGS Mars geologic maps: I-1802-A/B/C 1:15M (1986–87), SIM 2888 (2005), I-2650 (2001), MTM 1:500K";
+  var CRATER_CREDIT = "Mars crater database (Robbins & Hynek 2012, USGS Astrogeology)";
+  function creditOf(name) {
+    return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : name === "craters" ? CRATER_CREDIT : undefined;
+  }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
@@ -305,7 +336,8 @@
   }
   // `box`(경위도 [서, 남, 동, 북])를 주면 그 밖의 타일은 묻지 않는다 — 착륙지 사진처럼 좁은 판은 밖이 404 인데
   // Trek 이 404 에는 CORS 를 달지 않아 콘솔이 붉어진다. 극 평면에서 옮겨 그릴 때(065) 둘레 타일을 더 묻는다
-  function tileSource(template, maxZoom, attribution, crossOrigin, box) {
+  // `z0` 은 상류가 우리 줌 0 을 몇 번으로 적는지다 — Trek 판 몇은 1 부터 센다 (060)
+  function tileSource(template, maxZoom, attribution, crossOrigin, box, z0) {
     return new ol.source.TileImage({
       projection: EQC, tileGrid: grid(maxZoom), attributions: attribution, wrapX: true, crossOrigin: crossOrigin,
       tileUrlFunction: function (coord) {
@@ -316,7 +348,7 @@
           var step = 180 / Math.pow(2, z), w = -180 + x * step, north = 90 - y * step;
           if (w > box[2] || w + step < box[0] || north < box[1] || north - step > box[3]) return undefined;
         }
-        return template.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+        return template.replace("{z}", z + (z0 || 0)).replace("{x}", x).replace("{y}", y);
       },
     });
   }
@@ -431,8 +463,9 @@
     rover: { color: "#6fd3ff", size: 9, label: "로버" },
   };
   //: 로버마다 한 색 — 범례 칸도 이것으로 선다
+  //: 주룽(祝融)은 Trek 에 없어 서버가 저장소의 파일(`zhurong.py`)을 덧붙인다 (066)
   var TRAVERSE_COLOR = { "Spirit": "#ffe14d", "Opportunity": "#7bc47f", "Curiosity": "#ff8fab",
-                         "Perseverance": "#c879ff" };
+                         "Perseverance": "#c879ff", "Zhurong": "#ff4a3d" };
   var EVA_COLOR = "#ffe14d";
   // Trek 의 HiRISE 모자이크 — 줌 끝은 2026-09-29 에 한 장씩 받아 보았다(게일 16·예제로 17, 한 픽셀 25–50 cm)
   var NAC = [
@@ -473,6 +506,35 @@
     }) });
     oExtra.getLayers().push(oGeo.nac);
   })();
+  // ── NASA Trek 판 (060·wetherilli 080) — 켤 때 짓는다. 구는 영상 레이어, 평면은 `oExtra` 의 타일 ──
+  // 극 평면(065)에서는 경위도 타일을 OpenLayers 가 옮겨 그린다 — 판이 수백이라 극지 판을 따로 찾지 않았다
+  var TREK_CREDIT = "NASA Mars Trek";
+  function ensureTrek(name) {
+    var l = LAYER[name];
+    if (!l || l.kind !== "trek" || cGeo[name]) return;
+    var url = l.ms ? BASE + "trek/mars/map/" + l.id + "/{zz}/{x}/{y}.png"
+                   : TREK_ROOT + "/" + l.id + "/1.0.0/default/default028mm/{zz}/{y}/{x}." + l.ext;
+    var z0 = l.z0 || 0;
+    var layer = viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+      url: url, tilingScheme: scheme(), maximumLevel: l.ms ? GEO_MAX : l.max, hasAlphaChannel: l.ms || l.ext === "png",
+      customTags: { zz: function (provider, x, y, level) { return level + z0; } },
+      rectangle: l.bbox ? Cesium.Rectangle.fromDegrees(l.bbox[0], l.bbox[1], l.bbox[2], l.bbox[3]) : undefined,
+      credit: TREK_CREDIT,
+    }));
+    layer.show = false;
+    cGeo[name] = layer;
+    cRaise[name] = [layer];
+    var tile = new ol.layer.Tile({
+      visible: false,
+      source: tileSource(url.replace("{zz}", "{z}"), l.ms ? GEO_MAX : l.max, TREK_CREDIT, "anonymous", l.bbox, z0),
+    });
+    if (l.bbox) {
+      tile.set("gsmBox", l.bbox);                                          // 투영을 바꾸면 범위를 다시 잰다 (065)
+      tile.setExtent(ol.proj.transformExtent(l.bbox, LL, proj, 16));
+    }
+    oGeo[name] = tile;
+    oExtra.getLayers().push(tile);
+  }
   // ── 벡터 — 착륙선·로버 지점, 로버 주행 경로. 처음 켤 때 받는다 ──
   function vectorLayer(name, draw) {
     var ds = new Cesium.CustomDataSource(name);
@@ -928,7 +990,8 @@
   //
   // 쌓는 차례는 구와 평면이 같다. 구는 배경(0 번) 위로 아래 것부터 `raiseToTop`, 평면은 `zIndex`
   function applyStack() {
-    ALL_NAMES.forEach(function (name) {
+    active.forEach(function (e) { ensureTrek(e.name); });
+    Object.keys(cGeo).forEach(function (name) {
       var e = entryOf(name);
       cGeo[name].show = !!e;
       oGeo[name].setVisible(!!e);
@@ -1014,23 +1077,85 @@
       var summary = document.createElement("summary");
       summary.innerHTML = esc(T(g.group)) + ' <span class="count">' + g.layers.length + "</span>";
       details.appendChild(summary);
-      g.layers.forEach(function (l) {
-        var row = document.createElement("div");
-        row.className = "layer-row";
-        var box = document.createElement("input");
-        box.type = "checkbox";
-        box.id = "lyr-" + l.name;
-        box.checked = isOn(l.name);
-        box.addEventListener("change", function () { if (box.checked) addLayer(l.name); else removeLayer(l.name); });
-        var label = document.createElement("label");
-        label.htmlFor = box.id;
-        label.textContent = T(l.title);
-        row.append(box, label);
-        details.appendChild(row);
-      });
+      g.layers.forEach(function (l) { details.appendChild(layerRow(l)); });
       host.appendChild(details);
     });
+    renderTrek();
   }
+  function layerRow(l) {
+    var row = document.createElement("div");
+    row.className = "layer-row";
+    var box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = "lyr-" + l.name;
+    box.checked = isOn(l.name);
+    box.addEventListener("change", function () { if (box.checked) addLayer(l.name); else removeLayer(l.name); });
+    var label = document.createElement("label");
+    label.htmlFor = box.id;
+    label.textContent = T(l.title);
+    if (l.kind === "trek" && l.en !== l.title) label.title = l.en;
+    row.append(box, label);
+    return row;
+  }
+
+  // ── NASA Trek 판 목록 (달의 060 을 옮겼다) ──
+  //
+  // 레이어군마다 몸 전체를 덮는 판을 먼저 두고, 좁은 곳만 덮는 판(CTX·HiRISE 지역 모자이크 …)은 그 밑의 묶음에 넣는다.
+  // 이름으로 거르고, "보는 자리를 덮는 것만" 이면 화면 가운데를 덮지 않는 좁은 판을 뺀다 — 그때는 움직일
+  // 때마다 다시 거른다. 열어 둔 묶음은 다시 그려도 열어 둔다
+  var trekOpen = {};
+  function viewLL() {
+    if (mode === "flat") return wrapLon(toLL(flat.getView().getCenter()));
+    var c = cameraLL();
+    return c ? [c.lon, c.lat] : null;
+  }
+  function covers(b, ll) { return ll[0] >= b[0] && ll[0] <= b[2] && ll[1] >= b[1] && ll[1] <= b[3]; }
+  function trekGroup(key, title, count, open, more) {
+    var details = document.createElement("details");
+    details.className = more ? "group more" : "group";
+    details.open = open;
+    details.addEventListener("toggle", function () { trekOpen[key] = details.open; });
+    var summary = document.createElement("summary");
+    summary.innerHTML = esc(title) + ' <span class="count">' + count + "</span>";
+    details.appendChild(summary);
+    return details;
+  }
+  function renderTrek() {
+    var host = $("trek-catalog");
+    if (!host) return;
+    var q = $("trek-q").value.trim().toLowerCase();
+    var at = $("trek-here").checked ? viewLL() : null;
+    var narrowing = !!(q || at);
+    var total = 0, top = host.scrollTop;
+    host.innerHTML = "";
+    TREK_GROUPS.forEach(function (g) {
+      var hit = g.layers.filter(function (l) {
+        if (q && (l.title + " " + l.en + " " + l.src + " " + l.id).toLowerCase().indexOf(q) < 0) return false;
+        return !(at && l.bbox && !covers(l.bbox, at));
+      });
+      if (!hit.length) return;
+      total += hit.length;
+      var details = trekGroup(g.group, g.group, hit.length, narrowing || !!trekOpen[g.group], false);
+      var narrow = [];
+      hit.forEach(function (l) { if (l.bbox) narrow.push(l); else details.appendChild(layerRow(l)); });
+      if (narrow.length) {
+        var key = g.group + "/narrow";
+        var more = trekGroup(key, T("좁은 곳만 덮는 판"), narrow.length, narrowing || !!trekOpen[key], true);
+        narrow.forEach(function (l) { more.appendChild(layerRow(l)); });
+        details.appendChild(more);
+      }
+      host.appendChild(details);
+    });
+    $("count-trek").textContent = total;
+    host.scrollTop = top;                 // 켜고 끌 때마다 다시 그리므로 — 보던 자리를 지킨다
+    if (!total) {
+      host.innerHTML = '<p class="empty">' + esc(TREK_GROUPS.length ? T("맞는 판이 없다") : T("판 목록이 아직 없다")) + "</p>";
+    }
+  }
+  $("trek-q").addEventListener("input", renderTrek);
+  $("trek-here").addEventListener("change", renderTrek);
+  viewer.camera.moveEnd.addEventListener(function () { if ($("trek-here").checked) renderTrek(); });
+  flat.on("moveend", function () { if ($("trek-here").checked) renderTrek(); });
 
   // 지형 (구에서만)
   var terrainBox = $("moon-terrain"), exag = $("moon-exag");
@@ -1116,8 +1241,19 @@
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
     Promise.all(layers.map(function (l) {
-      var url = BASE + "mars/info/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
-                (l.info === "units" ? "" : "&layer=" + l.info);
+      var at = "?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4);
+      // Trek 의 MapServer 판 (060) — 점·선이 잡히게 지금 보는 줌을 함께 보낸다. 찾은 것마다 한 표
+      if (l.info === "trek") {
+        var z = Math.round(Math.log(180 * M_PER_DEG / 256 / Math.max(1, heightToRes(hereHeight()))) / Math.LN2);
+        return fetch(BASE + "trek/mars/map/" + encodeURIComponent(l.id) + "/info/" + at + "&z=" + Math.max(0, z))
+          .then(function (r) { return r.json(); }).then(function (data) {
+            if (data.error) return data;
+            var hits = data.hits || [];
+            return { rows: [].concat.apply([], hits.map(function (h) { return h.rows; })),
+                     note: T("여기에는 속성이 없다") };
+          }).catch(function () { return { error: true }; });
+      }
+      var url = BASE + "mars/info/" + at + (l.info === "units" ? "" : "&layer=" + l.info);
       return fetch(url).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
       if (mine !== asked) return;
@@ -1199,12 +1335,42 @@
     for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
     return AGE_ORDER.length;
   }
+  var CRATER_STATES = [["#6fe3ff", "4 — 갓 생긴 듯하다"], ["#5b9dff", "3"], ["#a47bff", "2"],
+                        ["#e070c8", "1 — 많이 닳았다"], ["#ffffff", "매기지 않음"]];
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    // Trek 판 (060) — MapServer 판은 우리 문이 받은 범례, WMTS 판은 상류가 그려 둔 범례 그림 한 장.
+    // 없는 판도 있어 받아 보고 정한다. 글자가 검어서 흰 바탕에 싣는다
+    if (/^trek:/.test(kind) && LAYER[kind] && LAYER[kind].ms) {
+      return fetch(BASE + "trek/mars/map/" + encodeURIComponent(LAYER[kind].id) + "/legend/")
+        .then(function (r) { return r.json(); }).then(function (data) {
+          return (legends[kind] = (data.items || []).map(function (item) {
+            return '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) + "</li>";
+          }).join("") || '<li class="empty">' + esc(T("범례가 없다")) + "</li>");
+        }).catch(function () { return '<li class="empty">' + esc(T("범례가 없다")) + "</li>"; });
+    }
+    if (/^trek:/.test(kind)) {
+      return new Promise(function (resolve) {
+        var img = new Image(), src = (TREK_DATA.legend || "") + encodeURIComponent(kind.slice(5));
+        img.onload = function () {
+          resolve(legends[kind] = '<li><img class="trek-legend" src="' + esc(src) + '" alt=""></li>');
+        };
+        img.onerror = function () { resolve(legends[kind] = '<li class="empty">' + esc(T("범례가 없다")) + "</li>"); };
+        img.src = src;
+      });
+    }
     if (kind === "landings") {
       legends[kind] = LANDING_ORDER.map(function (k) {
         var st = LANDING_STYLE[k];
         return '<li><span class="chip dot" style="background:' + st.color + '"></span>' + esc(T(st.label)) + "</li>";
+      }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "craters") {
+      // 보존 상태 — 서버의 `marscraters.STATES` 와 같은 색
+      legends[kind] = "<li>" + esc(T("보존 상태")) + "</li>" + CRATER_STATES.map(function (st) {
+        return '<li><span class="chip dot" style="background:transparent;border:2px solid ' + st[0] + '"></span>' +
+               esc(T(st[1])) + "</li>";
       }).join("");
       return Promise.resolve(legends[kind]);
     }
@@ -1214,9 +1380,33 @@
       }).join("");
       return Promise.resolve(legends[kind]);
     }
-    var url = BASE + "mars/legend/";
+    var url = BASE + "mars/legend/" + (kind === "units" ? "" : "?layer=orig");
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
+      if (kind === "orig") {
+        // 옛 지질도(068) — 단위 95 가지를 SIM 3292 처럼 시대 상자로 묶는다. 크레이터 물질은 "시대 모름"
+        var oAges = [], oBy = {};
+        (data.units || []).forEach(function (u) {
+          var age = u.age || "";
+          if (!oBy[age]) { oBy[age] = []; oAges.push(age); }
+          oBy[age].push(u);
+        });
+        oAges.sort(function (a, b) { return ageRank(a) - ageRank(b); });
+        oAges.forEach(function (age) {
+          html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
+                  '<span class="age-n">' + oBy[age].length + "</span></div><ul>";
+          oBy[age].forEach(function (u) {
+            html += '<li><span class="chip" style="background:' + esc(u.color) + '"></span>' + esc(u.label) +
+                    " (" + esc(u.unit) + ")</li>";
+          });
+          html += "</ul></li>";
+        });
+      } else if (kind === "orig-lines") {
+        (data.lines || []).forEach(function (c) {
+          html += '<li><span class="chip line' + (c.dash ? " dash" : "") + '" style="border-color:' + esc(c.color) +
+                  '"></span>' + esc(c.label) + "</li>";
+        });
+      }
       if (kind === "units") {
         // 상류의 범례 차례는 이름의 가나다(알파벳)라 시대가 섞여 있다.
         // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는

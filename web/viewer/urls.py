@@ -90,6 +90,7 @@ urlpatterns = [
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
     path("pointsets/<int:pk>/elevation/", views.pointset_elevation, name="pointset-elevation"),
+    path("pointsets/<int:pk>/places/", views.pointset_places, name="pointset-places"),
     # 3D 의 촘촘한 지형 — 극지 PGC·일본 국토지리원을 Terrarium 꼴로 (elevation.py, 031·032)
     re_path(r"^dem/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$", views.dem_tile, name="dem-tile"),
     # 얼음을 걷어 낸 남극 — IBCSO 해저·빙저 (051)

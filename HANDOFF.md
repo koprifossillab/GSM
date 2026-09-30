@@ -7,7 +7,7 @@
 
 ## 작업 방식 (2026-09-30 부터)
 
-**브랜치** `main` = `0.19.2` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+**브랜치** `main` = `0.20.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
 `feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
 올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
 [devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
@@ -27,12 +27,14 @@
 
 판마다 무엇이 붙었는지는 `CHANGELOG.md`, 왜 그랬는지는 괄호 안의 devlog 다.
 
-- **지역** — 한국(기본)·일본·중국·그린란드·스발바르·얀마옌·남극, 묶음 탭 동아시아·북극 (016·017·021·024).
+- **지역** — 한국(기본)·일본·중국·그린란드·스발바르·얀마옌·북극해·남극, 묶음 탭 동아시아·북극 (016·017·021·024·076).
   화면 투영은 3857·3413·3031 이다
 - **상류로 나가는 문 열** — kigam·vworld·geus·grportal·npolar·gsj·phyloserver·elevation·trek·kopri. 문이 아닌
-  것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso, 그리고 3D 용으로 다시 펴는 warp
+  것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso·marscraters·marsmap·zhurong·spamap, 그리고 3D 용으로 다시 펴는 warp
 - **달·화성** — 아이콘의 숨은 차림에서 `/GSM/moon/`·`/GSM/mars/`. 둥근 몸(Cesium)과 평면(OpenLayers)을 오가고,
-  위도 65° 너머는 극 평면이다 (036·038·052·058·065). Trek 판 목록은 씨앗 `data/<몸>_trek_layers.json` (060)
+  위도 65° 너머는 극 평면이다 (036·038·052·058·065). Trek 판 목록은 씨앗 `data/<몸>_trek_layers.json` (060).
+  화성에는 크레이터 38 만 개·옛 지질도 I-1802 와 지역도·주룽 경로를 우리가 굽는다 (066–068, wetherilli 079).
+  달 SPA 지질도는 Trek 의 그림에 원본 GeoTIFF 의 속성을 붙인다 (wetherilli 081)
 - **3D** — 도구 막대의 단추로 늘 연다 (059). 한국·일본·북극·남극 지형과 지질, 점묶음
 - **영어판** — 설정의 "언어 · Language". 화면의 글을 고치면 `viewer/i18n.py` 에 영어도 적는다 (008)
 - **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
@@ -47,8 +49,9 @@
 | `npolar/` | 얀마옌 지질도 GeoJSON | 파일을 둔다 (022) |
 | `usgs/geo3al/` | 중국 geo3al `{shp,dbf,prj}` | 파일을 둔다 (025) |
 | `peninsula/` | 한반도 지질도 음영판·민판과 잘라 둔 타일 | `manage.py build_peninsula [--layer plain]` (027·028) |
-| `moon/` | 달 원도 6 장 sqlite | `manage.py build_moon_originals <zip>` (039) |
+| `moon/` | 달 원도 6 장 sqlite, SPA 지질도 원본 `spa_geomap_iqbal2026.tif`(112 MB) | `manage.py build_moon_originals <zip>` (039). SPA 는 Zenodo `GeoMap.tif.zip` 을 풀어 이름만 바꿔 둔다 (wetherilli 081) |
 | `ibcso/` | IBCSO 타일·수치 격자·TID | `manage.py build_ibcso` (047·051·071) |
+| `mars/` | 화성 크레이터·옛 지질도 sqlite | `manage.py build_mars_craters <zip>`·`build_mars_originals <zip>` (067·068) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
 
 그 밖에 가끔 돌리는 것 — `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`

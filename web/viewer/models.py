@@ -18,7 +18,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 일본 — GSJ 심리스 지질도 (devlog 024). "동아시아" 탭도 북극처럼 묶음이라 여기 없다
            ("japan", "일본"),
            # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025). 동아시아 묶음에도 들어간다
-           ("china", "중국"))
+           ("china", "중국"),
+           # 북극해 — 스발바르·그린란드 밖의 북극. 지금은 KPDC 자료뿐이다 (devlog 076). 북극 묶음에도 들어간다
+           ("arctic_ocean", "북극해"))
 
 
 class LayerGroup(models.Model):
@@ -137,6 +139,10 @@ class Point(models.Model):
     elev = models.FloatField("표고 (m)", null=True, blank=True)
     elev_source = models.CharField("표고 출처", max_length=40, blank=True)
     elev_datum = models.CharField("높이 기준", max_length=20, blank=True)
+    # VWorld 에서 읽은 둘레(074) — 도로명·지번·읍면동·가장 가까운 단층·둘레 지명. 표고처럼 `props` 에
+    # 넣지 않는다 — 원본의 `주소` 열과 섞이면 어느 것이 적은 것인지 가를 수 없다. 키는 `vworld.point_facts`
+    # 의 것에 받은 날(`at`)을 더한다. 비어 있으면 아직 묻지 않은 것이다
+    place = models.JSONField("둘레 (VWorld)", default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]

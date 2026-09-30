@@ -242,12 +242,15 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - GEUS 는 부르는 이를 `whoami` 로 밝혀 달라고 한다. 이메일이라 **저장소에
   적지 않는다** — `GSM_GEUS_WHOAMI` 나 `<DB 옆>/geus_whoami`
 - NPI 의 `Basisdata_Intern/*` 은 "Svalbardkartet 안에서만" 이라 부르지 않는다 (P01)
-- **파일을 받아 우리가 그리는 것 여섯** — 달 지질도 원도 6 장(`GSM_MOON_DIR`, 기본 `<DB 옆>/moon`, 039 —
-  `manage.py build_moon_originals <zip>` 이 sqlite 한 장으로 굽는다), 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
+- **파일을 받아 우리가 그리는 것 여덟** — 달 지질도 원도 6 장(`GSM_MOON_DIR`, 기본 `<DB 옆>/moon`, 039 —
+  `manage.py build_moon_originals <zip>` 이 sqlite 한 장으로 굽는다. 같은 자리에 남극–에이트켄 분지 지질도 원본
+  `spa_geomap_iqbal2026.tif` — 그리지는 않고 누른 자리만 읽는다, wetherilli 081), 남극 GeoMAP(`GSM_GEOMAP_DIR`, 기본 `<DB 옆>/geomap`,
   018), 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022), 중국 USGS geo3al
   (`GSM_USGS_DIR`, 기본 `<DB 옆>/usgs`, 025), 한반도 지질도 음영판·민판(`GSM_PENINSULA_DIR`,
   기본 `<DB 옆>/peninsula`, 027·028 — PDF·PNG 를 `manage.py build_peninsula` 로 잘라 둔다), 남극 해저·빙저 지형
-  IBCSO v2(`GSM_IBCSO_DIR`, 기본 `<DB 옆>/ibcso`, 047 — 칠한 GeoTIFF 둘을 `manage.py build_ibcso` 로 3031 에 잘라 둔다). 운영은
+  IBCSO v2(`GSM_IBCSO_DIR`, 기본 `<DB 옆>/ibcso`, 047 — 칠한 GeoTIFF 둘을 `manage.py build_ibcso` 로 3031 에 잘라 둔다), 화성 크레이터
+  목록 Robbins 2012(`GSM_MARS_DIR`, 기본 `<DB 옆>/mars`, 067 — `manage.py build_mars_craters <zip>` 이 sqlite 한 장으로 굽고 타일은 그때그때 그린다), 화성 옛 지질도·지역도 — I-1802·SIM 2888·I-2650·MTM(같은 자리, 068·wetherilli 079 —
+  `manage.py build_mars_originals <zip…>`, 달 원도의 틀을 빌렸다). 운영은
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
   파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
@@ -308,6 +311,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
+  zhurong.py      주룽 로버 경로 파일(data/mars_zhurong.json) -> 착륙지·경로. Trek 에 없는 것을 덧붙인다. 문이 아니다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. requests 없음
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
@@ -316,6 +320,9 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   moonmap.py      달 지질도 원도 6 장 셰이프파일 -> sqlite(R*Tree) -> 달 경위도 타일. 문이 아니다
   peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
   ibcso.py        남극 해저·빙저 지형 IBCSO v2 — 칠한 GeoTIFF(9354) -> 3031 타일(미리 잘라 둔다). 문이 아니다
+  marscraters.py  화성 크레이터 38 만 개(Robbins 2012) -> sqlite(3 차원 R*Tree) -> 화성 경위도·극 타일. 문이 아니다
+  marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다
+  spamap.py       남극–에이트켄 분지 지질도 원본(팔레트 GeoTIFF) -> 누른 자리의 단위. 타일은 Trek 의 것. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
@@ -332,7 +339,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`.**
 이 열 말고는 어디서도 `requests` 를 쓰지 않는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
@@ -383,7 +390,7 @@ CHANGELOG 의 그 절로 GitHub 릴리스(`v<판>`)를 만든다 — 태그마�
 
 **파일 이름은 글쓴이마다 번호를 센다**(2026-09-30 부터). `author` 는 **작업하는 Linux 계정의 GitHub 계정 이름**
 소문자, `title` 은 영어 snake_case, 번호는 **그 글쓴이의** 다음 번호다. **옛 꼴(`YYYYMMDD_NNN_slug.md`,
-001~073·P01~P05)은 이름을 그대로 두고** 번호만으로 가리킨다("devlog 017"). 새 꼴은 "jikhanjung 001" 로 가리킨다.
+001~077·P01~P05)은 이름을 그대로 두고** 번호만으로 가리킨다("devlog 017"). 새 꼴은 "jikhanjung 001" 로 가리킨다.
 자세한 것과 계정 대응표는 [devlog/README.md](devlog/README.md) — **새 파일은 그 색인에 한 줄 더한다.**
 
 DiaRUGA·ForGIA·WegenersDream 의 devlog 를 가리킬 때는 `DiaRUGA 063` 처럼 저장소 이름을 붙인다 —
