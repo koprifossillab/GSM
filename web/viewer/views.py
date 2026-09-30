@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, macrostrat, naturalearth, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, icemargins, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -955,7 +955,10 @@ def earth_view(request):
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    "crust": crust.legend() if crust.grid() else [],
-                                   "icemargins": icemargins.stops()}),
+                                   "icemargins": icemargins.stops(),
+                                   # 맨틀 — 시점마다 레이어의 점 수(받은 바이트를 점과 이음으로 가르는 데 쓴다)
+                                   "mantle": {f["frame"]: {k: v["points"] for k, v in f["layers"].items()}
+                                              for f in (mantle.catalogue() or {}).get("frames", [])}}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
@@ -1239,6 +1242,26 @@ def earth_icemargin_tile(request, ka, z, x, y):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
+    return response
+
+
+# ── 맨틀 슬랩 (wetherilli 106) ───────────────────────────────────────
+
+@require_GET
+def earth_mantle(request, frame, layer):
+    """`earth/mantle/<시점>/<slabs|piles|boundaries>.bin` — OPT1 의 한 시점 한 레이어(float32 xyz + uint32 이음).
+    구운 목록에 있는 파일만 낸다. gzip 을 받는 브라우저에는 구울 때 만든 `.gz` 를 그대로 — 몇 MB 라 줄이는 값이 크다."""
+    path = mantle.file_for(int(frame), layer)
+    if path is None or not path.exists():
+        return JsonResponse({"error": i18n.t(msg("맨틀 파일이 서버에 없다"), i18n.lang_of(request))}, status=404)
+    gz = path.with_name(path.name + ".gz")
+    if "gzip" in request.META.get("HTTP_ACCEPT_ENCODING", "") and gz.exists():
+        response = HttpResponse(gz.read_bytes(), content_type="application/octet-stream")
+        response["Content-Encoding"] = "gzip"
+    else:
+        response = HttpResponse(path.read_bytes(), content_type="application/octet-stream")
+    response["Vary"] = "Accept-Encoding"
+    response["Cache-Control"] = "public, max-age=86400"     # 주소에 확인값이 없다 — 다시 구우면 하루 안에 따라온다
     return response
 
 
