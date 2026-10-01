@@ -87,6 +87,11 @@
       { name: "icemargins", title: "빙상 가장자리", grid: "ll", ka: true,
         src: "NADI-1 (Dalton et al. 2023) · DATED-1 (Hughes et al. 2016)" },
     ] },
+    // 바람 — 오늘의 레이어다. 지금(GFS, 기본)과 지난(ERA5 2005-06 ~ 2007-12), 지상 10 m(기본)·250 hPa 를 카드에서 고른다.
+    // 타일이 아니라 입자로 그린다(`syncWind`) (koprifossillab P02)
+    { group: "바람 (GFS·ERA5)", layers: [
+      { name: "wind", title: "바람", wind: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
+    ] },
     { group: "그때의 지구", layers: [
       { name: "coast", title: "옛 해안선", grid: "ll", then: true,
         src: "PaleoCoastlines v7.1 (Kocsis & Scotese 2021) · CC BY 4.0" },
@@ -103,7 +108,7 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -995,6 +1000,301 @@
   });
   applyTune();
 
+  // ══ 바람 — 지금(GFS)·지난(ERA5), 지상 10 m·250 hPa (koprifossillab P02) ══════════════
+  //
+  // 서버가 구워 둔 1440×721 텍스처(R=u·G=v, 경도 −180 부터, `wind.py`)를 받아 입자를 흘린다. 입자는 경위도로 옮기고, 화면
+  // 자리는 평면이면 OpenLayers 가(4326·3413·3031 모두), 구면 Cesium 이 셈한다 — 한 벌로 세 평면과 구를 다 덮는다.
+  // Canvas 2D 다. 꼬리는 앞 프레임을 조금씩 지워 만든다. 보는 자리가 움직이면 꼬리를 지우고 새로 긋는다
+  var WIND = {
+    src: saved("gsm.earth.wind.src", "gfs") === "era5" ? "era5" : "gfs",       // 기본은 지금의 바람
+    level: saved("gsm.earth.wind.level", "10m") === "250hPa" ? "250hPa" : "10m",  // 기본은 지상 10 m
+    day: saved("gsm.earth.wind.day", ""),                                        // 지난 바람의 날 (YYYYMMDD)
+    index: null, playing: false,
+  };
+  var WIND_REF = { "10m": 12, "250hPa": 45 };   // 이 빠르기(m/s)면 한 프레임에 WIND_PX 칸쯤 간다
+  var WIND_PX = 1.4, WIND_LIFE = 80, WIND_FADE = 0.93, WIND_PLAY_MS = 1500;
+  // 빠르기를 기준의 몇 배인가로 여덟 칸 — 느리면 푸르고 빠르면 붉다
+  var WIND_COLORS = ["#6fa8dc", "#8fd3e8", "#c9f0f0", "#ffffff", "#ffe9a8", "#ffc46b", "#ff8c4a", "#ff4d4d"];
+  var M_PER_LAT = Math.PI * R / 180;
+  var windCanvas = $("wind-canvas"), windCtx = windCanvas.getContext("2d");
+  var windField = null, windNext = null, windBlend = 0, windParticles = [], windRaf = 0, windViewKey = "", windLast = 0;
+  var windCache = {}, windAsked = 0;
+
+  function windTimes() { return (WIND.index && WIND.index[WIND.src] && WIND.index[WIND.src].times) || []; }
+  /** 지금 보일 시각의 목록 한 줄 — 지금의 바람은 가장 새 판, 지난 바람은 고른 날(없으면 가장 가까운 날) */
+  function windEntry(offset) {
+    var list = windTimes();
+    if (!list.length) return null;
+    if (WIND.src === "gfs") return list[list.length - 1];
+    var i = 0;
+    for (var k = 0; k < list.length; k++) if (list[k].t <= WIND.day) i = k;
+    return list[Math.min(list.length - 1, i + (offset || 0))] || null;
+  }
+  function windStampText(t) {
+    return t.slice(0, 4) + "-" + t.slice(4, 6) + "-" + t.slice(6, 8) + (t.length > 8 ? " " + t.slice(8, 10) + ":00" : " 00:00");
+  }
+  function windIndex() {
+    return fetch(BASE + "earth/wind/").then(function (r) { return r.json(); }).then(function (d) {
+      WIND.index = d;
+      if (!WIND.day && d.era5 && d.era5.times.length) WIND.day = d.era5.times[0].t;
+      return d;
+    });
+  }
+  /** 텍스처 한 장 -> {u, v} (Float32Array, 721×1440). 같은 것을 두 번 받지 않게 몇 장만 들고 있다 */
+  function windLoad(entry) {
+    var key = WIND.src + "/" + entry.t + "/" + WIND.level;
+    if (windCache[key]) return windCache[key];
+    var scale = entry[WIND.level];
+    windCache[key] = new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement("canvas");
+        c.width = 1440; c.height = 721;
+        var g = c.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        var px = g.getImageData(0, 0, 1440, 721).data, n = 1440 * 721;
+        var u = new Float32Array(n), v = new Float32Array(n);
+        var u0 = scale.u[0], us = (scale.u[1] - scale.u[0]) / 255, v0 = scale.v[0], vs = (scale.v[1] - scale.v[0]) / 255;
+        for (var i = 0; i < n; i++) { u[i] = u0 + px[4 * i] * us; v[i] = v0 + px[4 * i + 1] * vs; }
+        resolve({ u: u, v: v, t: entry.t });
+      };
+      img.onerror = function () { delete windCache[key]; reject(new Error(key)); };
+      img.src = BASE + "earth/wind/" + key + ".png";
+    });
+    var keys = Object.keys(windCache);
+    if (keys.length > 6) delete windCache[keys[0]];
+    return windCache[key];
+  }
+  function sampleField(f, lon, lat) {
+    var x = (lon + 180) * 4, y = (90 - lat) * 4;
+    if (!(y >= 0 && y <= 720)) return null;
+    var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    x0 = ((x0 % 1440) + 1440) % 1440;
+    var x1 = (x0 + 1) % 1440, y1 = Math.min(720, y0 + 1);
+    var a = y0 * 1440 + x0, b = y0 * 1440 + x1, c = y1 * 1440 + x0, d = y1 * 1440 + x1;
+    var w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+    return [f.u[a] * w00 + f.u[b] * w10 + f.u[c] * w01 + f.u[d] * w11,
+            f.v[a] * w00 + f.v[b] * w10 + f.v[c] * w01 + f.v[d] * w11];
+  }
+  /** 재생 중이면 두 날 사이를 섞는다 */
+  function windAt(lon, lat) {
+    var a = sampleField(windField, lon, lat);
+    if (!a || !windNext || !windBlend) return a;
+    var b = sampleField(windNext, lon, lat);
+    return b ? [a[0] + (b[0] - a[0]) * windBlend, a[1] + (b[1] - a[1]) * windBlend] : a;
+  }
+
+  // ── 화면 자리 ──
+  var windOccluder = null;
+  function windToScreen(lon, lat) {
+    if (mode === "flat") return flat.getPixelFromCoordinate(fromLL([lon, lat]));
+    var c = Cesium.Cartesian3.fromDegrees(lon, lat, 0, ELL);
+    if (!windOccluder.isPointVisible(c)) return null;              // 지구 뒤쪽
+    var w = Cesium.SceneTransforms.worldToWindowCoordinates(scene, c);
+    return w ? [w.x, w.y] : null;
+  }
+  function windFromScreen(x, y) {
+    if (mode === "flat") {
+      var c = flat.getCoordinateFromPixel([x, y]);
+      if (!c) return null;
+      var ll = toLL(c);
+      return isFinite(ll[0]) && Math.abs(ll[1]) < 89.5 ? ll : null;
+    }
+    var cart = viewer.camera.pickEllipsoid(new Cesium.Cartesian2(x, y), ELL);
+    if (!cart) return null;                                          // 하늘
+    var g = ELL.cartesianToCartographic(cart);
+    return [Cesium.Math.toDegrees(g.longitude), Cesium.Math.toDegrees(g.latitude)];
+  }
+  /** 화면 한 칸이 땅의 몇 미터인가 — 입자의 걸음을 화면에 맞춘다 */
+  function windMpp() {
+    if (mode === "flat") return groundRes();
+    var c = cameraLL();
+    return c ? heightToRes(Math.max(1000, c.h)) : 10000;
+  }
+  function windKey() {
+    if (mode === "flat") {
+      var v = flat.getView();
+      return "f" + proj.getCode() + v.getCenter().join(",") + "/" + v.getResolution() + "/" + v.getRotation();
+    }
+    var cam = viewer.camera;
+    return "g" + [cam.positionWC.x, cam.positionWC.y, cam.positionWC.z, cam.directionWC.x, cam.directionWC.y,
+                  cam.directionWC.z].map(function (n) { return n.toFixed(1); }).join(",");
+  }
+  function windSpawn(p) {
+    var w = windCanvas.clientWidth, h = windCanvas.clientHeight;
+    for (var tries = 0; tries < 12; tries++) {
+      var ll = windFromScreen(Math.random() * w, Math.random() * h);
+      if (ll) { p.lon = ll[0]; p.lat = ll[1]; p.age = Math.floor(Math.random() * WIND_LIFE); p.xy = null; return; }
+    }
+    p.lon = NaN;                                                     // 화면에 땅이 없다 — 다음 프레임에 다시
+    p.xy = null;
+  }
+  function windResize() {
+    var w = wrap.clientWidth, h = wrap.clientHeight, r = window.devicePixelRatio || 1;
+    if (windCanvas.width !== Math.round(w * r) || windCanvas.height !== Math.round(h * r)) {
+      windCanvas.width = Math.round(w * r); windCanvas.height = Math.round(h * r);
+      windCtx.setTransform(r, 0, 0, r, 0, 0);
+    }
+    // 입자 수는 화면 넓이를 따른다 — 휴대폰은 적게
+    var want = Math.max(600, Math.min(5000, Math.round(w * h / 260)));
+    while (windParticles.length < want) { var p = {}; windSpawn(p); windParticles.push(p); }
+    windParticles.length = want;
+  }
+  function windFrame(now) {
+    windRaf = requestAnimationFrame(windFrame);
+    if (!windField || document.hidden) return;
+    if (mode === "globe") windOccluder = new Cesium.EllipsoidalOccluder(ELL, viewer.camera.positionWC);
+    var w = windCanvas.clientWidth, h = windCanvas.clientHeight;
+    var key = windKey();
+    if (key !== windViewKey) {                                       // 움직였다 — 꼬리를 지운다
+      windViewKey = key;
+      windCtx.clearRect(0, 0, w, h);
+      windParticles.forEach(function (p) { p.xy = null; });
+    } else {
+      windCtx.globalCompositeOperation = "destination-in";
+      windCtx.fillStyle = "rgba(0,0,0," + WIND_FADE + ")";
+      windCtx.fillRect(0, 0, w, h);
+      windCtx.globalCompositeOperation = "source-over";
+    }
+    if (WIND.playing && windNext) {
+      windBlend += (now - (windLast || now)) / WIND_PLAY_MS;
+      if (windBlend >= 1) windAdvance();
+    }
+    windLast = now;
+    var ref = WIND_REF[WIND.level], k = windMpp() * WIND_PX / ref;  // 1 m/s 가 한 프레임에 가는 미터
+    var buckets = WIND_COLORS.map(function () { return []; });
+    windParticles.forEach(function (p) {
+      if (!(p.age < WIND_LIFE) || !isFinite(p.lon)) { windSpawn(p); return; }
+      p.age++;
+      var uv = windAt(p.lon, p.lat);
+      if (!uv) { windSpawn(p); return; }
+      var cos = Math.max(0.05, Math.cos(p.lat * Math.PI / 180));
+      var lat = p.lat + uv[1] * k / M_PER_LAT, lon = p.lon + uv[0] * k / (M_PER_LAT * cos);
+      if (Math.abs(lat) > 89.5) { windSpawn(p); return; }
+      var xy = windToScreen(lon, lat);
+      if (!xy || xy[0] < -20 || xy[1] < -20 || xy[0] > w + 20 || xy[1] > h + 20) { windSpawn(p); return; }
+      if (p.xy && Math.abs(xy[0] - p.xy[0]) + Math.abs(xy[1] - p.xy[1]) < 60) {
+        var s = Math.sqrt(uv[0] * uv[0] + uv[1] * uv[1]) / ref;
+        buckets[Math.min(WIND_COLORS.length - 1, Math.floor(s * 3))].push(p.xy[0], p.xy[1], xy[0], xy[1]);
+      }
+      p.lon = lon; p.lat = lat; p.xy = xy;
+    });
+    windCtx.lineWidth = 1.2;
+    buckets.forEach(function (segs, i) {
+      if (!segs.length) return;
+      windCtx.strokeStyle = WIND_COLORS[i];
+      windCtx.beginPath();
+      for (var j = 0; j < segs.length; j += 4) { windCtx.moveTo(segs[j], segs[j + 1]); windCtx.lineTo(segs[j + 2], segs[j + 3]); }
+      windCtx.stroke();
+    });
+  }
+  function windShown() { return isOn("wind") && visibleNow("wind"); }
+  /** 켜고 끄고, 출처·높이·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
+  function syncWind(reload) {
+    var e = entryOf("wind"), on = windShown();
+    windCanvas.hidden = !on;
+    if (e) windCanvas.style.opacity = e.opacity;
+    if (!on) {
+      if (windRaf) { cancelAnimationFrame(windRaf); windRaf = 0; }
+      WIND.playing = false;
+      return;
+    }
+    var mine = ++windAsked;
+    (WIND.index && !reload ? Promise.resolve(WIND.index) : windIndex()).then(function () {
+      var entry = windEntry(0);
+      renderWind();
+      if (!entry) { windField = null; return null; }
+      return windLoad(entry).then(function (f) {
+        if (mine !== windAsked) return;
+        windField = f; windNext = null; windBlend = 0;
+        if (WIND.playing) windPrefetch();
+        windResize();
+        windViewKey = "";
+        if (!windRaf) windRaf = requestAnimationFrame(windFrame);
+      });
+    }).catch(function () { if (mine === windAsked) { windField = null; renderWind(); } });
+  }
+  /** 재생 — 다음 날을 미리 받아 두고, 섞기가 다 차면 넘긴다. 끝에 닿으면 처음으로 */
+  function windPrefetch() {
+    var list = windTimes(), cur = windEntry(0);
+    if (!cur || list.length < 2) { WIND.playing = false; return; }
+    var i = list.indexOf(cur), next = list[(i + 1) % list.length];
+    windLoad(next).then(function (f) { if (WIND.playing) windNext = f; });
+  }
+  function windAdvance() {
+    windField = windNext; windNext = null; windBlend = 0;
+    WIND.day = windField.t;
+    save("gsm.earth.wind.day", WIND.day);
+    renderWind();
+    windPrefetch();
+  }
+  window.addEventListener("resize", function () { if (windShown()) { windResize(); windViewKey = ""; } });
+  // 지금의 바람은 여섯 시간마다 새 판이 선다 — 반 시간마다 목록을 다시 본다
+  setInterval(function () { if (windShown() && WIND.src === "gfs") syncWind(true); }, 30 * 60 * 1000);
+
+  /** 바람 카드의 고르개 — 지금/지난, 높이, (지난이면) 날짜·재생, 그리고 지금 보이는 시각과 출처 */
+  var windBox = null;
+  function renderWind() {
+    if (!windBox) return;
+    var entry = windEntry(0), list = windTimes();
+    windBox.querySelector(".wind-src").value = WIND.src;
+    windBox.querySelector(".wind-level").value = WIND.level;
+    var past = windBox.querySelector(".wind-past"), day = windBox.querySelector(".wind-day");
+    past.hidden = WIND.src !== "era5";
+    if (list.length && WIND.src === "era5") {
+      day.min = windStampText(list[0].t).slice(0, 10);
+      day.max = windStampText(list[list.length - 1].t).slice(0, 10);
+      if (entry) day.value = windStampText(entry.t).slice(0, 10);
+    }
+    var play = windBox.querySelector(".wind-play");
+    play.textContent = WIND.playing ? "⏸" : "▶";
+    play.title = WIND.playing ? T("멈춤") : T("재생");
+    var when = windBox.querySelector(".wind-when");
+    when.textContent = !entry ? T("바람 자료가 아직 없다")
+      : WIND.src === "gfs" ? T("{t} UTC · GFS 분석", { t: windStampText(entry.t) })
+      : T("{t} UTC · ERA5 재분석", { t: windStampText(entry.t) });
+    var src = windBox.parentNode && windBox.parentNode.querySelector(".active-src");
+    if (src && WIND.index && WIND.index[WIND.src]) src.textContent = WIND.index[WIND.src].credit;
+  }
+  function windControls() {
+    var box = document.createElement("div");
+    box.className = "wind-controls";
+    box.innerHTML =
+      '<div class="wind-row"><select class="wind-src" aria-label="' + esc(T("바람")) + '">' +
+      '<option value="gfs">' + esc(T("지금의 바람")) + '</option><option value="era5">' + esc(T("지난 바람")) + "</option></select>" +
+      '<select class="wind-level" aria-label="' + esc(T("높이")) + '">' +
+      '<option value="10m">' + esc(T("지상 10 m")) + '</option><option value="250hPa">' + esc(T("250 hPa (제트기류)")) +
+      "</option></select></div>" +
+      '<div class="wind-row wind-past" hidden><input type="date" class="wind-day" aria-label="' + esc(T("날짜")) + '">' +
+      '<button type="button" class="wind-play">▶</button></div>' +
+      '<p class="wind-when"></p>';
+    box.querySelector(".wind-src").addEventListener("change", function (ev) {
+      WIND.src = ev.target.value; WIND.playing = false;
+      save("gsm.earth.wind.src", WIND.src);
+      syncWind();
+    });
+    box.querySelector(".wind-level").addEventListener("change", function (ev) {
+      WIND.level = ev.target.value;
+      save("gsm.earth.wind.level", WIND.level);
+      syncWind();
+    });
+    box.querySelector(".wind-day").addEventListener("change", function (ev) {
+      if (!ev.target.value) return;
+      WIND.day = ev.target.value.replace(/-/g, "");
+      WIND.playing = false;
+      save("gsm.earth.wind.day", WIND.day);
+      syncWind();
+    });
+    box.querySelector(".wind-play").addEventListener("click", function () {
+      WIND.playing = !WIND.playing;
+      windNext = null; windBlend = 0; windLast = 0;
+      if (WIND.playing) windPrefetch();
+      renderWind();
+    });
+    windBox = box;
+    return box;
+  }
+
   // ── 지질 레이어 — 2D 처럼 목록에서 켜고, 켠 것은 카드로 쌓는다 ──
   //
   // 쌓는 차례는 구와 평면이 같다. 구는 배경(0 번) 위로 아래 것부터 `raiseToTop`, 평면은 `zIndex`
@@ -1017,6 +1317,7 @@
     syncLabels();
     syncTrack();
     syncMantle();
+    syncWind();
     syncLegend();
   }
   function addLayer(name) {
@@ -1041,6 +1342,7 @@
     var host = $("active-list");
     $("count-layers").textContent = active.length;
     host.innerHTML = "";
+    windBox = null;                                  // 바람 카드는 다시 짓는다
     if (!active.length) {
       host.innerHTML = '<li class="empty">' + esc(T("아직 켠 레이어가 없다")) + "</li>";
       return;
@@ -1069,7 +1371,7 @@
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
         if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
-        else { syncLabels(); syncTrack(); syncMantle(true); }
+        else { syncLabels(); syncTrack(); syncMantle(true); if (e.name === "wind") windCanvas.style.opacity = e.opacity; }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1077,8 +1379,10 @@
       var src = document.createElement("p");
       src.className = "active-src";
       src.textContent = LAYER[e.name].src || "";
-      li.append(head, foot, src);
+      if (e.name === "wind") li.append(head, windControls(), foot, src);
+      else li.append(head, foot, src);
       host.appendChild(li);
+      if (e.name === "wind") renderWind();
     });
   }
   function renderCatalog() {

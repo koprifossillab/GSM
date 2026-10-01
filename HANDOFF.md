@@ -7,7 +7,7 @@
 
 ## 작업 방식 (2026-09-30 부터)
 
-**브랜치** `main` = `0.33.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+**브랜치** `main` = `0.34.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
 `feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
 올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
 [devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
@@ -29,7 +29,7 @@
 
 - **지역** — 한국(기본)·일본·중국·그린란드·스발바르·얀마옌·북극해·남극, 묶음 탭 동아시아·북극 (016·017·021·024·076).
   화면 투영은 3857·3413·3031 이다
-- **상류로 나가는 문 열둘** — kigam·vworld·geus·grportal·npolar·gsj·phyloserver·elevation·trek·kopri·macrostrat·pbdb. 문이 아닌
+- **상류로 나가는 문 열다섯** — kigam·vworld·geus·grportal·npolar·gsj·phyloserver·elevation·trek·kopri·macrostrat·pbdb·linked·gfs·era5. 문이 아닌
   것(우리 디스크의 파일을 굽는다)은 geomap·janmayen·geo3al·peninsula·moonmap·ibcso·marscraters·marsmap·zhurong·spamap, 그리고 3D 용으로 다시 펴는 warp
 - **달·화성** — 아이콘의 숨은 차림에서 `/GSM/moon/`·`/GSM/mars/`. 둥근 몸(Cesium)과 평면(OpenLayers)을 오가고,
   위도 65° 너머는 극 평면이다 (036·038·052·058·065). Trek 판 목록은 씨앗 `data/<몸>_trek_layers.json` (060).
@@ -37,6 +37,7 @@
   달 SPA 지질도는 Trek 의 그림에 원본 GeoTIFF 의 속성을 붙인다 (wetherilli 081). 달 지형은 LOLA 256 ppd(가까이서는 극 5 m·NAC DTM, wetherilli 107), 극 평면에서는 Trek 판의 극지 짝을 받는다, 잰 선의 높이 그래프, 켠 값 판의 누른 자리 값 (wetherilli 083·085·100·103)
 - **온 지구** — 같은 숨은 차림에서 `/GSM/earth/`. 둥근 지구에 Macrostrat 지질도 (wetherilli 086). 시간 축과 그때의 지구,
   누른 자리의 그때의 자리(PALEOMAP 2016)와 ETT 링크 (wetherilli 087·088·091·옛 해안선·화석 산지·지각 두께·지명·빙상 가장자리 (wetherilli 097·098·101·102·104)
+  **바람** — 지금(GFS)·지난(ERA5 2005-06 ~ 2007-12), 지상 10 m·250 hPa 를 입자로 (koprifossillab P02·003·007)
 - **3D** — 도구 막대의 단추로 늘 연다 (059). 한국·일본·북극·남극 지형과 지질, 점묶음
 - **영어판** — 설정의 "언어 · Language". 화면의 글을 고치면 `viewer/i18n.py` 에 영어도 적는다 (008)
 - **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
@@ -183,7 +184,8 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 **cron 은 저장소를 부르지 않는다** — `/srv/GSM/scripts/` 의 사본을 부른다. 컨테이너가 뜰 때 이미지의 `deploy/scripts/`
 와 앱 코드 사본(`app/`)을 거기 깔고(`install.sh`), 파이썬 일은 `run.sh <관리 명령>` 이 전용 venv(`scripts/venv`)로 돌린다.
 venv 는 requirements 가 바뀌면 스스로 다시 만든다. 지금 도는 것은 주간 백업과 아라온호 위치(매시 :50, `fetch_araon` →
-`db/kopri/araon.jsonl`, koprifossillab 004). 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
+`db/kopri/araon.jsonl`, koprifossillab 004), 지금의 바람(매시 :35, `fetch_gfs_wind` → `db/wind/gfs/`, 여덟 판만, koprifossillab 003).
+지난 바람(`db/wind/era5/`, 944 날·1.2 GB 남짓)은 2026-10-01 저녁에 굽기 시작했다(세 시간 남짓, 로그 `/data/GSM/logs/era5_build.log`) — 다 구우면 다시 구울 일은 기간을 늘릴 때뿐이다. 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
 `deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에는 `scripts` 마운트를
 2026-10-01 에 더했다 — 이 판(PR #91)의 이미지로 다시 뜨기 전까지는 그날 손으로 깐 사본이 돈다.
 
