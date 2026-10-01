@@ -173,6 +173,8 @@ WIND_DIR = env("GSM_WIND_DIR") or str(_data_dir() / "wind")
 #: 주간 백업(`deploy/scripts/weekly_backup.sh`)이 끝날 때 적는 결과. `/healthz/` 가 읽는다 (koprifossillab 002).
 #: 백업의 로그 자리(`/data/GSM/logs`)는 컨테이너에 붙어 있지 않아 **DB 옆에 한 벌 더 적는다** — compose 를 고치지 않으려고
 BACKUP_STATUS_FILE = env("GSM_BACKUP_STATUS") or str(_data_dir() / "backup_status.json")
+#: 매시 받기(`deploy/scripts/hourly.sh`)가 일마다 적는 결과. `/healthz/` 가 읽는다 (koprifossillab 013)
+HOURLY_STATUS_FILE = env("GSM_HOURLY_STATUS") or str(_data_dir() / "hourly_status.json")
 #: 화성 옛 지질도(068)의 단위 색·구조선 모양 — 저장소에 담는다
 MARS_ORIGINAL_STYLES_FILE = BASE_DIR.parent / "data" / "mars_original_styles.json"
 #: 연구실의 phyloserver — 암맥 기록 (`viewer/phyloserver.py`, devlog 026). 열쇠가 없다.

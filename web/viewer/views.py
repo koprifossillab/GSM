@@ -141,6 +141,11 @@ def _script_json(data) -> str:
 
 #: 주간 백업이 이만큼 지나도록 새 기록이 없으면 degraded 다 — 매주 한 번에 하루를 얹었다 (koprifossillab 002)
 BACKUP_MAX_AGE_DAYS = 8
+#: 매시 받기 (koprifossillab 013) — 기록이 이만큼 멈추면 cron 이 서 있다고 본다
+HOURLY_MAX_AGE_HOURS = 2
+#: 받아 둔 것이 이만큼 낡으면 상류가 멈췄거나 받기가 따라가지 못한다고 본다 — 유효 시각이 아니라 받은 판·장의 시각으로 잰다.
+#: GFS 는 판이 여섯 시간마다 서고 네 시간 남짓 늦으니 열두 시간, GMGSI 는 한 시간마다 서고 30 분 남짓 늦으니 세 시간
+FRESH_HOURS = {"gfs": 12, "gmgsi": 3}
 
 
 def _backup_notes() -> tuple:
@@ -169,6 +174,51 @@ def _backup_notes() -> tuple:
     return status, notes
 
 
+def _age_hours(stamp: str) -> float:
+    """`YYYYMMDDHH`(UTC)가 지금보다 몇 시간 앞인가."""
+    then = datetime.datetime.strptime(stamp, "%Y%m%d%H").replace(tzinfo=datetime.timezone.utc)
+    return (datetime.datetime.now(datetime.timezone.utc) - then).total_seconds() / 3600
+
+
+def _hourly_notes() -> tuple:
+    """매시 받기의 기록과 받아 둔 것의 나이를 읽어 (그 내용, 걸리는 것들) 을 낸다. 읽기만 한다."""
+    notes, info = [], {}
+    try:
+        status = json.loads(Path(settings.HOURLY_STATUS_FILE).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        status = None
+        notes.append("매시 받기의 기록이 없다 — hourly.sh 가 아직 돌지 않았다")
+    except (OSError, ValueError) as e:
+        status = None
+        notes.append(f"매시 받기의 기록을 읽지 못했다: {e}")
+    if status:
+        info["at"], info["jobs"] = status.get("at"), status.get("jobs", {})
+        try:
+            age = (datetime.datetime.now(datetime.timezone.utc)
+                   - datetime.datetime.fromisoformat(status["at"])).total_seconds() / 3600
+            info["age_hours"] = round(age, 1)
+            if age > HOURLY_MAX_AGE_HOURS:
+                notes.append(f"매시 받기가 {age:.0f} 시간째 돌지 않았다 — cron 을 본다")
+        except (KeyError, TypeError, ValueError):
+            notes.append("매시 받기의 기록에 시각이 없다")
+        for job, entry in sorted(info["jobs"].items()):
+            if entry.get("result") != "ok":
+                notes.append(f"{job} 가 실패했다: {entry.get('note', '')}")
+    fresh = {}
+    for source, limit in FRESH_HOURS.items():
+        times = wind.read_index(source)["times"]
+        if not times:
+            notes.append(f"{source} 를 받은 것이 없다")
+            continue
+        newest = max(e.get("run", e["t"]) for e in times)
+        age = _age_hours(newest)
+        fresh[source] = {"t": newest, "age_hours": round(age, 1)}
+        if age > limit:
+            notes.append(f"{source} 의 가장 새 것이 {age:.0f} 시간 전이다 (넘지 말 것 {limit} 시간)")
+    info["fresh"] = fresh
+    return info, notes
+
+
 @require_GET
 def healthz(request):
     """판·DB·백업 상태를 한 번에 낸다 (ForGIA·DiaRUGA `/healthz` 와 같은 모양, koprifossillab 002).
@@ -176,7 +226,7 @@ def healthz(request):
     | 상태 | 코드 | 뜻 |
     |---|---|---|
     | `ok` | 200 | 정상 |
-    | `degraded` | **200** | 화면은 도는데 백업이 멈췄거나 낡았다 |
+    | `degraded` | **200** | 화면은 도는데 백업이 멈췄거나 낡았다, 매시 받기가 멈췄거나 받아 둔 것이 낡았다 |
     | `unhealthy` | 503 | DB 를 못 열거나 레이어가 하나도 없다 |
 
     **`degraded` 를 503 으로 두지 않는다** — 백업이 멈췄다고 뷰어가 죽은 것은 아니다. 알리는 일은 `smoke.sh` 가 한다.
@@ -201,6 +251,12 @@ def healthz(request):
     if backup_notes and info["status"] == "ok":
         info["status"] = "degraded"
     notes.extend(backup_notes)
+
+    # 매시 받기 — 바람·구름·위성 구름·아라온호를 계속 잘 받아 오는가 (koprifossillab 013)
+    info["hourly"], hourly_notes = _hourly_notes()
+    if hourly_notes and info["status"] == "ok":
+        info["status"] = "degraded"
+    notes.extend(hourly_notes)
 
     info["notes"] = notes
     response = JsonResponse(info, status=503 if info["status"] == "unhealthy" else 200,

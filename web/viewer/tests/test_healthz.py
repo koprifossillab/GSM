@@ -29,9 +29,33 @@ class 헬스(TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.status = Path(self.tmp.name) / "backup_status.json"
-        patcher = override_settings(BACKUP_STATUS_FILE=str(self.status))
+        self.hourly = Path(self.tmp.name) / "hourly_status.json"
+        patcher = override_settings(BACKUP_STATUS_FILE=str(self.status), HOURLY_STATUS_FILE=str(self.hourly),
+                                    WIND_DIR=str(Path(self.tmp.name) / "wind"))
         patcher.enable()
         self.addCleanup(patcher.disable)
+        # 매시 받기는 처음부터 괜찮게 두고, 그것을 보는 시험만 망가뜨린다 (koprifossillab 013)
+        self._hourly()
+        self._fresh()
+
+    def _hourly(self, hours_ago=0.2, **jobs):
+        now = datetime.datetime.now().astimezone() - datetime.timedelta(hours=hours_ago)
+        at = now.isoformat(timespec="seconds")
+        entries = {name: {"at": at, "result": "ok", "code": 0, "seconds": 3, "note": "할 일 없음", "last_ok": at}
+                   for name in ("fetch_gfs_wind", "fetch_gmgsi", "fetch_araon")}
+        for name, result in jobs.items():
+            entries[name].update(result=result, code=1, note="상류가 500 으로 답했다")
+        self.hourly.write_text(json.dumps({"at": at, "jobs": entries}), encoding="utf-8")
+
+    def _fresh(self, gfs_hours=5, gmgsi_hours=1):
+        from viewer import wind
+
+        def stamp(hours):
+            t = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=hours)
+            return t.strftime("%Y%m%d%H")
+        with override_settings(WIND_DIR=str(Path(self.tmp.name) / "wind")):
+            wind.write_index("gfs", [{"t": stamp(gfs_hours), "run": stamp(gfs_hours), "fh": 0}])
+            wind.write_index("gmgsi", [{"t": stamp(gmgsi_hours)}])
 
     def _layer(self):
         group = LayerGroup.objects.create(name="지질도")
@@ -91,6 +115,40 @@ class 헬스(TestCase):
         code, body = self.get()
         self.assertEqual(code, 200)
         self.assertEqual(body["status"], "degraded")
+
+    def test_매시_받기의_기록이_없으면_degraded(self):
+        self._layer()
+        _record(self.status)
+        self.hourly.unlink()
+        _, body = self.get()
+        self.assertEqual(body["status"], "degraded")
+        self.assertTrue(any("hourly.sh" in n for n in body["notes"]))
+
+    def test_매시_받기가_멈추면_degraded(self):
+        self._layer()
+        _record(self.status)
+        self._hourly(hours_ago=3)
+        _, body = self.get()
+        self.assertEqual(body["status"], "degraded")
+        self.assertTrue(any("cron" in n for n in body["notes"]))
+
+    def test_한_일이_실패하면_degraded(self):
+        self._layer()
+        _record(self.status)
+        self._hourly(fetch_gmgsi="fail")
+        code, body = self.get()
+        self.assertEqual(code, 200)
+        self.assertEqual(body["status"], "degraded")
+        self.assertTrue(any(n.startswith("fetch_gmgsi") for n in body["notes"]))
+
+    def test_받아_둔_것이_낡으면_degraded(self):
+        self._layer()
+        _record(self.status)
+        self._fresh(gfs_hours=20)
+        _, body = self.get()
+        self.assertEqual(body["status"], "degraded")
+        self.assertEqual(body["hourly"]["fresh"]["gfs"]["age_hours"] >= 19, True)
+        self.assertTrue(any(n.startswith("gfs") for n in body["notes"]))
 
     def test_캐시하지_않는다(self):
         self._layer()
