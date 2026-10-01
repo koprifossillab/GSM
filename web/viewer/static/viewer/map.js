@@ -1831,6 +1831,10 @@
         li.appendChild(srcLine);
       }
 
+      // 아라온호 항적 — 1개월·6개월·1년 (koprifossillab 017)
+      var periods = byName[entry.name] && byName[entry.name].periods;
+      if (periods) li.appendChild(periodPicker(entry, periods));
+
       // 5만 지질도 — 층리·엽리·편리·절리를 늘 그릴지 (jikhanjung 005)
       if (ATTITUDE_LAYERS.indexOf(entry.name) >= 0 && isMercator()) li.appendChild(attitudeToggles());
 
@@ -2776,7 +2780,49 @@
       // 겹친 점을 하나씩 그린다 — 2 만 점이라 글자처럼 걸러내지(declutter) 않는다
     });
     layer.set("gsmPoints", row.name);
+    if (row.periods) layer.set("gsmPeriods", row.periods);
     return layer;
+  }
+
+  // ── 기간을 고르는 점 레이어 — 아라온호 항적 (koprifossillab 017) ──
+  //
+  // 서버가 레이어에 고를 기간(`periods`, 날수 — 앞의 것이 기본)을, 조각마다 `ago`(지금에서 며칠 전)를 붙여 준다. 고른 기간
+  // 안의 조각만 그리고, 오래된 것일수록 옅게 한다. 고른 것은 이 브라우저에 기억한다 — 온 지구 화면과 같은 열쇠다
+  var PERIOD_KEY = "gsm.araon.period";
+  var PERIOD_LABELS = { 30: "1개월", 182: "6개월", 365: "1년" };
+  function periodOf(periods) {
+    var v = 0;
+    try { v = +localStorage.getItem(PERIOD_KEY); } catch (e) { /* 사생활 모드 */ }
+    return periods.indexOf(v) >= 0 ? v : periods[0];
+  }
+  /** 며칠 전이 기간의 어디쯤인가로 진하기 — 지금 1, 기간 끝 0.15. 기간 밖이면 0. 열 칸으로 끊어 그림을 아낀다 */
+  function periodFade(periods, ago) {
+    var period = periodOf(periods);
+    if (ago > period) return 0;
+    return Math.round((1 - 0.85 * ago / period) * 10) / 10;
+  }
+  function periodPicker(entry, periods) {
+    var row = document.createElement("div");
+    row.className = "period-row";
+    var select = document.createElement("select");
+    select.setAttribute("aria-label", T("항적 기간"));
+    periods.forEach(function (days) {
+      var option = document.createElement("option");
+      option.value = days;
+      option.textContent = T(PERIOD_LABELS[days] || "{n}일", { n: days });
+      select.appendChild(option);
+    });
+    select.value = periodOf(periods);
+    select.addEventListener("change", function () {
+      try { localStorage.setItem(PERIOD_KEY, select.value); } catch (e) { /* 사생활 모드 */ }
+      // 같은 열쇠를 쓰는 다른 탭의 항적도 함께 — 켠 것만 다시 그리면 된다
+      active.forEach(function (e) { if (e.layer.get && e.layer.get("gsmPeriods")) e.layer.changed(); });
+    });
+    var label = document.createElement("span");
+    label.className = "period-label";
+    label.textContent = T("항적 기간");
+    row.append(label, select);
+    return row;
   }
 
   /** 지도 귀퉁이의 출처. 레이어마다 같은 글로 적어 OL 이 한 줄로 합치게 한다 —
@@ -3072,15 +3118,22 @@
     var code = feature.get("code");
     var type = feature.getGeometry().getType();
     var far = mercZoom(resolution) < 5;
-    var key = code + "|" + type + (far ? "f" : "n");
+    // 기간을 고르는 레이어(koprifossillab 017) — 기간 밖은 그리지 않고, 오래된 것일수록 옅게
+    var periods = getLayer().get("gsmPeriods"), ago = feature.get("ago"), fade = 1;
+    if (periods && ago != null) {
+      fade = periodFade(periods, ago);
+      if (!fade) return null;
+    }
+    var key = code + "|" + type + (far ? "f" : "n") + fade;
     if (cache[key]) return cache[key];
     var spec = {};
     (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
     var color = spec.color || "#888888";
+    if (fade < 1) { var faded = ol.color.asArray(color).slice(); faded[3] = fade; color = faded; }
     var style;
     if (spec.shape === "line") {
       // 항적(아라온호, koprifossillab 006) — 범례가 선이라 적은 갈래는 굵게, 테두리를 둘러 바다 위에서 보이게
-      style = [new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,0.55)", width: 4.5 }) }),
+      style = [new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0," + 0.55 * fade + ")", width: 4.5 }) }),
                new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 2.5 }) })];
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어

@@ -25,6 +25,7 @@
   #splash img{width:min(760px,92vw);height:auto}
   #splash p{margin:0;font:500 15px/1.4 "Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;letter-spacing:.22em;color:#c8c8cc}
   #splash.gone{opacity:0;visibility:hidden}
+  #splash p.splash-ver{font-size:12px;letter-spacing:.12em;opacity:.65}
 </style>
 <link rel="stylesheet" href="{% static 'viewer/vendor/ol.css' %}">
 <link rel="stylesheet" href="{% static 'viewer/vendor/cesium/Widgets/widgets.css' %}">
@@ -35,6 +36,7 @@
 <div id="splash" role="status" aria-live="polite">
   <img src="{% static 'viewer/splash-moon.gif' %}" alt="{% t "대돌여지도" %} · {% t "달" %}">
   <p>{% t "불러오는 중" %}</p>
+  <p class="splash-ver">v{{ version }}</p>
 </div>
 
 <aside id="panel">

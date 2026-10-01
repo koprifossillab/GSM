@@ -1189,6 +1189,7 @@ def earth_view(request):
                                    "ocean": bool(ocean.read_index("ecco2")["times"]),
                                    # 아라온호 항적 (koprifossillab 006) — 쌓은 것이 있고 연구실 안에서 열 때만
                                    "araon": kopri.araon_available() and not _lab_only("kopri:araon"),
+                                   "araon_periods": list(kopri.ARAON_PERIODS),
                                    # 맨틀 — 시점마다 레이어의 점 수(받은 바이트를 점과 이음으로 가르는 데 쓴다)
                                    "mantle": {f["frame"]: {k: v["points"] for k, v in f["layers"].items()}
                                               for f in (mantle.catalogue() or {}).get("frames", [])}}),
@@ -1747,8 +1748,12 @@ def _point_fields(layer) -> dict:
     if layer.upstream == "kopri" and kopri.knows(layer.name):
         # 극지연구소(053–056) — 암석 시료·운석·KPDC 자료는 모아 둔 파일에서, 기지는 WFS 에서.
         # 색과 범례는 서버가 한 표(`legend`)로 준다
-        return {"kind": "points", "queryable": False, "style": "class",
+        spec = {"kind": "points", "queryable": False, "style": "class",
                 "source": kopri.source_url(layer.name), "attribution": kopri.ATTRIBUTION}
+        if kopri.file_of(layer.name) == "araon":
+            # 아라온호 항적 — 고를 기간(날수, 앞의 것이 기본). 화면이 이 안의 조각만 옅어지게 그린다 (koprifossillab 017)
+            spec["periods"] = list(kopri.ARAON_PERIODS)
+        return spec
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
