@@ -24,6 +24,11 @@ if [[ -z "${GSM_SECRET_KEY:-}" ]]; then
     export GSM_SECRET_KEY="$(cat "$KEY_FILE")"
 fi
 
+# ── cron 스크립트 ─────────────────────────────────────────────────────
+# 호스트 cron 이 부르는 스크립트와 앱 코드 사본을 /srv/GSM/scripts 에 깐다 — 판을 올리면 cron 도 그 판을 돈다
+# (koprifossillab 005). 그 자리를 마운트하지 않았으면 건너뛴다.
+/app/deploy/scripts/install.sh /app "${GSM_SCRIPTS_DIR:-/srv/GSM/scripts}" || echo "스크립트를 옮기지 못했다 — 화면은 뜬다"
+
 # 이미 적용돼 있으면 아무 일도 하지 않는다. 새 장비에 올릴 때를 위해 둔다.
 python manage.py migrate --noinput
 

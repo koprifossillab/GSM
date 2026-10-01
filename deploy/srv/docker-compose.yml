@@ -22,6 +22,8 @@ services:
       GSM_URL_PREFIX: "GSM/"
     volumes:
       - /srv/GSM/db:/srv/GSM/db
+      # cron 이 부르는 스크립트 — 뜰 때 이미지의 것을 여기 깐다 (deploy/scripts/install.sh, koprifossillab 005)
+      - /srv/GSM/scripts:/srv/GSM/scripts
       # 타일 캐시는 루트 SSD 가 아니라 8 TB 하드에 둔다 (wetherilli 082)
       - /data/GSM/tiles:/srv/GSM/tiles
     ports:

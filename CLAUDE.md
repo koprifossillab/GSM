@@ -353,7 +353,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS)
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
-  kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버). 목록은 모아 둔다(`fetch_kopri`)
+  kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버·아라온호 위치). 목록은 모아 둔다(`fetch_kopri`), 아라온호는 매시간 쌓는다(`fetch_araon`)
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
   macrostrat.py   Macrostrat 으로 나가는 문 (온 지구의 지질도 타일·누른 자리의 단위·범례). 온 지구 화면만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
@@ -386,7 +386,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
   models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
   views.py        화면 하나 + 프록시 둘 + 업로드
-deploy/           Docker·nginx·배포 스크립트
+deploy/           Docker·nginx·배포 스크립트. cron 이 부르는 것은 deploy/scripts/ — 컨테이너가 뜰 때 /srv/GSM/scripts/ 에 깔고
+                  호스트 cron 은 그 사본을 전용 venv 로 돌린다(run.sh). 저장소를 부르지 않는다 (koprifossillab 005)
 data/             카탈로그 씨앗
 web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/tiles, 컨테이너 안에서는 /srv/GSM/tiles)
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md

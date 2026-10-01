@@ -27,7 +27,7 @@ say() { printf '\n== %s ==\n' "$1"; }
 
 # ── 1. /srv/GSM ───────────────────────────────────────────────────────
 say "/srv/GSM"
-mkdir -p "$SRV"/{db,tiles}
+mkdir -p "$SRV"/{db,tiles,scripts}
 cp -n "$REPO/deploy/srv/docker-compose.yml" "$SRV/docker-compose.yml"
 if [[ ! -f "$SRV/.env" ]]; then
     cp "$REPO/deploy/srv/env.template" "$SRV/.env"
@@ -38,8 +38,8 @@ else
 fi
 # 컨테이너가 1000:1000 으로 도니 그 앞으로 맞춘다
 chown -R "$OWNER" "$SRV"
-chmod -R g+ws "$SRV/db" "$SRV/tiles"
-echo "  db/ tiles/ 준비됨"
+chmod -R g+ws "$SRV/db" "$SRV/tiles" "$SRV/scripts"
+echo "  db/ tiles/ scripts/ 준비됨"
 
 # ── 2. nginx 조각 ─────────────────────────────────────────────────────
 say "nginx"

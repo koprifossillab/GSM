@@ -21,10 +21,13 @@ import json
 import logging
 import math
 import re
+import ssl
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+import requests.adapters
 from django.conf import settings
 
 from . import usage
@@ -680,3 +683,115 @@ def get_legend(layer: str):
     if not ctype.startswith("image/"):
         raise KopriError("범례가 그림이 아니다")
     return r.content, ctype
+
+
+# ── 아라온호 위치 ─────────────────────────────────────────────────────
+#
+# 극지연구소 누리집의 "아라온호 위치"(infra/030303) 가 싣는 `live.kopri.re.kr/araon/` 한 쪽. 배가 보낸 마지막
+# 자리를 판(대시보드)에 적어 둔다 — 시각(UTC)·위경도·속력·침로·선수방위·기온·습도. 그 밑의 항적(`latlngs`)은
+# 시각이 없어 받지 않는다. 지난 자리는 이 쪽이 지워 버리므로 **매시간 받아 우리가 쌓는다**(`fetch_araon`).
+#
+# 그 서버는 인증서 체인에서 중간 인증서(Sectigo DV R36)를 빼고 보낸다 — 브라우저는 스스로 채우지만 파이썬은
+# 못 채워 멈춘다. 검증을 끄지 않고, 그 중간 인증서(`data/certs/`)를 시스템 꾸러미에 더해 제대로 검증한다.
+
+ARAON_URL = "https://live.kopri.re.kr/araon/"
+ARAON_PAGE = "https://www.kopri.re.kr/kopri/html/infra/030303.html"
+ARAON_FILE = "araon.jsonl"
+LIVE_INTERMEDIATE = settings.REPO_DIR / "data" / "certs" / "sectigo_dv_r36.pem"
+#: 풍속 칸이 비면 16 비트 최댓값(0xFFFF)의 1/10 이 찍혀 나온다
+_NO_VALUE = 6553.5
+
+_FIELD = re.compile(r"<b>\s*([A-Z]+)[^<]*</b>\s*:?\s*([^<]*)")
+
+
+class _LiveAdapter(requests.adapters.HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = ssl.create_default_context(cafile=settings.CA_BUNDLE or None)
+        ctx.load_verify_locations(str(LIVE_INTERMEDIATE))
+        kwargs["ssl_context"] = ctx
+        super().init_poolmanager(*args, **kwargs)
+
+
+def parse_araon(page: str, now: datetime = None) -> dict:
+    """판에서 마지막 자리 하나. 판이 없거나 위경도가 없으면 `KopriError`.
+
+    날짜에 해가 없다("Thu Oct 01") — 지금에서 거꾸로 세어 요일이 맞는 해를 고른다.
+    """
+    start = page.find('id="dashboard_show"')
+    if start < 0:
+        raise KopriError("아라온호 위치 판이 없다")
+    fields = {}
+    for key, value in _FIELD.findall(page[start:start + 6000]):
+        fields.setdefault(key, htmlmod.unescape(value).strip())
+    try:
+        lat, lon = float(fields["LAT"]), float(fields["LON"])
+    except (KeyError, ValueError) as exc:
+        raise KopriError("아라온호 위경도를 읽지 못했다") from exc
+    if not (-90 <= lat <= 90 and -180 <= lon <= 360):
+        raise KopriError(f"아라온호 위경도가 이상하다 ({lat}, {lon})")
+    if lon > 180:                               # 날짜변경선을 넘어 360 까지 적는다
+        lon -= 360
+    when = _araon_time(fields.get("DATE", ""), fields.get("TIME", ""), now or datetime.now(timezone.utc))
+    row = {"time": when, "lat": round(lat, DIGITS), "lon": round(lon, DIGITS)}
+    for key, name in (("SOG", "sog"), ("COG", "cog"), ("HDG", "hdg"), ("TEMP", "temp"), ("HUMI", "humi"),
+                      ("WIND", "wind")):
+        match = re.match(r"-?[\d.]+", fields.get(key, ""))
+        if match and float(match.group()) != _NO_VALUE:
+            row[name] = float(match.group())
+    direction = re.search(r"\b([NESW]{1,3})$", fields.get("WIND", ""))
+    if "wind" in row and direction:
+        row["wind_dir"] = direction.group(1)
+    return row
+
+
+def _araon_time(date: str, clock: str, now: datetime) -> str:
+    parts = date.split()
+    if len(parts) != 3:
+        raise KopriError(f"아라온호 시각을 읽지 못했다 ({date} {clock})")
+    for year in (now.year, now.year - 1, now.year + 1):
+        try:
+            when = datetime.strptime(f"{year} {parts[1]} {parts[2]} {clock.replace('UTC', '').strip()}",
+                                     "%Y %b %d %H:%M").replace(tzinfo=timezone.utc)
+        except ValueError:                      # 2 월 29 일이 없는 해, 또는 읽지 못한 꼴
+            continue
+        if when.strftime("%a") == parts[0][:3] and when <= now + timedelta(days=1):
+            return when.isoformat(timespec="minutes").replace("+00:00", "Z")
+    raise KopriError(f"아라온호 시각을 읽지 못했다 ({date} {clock})")
+
+
+def fetch_araon() -> dict:
+    session = requests.Session()
+    session.mount("https://live.kopri.re.kr/", _LiveAdapter())
+    try:
+        r = session.get(ARAON_URL, params={"nday": 3, "nhour": 1}, timeout=max(settings.UPSTREAM_TIMEOUT, 60),
+                        verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("kopri", ok=False)
+        raise KopriError(f"아라온호 위치에 닿지 못했다: {exc}") from exc
+    log.info("kopri %s -> %s", r.url, r.status_code)
+    usage.record("kopri", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    if r.status_code != 200:
+        raise KopriError(f"아라온호 위치가 받지 않았다 (status={r.status_code})")
+    return parse_araon(r.text)
+
+
+def araon_track() -> list:
+    """쌓아 둔 자리를 시각 순으로. 없으면 빈 것."""
+    path = data_dir() / ARAON_FILE
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    return [json.loads(line) for line in lines if line.strip()]
+
+
+def append_araon(row: dict) -> bool:
+    """새 시각이면 한 줄 보탠다. 배가 아직 새 자리를 안 보냈으면(같은 시각) 보태지 않고 False."""
+    path = data_dir() / ARAON_FILE
+    last = araon_track()[-1:] or [{}]
+    if last[0].get("time") == row["time"]:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+    return True

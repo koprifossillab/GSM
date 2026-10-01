@@ -279,3 +279,42 @@ class Arctic(SimpleTestCase):
         for path in settings.KOPRI_CATALOG_SEEDS:
             for row in json.loads(path.read_text(encoding="utf-8"))["레이어"]:
                 self.assertTrue(kopri.knows(row["name"]) or kopri.knows_wms(row["name"]), row["name"])
+
+
+ARAON_PAGE = """<div id="dashboard_show" style="position:relative;z-index:999; display:none;">
+<td bgcolor="#00c0ee" class="data"><b>DATE &nbsp;:</b> Thu Oct 01<br><b>TIME &nbsp;:</b> 04:00 UTC<br><b>DELAY :</b> <font color='red'><b>04:59</b></font></td>
+<td bgcolor="#01add7" class="head">TIME</td>
+<td bgcolor="#0ca65a" class="data"><b>LAT :</b> -74.6241<br><b>LON :</b> 195.0348<br><br></td>
+<td bgcolor="#f39c12" class="data"><b>SOG :</b> 12.6 kn<br><b>COG :</b> 218<br><b>HDG :</b> 218<br></td>
+<td bgcolor="#f56954" class="data"><b>WIND :</b> 6553.5 m/s NNE<br><b>TEMP</b> : -20.9 ˚C<br><b>HUMI</b> : 64 %</td>
+</div>
+<script>var latlngs = [[35.7609,130.0348],[35.9382,130.1718]];</script>"""
+
+
+class AraonTests(SimpleTestCase):
+    """아라온호 위치 판 — 극지연구소 `live.kopri.re.kr/araon/`."""
+
+    NOW = kopri.datetime(2026, 10, 1, 9, 0, tzinfo=kopri.timezone.utc)
+
+    def test_parse(self):
+        row = kopri.parse_araon(ARAON_PAGE, now=self.NOW)
+        self.assertEqual(row, {"time": "2026-10-01T04:00Z", "lat": -74.6241, "lon": -164.9652,
+                               "sog": 12.6, "cog": 218.0, "hdg": 218.0, "temp": -20.9, "humi": 64.0})
+
+    def test_year_from_weekday(self):
+        # 새해 첫날에 받은 지난해 12 월 31 일 — 2025-12-31 은 수요일이다
+        page = ARAON_PAGE.replace("Thu Oct 01", "Wed Dec 31")
+        row = kopri.parse_araon(page, now=kopri.datetime(2026, 1, 1, 2, 0, tzinfo=kopri.timezone.utc))
+        self.assertEqual(row["time"], "2025-12-31T04:00Z")
+
+    def test_no_dashboard(self):
+        with self.assertRaises(kopri.KopriError):
+            kopri.parse_araon("<html>점검 중</html>", now=self.NOW)
+
+    def test_append_skips_same_time(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(KOPRI_DIR=tmp):
+            row = kopri.parse_araon(ARAON_PAGE, now=self.NOW)
+            self.assertTrue(kopri.append_araon(row))
+            self.assertFalse(kopri.append_araon(dict(row, lat=0)))
+            self.assertTrue(kopri.append_araon(dict(row, time="2026-10-01T05:00Z")))
+            self.assertEqual([r["time"] for r in kopri.araon_track()], ["2026-10-01T04:00Z", "2026-10-01T05:00Z"])
