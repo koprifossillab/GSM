@@ -29,7 +29,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap
+from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, wind
 from . import linked
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -1379,6 +1379,34 @@ def earth_ne_tile(request, style, z, x, y):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_wind_index(request):
+    """`earth/wind/` — 구워 둔 바람의 목록 (koprifossillab P02). 지금의 바람(GFS)과 지난 바람(ERA5), 시각마다 u·v 를 되돌릴 값.
+
+    지금의 바람은 여섯 시간마다 새 판이 서므로 오래 캐시하지 않는다.
+    """
+    response = JsonResponse({source: wind.read_index(source) for source in wind.SOURCES},
+                            json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "public, max-age=600"
+    return response
+
+
+@require_GET
+def earth_wind_png(request, source, stamp, level):
+    """`earth/wind/<출처>/<시각>/<높이>.png` — R=u·G=v 를 그 장의 최솟값·최댓값으로 담은 1440×721 (`wind.encode`)."""
+    if not wind.valid(source, stamp, level):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    try:
+        png = wind.png_path(source, stamp, level).read_bytes()
+    except OSError:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    response = HttpResponse(png, content_type="image/png")
+    # 시각이 주소에 있다 — 한 번 구운 것은 바뀌지 않는다. 다시 굽는 일이 드물어 하루로 둔다
+    response["Cache-Control"] = "public, max-age=86400"
+    response["Access-Control-Allow-Origin"] = "*"
     return response
 
 

@@ -179,6 +179,7 @@
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
 | koprifossillab P02 | 2026-10-01 | [바람을 온 지구 화면에서 흐르게 (계획)](20261001_koprifossillab_P02_wind.md) |
+| koprifossillab 003 | 2026-10-01 | [바람 1 단계 — 받고 굽고 내주기](20261001_koprifossillab_003_wind_data.md) |
 | koprifossillab 004 | 2026-10-01 | [아라온호 위치를 매시간 쌓는다](20261001_koprifossillab_004_araon_track.md) |
 | koprifossillab 005 | 2026-10-01 | [cron 은 /srv/GSM/scripts 의 사본을 전용 venv 로 돈다](20261001_koprifossillab_005_srv_scripts.md) |
 | koprifossillab 006 | 2026-10-01 | [아라온호 항적을 지도에 — 온 지구와 극지 탭](20261001_koprifossillab_006_araon_layer.md) |

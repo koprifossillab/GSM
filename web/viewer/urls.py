@@ -67,6 +67,10 @@ urlpatterns = [
     re_path(r"^earth/mantle/(?P<frame>\d{1,2})/(?P<layer>slabs|piles|boundaries)\.bin$", views.earth_mantle,
             name="earth-mantle"),
     path("earth/places/", views.earth_places, name="earth-places"),
+    # 바람 — 구워 둔 u·v 텍스처 (koprifossillab P02)
+    path("earth/wind/", views.earth_wind_index, name="earth-wind"),
+    re_path(r"^earth/wind/(?P<source>gfs|era5)/(?P<stamp>\d{8}|\d{10})/(?P<level>10m|250hPa)\.png$", views.earth_wind_png,
+            name="earth-wind-png"),
     path("earth/labels/", views.earth_labels, name="earth-labels"),
     path("pointsets/<int:pk>/paleo/", views.earth_paleo_set, name="pointset-paleo"),
     path("mars/landings/", views.mars_landings, name="mars-landings"),

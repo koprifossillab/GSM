@@ -167,7 +167,10 @@ MARS_DIR = env("GSM_MARS_DIR") or str(_data_dir() / "mars")
 #: 온 지구의 큰 자료 — 옛 해안선(`paleocoastlines_v7.json`, wetherilli 097, `manage.py build_paleocoastlines <zip>`) 따위.
 #: 우리 디스크의 파일이다. 없으면 그 레이어가 비고 나머지는 돈다. 운영은 /srv/GSM/db/earth (P07 §5)
 EARTH_DIR = env("GSM_EARTH_DIR") or str(_data_dir() / "earth")
-#: 주간 백업(`deploy/host/weekly_backup.sh`)이 끝날 때 적는 결과. `/healthz/` 가 읽는다 (koprifossillab 002).
+#: 바람 — 구워 둔 u·v 텍스처 (`viewer/wind.py`, koprifossillab P02). 지금의 바람(GFS)은 호스트 cron 이 `fetch_gfs_wind` 로,
+#: 지난 바람(ERA5)은 사람이 `build_era5_wind` 로 굽는다. 우리 디스크의 파일이다. 없으면 바람 레이어 자리에 안내가 뜬다
+WIND_DIR = env("GSM_WIND_DIR") or str(_data_dir() / "wind")
+#: 주간 백업(`deploy/scripts/weekly_backup.sh`)이 끝날 때 적는 결과. `/healthz/` 가 읽는다 (koprifossillab 002).
 #: 백업의 로그 자리(`/data/GSM/logs`)는 컨테이너에 붙어 있지 않아 **DB 옆에 한 벌 더 적는다** — compose 를 고치지 않으려고
 BACKUP_STATUS_FILE = env("GSM_BACKUP_STATUS") or str(_data_dir() / "backup_status.json")
 #: 화성 옛 지질도(068)의 단위 색·구조선 모양 — 저장소에 담는다

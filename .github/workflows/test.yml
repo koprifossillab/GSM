@@ -27,7 +27,9 @@ jobs:
           python-version: '3.12'
           cache: pip
 
-      - run: pip install -r requirements-web.txt -r requirements-dev.txt
+      # requirements-wind.txt(numpy·ecCodes·numcodecs)는 운영 이미지에 없다 — 바람을 받고 굽는 호스트 쪽 시험이 돌게 여기서만 깐다
+      # (koprifossillab P02). 이미지에 없어도 뷰어가 도는지는 `test_wind` 가 바람 모듈의 맨 위 import 로 지킨다
+      - run: pip install -r requirements-web.txt -r requirements-dev.txt -r requirements-wind.txt
 
       # 마이그레이션을 실제로 돌린다 — 빠뜨린 칸은 그래야 보인다.
       - name: manage.py test
