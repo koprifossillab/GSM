@@ -21,11 +21,13 @@
   사설 주소로 돌릴 수 있다. 그래서 연결을 맺는 자리(`_new_conn`)만 바꿔 끼워 검사한 IP 로 붙는다 — TLS 의
   인증서 검사와 Host 머리는 호스트 이름 그대로다
 - 포트는 80·443 과 1024 위만. 메일·SSH 같은 낮은 포트를 두드리는 디딤돌이 되지 않게
+- 연구소 망은 https 를 제 인증서로 다시 서명한다. `settings.EXTRA_CA` 가 있으면 그것도 믿는다 (wetherilli 126)
 """
 import ipaddress
 import logging
 import re
 import socket
+import ssl
 import threading
 import time
 from collections import defaultdict, deque
@@ -166,6 +168,11 @@ class _Pinned(HTTPAdapter):
         super().__init__(max_retries=0)
 
     def init_poolmanager(self, *args, **kwargs):
+        # 연구소 망의 TLS 검사 장비가 다시 서명한 것도 믿는다 — requests 가 늘 싣는 certifi 에 더해진다
+        if settings.EXTRA_CA:
+            ctx = ssl.create_default_context()
+            ctx.load_verify_locations(settings.EXTRA_CA)
+            kwargs["ssl_context"] = ctx
         super().init_poolmanager(*args, **kwargs)
         ip = self._ip
 

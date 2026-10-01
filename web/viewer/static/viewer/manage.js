@@ -54,7 +54,13 @@
     function two(n) { return (n < 10 ? "0" : "") + n; }
     return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " + two(d.getHours()) + ":" + two(d.getMinutes());
   }
-  function kindText(kind) { return kind === "polygon" ? T("면") : T("점"); }
+  function kindText(kind) { return kind === "polygon" ? T("면") : kind === "line" ? T("선") : T("점"); }
+
+  /** "점 46 · 선 6 · 면 27" — 섞인 것을 읽었을 때 */
+  function kindsText(kinds) {
+    return ["point", "line", "polygon"].filter(function (k) { return kinds[k]; })
+      .map(function (k) { return kindText(k) + " " + kinds[k]; }).join(" · ");
+  }
 
   function download(name, text, type) {
     var blob = new Blob([text], { type: type });
@@ -147,7 +153,9 @@
     var stats = $("mg-stats");
     stats.innerHTML = "";
     var rows = [
-      [T("종류"), T("{kind} 레이어", { kind: kindText(p.kind) })],
+      [T("종류"), p.kind === "mixed"
+        ? T("{kinds} — 모양마다 레이어 {n}개로 나눈다", { kinds: kindsText(p.kinds), n: P.split(p).length })
+        : T("{kind} 레이어", { kind: kindText(p.kind) })],
       [T("행"), String(p.count)],
       [T("지도에 뜨는 것"), String(p.drawn)],
       [T("좌표가 없는 것"), p.undrawn ? T("{n}행 — 속성은 남긴다", { n: p.undrawn }) : "0"],
@@ -210,30 +218,50 @@
 
   $("mg-save").addEventListener("click", function () {
     if (!pending) return;
-    var rec = P.record(pending.parsed, pending.file);
-    if (pending.link) {
-      rec.link = pending.link;
-      P.applyFetched(rec, { parsed: pending.parsed, via: pending.via });
-      if (pending.editId) {                  // 연결을 고친 것 — 같은 기록을 덮는다
-        rec.id = pending.editId;
-        rec.visible = pending.keep.visible;
-        rec.imported = pending.keep.imported || rec.imported;
+    // 섞여 왔으면 모양마다 한 레이어 (wetherilli 126). 연결이면 같은 `linkGroup` 으로 묶어 한 번 받아 함께 덮는다
+    var parts = P.split(pending.parsed);
+    var base = $("mg-name").value.trim();
+    var old = pending.editRecs || [];          // 고치는 연결의 옛 기록들
+    var group = pending.link ? (old.length ? (old[0].linkGroup || old[0].id) : "lg-" + Date.now().toString(36)) : null;
+    var recs = parts.map(function (part) {
+      var rec = P.record(part, pending.file);
+      var name = base || rec.name;
+      rec.baseName = name;
+      rec.name = parts.length > 1 ? T("{name} — {kind}", { name: name, kind: kindText(part.kind) }) : name;
+      rec.color = $("mg-color").value;
+      rec.label = $("mg-label").value;
+      if (pending.link) {
+        rec.link = pending.link;
+        rec.linkGroup = group;
+        rec.linkPart = part.kind;
+        P.applyFetched(rec, { parsed: pending.parsed, via: pending.via });
+        // 고친 연결 — 같은 모양의 옛 기록 자리를 잇는다(켜고 끈 것·반입한 날)
+        var before = old.filter(function (r) { return (r.linkPart || r.kind) === part.kind; })[0];
+        if (before) {
+          rec.id = before.id;
+          rec.visible = before.visible;
+          rec.imported = before.imported || rec.imported;
+        }
       }
-    }
-    rec.name = $("mg-name").value.trim() || rec.name;
-    rec.color = $("mg-color").value;
-    rec.label = $("mg-label").value;
-    $("mg-save").disabled = true;
-    P.put(rec).then(function () {
-      linkEditing(null);
-      $("mg-save").disabled = false;
-      msg("mg-save-msg", T("'{name}' 을 저장했다. 지도의 개인 레이어에 뜬다.", { name: rec.name }), "good");
-      pending = null;
-      requestPersist(false);
-    }).catch(function (e) {
-      $("mg-save").disabled = false;
-      msg("mg-save-msg", T("저장하지 못했다 — {why}", { why: e && e.message ? e.message : e }), "bad");
+      return rec;
     });
+    var keep = recs.map(function (r) { return r.id; });
+    var gone = old.filter(function (r) { return keep.indexOf(r.id) < 0; });
+    $("mg-save").disabled = true;
+    Promise.all(gone.map(function (r) { return P.remove(r.id); }))
+      .then(function () { return Promise.all(recs.map(function (r) { return P.put(r); })); })
+      .then(function () {
+        linkEditing(null);
+        $("mg-save").disabled = false;
+        msg("mg-save-msg", recs.length > 1
+          ? T("'{name}' 을 레이어 {n}개로 저장했다. 지도의 개인 레이어에 뜬다.", { name: base || recs[0].baseName, n: recs.length })
+          : T("'{name}' 을 저장했다. 지도의 개인 레이어에 뜬다.", { name: recs[0].name }), "good");
+        pending = null;
+        requestPersist(false);
+      }).catch(function (e) {
+        $("mg-save").disabled = false;
+        msg("mg-save-msg", T("저장하지 못했다 — {why}", { why: e && e.message ? e.message : e }), "bad");
+      });
   });
   $("mg-discard").addEventListener("click", function () {
     pending = null;
@@ -246,8 +274,10 @@
   function viaText(via) { return via === "server" ? T("우리 서버를 거쳐 받았다") : T("곧장 받았다"); }
 
   var editing = null;      // 연결을 고치는 기록
+  var editingRecs = [];    // 그 연결에서 나온 기록들(모양마다 하나)
   function linkEditing(rec) {
     editing = rec;
+    if (!rec) editingRecs = [];
     $("mg-link-editing").textContent = rec ? T("'{name}' 의 연결을 고친다", { name: rec.name }) : "";
   }
 
@@ -275,8 +305,8 @@
       $("mg-link-try").disabled = false;
       msg("mg-link-msg", viaText(got.via), "good");
       pending = { parsed: got.parsed, link: link, via: got.via,
-                  editId: editing ? editing.id : null,
-                  keep: editing ? { name: editing.name, color: editing.color, label: editing.label,
+                  editRecs: editing ? editingRecs : [],
+                  keep: editing ? { name: editing.baseName || editing.name, color: editing.color, label: editing.label,
                                     visible: editing.visible, imported: editing.imported } : {} };
       preview();
     }).catch(function (e) {
@@ -285,6 +315,14 @@
     });
   });
 
+  /** 이 기록과 같은 연결에서 나온 기록들 */
+  function groupOf(rec) {
+    var key = rec.linkGroup || rec.id;
+    return P.list().then(function (all) {
+      return all.filter(function (r) { return r.link && (r.linkGroup || r.id) === key; });
+    });
+  }
+
   function editLink(rec) {
     showTab("import");
     $("mg-link-url").value = rec.link.url;
@@ -292,6 +330,7 @@
     $("mg-link-name").value = rec.link.auth.name || "";
     $("mg-link-key").value = rec.link.auth.key || "";
     syncMode();
+    groupOf(rec).then(function (recs) { editingRecs = recs; });
     linkEditing(rec);
     msg("mg-link-msg", "");
     $("mg-link-box").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -417,7 +456,7 @@
       again.title = T("지금 새로 받는다");
       again.addEventListener("click", function () {
         again.disabled = true;
-        P.refresh(rec).then(renderStored);
+        groupOf(rec).then(P.refresh).then(renderStored);
       });
       var edit = el("button", "btn quiet", T("연결"));
       edit.type = "button";
