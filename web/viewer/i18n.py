@@ -116,6 +116,12 @@ EN = {
     "{t} · ECCO2 3 일 평균 · 표층 5 m": "{t} · ECCO2 3-day mean · surface (5 m)",
     "해류 자료가 아직 없다": "No ocean currents yet",
     "해류의 달": "Month (ocean currents)",
+    # 아라온호 항적 기간 (koprifossillab 017)
+    "항적 기간": "Track period",
+    "1개월": "1 month",
+    "6개월": "6 months",
+    "1년": "1 year",
+    "{n}일": "{n} days",
     "위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.": "Empty beyond 72° latitude. Cold ground can look like cloud.",
     "바람": "Wind",
     "지금의 바람": "Current wind",

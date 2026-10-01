@@ -328,17 +328,38 @@ class AraonTrackTests(SimpleTestCase):
 
     def test_dateline_split(self):
         rows = [self.row("2026-08-01T00:00Z", 70.0, 179.0), self.row("2026-08-01T01:00Z", 71.0, -179.0)]
-        track, last = kopri.araon_features(rows)
+        track, last = kopri.araon_features(rows, now=kopri.datetime(2026, 8, 1, 2, 0, tzinfo=kopri.timezone.utc))
         self.assertEqual(track["geometry"]["coordinates"],
                          [[[179.0, 70.0], [180.0, 70.5]], [[-180.0, 70.5], [-179.0, 71.0]]])
         self.assertEqual(last["geometry"]["coordinates"], [-179.0, 71.0])
 
     def test_long_gap_split(self):
+        # 하루가 넘게 빈 사이는 잇지 않는다 — 두 날은 따로, 앞날의 끝에서 이어 시작하지도 않는다
+        now = kopri.datetime(2026, 8, 2, 3, 0, tzinfo=kopri.timezone.utc)
         rows = [self.row("2026-08-01T00:00Z", 0.0, 0.0), self.row("2026-08-01T01:00Z", 0.0, 1.0),
                 self.row("2026-08-02T01:00Z", 0.0, 5.0), self.row("2026-08-02T02:00Z", 0.0, 6.0)]
-        track, _ = kopri.araon_features(rows)
-        self.assertEqual(len(track["geometry"]["coordinates"]), 2)
-        self.assertEqual(track["properties"]["fixes"], 4)
+        older, newer, _ = kopri.araon_features(rows, now=now)
+        self.assertEqual(older["geometry"]["coordinates"], [[[0.0, 0.0], [1.0, 0.0]]])
+        self.assertEqual(newer["geometry"]["coordinates"], [[[5.0, 0.0], [6.0, 0.0]]])
+        self.assertEqual((older["properties"]["fixes"], newer["properties"]["fixes"]), (2, 2))
+
+    def test_days_join_and_ago(self):
+        """하루 조각 (koprifossillab 017) — 이어진 날은 앞날의 끝에서 시작하고, 조각마다 며칠 전(가운데)이 붙는다."""
+        now = kopri.datetime(2026, 8, 2, 23, 30, tzinfo=kopri.timezone.utc)   # 하루 경계는 08-01 23:30
+        rows = [self.row("2026-08-01T22:00Z", 0.0, 0.0), self.row("2026-08-01T23:00Z", 0.0, 1.0),
+                self.row("2026-08-02T00:00Z", 0.0, 2.0), self.row("2026-08-02T01:00Z", 0.0, 3.0)]
+        older, newer, last = kopri.araon_features(rows, now=now)
+        self.assertEqual(newer["geometry"]["coordinates"], [[[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]]])
+        self.assertEqual(older["properties"]["ago"], 1.04)
+        self.assertEqual(newer["properties"]["ago"], 0.98)
+        self.assertEqual(last["properties"]["ago"], 0)
+
+    def test_past_ago_counts_from_now(self):
+        """시각 없는 지난 항적의 며칠 전은 받은 때가 아니라 지금에서 센다 — 받은 뒤로 흐른 날을 더한다."""
+        past = {"harvested": "2026-10-01T09:43Z", "nday": 365, "points": [[0, 0, 3], [0.1, 0, 3]]}
+        now = kopri.datetime(2026, 10, 11, 9, 43, tzinfo=kopri.timezone.utc)
+        (feature,) = kopri.araon_features([], past, now=now)
+        self.assertEqual(feature["properties"]["ago"], 12.5)
 
     def test_single_fix_is_point_only(self):
         features = kopri.araon_features([self.row("2026-10-01T04:00Z", 35.76, 130.03, sog=12.6)])

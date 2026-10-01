@@ -506,6 +506,96 @@
   var TRACK_SET = { name: T("아라온호 항적"), color: "#ffb000" };
   var LAST_COLOR = "#e4002b";
   var cTrack = null, oTrack = null, trackAsked = false;
+  // 기간 (koprifossillab 017) — 서버가 조각마다 `ago`(지금에서 며칠 전)를 붙여 준다. 고른 기간(1개월 기본·6개월·1년) 안의 조각만
+  // 그리고 오래된 것일수록 옅게. 지역 탭(`map.js`)과 같은 열쇠에 기억한다
+  var TRACK_PERIODS = THEN.araon_periods || [30, 182, 365];
+  var TRACK_PERIOD_LABELS = { 30: "1개월", 182: "6개월", 365: "1년" };
+  var trackData = null;
+  function trackPeriod() {
+    var v = +saved("gsm.araon.period", "0");
+    return TRACK_PERIODS.indexOf(v) >= 0 ? v : TRACK_PERIODS[0];
+  }
+  /** 지금 1, 기간 끝 0.15, 기간 밖 0 — 열 칸으로 끊는다 */
+  function trackFade(ago) {
+    var period = trackPeriod();
+    if (ago == null) return 1;
+    if (ago > period) return 0;
+    return Math.round((1 - 0.85 * ago / period) * 10) / 10;
+  }
+  function trackPicker() {
+    var row = document.createElement("div");
+    row.className = "wind-row";
+    var select = document.createElement("select");
+    select.setAttribute("aria-label", T("항적 기간"));
+    TRACK_PERIODS.forEach(function (days) {
+      var option = document.createElement("option");
+      option.value = days;
+      option.textContent = T(TRACK_PERIOD_LABELS[days] || "{n}일", { n: days });
+      select.appendChild(option);
+    });
+    select.value = trackPeriod();
+    select.addEventListener("change", function () {
+      save("gsm.araon.period", select.value);
+      drawTrack();
+    });
+    var label = document.createElement("span");
+    label.textContent = T("항적 기간");
+    row.append(label, select);
+    return row;
+  }
+  /** 받아 둔 항적을 고른 기간으로 다시 긋는다 — 구는 개체를 새로 짓고, 평면은 그림만 다시 칠한다 */
+  function drawTrack() {
+    if (!trackData) return;
+    cTrack.entities.removeAll();
+    trackData.features.forEach(function (f) {
+      var g = f.geometry, props = f.properties, fade = trackFade(props._ago);
+      if (!fade) return;
+      function add(opts) { var x = cTrack.entities.add(opts); x.gsmProps = props; x.gsmSet = TRACK_SET; }
+      var color = Cesium.Color.fromCssColorString(TRACK_SET.color).withAlpha(fade);
+      if (g.type === "MultiLineString") {
+        // 지난 항적(`past`, 날짜만 안다)은 가늘게 끊어 — 지금 쌓는 항적과 갈라 보이게 (koprifossillab 009)
+        var past = props._code === "past";
+        g.coordinates.forEach(function (line) {
+          var flatArr = [];
+          line.forEach(function (c) { flatArr.push(c[0], c[1]); });
+          add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, ELL), width: past ? 2 : 3, clampToGround: true,
+                            material: past
+                              ? new Cesium.PolylineDashMaterialProperty({ color: color, dashLength: 12 })
+                              : new Cesium.PolylineOutlineMaterialProperty({
+                                  color: color, outlineColor: Cesium.Color.BLACK.withAlpha(0.6 * fade), outlineWidth: 1 }) } });
+        });
+      } else if (g.type === "Point") {
+        add({ position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, ELL),
+              point: { pixelSize: 11, color: Cesium.Color.fromCssColorString(LAST_COLOR), outlineColor: Cesium.Color.WHITE,
+                       outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                       disableDepthTestDistance: 3000000 },
+              label: { text: "ARAON", font: "600 12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+                       outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                       pixelOffset: new Cesium.Cartesian2(0, -16), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                       disableDepthTestDistance: 3000000 } });
+      }
+    });
+    if (oTrack) oTrack.changed();
+  }
+  var trackStyles = {};
+  function trackStyle(f) {
+    if (f.getGeometry().getType() === "Point") return trackStyles.dot;
+    var fade = trackFade(f.get("_ago")), past = f.get("_code") === "past", key = (past ? "p" : "t") + fade;
+    if (!fade) return null;
+    if (!trackStyles[key]) {
+      var rgb = ol.color.asArray(TRACK_SET.color).slice(0, 3);
+      trackStyles[key] = past
+        ? new ol.style.Style({ stroke: new ol.style.Stroke({ color: rgb.concat(fade), width: 1.6, lineDash: [6, 4] }) })
+        : [new ol.style.Style({ stroke: new ol.style.Stroke({ color: [0, 0, 0, 0.55 * fade], width: 4.5 }) }),
+           new ol.style.Style({ stroke: new ol.style.Stroke({ color: rgb.concat(fade), width: 2.5 }) })];
+    }
+    return trackStyles[key];
+  }
+  trackStyles.dot = new ol.style.Style({
+    image: new ol.style.Circle({ radius: 6, fill: new ol.style.Fill({ color: LAST_COLOR }),
+                                 stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }),
+    text: new ol.style.Text({ text: "ARAON", offsetY: -16, font: "600 12px system-ui, sans-serif",
+                              fill: new ol.style.Fill({ color: "#fff" }), stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) });
   function syncTrack() {
     var e = entryOf("araon"), on = !!e && visibleNow("araon");
     if (cTrack) cTrack.show = on;
@@ -523,55 +613,20 @@
         Object.keys(labels).forEach(function (k) { if (raw[k] != null && raw[k] !== "") props[labels[k]] = raw[k]; });
         if (raw.code === "last") props["이름표"] = "ARAON";
         props._code = raw.code;
+        props._ago = raw.ago;
         f.properties = props;
       });
+      trackData = d;
       cTrack = new Cesium.CustomDataSource("araon");
-      (d.features || []).forEach(function (f) {
-        var g = f.geometry, props = f.properties;
-        function add(opts) { var x = cTrack.entities.add(opts); x.gsmProps = props; x.gsmSet = TRACK_SET; }
-        if (g.type === "MultiLineString") {
-          // 지난 항적(`past`, 날짜만 안다)은 가늘게 끊어 — 지금 쌓는 항적과 갈라 보이게 (koprifossillab 009)
-          var past = props._code === "past";
-          g.coordinates.forEach(function (line) {
-            var flatArr = [];
-            line.forEach(function (c) { flatArr.push(c[0], c[1]); });
-            add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, ELL), width: past ? 2 : 3, clampToGround: true,
-                              material: past
-                                ? new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString(TRACK_SET.color),
-                                                                            dashLength: 12 })
-                                : new Cesium.PolylineOutlineMaterialProperty({
-                                    color: Cesium.Color.fromCssColorString(TRACK_SET.color),
-                                    outlineColor: Cesium.Color.BLACK.withAlpha(0.6), outlineWidth: 1 }) } });
-          });
-        } else if (g.type === "Point") {
-          add({ position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, ELL),
-                point: { pixelSize: 11, color: Cesium.Color.fromCssColorString(LAST_COLOR), outlineColor: Cesium.Color.WHITE,
-                         outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                         disableDepthTestDistance: 3000000 },
-                label: { text: "ARAON", font: "600 12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
-                         outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                         pixelOffset: new Cesium.Cartesian2(0, -16), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                         disableDepthTestDistance: 3000000 } });
-        }
-      });
       viewer.dataSources.add(cTrack);
-      var edge = new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,0.55)", width: 4.5 }) });
-      var line = new ol.style.Style({ stroke: new ol.style.Stroke({ color: TRACK_SET.color, width: 2.5 }) });
-      var pastLine = new ol.style.Style({ stroke: new ol.style.Stroke({ color: TRACK_SET.color, width: 1.6, lineDash: [6, 4] }) });
-      var dot = new ol.style.Style({
-        image: new ol.style.Circle({ radius: 6, fill: new ol.style.Fill({ color: LAST_COLOR }),
-                                     stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }),
-        text: new ol.style.Text({ text: "ARAON", offsetY: -16, font: "600 12px system-ui, sans-serif",
-                                  fill: new ol.style.Fill({ color: "#fff" }), stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) });
       oTrack = new ol.layer.Vector({
         source: new ol.source.Vector({ features: new ol.format.GeoJSON().readFeatures(d,
                                          { dataProjection: LL, featureProjection: proj }) }),
-        style: function (f) {
-          return f.getGeometry().getType() === "Point" ? dot : f.get("_code") === "past" ? pastLine : [edge, line];
-        },
+        style: trackStyle,
       });
       oTrack.set("gsmSet", TRACK_SET);
       oPoints.getLayers().push(oTrack);
+      drawTrack();
       syncTrack();
     }).catch(function () { trackAsked = false; });
   }
@@ -1842,6 +1897,9 @@
         note.className = "wind-when";
         note.textContent = T("위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.");
         li.append(head, when, note, foot, src);
+      } else if (e.name === "araon") {
+        // 아라온호 — 항적 기간 (koprifossillab 017)
+        li.append(head, trackPicker(), foot, src);
       } else if (e.name === "ocean") {
         // 해류 — 달을 고르거나 재생한다 (koprifossillab 015)
         li.append(head, oceanControls(), foot, src);

@@ -995,23 +995,57 @@ def araon_available() -> bool:
     return (data_dir() / ARAON_FILE).exists() or (data_dir() / ARAON_PAST_FILE).exists()
 
 
-def araon_features(rows: list, past: dict = None) -> list:
+#: 고를 수 있는 기간(일) — 앞의 것이 기본. 화면은 이 안의 조각만 그리고 오래된 것일수록 옅게 한다 (koprifossillab 017)
+ARAON_PERIODS = (30, 182, 365)
+
+
+def _days_since(when: datetime, now: datetime) -> float:
+    return round(max(0.0, (now - when).total_seconds() / 86400), 2)
+
+
+def _araon_track_days(rows: list, now: datetime) -> list:
+    """시각 있는 항적 → 하루마다(지금에서 거꾸로 센 24 시간) (며칠 전, 선 조각들, 자리 수). 앞날과 이어지면(빈 사이가
+    `ARAON_GAP` 안쪽) 앞날의 마지막 자리에서 시작한다 — 날 사이가 끊겨 보이지 않게."""
+    out, i = [], 0
+    bucket = lambda r: int((now - _when(r)).total_seconds() // 86400)
+    while i < len(rows):
+        day = bucket(rows[i])
+        j = i
+        while j < len(rows) and bucket(rows[j]) == day:
+            j += 1
+        part = rows[i:j]
+        if i and _when(rows[i]) - _when(rows[i - 1]) <= ARAON_GAP:
+            part = [rows[i - 1]] + part
+        lines = _araon_lines(part)
+        if lines:
+            mid = _when(part[0]) + (_when(part[-1]) - _when(part[0])) / 2
+            out.append((_days_since(mid, now), lines, j - i, part[0]["time"], part[-1]["time"]))
+        i = j
+    return out
+
+
+def araon_features(rows: list, past: dict = None, now: datetime = None) -> list:
+    """항적을 하루 한 조각으로 — 조각마다 `ago`(지금에서 며칠 전, 그 조각의 가운데). 화면이 기간(`ARAON_PERIODS`)으로 거르고
+    오래된 것일수록 옅게 한다. 마지막 자리는 `ago` 0 이다."""
+    now = now or datetime.now(timezone.utc)
     out = []
-    for ago, lines, fixes in _araon_past_days(past or {}):
-        out.append({"type": "Feature", "id": f"araon-past-{ago}",
-                    "geometry": {"type": "MultiLineString", "coordinates": lines},
-                    "properties": {"code": "past", "name": "ARAON", "day": _day_window(past["harvested"], ago),
-                                   "fixes": fixes, "harvested": past.get("harvested")}})
+    if past and past.get("harvested"):
+        since = _days_since(datetime.fromisoformat(past["harvested"].replace("Z", "+00:00")), now)
+        for ago, lines, fixes in _araon_past_days(past):
+            out.append({"type": "Feature", "id": f"araon-past-{ago}",
+                        "geometry": {"type": "MultiLineString", "coordinates": lines},
+                        "properties": {"code": "past", "name": "ARAON", "day": _day_window(past["harvested"], ago),
+                                       "fixes": fixes, "harvested": past.get("harvested"),
+                                       "ago": round(since + ago - 0.5, 2)}})
     if not rows:
         return out
-    lines = _araon_lines(rows)
-    if lines:
-        out.append({"type": "Feature", "id": "araon-track",
+    for ago, lines, fixes, first, last_time in _araon_track_days(rows, now):
+        out.append({"type": "Feature", "id": f"araon-track-{first}",
                     "geometry": {"type": "MultiLineString", "coordinates": lines},
-                    "properties": {"code": "track", "name": "ARAON", "from": rows[0]["time"],
-                                   "to": rows[-1]["time"], "fixes": len(rows)}})
+                    "properties": {"code": "track", "name": "ARAON", "from": first, "to": last_time, "fixes": fixes,
+                                   "ago": ago}})
     last = rows[-1]
-    props = {"code": "last", "name": "ARAON"}
+    props = {"code": "last", "name": "ARAON", "ago": 0}
     props.update({k: last[k] for k in ("time", "sog", "cog", "hdg", "temp", "humi") if k in last})
     out.append({"type": "Feature", "id": "araon-last", "geometry": {"type": "Point", "coordinates": [last["lon"], last["lat"]]},
                 "properties": props})

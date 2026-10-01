@@ -457,6 +457,8 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 /* 켠 레이어의 출처 — VWorld 레이어에만 붙는다 (devlog 020) */
 .active-src { margin: 4px 0 0; font-size: 10.5px; color: var(--ink-faint); }
 /* 5만 지질도 카드 밑 — 층리·엽리·편리·절리를 늘 그릴지 (jikhanjung 005) */
+/* 아라온호 항적의 기간 (koprifossillab 017) */
+.period-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11.5px; font-weight: 600; }
 .attitude-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; font-size: 11.5px; font-weight: 600; }
 .attitude-toggles label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .attitude-toggles input { margin: 0; }
