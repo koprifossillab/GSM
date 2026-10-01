@@ -27,6 +27,8 @@ class ManagePage(TestCase):
         self.assertIn('id="manage-btn"', html)
         self.assertIn('href="/GSM/manage/"', html)
         self.assertIn('id="personal-list"', html)
+        # 반입한 것이 없으면 감춘 채 뜬다 — map.js 가 저장소를 읽고 연다 (wetherilli 120)
+        self.assertIn('id="box-personal" hidden', html)
         # 관리 단추는 설정 단추의 왼쪽이다
         self.assertLess(html.index('id="manage-btn"'), html.index('id="gear"'))
 

@@ -1113,8 +1113,8 @@ EN = {
     "이 브라우저에만": "this browser only",
     "이 브라우저에만 남는다 — 서버로 보내지 않는다": "Kept in this browser only — never sent to the server",
     "반입·관리": "Import & manage",
-    "관리 화면에서 JSON·CSV 를 반입한다 — 이 브라우저에만 남는다":
-        "Import JSON or CSV on the manage page — kept in this browser only",
+    "{name} 외 {n}건": "{name} and {n} more",
+    "{name} — 이 자리 {i}/{n}": "{name} — {i} of {n} here",
     "같은 자리에 {n}건 더 있다 — 관리 화면에서 내려받아 본다":
         "{n} more at this spot — download from the manage page to see them",
     "좌표 없음 {n}": "{n} without coordinates",
