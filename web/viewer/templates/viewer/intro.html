@@ -46,7 +46,7 @@
 <nav class="chapters" id="chapters" aria-label="{% t "장면" %}">
   <a href="#title" data-for="title">{% t "처음" %}</a>
   <a href="#hook" data-for="hook">{% t "불편" %}</a>
-  <a href="#polar" data-for="polar antarctica greenland svalbard polarsum">{% t "극지" %}</a>
+  <a href="#polar" data-for="polar polartitle antarctica greenland svalbard polarsum">{% t "극지" %}</a>
   <a href="#korea3d" data-for="korea3d">3D</a>
   <a href="#tools" data-for="tools">{% t "도구" %}</a>
   <a href="#sources" data-for="sources">{% t "출처" %}</a>
@@ -66,7 +66,7 @@
             data-moon="{% static 'viewer/intro/globe-moon.webp' %}"
             data-mars="{% static 'viewer/intro/globe-mars.webp' %}"></canvas>
     <div class="title-text">
-      <p class="kicker">{% t "극지연구소 고생물진화연구실" %}</p>
+      <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "극지연구소 고생물진화연구실" %}</p>
       <h1>{% t "대돌여지도" %}<span>{% if lang == "en" %}대돌여지도{% else %}GREAT STONE MAP{% endif %}</span></h1>
       <p class="lead">{% t "지질도를 겹쳐 보고, 눌러 속성을 읽고, 내 좌표를 얹는 지도." %}</p>
       <ul class="chips regions" aria-label="{% t "다루는 곳" %}">
@@ -139,12 +139,20 @@
   </div>
 </section>
 
+{# ── 극지 표지 — 극지 대기 화면(만드는 애니메이션)을 크게. 들어올 때마다 처음부터 그린다 ── #}
+<section class="scene polartitle" id="polartitle" data-steps="1" data-dwell="3400" data-theme="polar"
+         data-go="map/?region=antarctica" data-go-label="{% t "남극 지도" %}">
+  <div class="stage">
+    <img class="replay" src="{% static 'viewer/splash-polar.gif' %}" alt="{% t "대돌여지도 · 극지" %}" width="760" height="360">
+  </div>
+</section>
+
 {# ── 남극 ── #}
 <section class="scene shot" id="antarctica" data-steps="4" data-theme="antarctica"
          data-go="map/?region=antarctica" data-go-label="{% t "남극 지도" %}">
   <div class="stage">
     <div class="copy">
-      <p class="kicker">{% t "남극" %} · EPSG:3031</p>
+      <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "남극" %} · EPSG:3031</p>
       <h2>{% t "남극은 남극점을 가운데 두고 봅니다." %}</h2>
       <p class="step-text" data-step="0">{% t "메르카토르에서 찢어지던 대륙이 <b>제 모양</b>으로 섭니다. SCAR GeoMAP 지질도는 <b>우리 서버가 직접</b> 그립니다." %}</p>
       <p class="step-text" data-step="1">{% t "가까이 가면 <b>극지연구소가 모은 암석 시료</b>의 자리가 뜹니다. 장보고기지가 있는 빅토리아랜드입니다." %}</p>
@@ -166,7 +174,7 @@
          data-go="map/?region=greenland" data-go-label="{% t "그린란드 지도" %}">
   <div class="stage">
     <div class="copy">
-      <p class="kicker">{% t "그린란드" %} · EPSG:3413</p>
+      <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "그린란드" %} · EPSG:3413</p>
       <h2>{% t "그린란드는 GEUS의 50만 지질도로." %}</h2>
       <p class="step-text" data-step="0">{% t "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 <b>퇴적분지</b>가 색으로 드러납니다." %}</p>
       <p class="step-text" data-step="1">{% t "GEUS의 <b>하천 퇴적물 지화학도</b>도 같은 화면에서 켭니다." %}</p>
@@ -186,7 +194,7 @@
          data-go="map/?region=svalbard" data-go-label="{% t "스발바르 지도" %}">
   <div class="stage">
     <div class="copy">
-      <p class="kicker">{% t "스발바르 · 다산기지가 있는 곳" %}</p>
+      <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "스발바르 · 다산기지가 있는 곳" %}</p>
       <h2>{% t "스발바르는 노르웨이 극지연구소의 지질도로." %}</h2>
       <p class="step-text" data-step="0">{% t "NPI의 지질 단위·단층을 그대로 받아 오고, <b>극지연구소 암석 시료</b>를 함께 얹습니다." %}</p>
       <p class="step-text" data-step="1">{% t "<b>종이로 찍었던 지질도</b>도 음영째 그대로 볼 수 있습니다." %}</p>
@@ -208,7 +216,7 @@
          data-go="map/?region=arctic" data-go-label="{% t "북극 지도" %}">
   <div class="stage">
     <div class="copy">
-      <p class="kicker">{% t "극지 정리" %}</p>
+      <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "극지 정리" %}</p>
       <h2>{% t "흩어진 극지 자료를 한 자리에" %}</h2>
       <ul class="summary-list">
         <li>{% t "<b>남극</b> — SCAR GeoMAP, IBCSO 해저지형, 드로닝모드랜드(NPI), 기지·운석 발견 지점" %}</li>
@@ -351,14 +359,6 @@
         <img loading="lazy" src="{% static shots|add:'thumb/src_kigam.webp' %}" alt="">
         <b>{% t "한국" %}</b><span>{% t "KIGAM 지질도와 VWorld" %}</span>
       </a>
-      <a class="door" href="{{ base }}map/?region=antarctica">
-        <img loading="lazy" src="{% static shots|add:'thumb/antarctica_close.webp' %}" alt="">
-        <b>{% t "남극" %}</b><span>{% t "남극점을 가운데 둔 GeoMAP" %}</span>
-      </a>
-      <a class="door" href="{{ base }}map/?region=arctic">
-        <img loading="lazy" src="{% static shots|add:'thumb/svalbard.webp' %}" alt="">
-        <b>{% t "북극" %}</b><span>{% t "그린란드·스발바르·얀마옌을 한 화면에" %}</span>
-      </a>
       <a class="door" href="{{ base }}map/?region=japan">
         <img loading="lazy" src="{% static shots|add:'thumb/src_gsj.webp' %}" alt="">
         <b>{% t "일본" %}</b><span>{% t "GSJ 심리스 지질도" %}</span>
@@ -374,6 +374,20 @@
       <a class="door" href="{{ base }}earth/">
         <img loading="lazy" src="{% static shots|add:'thumb/earth.webp' %}" alt="">
         <b>{% t "온 지구" %}</b><span>{% t "Macrostrat 지질도와 판의 옛 자리" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="cat polar">
+    <h3><img src="{% static 'viewer/emblem-polar.png' %}" alt="" width="40" height="40">{% t "극지" %}</h3>
+    <div class="doors">
+      <a class="door" href="{{ base }}map/?region=antarctica">
+        <img loading="lazy" src="{% static shots|add:'thumb/antarctica_close.webp' %}" alt="">
+        <b>{% t "남극" %}</b><span>{% t "남극점을 가운데 둔 GeoMAP" %}</span>
+      </a>
+      <a class="door" href="{{ base }}map/?region=arctic">
+        <img loading="lazy" src="{% static shots|add:'thumb/svalbard.webp' %}" alt="">
+        <b>{% t "북극" %}</b><span>{% t "그린란드·스발바르·얀마옌을 한 화면에" %}</span>
       </a>
     </div>
   </div>

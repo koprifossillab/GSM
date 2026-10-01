@@ -70,3 +70,16 @@ class IntroTests(TestCase):
                 self.assertTrue((SHOTS / lang / "thumb" / name).is_file(), f"{lang}/thumb/{name}")
         for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "kopri-ci-ko.svg", "kopri-ci-en.svg"):
             self.assertTrue((SHOTS / name).is_file(), name)
+
+    def test_극지_아이콘과_대기_화면(self):
+        """극지 지역에서 지도는 극지 아이콘·대기 화면을, 소개는 극지 표지를 쓴다 (wetherilli 123)."""
+        static = HERE / "static" / "viewer"
+        for name in ("emblem-polar.png", "splash-polar.gif"):
+            self.assertTrue((static / name).is_file(), name)
+        html = self.get("viewer:map")
+        self.assertIn('data-emblem-polar="/GSM/static/viewer/emblem-polar.png"', html)
+        self.assertIn("splash-polar.gif", html)
+        self.assertIn('id="favicon"', html)
+        intro = self.get("viewer:intro")
+        self.assertIn('id="polartitle"', intro)
+        self.assertIn('class="cat polar"', intro)
