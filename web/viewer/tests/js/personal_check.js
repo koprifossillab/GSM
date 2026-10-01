@@ -40,11 +40,28 @@ assert.strictEqual(poly.warnings.length, 0);
 const mp = P.parseWKT("MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5)))");
 assert.deepStrictEqual(P.parseWKT(P.wkt(mp)), mp);
 
-// 섞이면 받지 않는다
-assert.throws(() => P.parse(JSON.stringify({ type: "FeatureCollection", features: [
-  { type: "Feature", geometry: { type: "Point", coordinates: [1, 2] }, properties: {} },
-  { type: "Feature", geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }, properties: {} },
-] }), "m.json"), /섞였다/);
+// 섞여 오면 모양마다 가른다 (wetherilli 126) — 좌표 없는 행은 맨 앞 갈래에
+const mixed = P.parse(JSON.stringify({ type: "FeatureCollection", features: [
+  { type: "Feature", id: 1, geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }, properties: {} },
+  { type: "Feature", id: 2, geometry: { type: "Point", coordinates: [1, 2] }, properties: {} },
+  { type: "Feature", id: 3, geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] }, properties: {} },
+  { type: "Feature", id: 4, geometry: null, properties: {} },
+  { type: "Feature", id: 5, geometry: { type: "Point", coordinates: [3, 4] }, properties: {} },
+] }), "m.json");
+assert.strictEqual(mixed.kind, "mixed");
+assert.deepStrictEqual(mixed.kinds, { polygon: 1, point: 2, line: 1 });
+const parts = P.split(mixed);
+assert.deepStrictEqual(parts.map(x => x.kind), ["point", "line", "polygon"]);
+assert.deepStrictEqual(parts[0].features.map(f => f.id), [2, 4, 5]);
+assert.strictEqual(parts[0].drawn, 2);
+assert.strictEqual(parts.reduce((n, x) => n + x.count, 0), 5);       // 잃지 않는다
+// 연결 기록은 제 모양의 갈래만 받는다
+const lineRec = { name: "선", linkPart: "line", link: { url: "https://a/x" } };
+P.applyFetched(lineRec, { parsed: mixed, via: "server" });
+assert.deepStrictEqual(lineRec.features.map(f => f.id), [3]);
+// 연결 묶기
+const groups = P.linkGroups([{ id: "a", link: {}, linkGroup: "g" }, { id: "b" }, { id: "c", link: {}, linkGroup: "g" }, { id: "d", link: {} }]);
+assert.deepStrictEqual(groups.map(g => g.map(r => r.id)), [["a", "c"], ["d"]]);
 // 좌표 칸이 없으면 받지 않는다
 assert.throws(() => P.parse("a,b\r\n1,2\r\n", "x.csv"), /좌표 칸이 없다/);
 // 범위 밖 좌표는 그 행만 문제로 남긴다
@@ -53,9 +70,16 @@ assert.strictEqual(far.drawn, 1);
 assert.strictEqual(far.problems.length, 1);
 // 별명 좌표 칸은 읽되 경고한다
 assert.strictEqual(P.parse("경도,위도\r\n127,37\r\n", "k.csv").warnings.length, 1);
-// 선은 v1 에서 받지 않는다
+// 선을 받는다 — JSON·WKT 둘 다, 되쓰기도
+const line = P.parse(JSON.stringify({ type: "FeatureCollection", features: [
+  { type: "Feature", geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] }, properties: { k: "a" } }] }), "l.json");
+assert.strictEqual(line.kind, "line");
+const ml = P.parseWKT("MULTILINESTRING ((0 0, 1 1), (2 2, 3 3))");
+assert.deepStrictEqual(P.parseWKT(P.wkt(ml)), ml);
+assert.strictEqual(P.parse(P.toCSV(Object.assign({}, line)), "l.csv").features[0].geometry.type, "LineString");
+// 그 밖의 모양은 받지 않는다
 assert.throws(() => P.parse(JSON.stringify({ type: "FeatureCollection", features: [
-  { type: "Feature", geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] }, properties: {} }] }), "l.json"), /그릴 좌표/);
+  { type: "Feature", geometry: { type: "GeometryCollection", geometries: [] }, properties: {} }] }), "g.json"), /그릴 좌표/);
 // EUC-KR 로 저장한 CSV 도 읽는다 (엑셀)
 const euckr = Buffer.from([0xc0, 0xa7, 0xb5, 0xb5]);   // "위도"
 assert.strictEqual(P.decode(euckr).text, "위도");

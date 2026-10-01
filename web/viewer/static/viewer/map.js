@@ -3842,8 +3842,9 @@
       drawPersonal();
       if (fresh !== true) return;
       // 마지막으로 받은 것을 먼저 그려 두고, 새것이 오면 그것만 바꿔 그린다
-      personal.filter(function (rec) { return rec.link; }).forEach(function (rec) {
-        Personal.refresh(rec).then(drawPersonal);
+      // 한 연결에서 모양마다 갈라 둔 기록들은 한 번 받아 함께 덮는다 (wetherilli 126)
+      Personal.linkGroups(personal).forEach(function (group) {
+        Personal.refresh(group).then(drawPersonal);
       });
     }).catch(function () {
       personal = [];
@@ -4019,7 +4020,8 @@
       var count = document.createElement("span");
       count.className = "ps-count";
       count.textContent = (rec.link ? "🔗 " : "") +
-        (rec.kind === "polygon" ? T("면 {n}", { n: rec.drawn }) : T("{n}점", { n: rec.drawn })) +
+        (rec.kind === "polygon" ? T("면 {n}", { n: rec.drawn }) : rec.kind === "line" ? T("선 {n}", { n: rec.drawn })
+          : T("{n}점", { n: rec.drawn })) +
         (rec.count > rec.drawn ? " · " + T("좌표 없음 {n}", { n: rec.count - rec.drawn }) : "");
       // 연결 레이어를 못 받았으면 옛것을 그리고 있다는 것을 적는다
       if (rec.link && rec.status && !rec.status.ok) {

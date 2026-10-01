@@ -301,6 +301,11 @@ PUBLIC = _public()
 LINKED_ALLOW = [h.strip().lower() for h in (env("GSM_LINKED_ALLOW", "").split(",") + _lines_from("GSM_LINKED_ALLOW_FILE", "linked_allow"))
                 if h.strip()]
 
+#: **더 믿을 인증서**(PEM) — 연구소 망의 TLS 검사 장비가 https 를 제 인증서("KOPRI SSL")로 다시 서명해, 파이썬(certifi)은
+#: 몇몇 호스트(kofhin.psok.or.kr·example.com 등)를 믿지 못한다(wetherilli 126). 서버의 시스템 저장소에는 그 뿌리가 있어 curl 은 된다.
+#: 지금은 연결 레이어의 문(`linked.py`)만 쓴다 — certifi 에 **더해** 믿는다. 환경변수 `GSM_EXTRA_CA` 또는 `<DB 옆>/extra_ca.pem`
+EXTRA_CA = env("GSM_EXTRA_CA") or (str(_data_dir() / "extra_ca.pem") if (_data_dir() / "extra_ca.pem").is_file() else "")
+
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 #: KIGAM 낱레이어를 엮은 레이어(층리 뺀 5만 지질도)의 씨앗 — 상류가 뽑아 준 것이 아니라 사람이 적는다.
 #: 엮는 법은 `kigam.COMPOSED` (docs/KIGAM_5만_구조요소.md §8)

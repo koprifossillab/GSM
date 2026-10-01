@@ -249,3 +249,19 @@ class View(TestCase):
         with mock.patch("viewer.linked.fetch") as fetch:
             self.assertEqual(self.post({"url": "https://api.example.org/x"}).status_code, 404)
         fetch.assert_not_called()
+
+
+class ExtraCA(SimpleTestCase):
+    """연구소 망이 다시 서명한 https — 더 믿을 인증서가 있으면 연결에 싣는다 (wetherilli 126)."""
+
+    def test_없으면_기본(self):
+        with override_settings(EXTRA_CA=""):
+            adapter = linked._Pinned("93.184.216.34")
+        self.assertNotIn("ssl_context", adapter.poolmanager.connection_pool_kw)
+
+    def test_있으면_싣는다(self):
+        with override_settings(EXTRA_CA="/etc/ssl/certs/ca-certificates.crt"), \
+                mock.patch("viewer.linked.ssl.SSLContext.load_verify_locations") as load:
+            adapter = linked._Pinned("93.184.216.34")
+        load.assert_called_once_with("/etc/ssl/certs/ca-certificates.crt")
+        self.assertIn("ssl_context", adapter.poolmanager.connection_pool_kw)

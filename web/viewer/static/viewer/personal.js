@@ -4,8 +4,9 @@
  * 다시 쓰고(`toGeoJSON`·`toCSV`), 브라우저 저장소(IndexedDB)에 넣고 빼는 일만 한다.
  * 서버로 보내지 않는다 — 점묶음(`PointSet`)과 다른 자리다.
  *
- * **점이냐 면이냐는 좌표 값의 꼴이 정한다.** JSON 은 geometry 의 type,
- * CSV 는 lon·lat 두 칸(점)이냐 geometry 칸의 WKT(점·면)냐. 한 레이어에 섞지 않는다.
+ * **점·선·면은 좌표 값의 꼴이 정한다.** JSON 은 geometry 의 type,
+ * CSV 는 lon·lat 두 칸(점)이냐 geometry 칸의 WKT(점·선·면)냐. 한 레이어에는 한 가지 —
+ * **섞여 오면 모양별로 갈라 여러 레이어로 만든다**(`split`, wetherilli 126).
  *
  * 관리 화면(manage.js)과 지도(map.js)가 함께 쓰고, node 로도 읽힌다(시험).
  * 화면 문장은 부르는 쪽의 `T` 로 옮긴다 — 여기 문장도 `T("…")` 로 감싸 시험이 긁는다.
@@ -214,8 +215,8 @@
 
   function parseWKT(text) {
     var s = String(text).trim();
-    var m = /^(MULTIPOINT|POINT|MULTIPOLYGON|POLYGON)\s*(Z|M|ZM)?\s*(\(.*\))\s*$/i.exec(s);
-    if (!m) throw new ParseError(T("WKT 를 읽지 못했다 — POINT·MULTIPOINT·POLYGON·MULTIPOLYGON 만 받는다"));
+    var m = /^(MULTIPOINT|POINT|MULTILINESTRING|LINESTRING|MULTIPOLYGON|POLYGON)\s*(Z|M|ZM)?\s*(\(.*\))\s*$/i.exec(s);
+    if (!m) throw new ParseError(T("WKT 를 읽지 못했다 — POINT·LINESTRING·POLYGON 과 그 MULTI 만 받는다"));
     var type = m[1].toUpperCase();
     var nested = nest(m[3]);
     function pos(str) {
@@ -232,6 +233,8 @@
     if (type === "MULTIPOINT") {
       return { type: "MultiPoint", coordinates: nested.map(function (n) { return pos(leaf(n)); }) };
     }
+    if (type === "LINESTRING") return { type: "LineString", coordinates: ring(nested) };
+    if (type === "MULTILINESTRING") return { type: "MultiLineString", coordinates: nested.map(ring) };
     if (type === "POLYGON") return { type: "Polygon", coordinates: nested.map(ring) };
     return { type: "MultiPolygon", coordinates: nested.map(function (p) {
       if (!Array.isArray(p)) throw new ParseError(T("WKT 괄호가 맞지 않는다"));
@@ -280,6 +283,8 @@
     switch (geometry.type) {
       case "Point": return "POINT (" + pos(c) + ")";
       case "MultiPoint": return "MULTIPOINT (" + c.map(function (p) { return "(" + pos(p) + ")"; }).join(", ") + ")";
+      case "LineString": return "LINESTRING " + ring(c);
+      case "MultiLineString": return "MULTILINESTRING (" + c.map(ring).join(", ") + ")";
       case "Polygon": return "POLYGON (" + c.map(ring).join(", ") + ")";
       case "MultiPolygon": return "MULTIPOLYGON (" + c.map(function (p) { return "(" + p.map(ring).join(", ") + ")"; }).join(", ") + ")";
     }
@@ -333,8 +338,8 @@
   }
 
   function checkGeometry(g) {
-    var ok = { Point: 1, MultiPoint: 2, Polygon: 3, MultiPolygon: 4 };
-    if (!ok[g.type]) throw new ParseError(T("{type} 은 받지 않는다 — 점(Point)과 면(Polygon)만", { type: g.type }));
+    var depth = { Point: 0, MultiPoint: 1, LineString: 1, MultiLineString: 2, Polygon: 2, MultiPolygon: 3 };
+    if (!(g.type in depth)) throw new ParseError(T("{type} 은 받지 않는다 — 점·선·면만", { type: g.type }));
     (function walk(c, depth) {
       if (depth === 0) {
         if (!Array.isArray(c) || c.length < 2 || !isFinite(c[0]) || !isFinite(c[1])) throw new ParseError(T("좌표를 읽지 못했다"));
@@ -343,30 +348,32 @@
       }
       if (!Array.isArray(c)) throw new ParseError(T("좌표를 읽지 못했다"));
       c.forEach(function (x) { walk(x, depth - 1); });
-    })(g.coordinates, { Point: 0, MultiPoint: 1, Polygon: 2, MultiPolygon: 3 }[g.type]);
+    })(g.coordinates, depth[g.type]);
   }
 
-  // ── 마무리 — 점·면 가르기 ──────────────────────────────────────
+  // ── 마무리 — 점·선·면 가르기 ───────────────────────────────────
+
+  var KINDS = ["point", "line", "polygon"];
 
   function kindOf(geometry) {
     if (!geometry) return null;
-    return /Point$/.test(geometry.type) ? "point" : "polygon";
+    if (/Point$/.test(geometry.type)) return "point";
+    return /LineString$/.test(geometry.type) ? "line" : "polygon";
   }
 
   function finish(r) {
     var kinds = {};
     r.features.forEach(function (f) { var k = kindOf(f.geometry); if (k) kinds[k] = (kinds[k] || 0) + 1; });
-    var names = Object.keys(kinds);
+    var names = KINDS.filter(function (k) { return kinds[k]; });
     if (!names.length) throw new ParseError(T("그릴 좌표가 하나도 없다"));
-    if (names.length > 1) {
-      throw new ParseError(T("점 {p}개와 면 {q}개가 섞였다 — 한 레이어에는 한 가지만", { p: kinds.point, q: kinds.polygon }));
-    }
     var meta = r.meta;
     if (meta.format && meta.format !== FORMAT) r.warnings.push(T("양식 이름이 다르다 ({name})", { name: meta.format }));
     if (meta.version && Number(meta.version) > VERSION) r.warnings.push(T("더 새 판의 양식이다 (v{v}) — 아는 것만 읽었다", { v: meta.version }));
-    var drawn = kinds[names[0]];
+    var drawn = names.reduce(function (n, k) { return n + kinds[k]; }, 0);
     return {
-      kind: names[0],
+      // 섞였으면 "mixed" — 저장할 때 `split` 으로 모양마다 한 레이어가 된다
+      kind: names.length > 1 ? "mixed" : names[0],
+      kinds: kinds,
       name: meta.name || "",
       meta: meta,
       columns: r.columns,
@@ -378,6 +385,29 @@
       warnings: r.warnings,
       format: r.format,
     };
+  }
+
+  /** 읽은 것을 모양마다 하나로 가른다 → [읽은 것…]. 한 가지면 그대로 하나.
+   *  좌표가 없는 행은 맨 앞 갈래에 둔다 — 버리지 않는다(되쓰면 원본의 행이 다 나온다). */
+  function split(parsed) {
+    if (parsed.kind !== "mixed") return [parsed];
+    var names = KINDS.filter(function (k) { return parsed.kinds[k]; });
+    return names.map(function (kind, i) {
+      var features = parsed.features.filter(function (f) {
+        var k = kindOf(f.geometry);
+        return k === kind || (!k && i === 0);
+      });
+      var out = {};
+      Object.keys(parsed).forEach(function (key) { out[key] = parsed[key]; });
+      out.kind = kind;
+      out.kinds = {};
+      out.kinds[kind] = parsed.kinds[kind];
+      out.features = features;
+      out.count = features.length;
+      out.drawn = parsed.kinds[kind];
+      out.undrawn = features.length - out.drawn;
+      return out;
+    });
   }
 
   /** 파일 이름과 글자로 읽는다. 끝이 .csv·.tsv 가 아니면 JSON 으로 본다. */
@@ -608,7 +638,10 @@
 
   /** 받은 것을 기록에 덮는다. 사람이 고친 이름·색·이름표는 둔다. */
   function applyFetched(rec, got) {
-    var p = got.parsed;
+    var parts = split(got.parsed);
+    // 섞인 연결이면 이 기록이 맡은 모양(`linkPart`)의 갈래만. 그 모양이 사라졌으면 빈 레이어로 남긴다
+    var p = parts.filter(function (x) { return !rec.linkPart || x.kind === rec.linkPart; })[0] ||
+      { kind: rec.linkPart, meta: got.parsed.meta, columns: got.parsed.columns, features: [], count: 0, drawn: 0, problems: [] };
     rec.kind = p.kind;
     rec.meta = p.meta;
     rec.columns = p.columns;
@@ -620,15 +653,29 @@
     return rec;
   }
 
-  /** 연결 레이어 하나를 새로 받아 저장한다. 실패해도 저장한다 — 옛것은 그대로, 까닭만 적는다. */
-  function refresh(rec) {
-    if (!rec || !rec.link) return Promise.resolve(rec);
-    return fetchLinked(rec.link).then(function (got) {
-      return put(applyFetched(rec, got));
+  /** 한 연결에서 나온 기록들(같은 `linkGroup`)을 한 번 받아 함께 덮는다. 실패해도 저장한다 — 옛것은
+   *  그대로, 까닭만 적는다. 기록 하나를 넘기면 그 하나만. */
+  function refresh(recs) {
+    recs = (Array.isArray(recs) ? recs : [recs]).filter(function (r) { return r && r.link; });
+    if (!recs.length) return Promise.resolve([]);
+    return fetchLinked(recs[0].link).then(function (got) {
+      return Promise.all(recs.map(function (rec) { return put(applyFetched(rec, got)); }));
     }, function (e) {
-      rec.status = { ok: false, error: (e && e.message) || String(e), at: new Date().toISOString() };
-      return put(rec);
+      var status = { ok: false, error: (e && e.message) || String(e), at: new Date().toISOString() };
+      return Promise.all(recs.map(function (rec) { rec.status = status; return put(rec); }));
     });
+  }
+
+  /** 기록들을 연결마다 묶는다 → [[기록…]…]. 연결이 아닌 것은 뺀다. */
+  function linkGroups(recs) {
+    var groups = {}, order = [];
+    recs.forEach(function (rec) {
+      if (!rec.link) return;
+      var key = rec.linkGroup || rec.id;
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(rec);
+    });
+    return order.map(function (k) { return groups[k]; });
   }
 
   // 다른 창(지도·관리 화면)에 바뀐 것을 알린다
@@ -665,6 +712,9 @@
     fetchLinked: fetchLinked,
     applyFetched: applyFetched,
     refresh: refresh,
+    linkGroups: linkGroups,
+    split: split,
+    kindOf: kindOf,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.GSMPersonal = api;
