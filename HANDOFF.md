@@ -187,7 +187,7 @@ venv 는 requirements 가 바뀌면 스스로 다시 만든다. 지금 도는 �
 `db/kopri/araon.jsonl`, koprifossillab 004), 지금의 바람(매시 :35, `fetch_gfs_wind` → `db/wind/gfs/`, 여덟 판만, koprifossillab 003).
 지난 바람(`db/wind/era5/`, 944 날·1.2 GB 남짓)은 2026-10-01 저녁에 굽기 시작했다(세 시간 남짓, 로그 `/data/GSM/logs/era5_build.log`) — 다 구우면 다시 구울 일은 기간을 늘릴 때뿐이다. 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
 `deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에는 `scripts` 마운트를
-2026-10-01 에 더했다 — 이 판(PR #91)의 이미지로 다시 뜨기 전까지는 그날 손으로 깐 사본이 돈다.
+2026-10-01 에 더했다 — 2026-10-01 에 v0.34.0 으로 다시 떠, 지금 도는 것은 이미지가 깐 사본이다.
 
 ### 판을 올릴 때
 
