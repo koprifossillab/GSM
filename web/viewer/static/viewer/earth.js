@@ -1031,8 +1031,9 @@
   };
   var WIND_REF = { "10m": 12, "250hPa": 45 };   // 이 빠르기(m/s)면 한 프레임에 WIND_PX 칸쯤 간다
   var WIND_PX = 1.4, WIND_LIFE = 80, WIND_FADE = 0.93, WIND_PLAY_MS = 1500;
-  // 빠르기를 기준의 몇 배인가로 여덟 칸 — 느리면 푸르고 빠르면 붉다
-  var WIND_COLORS = ["#6fa8dc", "#8fd3e8", "#c9f0f0", "#ffffff", "#ffe9a8", "#ffc46b", "#ff8c4a", "#ff4d4d"];
+  // 빠르기를 기준의 몇 배인가로 여덟 칸
+  // 해류와 함께 켜도 갈리게 따뜻한 쪽만 쓴다 — 느리면 엷은 회색·흰색, 빠르면 노랑·주황·빨강. 해류는 청록 쪽이다 (koprifossillab 016)
+  var WIND_COLORS = ["#bfbfbf", "#e3e3e3", "#ffffff", "#fff2a8", "#ffd65c", "#ffab40", "#ff7a33", "#ff3d3d"];
   var M_PER_LAT = Math.PI * R / 180;
   var windCanvas = $("wind-canvas"), windCtx = windCanvas.getContext("2d");
   var windField = null, windNext = null, windBlend = 0, windParticles = [], windRaf = 0, windViewKey = "", windLast = 0;
@@ -1222,7 +1223,7 @@
       }
       p.lon = lon; p.lat = lat; p.xy = xy;
     });
-    windCtx.lineWidth = 1.2;
+    windCtx.lineWidth = 1.0;
     buckets.forEach(function (segs, i) {
       if (!segs.length) return;
       windCtx.strokeStyle = WIND_COLORS[i];
@@ -1371,8 +1372,10 @@
   // 기준 빠르기를 0.5 m/s 로 두었다. 구운 것은 달마다 한 장(15 일 무렵의 3 일 평균)이고, 카드에서 달을 고르거나 재생한다 —
   // 재생은 두 달 사이를 섞어 넘긴다(바람의 재생과 같다) (koprifossillab 015)
   var CURRENTS = { index: null, month: saved("gsm.earth.ocean.month", ""), playing: false };
-  var OCEAN_REF = 0.5, OCEAN_PX = 1.0, OCEAN_LIFE = 120, OCEAN_FADE = 0.95, OCEAN_PLAY_MS = 2000;
-  var OCEAN_COLORS = ["#2f6690", "#3a86b4", "#57a7d4", "#86cbe8", "#bfe9f6", "#ffffff", "#fff0b0", "#ffcf66"];
+  // 바람과 갈리게 — 색은 바다빛(청록 → 비취 → 엷은 물빛, 흰색·노랑은 바람의 것이라 쓰지 않는다), 선은 굵고 꼬리가 길며
+  // 느리게 흐른다. 바람은 가늘고 짧고 빠르다 (koprifossillab 016)
+  var OCEAN_REF = 0.5, OCEAN_PX = 0.75, OCEAN_LIFE = 170, OCEAN_FADE = 0.965, OCEAN_PLAY_MS = 2000;
+  var OCEAN_COLORS = ["#2a8a8f", "#2c9d97", "#30b0a2", "#3ac3ae", "#4fd5bb", "#6fe4c9", "#97f0da", "#c4f9ec"];
   var oceanCanvas = $("ocean-canvas"), oceanCtx = oceanCanvas.getContext("2d");
   var oceanField = null, oceanNext = null, oceanBlend = 0, oceanLast = 0, oceanCache = {};
   var oceanParticles = [], oceanRaf = 0, oceanViewKey = "", oceanAsked = 0;
@@ -1514,7 +1517,7 @@
       }
       p.lon = lon; p.lat = lat; p.xy = xy;
     });
-    oceanCtx.lineWidth = 1.1;
+    oceanCtx.lineWidth = 1.8;
     buckets.forEach(function (segs, i) {
       if (!segs.length) return;
       oceanCtx.strokeStyle = OCEAN_COLORS[i];
