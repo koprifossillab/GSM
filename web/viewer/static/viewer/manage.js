@@ -142,7 +142,8 @@
       (p.format === "csv" ? " · " + p.encoding.toUpperCase() : "");
     var keep = pending.keep || {};
     $("mg-name").value = keep.name || p.name || (file ? file.name.replace(/\.[^.]+$/, "") : hostOf(link.url));
-    $("mg-color").value = keep.color || (/^#[0-9a-f]{6}$/i.test(p.meta.color || "") ? p.meta.color : P.DEFAULT_COLOR);
+    $("mg-color").value = keep.color || (/^#[0-9a-f]{6}$/i.test(p.meta.color || "") ? p.meta.color
+      : P.PALETTE[Math.floor(Math.random() * (P.PALETTE.length - 1))]);
 
     var label = $("mg-label");
     label.innerHTML = "";
@@ -198,6 +199,27 @@
     });
     rt.appendChild(rb);
     msg("mg-save-msg", "");
+    checkSize();
+  }
+
+  /** 저장하기 전에 크기와 자리를 잰다 (wetherilli 131). 자리가 없으면 저장 단추를 막는다 */
+  function checkSize() {
+    var host = $("mg-size-check");
+    host.innerHTML = "";
+    $("mg-save").disabled = false;
+    var recs = P.split(pending.parsed).map(function (part) {
+      var r = P.record(part, pending.file);
+      r.name = $("mg-name").value.trim() || r.name;
+      if (pending.link) r.link = pending.link;
+      return r;
+    });
+    P.checkBeforeSave(recs).then(function (c) {
+      var line = el("div", "mg-size-line");
+      line.appendChild(el("span", "", T("저장하면 {size}", { size: P.formatBytes(c.bytes) })));
+      host.appendChild(line);
+      c.warnings.forEach(function (w) { host.appendChild(el("div", "mg-cap-warn " + w.level, w.text)); });
+      if (!c.room) $("mg-save").disabled = true;
+    });
   }
 
   function geomText(g) {
@@ -501,7 +523,7 @@
         layers.forEach(function (rec) { body.appendChild(layerRow(rec)); });
         table.appendChild(body);
       }
-      renderUsage();
+      renderUsage(layers);
     }).catch(function (e) {
       msg("mg-stored-msg", (e && e.message) || String(e), "bad");
     });
@@ -541,7 +563,10 @@
     tr.appendChild(el("td", "mono", rec.drawn === rec.count ? String(rec.count) : T("{n} (좌표 {m})", { n: rec.count, m: rec.drawn })));
     tr.appendChild(rec.link ? linkCell(rec) : el("td", "", rec.file ? rec.file.name : ""));
     tr.appendChild(el("td", "mono", localTime(rec.imported)));
-    tr.appendChild(el("td", "mono", bytes(P.sizeOf(rec))));
+    var size = P.sizeOf(rec);
+    var sizeCell = el("td", "mono" + (size > P.LIMITS.layer ? " mg-big" : ""), bytes(size));
+    if (size > P.LIMITS.layer) sizeCell.title = T("지도가 느려질 수 있다");
+    tr.appendChild(sizeCell);
 
     var acts = el("td", "mg-row-acts");
     var json = el("button", "btn quiet", "JSON");
@@ -596,11 +621,29 @@
     return td;
   }
 
-  function renderUsage() {
-    var est = navigator.storage && navigator.storage.estimate;
-    if (!est) { $("mg-usage").textContent = ""; return; }
-    navigator.storage.estimate().then(function (e) {
-      $("mg-usage").textContent = T("이 사이트가 쓰는 저장소 {used} / 한도 {quota}", { used: bytes(e.usage || 0), quota: bytes(e.quota || 0) });
+  /** 용량 — 개인 레이어 합계, 이 사이트가 쓰는 저장소와 한도, 넘은 것의 경고 (wetherilli 131) */
+  function renderUsage(layers) {
+    P.measure(layers || []).then(function (m) {
+      $("mg-usage").textContent = m.quota
+        ? T("이 사이트가 쓰는 저장소 {used} / 한도 {quota}", { used: bytes(m.usage), quota: bytes(m.quota) }) : "";
+      var host = $("mg-capacity");
+      host.innerHTML = "";
+      var head = el("div", "mg-cap-head");
+      head.appendChild(el("b", "", T("용량")));
+      head.appendChild(el("span", "", T("개인 레이어 {total} · 레이어 하나 {layer} 넘으면, 모두 {all} 넘으면 알린다",
+        { total: P.formatBytes(m.total), layer: P.formatBytes(P.LIMITS.layer), all: P.formatBytes(P.LIMITS.total) })));
+      host.appendChild(head);
+      if (m.quota) {
+        var ratio = Math.min(1, m.usage / m.quota);
+        var bar = el("div", "mg-cap-bar");
+        var fill = el("span", ratio >= P.LIMITS.quotaFull ? "bad" : ratio >= P.LIMITS.quotaWarn ? "warn" : "");
+        fill.style.width = Math.max(0.5, ratio * 100) + "%";
+        bar.appendChild(fill);
+        bar.title = T("이 브라우저의 저장소를 {pct}% 썼다 ({used} / {quota})",
+          { pct: Math.round(ratio * 100), used: P.formatBytes(m.usage), quota: P.formatBytes(m.quota) });
+        host.appendChild(bar);
+      }
+      m.warnings.forEach(function (w) { host.appendChild(el("div", "mg-cap-warn " + w.level, w.text)); });
     });
     if (navigator.storage.persisted) {
       navigator.storage.persisted().then(function (yes) {

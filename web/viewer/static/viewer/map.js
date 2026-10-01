@@ -1689,7 +1689,14 @@
     if (el) el.textContent = n;
   }
 
+  /** 켠 지질 레이어를 모두 끈다 (wetherilli 131). 하나씩 끄는 것과 같은 길(`removeLayer`)로 — 저장된 상태·고르개 칸도 따라간다 */
+  function removeAllLayers() {
+    active.slice().forEach(function (entry) { removeLayer(entry.name); });
+  }
+
   function renderActive() {
+    var off = document.getElementById("layers-off");
+    if (off) off.disabled = !active.length;
     var host = document.getElementById("active-list");
     setCount("count-layers", active.length);
     host.innerHTML = "";
@@ -3866,7 +3873,7 @@
       var labels = {};
       (rec.columns || []).forEach(function (c) { labels[c.key] = c.label || c.key; });
       // **같은 자리의 점은 하나로 모은다** (wetherilli 120). 지역 대표점에 수백 건이 겹치는 자료(nkfcluster)에서
-      // 네모 수백 장을 포개 그리면 하나로 보여 몇 건인지 모른다. 모은 점에는 건수를 단다(`stackIcon`).
+      // 네모 수백 장을 포개 그리면 하나로 보여 몇 건인지 모른다. 모은 점에는 건수를 단다(`pointIcon`).
       // 자리는 원본 위경도로 맞춘다 — 화면 투영으로 옮긴 뒤에 맞추면 소수점 끝이 갈려 따로 놀 수 있다
       var features = [];
       var stacks = {};
@@ -3892,7 +3899,7 @@
       });
       var layer = new ol.layer.Vector({
         source: new ol.source.Vector({ features: features }),
-        style: personalStyle(rec.color || Personal.DEFAULT_COLOR),
+        style: personalStyle(rec),
         declutter: true,
         visible: rec.visible !== false,
       });
@@ -3903,73 +3910,297 @@
     renderPersonal();
   }
 
-  /** 개인 레이어의 모양 — 점묶음(`pointStyle`)과 같은 색을 쓰되 음영을 달리한다.
-   *  점은 네모에 어두운 테와 흐린 그림자, 면은 빗금 대신 더 짙은 바탕과 끊긴 테. */
-  function personalStyle(color) {
-    // 겹침 거르기(declutter)는 이름표에만 건다 — 기호까지 거르면 한 점의 그림자와 네모가 서로를 지운다
-    var shadow = new ol.style.Circle({ radius: 9, fill: new ol.style.Fill({ color: "rgba(0, 0, 0, 0.28)" }),
-                                       displacement: [1.5, -1.5], declutterMode: "none" });
-    var dot = new ol.style.RegularShape({
-      points: 4, radius: 6.5, angle: Math.PI / 4, declutterMode: "none",
-      fill: new ol.style.Fill({ color: color }),
-      stroke: new ol.style.Stroke({ color: "rgba(20, 12, 4, 0.85)", width: 1.6 }),
-    });
-    var line = new ol.style.Stroke({ color: color, width: 2.2, lineDash: [6, 4] });
-    var edge = new ol.style.Stroke({ color: "rgba(20, 12, 4, 0.55)", width: 4.5 });
-    var area = new ol.style.Fill({ color: hexAlpha(color, 0.32) });
+  // ── 개인 레이어의 꾸밈 (wetherilli 131) ──────────────────────────
+  //
+  // 기록마다 `color` 와 `style`(점: 모양·크기, 선·면: 굵기·선 꼴, 면: 채움 투명도)을 든다. 목록의 아이콘을 누르면
+  // 고르개가 뜬다(`openStylePicker`). **지도 기호·겹친 점·목록 아이콘·고르개 미리 보기를 한 함수(`drawSymbol`)가 그린다** —
+  // 넷이 따로 그리면 고른 것과 지도에 뜬 것이 달라진다.
+
+  var STYLE_DEFAULT = { shape: "circle", size: 7, width: 2.2, dash: "solid", opacity: 0.3 };
+  function styleOf(rec) {
+    var s = rec.style || {};
+    var out = {};
+    Object.keys(STYLE_DEFAULT).forEach(function (k) { out[k] = s[k] === undefined ? STYLE_DEFAULT[k] : s[k]; });
+    return out;
+  }
+
+  /** 목록 아이콘에 맞춘 꾸밈 — 큰 점은 아이콘 칸에 맞게 줄인다 */
+  function iconStyle(rec) {
+    var st = styleOf(rec);
+    st.size = Math.min(st.size, 7.5);
+    return st;
+  }
+
+  /** 모양의 길을 그린다 — 가운데 (cx, cy), 반지름 r. */
+  function shapePath(g, shape, cx, cy, r) {
+    g.beginPath();
+    function poly(n, rot, radii) {
+      for (var i = 0; i < n; i++) {
+        var a = rot + i * 2 * Math.PI / n, rr = radii ? radii[i % radii.length] : r;
+        if (i) g.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); else g.moveTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a));
+      }
+      g.closePath();
+    }
+    if (shape === "square") g.rect(cx - r * 0.86, cy - r * 0.86, r * 1.72, r * 1.72);
+    else if (shape === "diamond") poly(4, -Math.PI / 2);
+    else if (shape === "triangle") { poly(3, -Math.PI / 2, [r * 1.15]); }
+    else if (shape === "star") poly(10, -Math.PI / 2, [r * 1.18, r * 0.5]);
+    else if (shape === "hexagon") poly(6, 0);
+    else g.arc(cx, cy, r, 0, 2 * Math.PI);
+  }
+
+  function dashOf(dash, width) {
+    if (dash === "dashed") return [width * 3, width * 2];
+    if (dash === "dotted") return [0.1, width * 2];
+    return null;
+  }
+
+  /** 한 기호를 캔버스에 그린다. kind 가 point 면 모양(겹친 수 n 이 둘 넘으면 장을 포개고 건수 딱지),
+   *  line 이면 짧은 선, polygon 이면 채운 네모. 크기는 캔버스 크기에 맞춘다 — 목록·고르개용. */
+  function drawSymbol(canvas, kind, color, st, n) {
+    var pr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    var w = canvas._cssW, h = canvas._cssH;
+    canvas.width = w * pr; canvas.height = h * pr;
+    var g = canvas.getContext("2d");
+    g.scale(pr, pr);
+    g.clearRect(0, 0, w, h);
+    if (kind === "line") {
+      g.lineCap = "round";
+      g.strokeStyle = "rgba(0, 0, 0, 0.45)"; g.lineWidth = st.width + 2.5;
+      g.setLineDash(dashOf(st.dash, st.width + 2.5) || []);
+      g.beginPath(); g.moveTo(3, h - 4); g.lineTo(w * 0.45, h * 0.35); g.lineTo(w - 3, h * 0.55); g.stroke();
+      g.strokeStyle = color; g.lineWidth = st.width; g.setLineDash(dashOf(st.dash, st.width) || []);
+      g.beginPath(); g.moveTo(3, h - 4); g.lineTo(w * 0.45, h * 0.35); g.lineTo(w - 3, h * 0.55); g.stroke();
+      return canvas;
+    }
+    if (kind === "polygon") {
+      g.fillStyle = hexAlpha(color, st.opacity);
+      g.fillRect(3, 3, w - 6, h - 6);
+      g.strokeStyle = color; g.lineWidth = Math.min(st.width, 3); g.setLineDash(dashOf(st.dash, Math.min(st.width, 3)) || []);
+      g.strokeRect(3, 3, w - 6, h - 6);
+      return canvas;
+    }
+    var r = Math.min(st.size, (Math.min(w, h) - 6) / 2);
+    var cx = w / 2, cy = h / 2;
+    if (n > 1) { cx -= 3; cy += 3; }
+    function one(dx, dy, alpha) {
+      g.save();
+      g.globalAlpha = alpha;
+      g.shadowColor = "rgba(0, 0, 0, 0.45)"; g.shadowBlur = 3; g.shadowOffsetY = 1;
+      shapePath(g, st.shape, cx + dx, cy + dy, r);
+      g.fillStyle = color; g.fill();
+      g.shadowColor = "transparent";
+      g.lineWidth = 1.6; g.strokeStyle = "#fff"; g.stroke();
+      g.restore();
+    }
+    if (n > 1) { one(3.5, -3.5, 0.5); one(1.75, -1.75, 0.75); }
+    one(0, 0, 1);
+    if (n > 1) {
+      var label = n > 999 ? "999+" : String(n);
+      var br = label.length < 2 ? 7 : label.length < 3 ? 8.5 : 10.5;
+      var bx = cx + r + 1, by = cy - r - 1;
+      g.fillStyle = "#1f1409"; g.strokeStyle = "#fff"; g.lineWidth = 1.4;
+      g.beginPath(); g.arc(bx, by, br, 0, 2 * Math.PI); g.fill(); g.stroke();
+      g.fillStyle = "#fff"; g.font = "700 " + (label.length < 3 ? 10 : 8.5) + "px sans-serif";
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(label, bx, by + 0.5);
+    }
+    return canvas;
+  }
+
+  function symbolCanvas(w, h) {
+    var c = document.createElement("canvas");
+    c._cssW = w; c._cssH = h;
+    c.style.width = w + "px"; c.style.height = h + "px";
+    return c;
+  }
+
+  /** 점 기호 — 색·모양·크기·겹친 수마다 한 번만 굽는다. 그림 안에 건수를 그려 넣는 까닭은 120
+   *  (이 판의 OL 은 글자에 `declutterMode` 를 주지 못해, 이름표로 달면 겹침 거르기에 지워진다). */
+  var symbolIcons = {};
+  function pointIcon(color, st, n) {
+    var key = [color, st.shape, st.size, n > 1 ? n : 1].join("/");
+    if (symbolIcons[key]) return symbolIcons[key];
+    var badge = n > 1 ? 24 : 0;
+    var size = Math.ceil(2 * (st.size * 1.2 + 4)) + badge;
+    var canvas = drawSymbol(symbolCanvas(size, size), "point", color, st, n);
+    var pr = canvas.width / size;
+    symbolIcons[key] = new ol.style.Icon({ img: canvas, size: [canvas.width, canvas.height], scale: 1 / pr,
+                                           declutterMode: "none" });
+    return symbolIcons[key];
+  }
+
+  /** 개인 레이어의 모양. 점묶음(흰 테 동그라미)과 갈리게 그림자를 깔고, 고른 모양·크기·굵기·투명도를 따른다. */
+  function personalStyle(rec) {
+    var color = rec.color || Personal.DEFAULT_COLOR;
+    var st = styleOf(rec);
+    var dash = dashOf(st.dash, st.width);
+    var halo = new ol.style.Stroke({ color: "rgba(20, 12, 4, 0.45)", width: st.width + 2.5, lineDash: dashOf(st.dash, st.width + 2.5) || undefined });
+    var line = new ol.style.Stroke({ color: color, width: st.width, lineDash: dash || undefined, lineCap: "round" });
+    var area = new ol.style.Fill({ color: hexAlpha(color, st.opacity) });
     var base = pointStyle(color);
     return function (feature, resolution) {
       var text = base(feature, resolution).getText();
       var n = (feature.get("_items") || []).length;
-      if (feature.getGeometry().getType().indexOf("Point") >= 0) {
-        if (n > 1) return new ol.style.Style({ image: stackIcon(color, n), text: text });
-        return [new ol.style.Style({ image: shadow }), new ol.style.Style({ image: dot, text: text })];
-      }
-      return [new ol.style.Style({ stroke: edge }), new ol.style.Style({ stroke: line, fill: area, text: text })];
+      var kind = feature.getGeometry().getType();
+      if (kind.indexOf("Point") >= 0) return new ol.style.Style({ image: pointIcon(color, st, n), text: text });
+      return [new ol.style.Style({ stroke: halo }),
+              new ol.style.Style({ stroke: line, fill: /Polygon/.test(kind) ? area : undefined, text: text })];
     };
   }
 
-  /** 여러 건이 겹친 점 — 네모에 건수 딱지를 붙인 그림. 글자는 이름표처럼 겹침 거르기에 지워지면 안 되므로
-   *  그림 안에 그려 넣는다(이 판의 OL 은 글자에 `declutterMode` 를 주지 못한다). 색·건수마다 한 번만 굽는다. */
-  var stackIcons = {};
-  function stackIcon(color, n) {
-    var key = color + "/" + n;
-    if (stackIcons[key]) return stackIcons[key];
-    var label = n > 999 ? "999+" : String(n);
-    var r = label.length < 2 ? 7 : label.length < 3 ? 8.5 : 10.5;       // 딱지 반지름
-    var size = Math.ceil(2 * (8 + r + 2));
-    var c = size / 2, pr = Math.max(1, Math.round(window.devicePixelRatio || 1));
-    var canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size * pr;
-    var g = canvas.getContext("2d");
-    g.scale(pr, pr);
-    // 그림자 — 낱점과 같은 자리·같은 짙기
-    g.fillStyle = "rgba(0, 0, 0, 0.28)";
-    g.beginPath(); g.arc(c + 1.5, c + 1.5, 10, 0, 2 * Math.PI); g.fill();
-    // 겹친 장 — 뒤로 두 장을 비껴 둔다. 한 장이 아니라는 것이 건수보다 먼저 보인다
-    [[3.5, -3.5, 0.45], [1.75, -1.75, 0.7], [0, 0, 1]].forEach(function (s) {
-      g.globalAlpha = s[2];
-      g.fillStyle = color;
-      g.strokeStyle = "rgba(20, 12, 4, 0.85)";
-      g.lineWidth = 1.6;
-      g.beginPath(); g.rect(c - 6.5 + s[0], c - 6.5 + s[1], 13, 13); g.fill(); g.stroke();
-    });
-    g.globalAlpha = 1;
-    // 건수 딱지 — 오른쪽 위
-    var bx = c + 8, by = c - 8;
-    g.fillStyle = "#1f1409";
-    g.strokeStyle = "#fff";
-    g.lineWidth = 1.4;
-    g.beginPath(); g.arc(bx, by, r, 0, 2 * Math.PI); g.fill(); g.stroke();
-    g.fillStyle = "#fff";
-    g.font = "700 " + (label.length < 3 ? 10 : 8.5) + "px sans-serif";
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    g.fillText(label, bx, by + 0.5);
-    stackIcons[key] = new ol.style.Icon({ img: canvas, size: [canvas.width, canvas.height], scale: 1 / pr,
-                                          declutterMode: "none" });
-    return stackIcons[key];
+  /** 꾸밈을 바꿨다 — 지도와 목록 아이콘을 다시 그리고, 잠시 뒤 저장한다(끌개를 움직이는 동안 매번 저장하지 않게). */
+  var saveStyleTimer = {};
+  function restyle(rec) {
+    if (personalLayers[rec.id]) personalLayers[rec.id].setStyle(personalStyle(rec));
+    var icon = document.querySelector('#personal-list [data-rec="' + rec.id + '"]');
+    if (icon) drawSymbol(icon, rec.kind, rec.color, iconStyle(rec), 1);
+    clearTimeout(saveStyleTimer[rec.id]);
+    saveStyleTimer[rec.id] = setTimeout(function () { Personal.put(rec); }, 400);
   }
+
+  /** 꾸밈 고르개 — 목록의 아이콘을 누르면 그 곁에 뜬다. 바꾸는 대로 지도에 보인다. */
+  var picker = null;
+  function closeStylePicker() {
+    if (picker) { picker.remove(); picker = null; }
+  }
+  function openStylePicker(rec, anchor) {
+    closeStylePicker();
+    var st = styleOf(rec);
+    picker = document.createElement("div");
+    picker.className = "style-picker";
+    picker.setAttribute("role", "dialog");
+    picker.setAttribute("aria-label", T("꾸밈"));
+
+    function section(title) {
+      var sec = document.createElement("div");
+      sec.className = "sp-sec";
+      var h = document.createElement("div");
+      h.className = "sp-title";
+      h.textContent = title;
+      sec.appendChild(h);
+      picker.appendChild(sec);
+      return sec;
+    }
+    function update(patch) {
+      rec.style = Object.assign({}, rec.style || {}, patch);
+      st = styleOf(rec);
+      restyle(rec);
+      refreshChoices();
+    }
+    var refreshers = [];
+    function refreshChoices() { refreshers.forEach(function (f) { f(); }); }
+
+    // 색
+    var colors = section(T("색"));
+    var row = document.createElement("div");
+    row.className = "sp-colors";
+    Personal.PALETTE.forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sp-color";
+      b.style.background = c;
+      b.title = c;
+      b.addEventListener("click", function () { rec.color = c; custom.value = c; restyle(rec); refreshChoices(); });
+      refreshers.push(function () { b.classList.toggle("on", (rec.color || "").toLowerCase() === c); });
+      row.appendChild(b);
+    });
+    var custom = document.createElement("input");
+    custom.type = "color";
+    custom.className = "sp-custom";
+    custom.title = T("다른 색");
+    custom.value = rec.color || Personal.DEFAULT_COLOR;
+    custom.addEventListener("input", function () { rec.color = custom.value; restyle(rec); refreshChoices(); });
+    row.appendChild(custom);
+    colors.appendChild(row);
+
+    function slider(sec, label, min, max, step, get, set, fmt) {
+      var wrap = document.createElement("label");
+      wrap.className = "sp-slider";
+      var name = document.createElement("span");
+      name.textContent = label;
+      var input = document.createElement("input");
+      input.type = "range"; input.min = min; input.max = max; input.step = step; input.value = get();
+      var out = document.createElement("span");
+      out.className = "sp-val";
+      out.textContent = fmt(get());
+      input.addEventListener("input", function () { set(Number(input.value)); out.textContent = fmt(Number(input.value)); });
+      wrap.append(name, input, out);
+      sec.appendChild(wrap);
+    }
+
+    if (rec.kind === "point") {
+      var shapes = section(T("모양"));
+      var srow = document.createElement("div");
+      srow.className = "sp-shapes";
+      Personal.SHAPES.forEach(function (shape) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "sp-shape";
+        b.title = SHAPE_NAMES[shape];
+        var c = symbolCanvas(26, 26);
+        b.appendChild(c);
+        refreshers.push(function () {
+          drawSymbol(c, "point", rec.color, Object.assign({}, st, { shape: shape, size: 8 }), 1);
+          b.classList.toggle("on", st.shape === shape);
+        });
+        b.addEventListener("click", function () { update({ shape: shape }); });
+        srow.appendChild(b);
+      });
+      shapes.appendChild(srow);
+      slider(shapes, T("크기"), 4, 14, 0.5, function () { return st.size; }, function (v) { update({ size: v }); },
+             function (v) { return v + " px"; });
+    } else {
+      var lines = section(rec.kind === "polygon" ? T("테두리") : T("선"));
+      slider(lines, T("굵기"), 0.5, 8, 0.5, function () { return st.width; }, function (v) { update({ width: v }); },
+             function (v) { return v + " px"; });
+      var drow = document.createElement("div");
+      drow.className = "seg sp-dash";
+      [["solid", T("실선")], ["dashed", T("파선")], ["dotted", T("점선")]].forEach(function (d) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = d[1];
+        refreshers.push(function () { b.classList.toggle("on", st.dash === d[0]); });
+        b.addEventListener("click", function () { update({ dash: d[0] }); });
+        drow.appendChild(b);
+      });
+      lines.appendChild(drow);
+      if (rec.kind === "polygon") {
+        var fill = section(T("채움"));
+        slider(fill, T("투명도"), 0, 100, 5, function () { return Math.round((1 - st.opacity) * 100); },
+               function (v) { update({ opacity: Math.round(100 - v) / 100 }); }, function (v) { return v + "%"; });
+      }
+    }
+
+    var foot = document.createElement("div");
+    foot.className = "sp-foot";
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "btn quiet";
+    reset.textContent = T("모양을 처음대로");
+    reset.addEventListener("click", function () { rec.style = {}; st = styleOf(rec); restyle(rec); closeStylePicker(); });
+    var done = document.createElement("button");
+    done.type = "button";
+    done.className = "btn";
+    done.textContent = T("닫는다");
+    done.addEventListener("click", closeStylePicker);
+    foot.append(reset, done);
+    picker.appendChild(foot);
+
+    document.body.appendChild(picker);
+    refreshChoices();
+    // 아이콘 오른쪽에 붙이되, 화면 밖으로 나가면 안으로 당긴다
+    var a = anchor.getBoundingClientRect(), pw = picker.offsetWidth, ph = picker.offsetHeight;
+    var left = Math.min(a.right + 8, window.innerWidth - pw - 8);
+    var top = Math.min(Math.max(8, a.top - 12), window.innerHeight - ph - 8);
+    picker.style.left = Math.max(8, left) + "px";
+    picker.style.top = Math.max(8, top) + "px";
+  }
+  var SHAPE_NAMES = { circle: T("동그라미"), square: T("네모"), diamond: T("마름모"), triangle: T("세모"), star: T("별"), hexagon: T("육각") };
+  document.addEventListener("mousedown", function (e) {
+    if (picker && !picker.contains(e.target) && !(e.target.closest && e.target.closest(".ps-symbol"))) closeStylePicker();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeStylePicker(); });
 
   /** 팝업 덩이들 — 모은 점이면 든 것마다 하나. 열 이름은 반입한 양식의 label 로 적는다.
    *  레이어마다 `PERSONAL_POPUP_MAX` 건까지만 내고 나머지는 세기만 한다(넘친 것은 onClick 이 한 줄로). */
@@ -4015,9 +4246,21 @@
         if (personalLayers[rec.id]) personalLayers[rec.id].setVisible(rec.visible);
         Personal.put(rec);
       });
-      var swatch = document.createElement("span");
-      swatch.className = "swatch";
-      swatch.style.background = rec.color || Personal.DEFAULT_COLOR;
+      // 아이콘 — 지도에 뜬 그대로 그린다. 누르면 꾸밈 고르개 (wetherilli 131)
+      var swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "ps-symbol";
+      swatch.title = T("색·모양을 바꾼다");
+      var icon = symbolCanvas(22, 22);
+      icon.dataset.rec = rec.id;
+      drawSymbol(icon, rec.kind, rec.color || Personal.DEFAULT_COLOR, iconStyle(rec), 1);
+      swatch.appendChild(icon);
+      swatch.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (picker && picker._rec === rec.id) { closeStylePicker(); return; }
+        openStylePicker(rec, swatch);
+        picker._rec = rec.id;
+      });
       var name = document.createElement("span");
       name.className = "ps-name";
       name.textContent = rec.name;
@@ -4047,6 +4290,25 @@
       label.append(name, count);
       li.append(box, swatch, label, zoom);
       host.appendChild(li);
+    });
+    // 용량이 넘었으면 블록 밑에 한 줄 (wetherilli 131). 자세한 것은 관리 화면의 저장 자료
+    Personal.measure(personal).then(function (m) {
+      var warn = document.getElementById("personal-warn");
+      if (!warn) return;
+      warn.hidden = !m.warnings.length;
+      warn.className = "personal-warn" + (m.warnings.some(function (w) { return w.level === "bad"; }) ? " bad" : "");
+      warn.innerHTML = "";
+      m.warnings.slice(0, 2).forEach(function (w) {
+        var line = document.createElement("span");
+        line.textContent = w.text;
+        warn.appendChild(line);
+      });
+      if (m.warnings.length) {
+        var a = document.createElement("a");
+        a.href = BASE + "manage/";
+        a.textContent = T("관리 화면에서 정리한다");
+        warn.appendChild(a);
+      }
     });
   }
 
@@ -5268,6 +5530,7 @@
   renderActive();
   renderPointSets();
   loadPersonal(true);
+  document.getElementById("layers-off").addEventListener("click", removeAllLayers);
   wireTools();
   wireSettings();
   wireTabs();
