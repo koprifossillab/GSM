@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="{% static 'viewer/vendor/ol.css' %}">
 <link rel="stylesheet" href="{% static 'viewer/map.css' %}?v={{ stamp|default:version }}">
 </head>
-<body>
+<body data-linked-proxy="{{ linked_proxy|yesno:"1,0" }}">
 
 <div id="splash" role="status" aria-live="polite">
   <img src="{% static 'viewer/splash.gif' %}" alt="{% t "대돌여지도" %}">

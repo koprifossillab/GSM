@@ -59,4 +59,22 @@ assert.throws(() => P.parse(JSON.stringify({ type: "FeatureCollection", features
 // EUC-KR 로 저장한 CSV 도 읽는다 (엑셀)
 const euckr = Buffer.from([0xc0, 0xa7, 0xb5, 0xb5]);   // "위도"
 assert.strictEqual(P.decode(euckr).text, "위도");
+// 연결 (P09·122) — 주소와 인증 방식을 거른다
+assert.deepStrictEqual(P.checkLink({ url: " https://a.example/x.json ", auth: { mode: "none" } }),
+  { url: "https://a.example/x.json", auth: { mode: "none", name: "", key: "" } });
+assert.throws(() => P.checkLink({ url: "ftp://a/x", auth: { mode: "none" } }), /http/);
+assert.throws(() => P.checkLink({ url: "nope", auth: { mode: "none" } }), /주소/);
+assert.throws(() => P.checkLink({ url: "https://a/x", auth: { mode: "header", key: "k" } }), /이름/);
+assert.throws(() => P.checkLink({ url: "https://a/x", auth: { mode: "bearer" } }), /비었다/);
+// 받은 것을 덮어도 사람이 고친 이름·색은 둔다
+const rec = { name: "내 이름", color: "#123456", link: { url: "https://a/x" } };
+P.applyFetched(rec, { parsed: c, via: "server" });
+assert.strictEqual(rec.name, "내 이름");
+assert.strictEqual(rec.color, "#123456");
+assert.strictEqual(rec.count, 3);
+assert.strictEqual(rec.status.via, "server");
+// 내려받기에 키가 실리지 않는다
+const withKey = Object.assign({}, c, { link: { url: "https://a/x", auth: { mode: "bearer", key: "SECRET" } } });
+assert.ok(!JSON.stringify(P.toGeoJSON(withKey)).includes("SECRET"));
+assert.ok(!P.toCSV(withKey).includes("SECRET"));
 console.log("ok");

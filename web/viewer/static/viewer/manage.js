@@ -20,6 +20,10 @@
     return out;
   }
   P.setTranslator(T);
+  P.configure({
+    proxy: document.body.dataset.linkedProxy === "1" ? location.pathname.replace(/manage\/?$/, "") + "linked/fetch/" : "",
+    csrf: function () { var i = document.querySelector("#csrf-form [name=csrfmiddlewaretoken]"); return i ? i.value : ""; },
+  });
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -89,7 +93,7 @@
 
   // ── 반입 ────────────────────────────────────────────────────────
 
-  var pending = null;    // 읽었으나 아직 저장하지 않은 것 { parsed, file }
+  var pending = null;    // 읽었으나 아직 저장하지 않은 것 { parsed, file } 또는 { parsed, link, via, editId }
 
   function readFile(file) {
     msg("mg-read-msg", T("읽는 중…"));
@@ -125,18 +129,20 @@
   });
 
   function preview() {
-    var p = pending.parsed, file = pending.file;
+    var p = pending.parsed, file = pending.file, link = pending.link;
     $("mg-preview").hidden = false;
-    $("mg-file-name").textContent = file.name + " · " + bytes(file.size) + " · " + p.format.toUpperCase() +
+    var source = file ? file.name + " · " + bytes(file.size) : hostOf(link.url) + " · " + viaText(pending.via);
+    $("mg-file-name").textContent = source + " · " + p.format.toUpperCase() +
       (p.format === "csv" ? " · " + p.encoding.toUpperCase() : "");
-    $("mg-name").value = p.name || file.name.replace(/\.[^.]+$/, "");
-    $("mg-color").value = /^#[0-9a-f]{6}$/i.test(p.meta.color || "") ? p.meta.color : P.DEFAULT_COLOR;
+    var keep = pending.keep || {};
+    $("mg-name").value = keep.name || p.name || (file ? file.name.replace(/\.[^.]+$/, "") : hostOf(link.url));
+    $("mg-color").value = keep.color || (/^#[0-9a-f]{6}$/i.test(p.meta.color || "") ? p.meta.color : P.DEFAULT_COLOR);
 
     var label = $("mg-label");
     label.innerHTML = "";
     label.appendChild(new Option(T("없음"), ""));
     p.columns.forEach(function (c) { label.appendChild(new Option(c.label === c.key ? c.key : c.label + " (" + c.key + ")", c.key)); });
-    label.value = p.meta.label || "";
+    label.value = keep.label !== undefined ? keep.label : (p.meta.label || "");
 
     var stats = $("mg-stats");
     stats.innerHTML = "";
@@ -205,11 +211,21 @@
   $("mg-save").addEventListener("click", function () {
     if (!pending) return;
     var rec = P.record(pending.parsed, pending.file);
+    if (pending.link) {
+      rec.link = pending.link;
+      P.applyFetched(rec, { parsed: pending.parsed, via: pending.via });
+      if (pending.editId) {                  // 연결을 고친 것 — 같은 기록을 덮는다
+        rec.id = pending.editId;
+        rec.visible = pending.keep.visible;
+        rec.imported = pending.keep.imported || rec.imported;
+      }
+    }
     rec.name = $("mg-name").value.trim() || rec.name;
     rec.color = $("mg-color").value;
     rec.label = $("mg-label").value;
     $("mg-save").disabled = true;
     P.put(rec).then(function () {
+      linkEditing(null);
       $("mg-save").disabled = false;
       msg("mg-save-msg", T("'{name}' 을 저장했다. 지도의 개인 레이어에 뜬다.", { name: rec.name }), "good");
       pending = null;
@@ -223,6 +239,63 @@
     pending = null;
     $("mg-preview").hidden = true;
   });
+
+  // ── API 로 잇기 (wetherilli P09·122) ────────────────────────────
+
+  function hostOf(url) { try { return new URL(url).host; } catch (e) { return String(url || ""); } }
+  function viaText(via) { return via === "server" ? T("우리 서버를 거쳐 받았다") : T("곧장 받았다"); }
+
+  var editing = null;      // 연결을 고치는 기록
+  function linkEditing(rec) {
+    editing = rec;
+    $("mg-link-editing").textContent = rec ? T("'{name}' 의 연결을 고친다", { name: rec.name }) : "";
+  }
+
+  function syncMode() {
+    var mode = $("mg-link-mode").value;
+    $("mg-link-name-wrap").hidden = !(mode === "header" || mode === "query");
+    $("mg-link-key-wrap").hidden = mode === "none";
+  }
+  $("mg-link-mode").addEventListener("change", syncMode);
+
+  function readLinkForm() {
+    return {
+      url: $("mg-link-url").value.trim(),
+      auth: { mode: $("mg-link-mode").value, name: $("mg-link-name").value.trim(), key: $("mg-link-key").value },
+    };
+  }
+
+  $("mg-link-try").addEventListener("click", function () {
+    var link;
+    try { link = P.checkLink(readLinkForm()); } catch (e) { msg("mg-link-msg", e.message, "bad"); return; }
+    $("mg-link-try").disabled = true;
+    msg("mg-link-msg", T("받는 중…"));
+    $("mg-preview").hidden = true;
+    P.fetchLinked(link).then(function (got) {
+      $("mg-link-try").disabled = false;
+      msg("mg-link-msg", viaText(got.via), "good");
+      pending = { parsed: got.parsed, link: link, via: got.via,
+                  editId: editing ? editing.id : null,
+                  keep: editing ? { name: editing.name, color: editing.color, label: editing.label,
+                                    visible: editing.visible, imported: editing.imported } : {} };
+      preview();
+    }).catch(function (e) {
+      $("mg-link-try").disabled = false;
+      msg("mg-link-msg", T("받지 못했다 — {why}", { why: (e && e.message) || e }), "bad");
+    });
+  });
+
+  function editLink(rec) {
+    showTab("import");
+    $("mg-link-url").value = rec.link.url;
+    $("mg-link-mode").value = rec.link.auth.mode;
+    $("mg-link-name").value = rec.link.auth.name || "";
+    $("mg-link-key").value = rec.link.auth.key || "";
+    syncMode();
+    linkEditing(rec);
+    msg("mg-link-msg", "");
+    $("mg-link-box").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // ── 예시 ────────────────────────────────────────────────────────
 
@@ -314,7 +387,7 @@
 
     tr.appendChild(el("td", "", kindText(rec.kind)));
     tr.appendChild(el("td", "mono", rec.drawn === rec.count ? String(rec.count) : T("{n} (좌표 {m})", { n: rec.count, m: rec.drawn })));
-    tr.appendChild(el("td", "", rec.file ? rec.file.name : ""));
+    tr.appendChild(rec.link ? linkCell(rec) : el("td", "", rec.file ? rec.file.name : ""));
     tr.appendChild(el("td", "mono", localTime(rec.imported)));
     tr.appendChild(el("td", "mono", bytes(P.sizeOf(rec))));
 
@@ -338,9 +411,37 @@
       if (!confirm(T("'{name}' 을 이 브라우저에서 지운다. 되살릴 수 없다.", { name: rec.name }))) return;
       P.remove(rec.id).then(renderStored);
     });
+    if (rec.link) {
+      var again = el("button", "btn quiet", "⟳");
+      again.type = "button";
+      again.title = T("지금 새로 받는다");
+      again.addEventListener("click", function () {
+        again.disabled = true;
+        P.refresh(rec).then(renderStored);
+      });
+      var edit = el("button", "btn quiet", T("연결"));
+      edit.type = "button";
+      edit.title = T("주소·인증키를 고친다");
+      edit.addEventListener("click", function () { editLink(rec); });
+      [again, edit].forEach(function (b) { acts.appendChild(b); });
+    }
     [json, csv, del].forEach(function (b) { acts.appendChild(b); });
     tr.appendChild(acts);
     return tr;
+  }
+
+  /** 연결 레이어의 "원본" 칸 — 호스트와 마지막으로 받은 때·길, 못 받았으면 그 까닭. */
+  function linkCell(rec) {
+    var td = el("td", "mg-link-cell");
+    td.appendChild(el("span", "mg-link-badge", T("연결")));
+    td.appendChild(document.createTextNode(" " + hostOf(rec.link.url)));
+    var st = rec.status || {};
+    var line = st.ok
+      ? T("{when} · {via}", { when: localTime(rec.fetched), via: viaText(st.via) })
+      : T("받지 못했다 ({when}) — {why} · 마지막으로 받은 것을 보인다", { when: localTime(st.at), why: st.error || "" });
+    var small = el("small", st.ok ? "" : "bad", line);
+    td.appendChild(small);
+    return td;
   }
 
   function renderUsage() {

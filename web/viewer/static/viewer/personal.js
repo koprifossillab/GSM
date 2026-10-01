@@ -530,6 +530,107 @@
     try { return JSON.stringify(rec).length; } catch (e) { return 0; }
   }
 
+  // ── 연결 레이어 (wetherilli P09·122) ─────────────────────────────
+  //
+  // 남의 사이트가 우리 양식으로 내주는 주소와 인증키를 기록(`rec.link`)에 둔다. 받을 때마다 **브라우저가 먼저
+  // 곧장 부르고**, 막히면(상대가 CORS 를 열지 않으면) 우리 서버(`linked/fetch/`)를 거친다. 받지 못하면 마지막으로
+  // 받은 것을 그대로 두고 까닭을 `rec.status` 에 적는다. 키는 이 브라우저에만 있다 — 내려받기(JSON·CSV)에도 안 실린다.
+
+  var AUTH_MODES = ["none", "bearer", "header", "query"];
+  var config = { proxy: "", csrf: function () { return ""; } };
+  function configure(opts) { Object.keys(opts || {}).forEach(function (k) { config[k] = opts[k]; }); }
+
+  function withQuery(url, name, key) {
+    var u = new URL(url);
+    u.searchParams.set(name, key);
+    return u.toString();
+  }
+
+  function checkLink(link) {
+    var url;
+    try { url = new URL(String(link && link.url || "").trim()); } catch (e) { throw new ParseError(T("주소를 읽지 못했다")); }
+    if (!/^https?:$/.test(url.protocol)) throw new ParseError(T("http·https 주소만 부른다"));
+    var auth = link.auth || { mode: "none" };
+    if (AUTH_MODES.indexOf(auth.mode) < 0) throw new ParseError(T("인증 방식을 모른다"));
+    if ((auth.mode === "header" || auth.mode === "query") && !String(auth.name || "").trim()) {
+      throw new ParseError(T("인증키를 싣는 이름이 없다"));
+    }
+    if (auth.mode !== "none" && !auth.key) throw new ParseError(T("인증키가 비었다"));
+    return { url: url.toString(), auth: { mode: auth.mode, name: String(auth.name || "").trim(), key: auth.key || "" } };
+  }
+
+  /** 곧장 받는다. CORS·망으로 막히면 TypeError 가 난다 — 그것만 서버로 돌린다. */
+  function fetchDirect(link) {
+    var headers = { Accept: "application/geo+json, application/json, text/csv;q=0.9, */*;q=0.5" };
+    var url = link.url;
+    if (link.auth.mode === "bearer") headers.Authorization = "Bearer " + link.auth.key;
+    else if (link.auth.mode === "header") headers[link.auth.name] = link.auth.key;
+    else if (link.auth.mode === "query") url = withQuery(url, link.auth.name, link.auth.key);
+    return fetch(url, { headers: headers, credentials: "omit", cache: "no-store", redirect: "follow" }).then(function (r) {
+      if (r.status === 401 || r.status === 403) throw new ParseError(T("상대 서버가 거절했다 ({status}) — 인증키를 본다", { status: r.status }));
+      if (!r.ok) throw new ParseError(T("상대 서버가 주지 않았다 ({status})", { status: r.status }));
+      return r.arrayBuffer();
+    });
+  }
+
+  function fetchViaServer(link) {
+    if (!config.proxy) throw new ParseError(T("곧장 받지 못했다 — 상대 서버가 CORS 를 열어야 한다"));
+    return fetch(config.proxy, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": config.csrf() },
+      body: JSON.stringify({ url: link.url, auth: link.auth }),
+      credentials: "same-origin",
+      cache: "no-store",
+    }).then(function (r) {
+      if (r.ok) return r.arrayBuffer();
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        throw new ParseError(d.error || T("우리 서버가 받지 못했다 ({status})", { status: r.status }));
+      });
+    });
+  }
+
+  /** 연결을 따라 받아 읽는다 → { parsed, via: "direct"|"server" }. */
+  function fetchLinked(link) {
+    var checked = checkLink(link);
+    var name = checked.url.split("?")[0];
+    function read(buf, via) {
+      var d = decode(buf);
+      var parsed = parse(d.text, /\.csv$/i.test(name) ? name : "");
+      parsed.encoding = d.encoding;
+      return { parsed: parsed, via: via };
+    }
+    return fetchDirect(checked).then(function (buf) { return read(buf, "direct"); }, function (e) {
+      if (e instanceof ParseError) throw e;                  // 상대가 답은 했다 — 서버로 가도 같다
+      return Promise.resolve().then(function () { return fetchViaServer(checked); })
+        .then(function (buf) { return read(buf, "server"); });
+    });
+  }
+
+  /** 받은 것을 기록에 덮는다. 사람이 고친 이름·색·이름표는 둔다. */
+  function applyFetched(rec, got) {
+    var p = got.parsed;
+    rec.kind = p.kind;
+    rec.meta = p.meta;
+    rec.columns = p.columns;
+    rec.features = p.features;
+    rec.count = p.count;
+    rec.drawn = p.drawn;
+    rec.fetched = new Date().toISOString();
+    rec.status = { ok: true, via: got.via, at: rec.fetched, problems: p.problems.length };
+    return rec;
+  }
+
+  /** 연결 레이어 하나를 새로 받아 저장한다. 실패해도 저장한다 — 옛것은 그대로, 까닭만 적는다. */
+  function refresh(rec) {
+    if (!rec || !rec.link) return Promise.resolve(rec);
+    return fetchLinked(rec.link).then(function (got) {
+      return put(applyFetched(rec, got));
+    }, function (e) {
+      rec.status = { ok: false, error: (e && e.message) || String(e), at: new Date().toISOString() };
+      return put(rec);
+    });
+  }
+
   // 다른 창(지도·관리 화면)에 바뀐 것을 알린다
   var channel = root.BroadcastChannel ? new root.BroadcastChannel(CHANNEL) : null;
   function announce() { if (channel) channel.postMessage({ changed: Date.now() }); }
@@ -558,6 +659,12 @@
     remove: remove,
     clear: clear,
     onChange: onChange,
+    AUTH_MODES: AUTH_MODES,
+    configure: configure,
+    checkLink: checkLink,
+    fetchLinked: fetchLinked,
+    applyFetched: applyFetched,
+    refresh: refresh,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.GSMPersonal = api;
