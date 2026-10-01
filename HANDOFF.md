@@ -184,8 +184,8 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 와 앱 코드 사본(`app/`)을 거기 깔고(`install.sh`), 파이썬 일은 `run.sh <관리 명령>` 이 전용 venv(`scripts/venv`)로 돌린다.
 venv 는 requirements 가 바뀌면 스스로 다시 만든다. 지금 도는 것은 주간 백업과 아라온호 위치(매시 :50, `fetch_araon` →
 `db/kopri/araon.jsonl`, koprifossillab 004). 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
-`deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에 `scripts` 마운트가 들어가야
-컨테이너가 깐다 — 들어가기 전까지는 2026-10-01 에 손으로 깐 사본이 돈다.
+`deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에는 `scripts` 마운트를
+2026-10-01 에 더했다 — 이 판(PR #91)의 이미지로 다시 뜨기 전까지는 그날 손으로 깐 사본이 돈다.
 
 ### 판을 올릴 때
 
