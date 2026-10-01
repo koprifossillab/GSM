@@ -1166,6 +1166,7 @@ EN = {
     "너무 크다 — {mb} MB 까지 받는다": "Too large — up to {mb} MB",
     "받다가 끊겼다": "The connection dropped while fetching",
     "넘겨주기가 너무 많다": "Too many redirects",
+    "너무 오래 걸린다 — {s} 초 안에 받는다": "Taking too long — must finish within {s} seconds",
     "같은 자리에 {n}건 더 있다 — 관리 화면에서 내려받아 본다":
         "{n} more at this spot — download from the manage page to see them",
     "좌표 없음 {n}": "{n} without coordinates",

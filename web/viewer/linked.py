@@ -11,7 +11,10 @@
   넣어 우리 서버를 디딤돌로 쓰지 못하게, 호스트를 풀어 공인 주소가 아니면 거절한다. 연구실 안의 API 를
   잇고 싶으면 사람이 `settings.LINKED_ALLOW` 에 그 호스트를 적는다
 - 넘겨주기(3xx)도 한 번씩 같은 검사를 한다. **다른 호스트로 넘어가면 키를 싣지 않는다**
-- 크기(`MAX_BYTES`)·시간(`TIMEOUT`)에 끝이 있고, 한 사람이 1 분에 `RATE_PER_MINUTE` 번까지
+- 크기(`MAX_BYTES`)·시간에 끝이 있고, 한 사람이 1 분에 `RATE_PER_MINUTE` 번까지. 시간은 **넘겨주기까지 다 합쳐
+  `DEADLINE` 초**다 — requests 의 읽기 시간(`TIMEOUT`)은 한 번 읽기의 상한이라, 몇 초마다 조금씩 흘려 보내면
+  20 MB 까지 몇 분이고 워커를 붙잡는다 (wetherilli 124)
+- 같은 호스트라도 **https 에서 http 로 내려가는 넘겨주기에는 키를 싣지 않는다** — 키가 평문으로 흐른다
 - 받은 것을 풀지 않는다 — 읽는 것은 브라우저의 `personal.js` 하나다. 풀이가 두 벌이 되지 않게
 
 - **검사한 IP 로만 붙는다.** 호스트를 풀어 검사한 뒤 requests 가 다시 풀면, 그 사이에 DNS 를 바꿔(rebinding)
@@ -42,6 +45,8 @@ log = logging.getLogger(__name__)
 UPSTREAM = "linked"
 USER_AGENT = "GSM/0.1 (linked layer)"
 TIMEOUT = (5, 20)
+#: 한 번 받기의 전체 마감(초) — 넘겨주기·본문 읽기를 다 합친다
+DEADLINE = 20
 MAX_BYTES = 20 * 1024 * 1024
 MAX_REDIRECTS = 3
 RATE_PER_MINUTE = 30
@@ -202,14 +207,20 @@ def fetch(url: str, auth: dict) -> tuple:
     """주소를 불러 (본문 바이트, content-type) 을 돌려준다. 못 하면 LinkedError."""
     auth = check_auth(auth)
     url, ip = check_url(url)
-    origin = urlsplit(url).hostname
+    origin = urlsplit(url)
+    deadline = time.monotonic() + DEADLINE
     for _ in range(MAX_REDIRECTS + 1):
         headers = {"User-Agent": USER_AGENT, "Accept": "application/geo+json, application/json, text/csv;q=0.9, */*;q=0.5"}
-        same = urlsplit(url).hostname == origin
+        here = urlsplit(url)
+        # 키는 처음 준 호스트에만, 그리고 https 로 받은 것을 http 로 내려 보내지 않는다
+        same = here.hostname == origin.hostname and not (origin.scheme == "https" and here.scheme == "http")
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise LinkedError(msg("너무 오래 걸린다 — {s} 초 안에 받는다", s=DEADLINE), 504)
         target = _with_auth(url, auth, headers) if same else url
         with _session(ip) as session:
             try:
-                r = session.get(target, headers=headers, timeout=TIMEOUT, stream=True, allow_redirects=False)
+                r = session.get(target, headers=headers, timeout=(TIMEOUT[0], min(TIMEOUT[1], left)), stream=True, allow_redirects=False)
             except requests.RequestException as exc:
                 usage.record(UPSTREAM, ok=False)
                 log.info("연결 레이어 — 닿지 못했다 %s (%s)", redact(target, auth), type(exc).__name__)
@@ -230,6 +241,9 @@ def fetch(url: str, auth: dict) -> tuple:
                 body = bytearray()
                 try:
                     for chunk in r.iter_content(65536):
+                        if time.monotonic() > deadline:
+                            usage.record(UPSTREAM, ok=False)
+                            raise LinkedError(msg("너무 오래 걸린다 — {s} 초 안에 받는다", s=DEADLINE), 504)
                         body.extend(chunk)
                         if len(body) > MAX_BYTES:
                             raise LinkedError(msg("너무 크다 — {mb} MB 까지 받는다", mb=MAX_BYTES // (1024 * 1024)), 413)

@@ -164,6 +164,33 @@ class Fetch(SimpleTestCase):
             self.assertNotIn("SECRET", call["url"])
             self.assertNotIn("SECRET", json.dumps(call["headers"]))
 
+    def test_https_에서_http_로_내려가면_키를_싣지_않는다(self):
+        answers = {"https://api.example.org/x": Response(302, headers={"Location": "http://api.example.org/y"}),
+                   "http://api.example.org/y": Response(body=b"{}")}
+        with resolves(HOSTS), sessions(answers):
+            linked.fetch("https://api.example.org/x", {"mode": "query", "name": "apikey", "key": "SECRET"})
+            linked.fetch("https://api.example.org/x", {"mode": "header", "name": "X-API-Key", "key": "SECRET"})
+        down = [c for c in Session.calls if c["url"].startswith("http://")]
+        self.assertEqual(len(down), 2)
+        for call in down:
+            self.assertNotIn("SECRET", call["url"] + json.dumps(call["headers"]))
+
+    def test_http_에서_https_로_오르면_키를_싣는다(self):
+        answers = {"http://api.example.org/x": Response(301, headers={"Location": "https://api.example.org/x"}),
+                   "https://api.example.org/x": Response(body=b"{}")}
+        with resolves(HOSTS), sessions(answers):
+            linked.fetch("http://api.example.org/x", {"mode": "bearer", "key": "K"})
+        self.assertEqual(Session.calls[-1]["headers"].get("Authorization"), "Bearer K")
+
+    def test_조금씩_흘려도_전체_마감에서_끊는다(self):
+        """한 번 읽기는 빨라도 다 합쳐 DEADLINE 을 넘으면 끊는다."""
+        clock = iter(range(0, 1000, 3))                   # 부를 때마다 3 초씩 흐른다
+        answers = {"https://api.example.org/x": Response(body=b"x" * (65536 * 50))}
+        with resolves(HOSTS), sessions(answers), mock.patch("viewer.linked.time.monotonic", side_effect=lambda: next(clock)), \
+                self.assertRaises(linked.LinkedError) as cm:
+            linked.fetch("https://api.example.org/x", {})
+        self.assertEqual(cm.exception.status, 504)
+
     def test_넘겨주기는_끝이_있다(self):
         answers = {"https://api.example.org/x": Response(302, headers={"Location": "/x"})}
         with resolves(HOSTS), sessions(answers), self.assertRaises(linked.LinkedError):
