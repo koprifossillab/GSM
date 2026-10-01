@@ -124,14 +124,27 @@ class MoonView(TestCase):
 
 
 class AntarcticStations(TestCase):
-    """남극 탭의 "자세" — 장보고·세종 기지로 바로 가는 단추 (049)."""
+    """남극 탭의 "자세" — 장보고·세종 기지로 바로 가는 단추 (049).
+    묶음은 방위 단추가 생겨 모든 탭에 서고, 기지 단추만 남극에서 선다 (wetherilli 114)."""
 
-    def test_두_기지_단추가_남극에서만_서는_묶음에_있다(self):
+    def test_두_기지_단추가_남극에서만_선다(self):
         html = self.client.get(reverse("viewer:map")).content.decode()
-        group = re.search(r'<div class="tool-col antarctica-only"[^>]*>(.*?)</div>\s*<output id="tool-out"', html, re.S)
+        group = re.search(r'<div class="tool-col" role="group" aria-label="자세">(.*?)</div>\s*<output id="tool-out"', html, re.S)
         self.assertIsNotNone(group)
-        self.assertIn('data-goto="jangbogo"', group.group(1))
-        self.assertIn('data-goto="sejong"', group.group(1))
+        for name in ("jangbogo", "sejong"):
+            button = re.search(r'<button [^>]*data-goto="%s"[^>]*>' % name, group.group(1)).group(0)
+            self.assertIn("antarctica-only", button)
+
+
+class MapCompass(TestCase):
+    """2D 지도의 방위 — 우클릭한 채 끌어 돌린 지도를 "자세" 묶음의 단추가 되돌린다 (wetherilli 114)."""
+
+    def test_방위_단추는_모든_탭의_자세_묶음에(self):
+        html = self.client.get(reverse("viewer:map")).content.decode()
+        group = re.search(r'<div class="tool-col" role="group" aria-label="자세">(.*?)</div>\s*<output id="tool-out"', html, re.S)
+        button = re.search(r'<button [^>]*id="tool-compass"[^>]*>', group.group(1)).group(0)
+        self.assertNotIn("antarctica-only", button)
+        self.assertIn('id="compass-needle"', group.group(1))
 
 
 class Map3dGraduated(TestCase):

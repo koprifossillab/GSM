@@ -388,6 +388,9 @@ EN = {
     "방위 — 바늘이 달의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":
         "Heading — the needle points to lunar north. Click to turn north up, keeping the tilt",
     "기울기 {tilt}° · 방위 {heading}°": "Tilt {tilt}° · heading {heading}°",
+    # 2D 지도의 방위 (wetherilli 114)
+    "방위 — 바늘이 지도의 본래 위쪽을 가리킨다. 우클릭한 채 끌면 지도가 돌고, 누르면 처음 방위로 되돌린다":
+        "Heading — the needle points to the map's original up. Right-drag to rotate the map; click to restore the original heading",
     "평면에서 그렇게 끌면 구로 넘어가며 기울어진다.": "Doing so on the flat map switches to the globe and tilts.",
     "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(달의 북쪽 0°)":
         "Tilt (0° looking straight down) and heading (0° lunar north) at the point in the middle of the screen",

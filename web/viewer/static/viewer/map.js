@@ -1181,7 +1181,8 @@
       view: makeView(regionProj()),
       // 축척 막대는 제 자리(왼쪽 아래)에 두면 좌표 막대가 덮는다.
       // 그래서 좌표 막대 바로 위의 칸에 붙인다.
-      controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } })
+      // OL 의 나침반(`rotate`)은 끈다 — 돌린 지도는 "자세" 묶음의 방위 단추가 되돌린다 (wetherilli 114)
+      controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true }, rotate: false })
         .extend([
           new ol.control.ScaleLine({ target: document.getElementById("scalebar"), bar: true, steps: 2, text: true, minWidth: 130 }),
         ]),
@@ -1208,6 +1209,62 @@
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
     initAttitudes();
+    rightDragRotate(map);
+    initCompass();
+  }
+
+  /** 우클릭한 채 끌면 지도가 돈다 — 화면 가운데를 축으로, 누른 자리가 가운데를 도는 만큼 (wetherilli 114).
+   *  OL 의 DragRotate 와 같은 셈인데, 그것은 왼쪽 단추만 받아 손으로 단다. 지도 위의 오른쪽 단추 메뉴는
+   *  늘 막는다 — 리눅스·맥은 누르는 순간 메뉴가 떠서 끌 틈이 없다. 나란히 보기의 오른쪽 지도에도 단다 */
+  function rightDragRotate(target) {
+    var viewport = target.getViewport();
+    var last = null, pointer = null;
+    function angle(e) {
+      var r = viewport.getBoundingClientRect();
+      return Math.atan2(r.top + r.height / 2 - e.clientY, e.clientX - r.left - r.width / 2);
+    }
+    function end(e) {
+      if (last === null || e.pointerId !== pointer) return;
+      last = pointer = null;
+      // 끝날 때 제약을 푼다 — 0° 가까이 놓으면 정북으로 붙는다(OL 의 `constrainRotation`)
+      target.getView().endInteraction();
+    }
+    viewport.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    viewport.addEventListener("pointerdown", function (e) {
+      if (e.button !== 2 || e.pointerType !== "mouse") return;
+      e.preventDefault();
+      last = angle(e);
+      pointer = e.pointerId;
+      viewport.setPointerCapture(pointer);
+      target.getView().beginInteraction();
+    });
+    viewport.addEventListener("pointermove", function (e) {
+      if (last === null || e.pointerId !== pointer) return;
+      var now = angle(e);
+      target.getView().adjustRotation(-(now - last));
+      last = now;
+    });
+    viewport.addEventListener("pointerup", end);
+    viewport.addEventListener("pointercancel", end);
+    viewport.addEventListener("lostpointercapture", end);
+  }
+
+  /** "자세" 묶음의 방위 단추 — 바늘이 지도의 본래 위쪽(3857 은 북쪽, 극지는 투영의 위쪽)을 가리키고,
+   *  누르면 처음 방위로 되돌린다. 돌지 않았으면 흐리게 둔다 — 눌러도 그대로인 까닭을 보인다 (wetherilli 114) */
+  function initCompass() {
+    var button = document.getElementById("tool-compass");
+    var needle = document.getElementById("compass-needle");
+    var shown = null;
+    button.addEventListener("click", function () {
+      map.getView().animate({ rotation: 0, duration: 400 });
+    });
+    map.on("postrender", function () {
+      var r = map.getView().getRotation();
+      if (r === shown) return;
+      shown = r;
+      needle.setAttribute("transform", "rotate(" + (r * 180 / Math.PI).toFixed(1) + " 12 12)");
+      button.disabled = Math.abs(r) < 1e-6;
+    });
   }
 
   /** 투영 하나의 보기. **OpenLayers 는 보기의 투영을 바꾸지 못한다** — 지역을
@@ -3737,8 +3794,8 @@
     var top = at(w / 2, 0), down = at(w / 2, bottom);
     var left = at(0, bottom / 2), right = at(w, bottom / 2);
     // 극지 화면은 위가 북쪽이 아니라 가장자리마다 위경도가 둘 다 바뀐다 —
-    // 네 가장자리 한가운데의 위경도를 통째로 적는다
-    var both = !isMercator();
+    // 네 가장자리 한가운데의 위경도를 통째로 적는다. 돌린 지도도 같다 (wetherilli 114)
+    var both = !isMercator() || map.getView().getRotation() !== 0;
     function pair(p) { return lat(p[1]) + " " + lon(p[0]); }
     document.getElementById("edge-n").textContent = both ? pair(top) : lat(top[1]);
     document.getElementById("edge-s").textContent = both ? pair(down) : lat(down[1]);
@@ -4182,6 +4239,7 @@
       });
       mirror1 = mirrorOverlay(map);
       mirror2 = mirrorOverlay(map2);
+      rightDragRotate(map2);
       map.on("pointermove", function (e) { if (compareMode === "split") mirror2.setPosition(e.coordinate); });
       map2.on("pointermove", function (e) { if (compareMode === "split") mirror1.setPosition(e.coordinate); });
       map.getViewport().addEventListener("pointerleave", function () { mirror2.setPosition(undefined); });
