@@ -1368,24 +1368,37 @@
   // 서버가 구워 둔 1440×720 텍스처(R=u·G=v·B=바다 가리개, 경도 −180 부터, 위도는 칸 가운데 89.875 부터, `ocean.py`)를 받아
   // 바람과 같은 길로 입자를 흘린다 — 화면 자리 셈(`windToScreen`·`windFromScreen`·`windMpp`·`windKey`)을 함께 쓰고, 판(캔버스)과
   // 입자는 따로다. 바람과 함께 켤 수 있다. 입자는 바다에서만 나고, 육지에 닿으면 다시 난다. 해류는 바람보다 수십 배 느려
-  // 기준 빠르기를 0.5 m/s 로 두었다. 1 차는 구워 둔 가장 새 날 한 장이다 — 날짜 고르개는 여러 날을 구운 뒤에 붙인다
-  var CURRENTS = { index: null };
-  var OCEAN_REF = 0.5, OCEAN_PX = 1.0, OCEAN_LIFE = 120, OCEAN_FADE = 0.95;
+  // 기준 빠르기를 0.5 m/s 로 두었다. 구운 것은 달마다 한 장(15 일 무렵의 3 일 평균)이고, 카드에서 달을 고르거나 재생한다 —
+  // 재생은 두 달 사이를 섞어 넘긴다(바람의 재생과 같다) (koprifossillab 015)
+  var CURRENTS = { index: null, month: saved("gsm.earth.ocean.month", ""), playing: false };
+  var OCEAN_REF = 0.5, OCEAN_PX = 1.0, OCEAN_LIFE = 120, OCEAN_FADE = 0.95, OCEAN_PLAY_MS = 2000;
   var OCEAN_COLORS = ["#2f6690", "#3a86b4", "#57a7d4", "#86cbe8", "#bfe9f6", "#ffffff", "#fff0b0", "#ffcf66"];
   var oceanCanvas = $("ocean-canvas"), oceanCtx = oceanCanvas.getContext("2d");
-  var oceanField = null, oceanParticles = [], oceanRaf = 0, oceanViewKey = "", oceanAsked = 0;
+  var oceanField = null, oceanNext = null, oceanBlend = 0, oceanLast = 0, oceanCache = {};
+  var oceanParticles = [], oceanRaf = 0, oceanViewKey = "", oceanAsked = 0;
   function oceanShown() { return isOn("ocean") && visibleNow("ocean"); }
-  function oceanEntry() {
-    var list = (CURRENTS.index && CURRENTS.index.ecco2 && CURRENTS.index.ecco2.times) || [];
-    return list.length ? list[list.length - 1] : null;
+  function oceanTimes() { return (CURRENTS.index && CURRENTS.index.ecco2 && CURRENTS.index.ecco2.times) || []; }
+  /** 고른 달의 장 — 없으면 그 달 앞의 가장 가까운 장, 처음이면 가장 새 장. `offset` 은 그 뒤로 몇 장 */
+  function oceanEntry(offset) {
+    var list = oceanTimes();
+    if (!list.length) return null;
+    var i = list.length - 1;
+    if (CURRENTS.month) {
+      i = 0;
+      for (var k = 0; k < list.length; k++) if (list[k].t.slice(0, 6) <= CURRENTS.month) i = k;
+    }
+    return list[(i + (offset || 0)) % list.length];
   }
   function oceanText() {
-    var e = oceanEntry();
+    var e = oceanEntry(0);
     return e ? T("{t} · ECCO2 3 일 평균 · 표층 5 m", { t: windStampText(e.t).slice(0, 10) }) : T("해류 자료가 아직 없다");
   }
   function oceanLoad(entry) {
     var url = BASE + "earth/ocean/ecco2/" + entry.t + "/surface.png";
-    return new Promise(function (resolve, reject) {
+    if (oceanCache[url]) return oceanCache[url];
+    var keys = Object.keys(oceanCache);
+    if (keys.length > 4) delete oceanCache[keys[0]];
+    return (oceanCache[url] = new Promise(function (resolve, reject) {
       var img = new Image();
       img.onload = function () {
         var c = document.createElement("canvas");
@@ -1402,9 +1415,9 @@
         }
         resolve({ u: u, v: v, sea: sea, t: entry.t });
       };
-      img.onerror = function () { reject(new Error(url)); };
+      img.onerror = function () { delete oceanCache[url]; reject(new Error(url)); };
       img.src = url;
-    });
+    }));
   }
   /** 그 자리의 해류 [u, v] (m/s). 가장 가까운 칸이 육지면 null — 입자가 해안에서 다시 난다 */
   function oceanAt(lon, lat) {
@@ -1418,8 +1431,29 @@
     var x1 = (x0 + 1) % 1440, y1 = y0 + 1;
     var a = y0 * 1440 + x0, b = y0 * 1440 + x1, c = y1 * 1440 + x0, d = y1 * 1440 + x1;
     var w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
-    return [f.u[a] * w00 + f.u[b] * w10 + f.u[c] * w01 + f.u[d] * w11,
-            f.v[a] * w00 + f.v[b] * w10 + f.v[c] * w01 + f.v[d] * w11];
+    var u = f.u[a] * w00 + f.u[b] * w10 + f.u[c] * w01 + f.u[d] * w11, v = f.v[a] * w00 + f.v[b] * w10 + f.v[c] * w01 + f.v[d] * w11;
+    var g = oceanNext;
+    if (g && oceanBlend > 0) {                                       // 재생 — 다음 달과 섞는다
+      u += (g.u[a] * w00 + g.u[b] * w10 + g.u[c] * w01 + g.u[d] * w11 - u) * oceanBlend;
+      v += (g.v[a] * w00 + g.v[b] * w10 + g.v[c] * w01 + g.v[d] * w11 - v) * oceanBlend;
+    }
+    return [u, v];
+  }
+  /** 재생 — 다음 달을 미리 받아 두고, 섞기가 다 차면 넘긴다. 끝에 닿으면 처음으로 */
+  function oceanPrefetch() {
+    var next = oceanEntry(1);
+    oceanNext = null;
+    if (!next || !CURRENTS.playing) return;
+    oceanLoad(next).then(function (f) { if (CURRENTS.playing && oceanEntry(1) === next) oceanNext = f; });
+  }
+  function oceanAdvance() {
+    var next = oceanEntry(1);
+    if (oceanNext) oceanField = oceanNext;
+    oceanBlend = 0;
+    CURRENTS.month = next.t.slice(0, 6);
+    save("gsm.earth.ocean.month", CURRENTS.month);
+    renderOcean();
+    oceanPrefetch();
   }
   function oceanSpawn(p) {
     var w = oceanCanvas.clientWidth, h = oceanCanvas.clientHeight;
@@ -1442,9 +1476,14 @@
     while (oceanParticles.length < want) { var p = {}; oceanSpawn(p); oceanParticles.push(p); }
     oceanParticles.length = want;
   }
-  function oceanFrame() {
+  function oceanFrame(now) {
     oceanRaf = requestAnimationFrame(oceanFrame);
-    if (document.hidden || !oceanShown() || !oceanField) return;
+    if (document.hidden || !oceanShown() || !oceanField) { oceanLast = now; return; }
+    if (CURRENTS.playing && oceanNext) {
+      oceanBlend += (now - (oceanLast || now)) / OCEAN_PLAY_MS;
+      if (oceanBlend >= 1) oceanAdvance();
+    }
+    oceanLast = now;
     if (mode === "globe") windOccluder = new Cesium.EllipsoidalOccluder(ELL, viewer.camera.positionWC);
     var w = oceanCanvas.clientWidth, h = oceanCanvas.clientHeight, key = windKey();
     if (key !== oceanViewKey) {
@@ -1495,20 +1534,60 @@
     var mine = ++oceanAsked;
     (CURRENTS.index ? Promise.resolve(CURRENTS.index) : fetch(BASE + "earth/ocean/").then(function (r) { return r.json(); })
       .then(function (d) { CURRENTS.index = d; return d; })).then(function () {
-      document.querySelectorAll(".ocean-when").forEach(function (p) { p.textContent = oceanText(); });
-      var entry = oceanEntry();
+      renderOcean();
+      var entry = oceanEntry(0);
       if (!entry) return null;
       if (oceanField && oceanField.t === entry.t) return oceanField;
       return oceanLoad(entry);
     }).then(function (f) {
       if (mine !== oceanAsked || !f) return;
-      oceanField = f;
+      if (f !== oceanField) {                                        // 달이 바뀌었을 때만 — 켠 레이어를 다시 쌓을 때마다 불린다
+        oceanField = f;
+        oceanBlend = 0;
+        oceanPrefetch();
+      }
       oceanResize();
       oceanViewKey = "";
       if (!oceanRaf) oceanRaf = requestAnimationFrame(oceanFrame);
     }).catch(function () { /* 다음에 켤 때 다시 */ });
   }
   window.addEventListener("resize", function () { if (oceanShown() && oceanField) { oceanResize(); oceanViewKey = ""; } });
+  /** 해류 카드 — 달 고르개·재생·지금 보이는 날 */
+  function renderOcean() {
+    var list = oceanTimes(), entry = oceanEntry(0);
+    document.querySelectorAll(".ocean-controls").forEach(function (box) {
+      var month = box.querySelector(".ocean-month"), play = box.querySelector(".ocean-play");
+      if (list.length) {
+        month.min = windStampText(list[0].t).slice(0, 7);
+        month.max = windStampText(list[list.length - 1].t).slice(0, 7);
+      }
+      if (entry) month.value = windStampText(entry.t).slice(0, 7);
+      play.disabled = list.length < 2;
+      play.textContent = CURRENTS.playing ? "⏸" : "▶";
+      play.title = CURRENTS.playing ? T("멈춤") : T("재생");
+      box.querySelector(".ocean-when").textContent = oceanText();
+    });
+  }
+  function oceanControls() {
+    var box = document.createElement("div");
+    box.className = "wind-controls ocean-controls";
+    box.innerHTML = '<div class="wind-row"><input type="month" class="ocean-month" aria-label="' + esc(T("해류의 달")) + '">' +
+      '<button type="button" class="ocean-play">▶</button></div><p class="wind-when ocean-when"></p>';
+    box.querySelector(".ocean-month").addEventListener("change", function (ev) {
+      if (!ev.target.value) return;
+      CURRENTS.month = ev.target.value.replace("-", "");
+      CURRENTS.playing = false;
+      save("gsm.earth.ocean.month", CURRENTS.month);
+      syncOcean();
+    });
+    box.querySelector(".ocean-play").addEventListener("click", function () {
+      CURRENTS.playing = !CURRENTS.playing;
+      oceanBlend = 0; oceanLast = 0;
+      oceanPrefetch();
+      renderOcean();
+    });
+    return box;
+  }
 
   /** 켜고 끄고, 출처·높이·종류·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
   function syncWind(reload) {
@@ -1761,15 +1840,13 @@
         note.textContent = T("위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.");
         li.append(head, when, note, foot, src);
       } else if (e.name === "ocean") {
-        // 해류 — 1 차는 구워 둔 한 날이다. 그 날과 깊이를 적는다 (koprifossillab 014)
-        var oceanWhen = document.createElement("p");
-        oceanWhen.className = "wind-when ocean-when";
-        oceanWhen.textContent = oceanText();
-        li.append(head, oceanWhen, foot, src);
+        // 해류 — 달을 고르거나 재생한다 (koprifossillab 015)
+        li.append(head, oceanControls(), foot, src);
       } else li.append(head, foot, src);
       host.appendChild(li);
     });
     renderWind();
+    renderOcean();
   }
   function renderCatalog() {
     var host = $("layer-catalog");

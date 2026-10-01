@@ -140,3 +140,16 @@ class ViewTests(SimpleTestCase):
         text = Path(ocean.__file__).read_text(encoding="utf-8")
         self.assertNotIn("\nimport numpy", text)
         self.assertNotIn("\nfrom numpy", text)
+
+
+class MonthlyTests(SimpleTestCase):
+    """달마다 15 일에 가장 가까운 3 일 평균 하나 (koprifossillab 015)."""
+
+    def test_pick_nearest_mid_month(self):
+        from viewer.management.commands.build_ecco2 import monthly
+        days = ["19920105", "19920108", "19920114", "19920117", "19920202", "19920216", "19920228"]
+        self.assertEqual(monthly(days), ["19920114", "19920216"])
+
+    def test_tie_takes_earlier(self):
+        from viewer.management.commands.build_ecco2 import monthly
+        self.assertEqual(monthly(["20060613", "20060617"]), ["20060613"])
