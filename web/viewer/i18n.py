@@ -1104,6 +1104,8 @@ EN = {
     "북극 지도": "Arctic map",
     "극지 정리": "The poles, together",
     "극지 화면 여섯 장": "Six polar views",
+    # (wetherilli 123) 극지 표지 — 극지 대기 화면
+    "대돌여지도 · 극지": "Great Stone Map · Polar",
     # 개인 레이어·관리 화면 (wetherilli P08·118)
     "대돌여지도 관리": "Great Stone Map — manage",
     "관리": "Manage",

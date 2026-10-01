@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% t "대돌여지도" %}</title>
 <meta name="theme-color" content="#2b1d10">
-<link rel="icon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
+<link rel="icon" id="favicon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
 {% comment %}대기 화면은 CSS 파일보다 먼저 그려져야 해서 여기 둔다. 바탕색은 gif 의
 바탕(#2b1d10)과 같아야 가장자리가 안 보인다.{% endcomment %}
 <style>
@@ -13,6 +13,8 @@
   #splash img{width:min(760px,92vw);height:auto}
   #splash p{margin:0;font:500 15px/1.4 "Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;letter-spacing:.22em;color:#c9a24b}
   #splash.gone{opacity:0;visibility:hidden}
+  #splash.polar{background:#07121c}
+  #splash.polar p{color:#8fd0ee}
 </style>
 <link rel="stylesheet" href="{% static 'viewer/vendor/ol.css' %}">
 <link rel="stylesheet" href="{% static 'viewer/map.css' %}?v={{ stamp|default:version }}">
@@ -23,11 +25,25 @@
   <img src="{% static 'viewer/splash.gif' %}" alt="{% t "대돌여지도" %}">
   <p>{% t "불러오는 중" %}</p>
 </div>
+{% comment %}극지 지역으로 열리면 극지 대기 화면 (wetherilli 123). 지역은 map.js 가 정하지만 대기 화면은 그보다 먼저
+떠야 해서 여기서 주소(?region=)와 기억한 지역(gsm.region)만 보고 고른다. 극지 = 평사도법으로 보는 지역이다{% endcomment %}
+<script>
+(function () {
+  var POLAR = ["antarctica", "greenland", "svalbard", "jan_mayen", "arctic", "arctic_ocean"];
+  var r = new URLSearchParams(location.search).get("region");
+  try { if (!r) r = localStorage.getItem("gsm.region"); } catch (e) { /* 사생활 모드 */ }
+  if (POLAR.indexOf(r) < 0) return;
+  var s = document.getElementById("splash");
+  s.className = "polar";
+  s.querySelector("img").src = "{% static 'viewer/splash-polar.gif' %}";
+})();
+</script>
 
 <aside id="panel">
   <header class="brand">
     {% comment %}숨은 차림 — 아이콘을 누르면 뜬다. 지역 탭에 두지 않을 곳(달, P05)으로 가는 문이다{% endcomment %}
     <button type="button" class="emblem-btn" id="emblem-btn" aria-haspopup="menu" aria-expanded="false"
+            data-emblem="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" data-emblem-polar="{% static 'viewer/emblem-polar.png' %}"
             aria-controls="hidden-menu" title="{% t "대돌여지도" %}">
       <img class="emblem" src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
     </button>

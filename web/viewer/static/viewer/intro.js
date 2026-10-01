@@ -102,6 +102,8 @@
     }
     if (active !== current) {
       current = active;
+      // 대기 화면 애니메이션은 들어올 때마다 처음부터 (극지 표지, wetherilli 123)
+      active.querySelectorAll("img.replay").forEach(function (img) { var src = img.src; img.src = ""; img.src = src; });
       chapters.forEach(function (a) {
         a.classList.toggle("on", a.dataset.for.split(" ").indexOf(active.id) >= 0);
       });
