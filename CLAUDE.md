@@ -421,6 +421,11 @@ WegenersDream 의 규약을 따른다(2026-09-30 부터).
 CHANGELOG 의 그 절로 GitHub 릴리스(`v<판>`)를 만든다 — 태그마다 CI 가 Docker Hub(`koprifossillab/gsm:<태그>`)에
 이미지를 올린다. 2026-09-30 전에는 `main` 에 곧장 커밋하고 한 세션이 판을 모아 붙였다.
 
+**휴대폰 화면은 손으로 찍어 보지 않는다** — CI 의 "휴대폰 화면" job(`viewer/tests/test_mobile.py`)이 390×844 터치로
+화면마다 가로 넘침·페이지 오류·손잡이 자리를 본다(wetherilli 132). 그 job 이 통과하면 확인한 것이다. 휴대폰에서 새로
+지켜야 할 것이 생기면 거기에 검사를 더한다. 로컬에서 돌리려면 `pip install -r requirements-browser.txt` 와
+`python -m playwright install chromium` — 없으면 그 시험은 건너뛴다.
+
 **문서·기록만 고치는 커밋은 `main` 에 바로 올린다**(HANDOFF·TODOs·CLAUDE.md·devlog 색인 같은 것).
 브랜치는 부딪힐 수 있는 것을 격리하려고 있는 것이다. 애매하면 묻는다.
 

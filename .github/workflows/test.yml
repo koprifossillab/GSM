@@ -41,6 +41,29 @@ jobs:
         env:
           GSM_SECRET_KEY: ci-only-not-a-secret
 
+  # 휴대폰 크기(390×844 터치)로 화면을 열어 넘침·오류·손잡이 자리를 본다 (wetherilli 132).
+  # 브라우저를 받느라 느려서 "뷰어 시험" 과 갈라 둔다 — 여기가 막혀도 저쪽은 돈다.
+  # 상류는 타지 않는다 — 시험이 브라우저에서 끊는다.
+  phone:
+    name: 휴대폰 화면
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements-browser.txt
+      - run: python -m playwright install --with-deps chromium
+
+      - name: manage.py test viewer.tests.test_mobile
+        run: python web/manage.py test viewer.tests.test_mobile --verbosity 2
+        env:
+          GSM_SECRET_KEY: ci-only-not-a-secret
+          GSM_BROWSER_TESTS: '1'   # 브라우저가 없으면 건너뛰지 말고 깨진다
+
   build:
     name: 이미지 굽기
     needs: test        # 시험을 통과한 것만 이미지가 된다
