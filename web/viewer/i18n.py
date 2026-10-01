@@ -111,6 +111,10 @@ EN = {
     "위성 구름": "Satellite clouds",
     "{t} UTC · 위성 적외선 (한 시간마다)": "{t} UTC · satellite infrared (hourly)",
     "위성 구름 자료가 아직 없다": "No satellite clouds yet",
+    # 해류 (koprifossillab 014)
+    "해류": "Ocean currents",
+    "{t} · ECCO2 3 일 평균 · 표층 5 m": "{t} · ECCO2 3-day mean · surface (5 m)",
+    "해류 자료가 아직 없다": "No ocean currents yet",
     "위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.": "Empty beyond 72° latitude. Cold ground can look like cloud.",
     "바람": "Wind",
     "지금의 바람": "Current wind",

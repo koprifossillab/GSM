@@ -69,6 +69,8 @@ urlpatterns = [
     path("earth/places/", views.earth_places, name="earth-places"),
     # 바람 — 구워 둔 u·v 텍스처 (koprifossillab P02)
     path("earth/wind/", views.earth_wind_index, name="earth-wind"),
+    path("earth/ocean/", views.earth_ocean_index, name="earth-ocean"),
+    re_path(r"^earth/ocean/(?P<source>ecco2)/(?P<stamp>\d{8})/surface\.png$", views.earth_ocean_png, name="earth-ocean-png"),
     re_path(r"^earth/wind/(?P<source>gfs|era5|gmgsi)/(?P<stamp>\d{8}|\d{10})/(?P<level>10m|250hPa|cloud-(?:total|low|mid|high)|sat)\.png$", views.earth_wind_png,
             name="earth-wind-png"),
     path("earth/labels/", views.earth_labels, name="earth-labels"),

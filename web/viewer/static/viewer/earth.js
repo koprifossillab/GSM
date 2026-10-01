@@ -106,6 +106,11 @@
   // 아라온호 항적 — 극지연구소 위치 판에서 매시간 쌓은 것. 쌓은 것이 있고 연구실 안에서 열 때만 (koprifossillab 006)
   //   track  타일이 아니라 화면이 GeoJSON 을 그린다(`syncTrack`). 오늘의 것이다
   // 레이어군은 "움직이는 지구" 다 (koprifossillab 010)
+  // 해류 — ECCO2 표층(3 일 평균)을 서버가 구워 두었을 때만. 바람처럼 입자로 흘린다(`syncOcean`) (koprifossillab 014)
+  if (THEN.ocean) {
+    CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
+      { name: "ocean", title: "해류", ocean: true, src: "ECCO2 cube92 (NASA JPL·MIT) · Menemenlis et al. 2008" });
+  }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
@@ -113,7 +118,7 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind && !LAYER[n].cloud && !LAYER[n].sat; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind && !LAYER[n].cloud && !LAYER[n].sat && !LAYER[n].ocean; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -1358,6 +1363,153 @@
   }
   setInterval(function () { if (satShown()) syncSat(true); }, 10 * 60 * 1000);
 
+  // ── 해류 (koprifossillab 014) ──
+  //
+  // 서버가 구워 둔 1440×720 텍스처(R=u·G=v·B=바다 가리개, 경도 −180 부터, 위도는 칸 가운데 89.875 부터, `ocean.py`)를 받아
+  // 바람과 같은 길로 입자를 흘린다 — 화면 자리 셈(`windToScreen`·`windFromScreen`·`windMpp`·`windKey`)을 함께 쓰고, 판(캔버스)과
+  // 입자는 따로다. 바람과 함께 켤 수 있다. 입자는 바다에서만 나고, 육지에 닿으면 다시 난다. 해류는 바람보다 수십 배 느려
+  // 기준 빠르기를 0.5 m/s 로 두었다. 1 차는 구워 둔 가장 새 날 한 장이다 — 날짜 고르개는 여러 날을 구운 뒤에 붙인다
+  var CURRENTS = { index: null };
+  var OCEAN_REF = 0.5, OCEAN_PX = 1.0, OCEAN_LIFE = 120, OCEAN_FADE = 0.95;
+  var OCEAN_COLORS = ["#2f6690", "#3a86b4", "#57a7d4", "#86cbe8", "#bfe9f6", "#ffffff", "#fff0b0", "#ffcf66"];
+  var oceanCanvas = $("ocean-canvas"), oceanCtx = oceanCanvas.getContext("2d");
+  var oceanField = null, oceanParticles = [], oceanRaf = 0, oceanViewKey = "", oceanAsked = 0;
+  function oceanShown() { return isOn("ocean") && visibleNow("ocean"); }
+  function oceanEntry() {
+    var list = (CURRENTS.index && CURRENTS.index.ecco2 && CURRENTS.index.ecco2.times) || [];
+    return list.length ? list[list.length - 1] : null;
+  }
+  function oceanText() {
+    var e = oceanEntry();
+    return e ? T("{t} · ECCO2 3 일 평균 · 표층 5 m", { t: windStampText(e.t).slice(0, 10) }) : T("해류 자료가 아직 없다");
+  }
+  function oceanLoad(entry) {
+    var url = BASE + "earth/ocean/ecco2/" + entry.t + "/surface.png";
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement("canvas");
+        c.width = 1440; c.height = 720;
+        var g = c.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        var px = g.getImageData(0, 0, 1440, 720).data, n = 1440 * 720;
+        var u = new Float32Array(n), v = new Float32Array(n), sea = new Uint8Array(n);
+        var u0 = entry.u[0], us = (entry.u[1] - entry.u[0]) / 255, v0 = entry.v[0], vs = (entry.v[1] - entry.v[0]) / 255;
+        for (var i = 0; i < n; i++) {
+          sea[i] = px[4 * i + 2] > 127 ? 1 : 0;
+          u[i] = sea[i] ? u0 + px[4 * i] * us : 0;
+          v[i] = sea[i] ? v0 + px[4 * i + 1] * vs : 0;
+        }
+        resolve({ u: u, v: v, sea: sea, t: entry.t });
+      };
+      img.onerror = function () { reject(new Error(url)); };
+      img.src = url;
+    });
+  }
+  /** 그 자리의 해류 [u, v] (m/s). 가장 가까운 칸이 육지면 null — 입자가 해안에서 다시 난다 */
+  function oceanAt(lon, lat) {
+    var f = oceanField;
+    var x = (lon + 179.875) * 4, y = (89.875 - lat) * 4;
+    if (!(y >= 0 && y <= 719)) return null;
+    var xn = ((Math.round(x) % 1440) + 1440) % 1440, yn = Math.round(y);
+    if (!f.sea[yn * 1440 + xn]) return null;
+    var x0 = Math.floor(x), y0 = Math.min(718, Math.floor(y)), fx = x - x0, fy = y - y0;
+    x0 = ((x0 % 1440) + 1440) % 1440;
+    var x1 = (x0 + 1) % 1440, y1 = y0 + 1;
+    var a = y0 * 1440 + x0, b = y0 * 1440 + x1, c = y1 * 1440 + x0, d = y1 * 1440 + x1;
+    var w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+    return [f.u[a] * w00 + f.u[b] * w10 + f.u[c] * w01 + f.u[d] * w11,
+            f.v[a] * w00 + f.v[b] * w10 + f.v[c] * w01 + f.v[d] * w11];
+  }
+  function oceanSpawn(p) {
+    var w = oceanCanvas.clientWidth, h = oceanCanvas.clientHeight;
+    for (var tries = 0; tries < 30; tries++) {                      // 바다에서만 난다 — 땅이 많은 화면이면 여러 번 던진다
+      var ll = windFromScreen(Math.random() * w, Math.random() * h);
+      if (ll && oceanField && oceanAt(ll[0], ll[1])) {
+        p.lon = ll[0]; p.lat = ll[1]; p.age = Math.floor(Math.random() * OCEAN_LIFE); p.xy = null; return;
+      }
+    }
+    p.lon = NaN;
+    p.xy = null;
+  }
+  function oceanResize() {
+    var w = wrap.clientWidth, h = wrap.clientHeight, r = window.devicePixelRatio || 1;
+    if (oceanCanvas.width !== Math.round(w * r) || oceanCanvas.height !== Math.round(h * r)) {
+      oceanCanvas.width = Math.round(w * r); oceanCanvas.height = Math.round(h * r);
+      oceanCtx.setTransform(r, 0, 0, r, 0, 0);
+    }
+    var want = Math.max(600, Math.min(6000, Math.round(w * h / 220)));
+    while (oceanParticles.length < want) { var p = {}; oceanSpawn(p); oceanParticles.push(p); }
+    oceanParticles.length = want;
+  }
+  function oceanFrame() {
+    oceanRaf = requestAnimationFrame(oceanFrame);
+    if (document.hidden || !oceanShown() || !oceanField) return;
+    if (mode === "globe") windOccluder = new Cesium.EllipsoidalOccluder(ELL, viewer.camera.positionWC);
+    var w = oceanCanvas.clientWidth, h = oceanCanvas.clientHeight, key = windKey();
+    if (key !== oceanViewKey) {
+      oceanViewKey = key;
+      oceanCtx.clearRect(0, 0, w, h);
+      oceanParticles.forEach(function (p) { p.xy = null; });
+    } else {
+      oceanCtx.globalCompositeOperation = "destination-in";
+      oceanCtx.fillStyle = "rgba(0,0,0," + OCEAN_FADE + ")";
+      oceanCtx.fillRect(0, 0, w, h);
+      oceanCtx.globalCompositeOperation = "source-over";
+    }
+    var k = windMpp() * OCEAN_PX / OCEAN_REF;
+    var buckets = OCEAN_COLORS.map(function () { return []; });
+    oceanParticles.forEach(function (p) {
+      if (!(p.age < OCEAN_LIFE) || !isFinite(p.lon)) { oceanSpawn(p); return; }
+      p.age++;
+      var uv = oceanAt(p.lon, p.lat);
+      if (!uv) { oceanSpawn(p); return; }
+      var cos = Math.max(0.05, Math.cos(p.lat * Math.PI / 180));
+      var lat = p.lat + uv[1] * k / M_PER_LAT, lon = p.lon + uv[0] * k / (M_PER_LAT * cos);
+      if (Math.abs(lat) > 89.5) { oceanSpawn(p); return; }
+      var xy = windToScreen(lon, lat);
+      if (!xy || xy[0] < -20 || xy[1] < -20 || xy[0] > w + 20 || xy[1] > h + 20) { oceanSpawn(p); return; }
+      if (p.xy && Math.abs(xy[0] - p.xy[0]) + Math.abs(xy[1] - p.xy[1]) < 60) {
+        var s = Math.sqrt(uv[0] * uv[0] + uv[1] * uv[1]) / OCEAN_REF;
+        buckets[Math.min(OCEAN_COLORS.length - 1, Math.floor(s * 3))].push(p.xy[0], p.xy[1], xy[0], xy[1]);
+      }
+      p.lon = lon; p.lat = lat; p.xy = xy;
+    });
+    oceanCtx.lineWidth = 1.1;
+    buckets.forEach(function (segs, i) {
+      if (!segs.length) return;
+      oceanCtx.strokeStyle = OCEAN_COLORS[i];
+      oceanCtx.beginPath();
+      for (var j = 0; j < segs.length; j += 4) { oceanCtx.moveTo(segs[j], segs[j + 1]); oceanCtx.lineTo(segs[j + 2], segs[j + 3]); }
+      oceanCtx.stroke();
+    });
+  }
+  function syncOcean() {
+    var e = entryOf("ocean"), on = oceanShown();
+    oceanCanvas.hidden = !on;
+    if (e) oceanCanvas.style.opacity = e.opacity;
+    if (!on) {
+      if (oceanRaf) { cancelAnimationFrame(oceanRaf); oceanRaf = 0; }
+      return;
+    }
+    var mine = ++oceanAsked;
+    (CURRENTS.index ? Promise.resolve(CURRENTS.index) : fetch(BASE + "earth/ocean/").then(function (r) { return r.json(); })
+      .then(function (d) { CURRENTS.index = d; return d; })).then(function () {
+      document.querySelectorAll(".ocean-when").forEach(function (p) { p.textContent = oceanText(); });
+      var entry = oceanEntry();
+      if (!entry) return null;
+      if (oceanField && oceanField.t === entry.t) return oceanField;
+      return oceanLoad(entry);
+    }).then(function (f) {
+      if (mine !== oceanAsked || !f) return;
+      oceanField = f;
+      oceanResize();
+      oceanViewKey = "";
+      if (!oceanRaf) oceanRaf = requestAnimationFrame(oceanFrame);
+    }).catch(function () { /* 다음에 켤 때 다시 */ });
+  }
+  window.addEventListener("resize", function () { if (oceanShown() && oceanField) { oceanResize(); oceanViewKey = ""; } });
+
   /** 켜고 끄고, 출처·높이·종류·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
   function syncWind(reload) {
     var e = entryOf("wind"), won = windShown(), con = cloudShown();
@@ -1533,6 +1685,7 @@
     syncMantle();
     syncWind();
     syncSat();
+    syncOcean();
     syncLegend();
   }
   function addLayer(name) {
@@ -1589,7 +1742,8 @@
         if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
         else { syncLabels(); syncTrack(); syncMantle(true); if (e.name === "wind") windCanvas.style.opacity = e.opacity;
                if (e.name === "cloud") applyCloud();
-               if (e.name === "satcloud") syncSat(); }
+               if (e.name === "satcloud") syncSat();
+               if (e.name === "ocean") oceanCanvas.style.opacity = e.opacity; }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1606,6 +1760,12 @@
         note.className = "wind-when";
         note.textContent = T("위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.");
         li.append(head, when, note, foot, src);
+      } else if (e.name === "ocean") {
+        // 해류 — 1 차는 구워 둔 한 날이다. 그 날과 깊이를 적는다 (koprifossillab 014)
+        var oceanWhen = document.createElement("p");
+        oceanWhen.className = "wind-when ocean-when";
+        oceanWhen.textContent = oceanText();
+        li.append(head, oceanWhen, foot, src);
       } else li.append(head, foot, src);
       host.appendChild(li);
     });
