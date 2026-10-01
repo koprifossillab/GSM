@@ -296,6 +296,8 @@
   function parseJSON(text) {
     var doc;
     try { doc = JSON.parse(String(text).replace(/^\uFEFF/, "")); } catch (e) { throw new ParseError(T("JSON 을 읽지 못했다 — {why}", { why: e.message })); }
+    // 피처 하나(API 의 상세 주소 따위)면 하나짜리 묶음으로 본다
+    if (doc && doc.type === "Feature") doc = { type: "FeatureCollection", features: [doc] };
     if (!doc || doc.type !== "FeatureCollection" || !Array.isArray(doc.features)) {
       throw new ParseError(T("GeoJSON FeatureCollection 이 아니다"));
     }
@@ -619,20 +621,61 @@
     });
   }
 
-  /** 연결을 따라 받아 읽는다 → { parsed, via: "direct"|"server" }. */
-  function fetchLinked(link) {
-    var checked = checkLink(link);
-    var name = checked.url.split("?")[0];
-    function read(buf, via) {
-      var d = decode(buf);
-      var parsed = parse(d.text, /\.csv$/i.test(name) ? name : "");
-      parsed.encoding = d.encoding;
-      return { parsed: parsed, via: via };
-    }
-    return fetchDirect(checked).then(function (buf) { return read(buf, "direct"); }, function (e) {
+  /** 받기만 한다 — 곧장, 막히면 서버. → { buf, via } */
+  function fetchBytes(checked) {
+    return fetchDirect(checked).then(function (buf) { return { buf: buf, via: "direct" }; }, function (e) {
       if (e instanceof ParseError) throw e;                  // 상대가 답은 했다 — 서버로 가도 같다
       return Promise.resolve().then(function () { return fetchViaServer(checked); })
-        .then(function (buf) { return read(buf, "server"); });
+        .then(function (buf) { return { buf: buf, via: "server" }; });
+    });
+  }
+
+  /** API 의 목차(`{"endpoints": {"sites": {"url": …}}}` 따위)에서 자료 주소를 고른다 (wetherilli 129).
+   *  같은 호스트의, 자리표(`{id}`)가 없는 `url` 만 — 키를 다른 호스트로 싣지 않는다. */
+  function endpointsOf(text, base) {
+    var doc;
+    try { doc = JSON.parse(String(text).replace(/^\uFEFF/, "")); } catch (e) { return []; }
+    var out = [];
+    (function walk(node, depth) {
+      if (!node || typeof node !== "object" || depth > 3) return;
+      Object.keys(node).forEach(function (k) {
+        var v = node[k];
+        if (k === "url" && typeof v === "string" && v.indexOf("{") < 0) {
+          try {
+            var u = new URL(v, base);
+            if (u.host === new URL(base).host && u.href !== base && out.indexOf(u.href) < 0) out.push(u.href);
+          } catch (e) { /* 주소가 아니다 */ }
+        } else if (typeof v === "object") walk(v, depth + 1);
+      });
+    })(doc && (doc.endpoints || doc.links || doc), 0);
+    return out;
+  }
+
+  /** 연결을 따라 받아 읽는다 → { parsed, via: "direct"|"server", url }. 받은 것이 자료가 아니라 API 의 목차면
+   *  거기 적힌 자료 주소를 차례로 받아 본다(셋까지). 찾으면 `url` 이 그 주소다 — 부르는 쪽이 연결에 적어 다음부터 곧장 간다. */
+  function fetchLinked(link) {
+    var checked = checkLink(link);
+    function read(got, url) {
+      var d = decode(got.buf);
+      var name = url.split("?")[0];
+      var parsed = parse(d.text, /\.csv$/i.test(name) ? name : "");
+      parsed.encoding = d.encoding;
+      return { parsed: parsed, via: got.via, url: url };
+    }
+    return fetchBytes(checked).then(function (got) {
+      try { return read(got, checked.url); } catch (e) {
+        if (!(e instanceof ParseError)) throw e;
+        var tries = endpointsOf(decode(got.buf).text, checked.url).slice(0, 3);
+        if (!tries.length) throw e;
+        return tries.reduce(function (chain, url) {
+          return chain.catch(function () {
+            var next = { url: url, auth: checked.auth };
+            return fetchBytes(next).then(function (g) { return read(g, url); });
+          });
+        }, Promise.reject(e)).catch(function () {
+          throw new ParseError(T("API 의 목차다 — 자료 주소를 찾지 못했다 ({urls})", { urls: tries.join(", ") }));
+        });
+      }
     });
   }
 
@@ -659,7 +702,10 @@
     recs = (Array.isArray(recs) ? recs : [recs]).filter(function (r) { return r && r.link; });
     if (!recs.length) return Promise.resolve([]);
     return fetchLinked(recs[0].link).then(function (got) {
-      return Promise.all(recs.map(function (rec) { return put(applyFetched(rec, got)); }));
+      return Promise.all(recs.map(function (rec) {
+        if (got.url) rec.link.url = got.url;                 // 목차에서 찾은 자료 주소로 바로잡는다
+        return put(applyFetched(rec, got));
+      }));
     }, function (e) {
       var status = { ok: false, error: (e && e.message) || String(e), at: new Date().toISOString() };
       return Promise.all(recs.map(function (rec) { rec.status = status; return put(rec); }));
@@ -714,6 +760,7 @@
     refresh: refresh,
     linkGroups: linkGroups,
     split: split,
+    endpointsOf: endpointsOf,
     kindOf: kindOf,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

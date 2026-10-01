@@ -303,7 +303,14 @@
     $("mg-preview").hidden = true;
     P.fetchLinked(link).then(function (got) {
       $("mg-link-try").disabled = false;
-      msg("mg-link-msg", viaText(got.via), "good");
+      if (got.url && got.url !== link.url) {
+        // API 의 목차 주소를 넣었다 — 거기서 찾은 자료 주소로 잇는다 (wetherilli 129)
+        link.url = got.url;
+        $("mg-link-url").value = got.url;
+        msg("mg-link-msg", T("API 의 목차라 자료 주소를 찾아 이었다 — {url}", { url: got.url }) + " · " + viaText(got.via), "good");
+      } else {
+        msg("mg-link-msg", viaText(got.via), "good");
+      }
       pending = { parsed: got.parsed, link: link, via: got.via,
                   editRecs: editing ? editingRecs : [],
                   keep: editing ? { name: editing.baseName || editing.name, color: editing.color, label: editing.label,

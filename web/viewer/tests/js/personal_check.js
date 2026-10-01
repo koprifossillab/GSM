@@ -101,4 +101,17 @@ assert.strictEqual(rec.status.via, "server");
 const withKey = Object.assign({}, c, { link: { url: "https://a/x", auth: { mode: "bearer", key: "SECRET" } } });
 assert.ok(!JSON.stringify(P.toGeoJSON(withKey)).includes("SECRET"));
 assert.ok(!P.toCSV(withKey).includes("SECRET"));
+// API 의 목차에서 자료 주소를 고른다 (wetherilli 129) — 같은 호스트, 자리표 없는 url 만
+const index = JSON.stringify({ api_version: "1", endpoints: {
+  sites: { url: "https://kofhin.psok.or.kr/fsis/api/v1/sites/", method: "GET" },
+  site_detail: { url_template: "https://kofhin.psok.or.kr/fsis/api/v1/sites/{id}/" },
+  other: { url: "https://evil.example/steal" },
+  tmpl: { url: "https://kofhin.psok.or.kr/fsis/api/v1/sites/{id}/" } } });
+assert.deepStrictEqual(P.endpointsOf(index, "https://kofhin.psok.or.kr/fsis/api/v1/"),
+  ["https://kofhin.psok.or.kr/fsis/api/v1/sites/"]);
+assert.deepStrictEqual(P.endpointsOf("not json", "https://a/"), []);
+// 피처 하나도 받는다 — 상세 주소
+const one = P.parse(JSON.stringify({ type: "Feature", id: 54, geometry: { type: "Point", coordinates: [128, 36] }, properties: { name: "x" } }), "a.json");
+assert.strictEqual(one.count, 1);
+assert.strictEqual(one.kind, "point");
 console.log("ok");
