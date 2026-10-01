@@ -1,0 +1,111 @@
+"""NOAA GFS 로 나가는 문 — 지금의 바람 (koprifossillab P02).
+
+GFS 는 여기로만 받는다 (CLAUDE.md "상류마다 문이 하나").
+
+- 주소 `nomads.ncep.noaa.gov` 의 grib filter(`filter_gfs_0p25.pl`). **열쇠가 없다.** 미국 정부 자료라 쓰는 데 제한이 없다
+- 하루 네 번(00·06·12·18 UTC) 판이 서고, 판은 그 시각에서 네 시간 남짓 뒤에 올라온다. 받는 것은 분석(f000)의 u·v 를
+  두 높이(10 m·250 hPa)에서 — **한 판에 한 번 부른다**(3 MB 남짓)
+- NOMADS 는 **분당 120 번**을 넘으면 막는다. 우리는 한 시간에 한두 번이다
+- **화면이 부를 때 상류를 타지 않는다.** 호스트의 cron 이 `manage.py fetch_gfs_wind` 로 받아 `wind.py` 가 PNG 로 굽는다
+- GRIB2 는 ecCodes 로 푼다 — **cron 의 전용 venv(`/srv/GSM/scripts/venv`, `run.sh`) 에만 있다**(`requirements-wind.txt`, koprifossillab 005). 그래서 `decode` 안에서만 부른다
+"""
+import datetime as dt
+import logging
+
+import requests
+from django.conf import settings
+
+from . import usage
+
+log = logging.getLogger(__name__)
+
+FILTER = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+#: 받는 높이 — grib filter 의 이름과 우리 이름(`wind.LEVELS`)
+LEVELS = {"10m": "lev_10_m_above_ground", "250hPa": "lev_250_mb"}
+CYCLE_HOURS = 6
+
+
+class GfsError(RuntimeError):
+    pass
+
+
+def recent_cycles(now: dt.datetime, count: int = 3) -> list:
+    """`now`(UTC) 에서 가장 가까운 지난 판부터 `count` 개 — `YYYYMMDDHH`. 아직 안 올라온 판도 있으니 차례로 묻는다."""
+    start = now.replace(minute=0, second=0, microsecond=0, hour=now.hour - now.hour % CYCLE_HOURS)
+    return [(start - dt.timedelta(hours=CYCLE_HOURS * i)).strftime("%Y%m%d%H") for i in range(count)]
+
+
+def params(cycle: str) -> dict:
+    day, hour = cycle[:8], cycle[8:]
+    query = {"dir": f"/gfs.{day}/{hour}/atmos", "file": f"gfs.t{hour}z.pgrb2.0p25.f000",
+             "var_UGRD": "on", "var_VGRD": "on"}
+    query.update({name: "on" for name in LEVELS.values()})
+    return query
+
+
+def download(cycle: str) -> bytes | None:
+    """그 판의 u·v 를 GRIB2 로. 판이 아직 없으면 None."""
+    left = usage.paused()
+    if left:
+        raise GfsError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
+    try:
+        r = requests.get(FILTER, params=params(cycle), timeout=(settings.UPSTREAM_TIMEOUT, 120),
+                         verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("gfs", ok=False)
+        raise GfsError(f"NOMADS 에 닿지 못했다: {exc}") from exc
+    log.info("GFS %s -> %s (%d B)", cycle, r.status_code, len(r.content))
+    if r.status_code == 200 and r.content[:4] == b"GRIB":
+        usage.record("gfs", ok=True)
+        return r.content
+    if r.status_code == 404:
+        usage.record("gfs", ok=True)     # 판이 아직 없다 — 정상인 답이다. 매시 묻는 것이 실패로 쌓이지 않게
+        return None
+    blocked = usage.looks_blocked(r.status_code, r.content)
+    usage.record("gfs", ok=False, blocked=blocked)
+    if blocked:
+        raise GfsError(f"NOMADS 가 {r.status_code} 로 막았다")
+    raise GfsError(f"NOMADS 가 {r.status_code} 로 답했다")
+
+
+def decode(grib: bytes) -> dict:
+    """GRIB2 -> `{높이: (u, v)}`, 격자는 721×1440(경도 0 부터, 위도 90 부터). **호스트에서만** — ecCodes·numpy."""
+    import eccodes
+    import numpy as np
+
+    by_level = {"10": "10m", "25000": "250hPa", "250": "250hPa"}
+    found = {}
+    for msg in _messages(grib):
+        handle = eccodes.codes_new_from_message(msg)
+        try:
+            name = eccodes.codes_get(handle, "shortName")
+            level = by_level.get(str(eccodes.codes_get(handle, "level")))
+            ni, nj = eccodes.codes_get(handle, "Ni"), eccodes.codes_get(handle, "Nj")
+            first_lat = eccodes.codes_get(handle, "latitudeOfFirstGridPointInDegrees")
+            first_lon = eccodes.codes_get(handle, "longitudeOfFirstGridPointInDegrees")
+            if (ni, nj) != (1440, 721) or first_lat != 90 or first_lon != 0:
+                raise GfsError(f"격자가 다르다: {ni}×{nj}, 첫 점 {first_lat},{first_lon}")
+            values = np.asarray(eccodes.codes_get_values(handle), dtype=np.float32).reshape(721, 1440)
+        finally:
+            eccodes.codes_release(handle)
+        comp = {"u": "u", "10u": "u", "v": "v", "10v": "v"}.get(name)
+        if level and comp:
+            found.setdefault(level, {})[comp] = values
+    out = {}
+    for level in LEVELS:
+        pair = found.get(level, {})
+        if "u" not in pair or "v" not in pair:
+            raise GfsError(f"{level} 의 u·v 가 다 오지 않았다")
+        out[level] = (pair["u"], pair["v"])
+    return out
+
+
+def _messages(grib: bytes):
+    """GRIB2 묶음을 메시지마다 자른다 — 머리의 길이(8 바이트, 큰 끝)를 따라간다."""
+    pos = 0
+    while pos + 16 <= len(grib):
+        if grib[pos:pos + 4] != b"GRIB":
+            raise GfsError(f"{pos} 바이트에 GRIB 머리가 없다")
+        total = int.from_bytes(grib[pos + 8:pos + 16], "big")
+        yield grib[pos:pos + total]
+        pos += total

@@ -20,3 +20,8 @@
 # 다른 매시 일(:20·:25·:35)과 비껴 뒀다. timeout 이 넉넉한 것은 판이 오른 뒤 첫 차례에 venv 를 새로 만들기 때문이다.
 # 로그: /data/GSM/logs/araon.log
 50 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_araon >> /data/GSM/logs/araon.log 2>&1
+
+# 지금의 바람 (koprifossillab P02) — 매시 :35 에 GFS 의 가장 새 판을 받아 /srv/GSM/db/wind/gfs/ 에 굽는다. 새 판이 없으면
+# 아무것도 하지 않는다(판은 하루 네 번, 그 시각에서 네 시간 남짓 뒤에 올라온다). 최근 여덟 판만 둔다. numpy·ecCodes 는
+# 전용 venv 에 requirements-wind.txt 로 깔린다(install.sh 의 REQS) — 운영 이미지에는 없다. 로그: /data/GSM/logs/wind.log
+35 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_gfs_wind >> /data/GSM/logs/wind.log 2>&1

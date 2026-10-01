@@ -25,8 +25,8 @@ if [[ ! -d "$DEST" || ! -w "$DEST" ]]; then
     exit 0
 fi
 
-# venv 를 맞출 requirements — 바람(requirements-wind.txt)이 들어오면 여기 더한다
-REQS=(requirements-web.txt)
+# venv 를 맞출 requirements — 바람은 numpy·ecCodes·numcodecs 를 쓴다(koprifossillab P02). 운영 이미지에는 없다
+REQS=(requirements-web.txt requirements-wind.txt)
 
 stage="$DEST/.app.new"
 rm -rf "$stage"
