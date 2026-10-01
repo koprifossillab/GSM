@@ -91,7 +91,7 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
 .mg-table td.empty { color: var(--ink-faint); white-space: normal; }
 .mg-val { max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
 .mg-name-cell { display: flex; gap: 6px; align-items: center; }
-.mg-name-cell input[type="text"] { min-width: 220px; }
+.mg-name-cell input[type="text"] { min-width: 150px; width: 100%; }
 .mg-row-acts { text-align: right; }
 .mg-row-acts .btn { height: 28px; }
 
@@ -102,4 +102,18 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
   .mg-head { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
   .mg-back { margin-left: 0; }
   .mg-main { padding: 14px 16px 40px; }
+}
+
+/* API 로 잇기 (wetherilli P09·122) */
+.mg-link-form label.wide { flex: 1 1 100%; }
+.mg-link-form input[type="url"], .mg-link-form input[type="password"] {
+  height: 32px; padding: 0 10px; font: inherit; color: var(--ink);
+  background: var(--panel-tint); border: 1px solid var(--line); border-radius: 6px;
+}
+.mg-link-cell { white-space: normal; min-width: 220px; }
+.mg-link-cell small { display: block; color: var(--ink-faint); font-size: 11px; }
+.mg-link-cell small.bad { color: var(--bad); }
+.mg-link-badge {
+  display: inline-block; padding: 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  color: var(--on-hi); background: var(--gold-muted); border-radius: 4px;
 }

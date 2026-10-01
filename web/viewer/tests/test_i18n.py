@@ -22,7 +22,7 @@ def used_keys():
                    for n in ("map.html", "map3d.html", "moon.html", "mars.html", "earth.html", "intro.html", "manage.html"))
     keys = set(re.findall(r'\bT\("((?:[^"\\]|\\.)*)"', js))
     keys |= set(re.findall(r'\{% t "((?:[^"\\]|\\.)*)" %\}', html))
-    for name in ("views.py", "pointsets.py"):
+    for name in ("views.py", "pointsets.py", "linked.py"):
         src = (HERE / name).read_text(encoding="utf-8")
         # msg("…") 는 여러 줄로 이어 붙일 수 있다 — "a" "b" 를 하나로 합친다
         for call in re.findall(r'\bmsg\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)', src):

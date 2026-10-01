@@ -294,6 +294,13 @@ def _public() -> bool:
 
 PUBLIC = _public()
 
+#: 연결 레이어(wetherilli P09·122)가 서버를 거쳐 부를 때 **사설망이어도 부를 수 있는 호스트**.
+#: 기본은 비었다 — 서버는 공인 주소만 부른다(연구실 망·NAS·DB 를 남의 주소로 두드리지 않게, `linked.py`).
+#: 연구실 안의 API(예: phyloserver 의 paleolab)를 잇고 싶으면 여기 적는다. 환경변수 `GSM_LINKED_ALLOW`
+#: (쉼표로) 또는 `<DB 옆>/linked_allow`(한 줄에 하나)
+LINKED_ALLOW = [h.strip().lower() for h in (env("GSM_LINKED_ALLOW", "").split(",") + _lines_from("GSM_LINKED_ALLOW_FILE", "linked_allow"))
+                if h.strip()]
+
 CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 #: KIGAM 낱레이어를 엮은 레이어(층리 뺀 5만 지질도)의 씨앗 — 상류가 뽑아 준 것이 아니라 사람이 적는다.
 #: 엮는 법은 `kigam.COMPOSED` (docs/KIGAM_5만_구조요소.md §8)

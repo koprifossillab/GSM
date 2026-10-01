@@ -19,7 +19,7 @@ from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_POST
@@ -30,6 +30,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, ja
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
 from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap
+from . import linked
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -235,9 +236,36 @@ def manage_view(request):
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "base": request.path.rsplit("manage", 1)[0],
+        "linked_proxy": not settings.PUBLIC,
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
+
+
+@require_POST
+def linked_fetch(request):
+    """연결 레이어를 서버가 대신 받는다 (wetherilli P09·122). 브라우저가 곧장 못 받을 때만 온다(CORS).
+
+    몸은 JSON — `{"url": …, "auth": {"mode": none|bearer|header|query, "name": …, "key": …}}`. 받은 것을
+    풀지 않고 그대로 돌려준다(읽는 것은 브라우저의 `personal.js`). 주소·키는 적지 않는다 — 문(`linked.py`)이
+    사설망·포트·크기·시간을 거른다. **밖에 연 뷰어(`GSM_PUBLIC`)에서는 닫는다** — 아무 공인 주소나 대신 받아 주는
+    중계가 되기 때문이다. 그때는 상대가 CORS 를 열어 브라우저가 곧장 받아야 한다."""
+    if settings.PUBLIC:
+        raise Http404
+    if not linked.allow(_client(request)):
+        return JsonResponse({"error": i18n.t(msg("너무 자주 부른다 — 1 분 뒤에 다시"), i18n.lang_of(request))}, status=429)
+    try:
+        body = json.loads(request.body or b"{}")
+    except ValueError:
+        return JsonResponse({"error": i18n.t(msg("요청을 읽지 못했다"), i18n.lang_of(request))}, status=400)
+    try:
+        data, content_type = linked.fetch(body.get("url"), body.get("auth") or {})
+    except linked.LinkedError as exc:
+        return JsonResponse({"error": i18n.t(exc.args[0], i18n.lang_of(request))}, status=exc.status)
+    response = HttpResponse(data, content_type="application/octet-stream")
+    response["X-GSM-Content-Type"] = content_type[:200]
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @require_GET
@@ -254,6 +282,7 @@ def map_view(request):
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
         "vworld_key": settings.VWORLD_KEY,
         "base": request.path.rsplit("map", 1)[0],
+        "linked_proxy": not settings.PUBLIC,
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })

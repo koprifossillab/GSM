@@ -3831,12 +3831,20 @@
   //: 한 자리에서 레이어마다 팝업에 올리는 수. 지역 대표점에 수백 건이 겹치기도 한다(nkfcluster)
   var PERSONAL_POPUP_MAX = 8;
 
-  function loadPersonal() {
+  /** 저장소에서 읽어 그린다. `fresh` 면 연결 레이어(P09·122)를 새로 받는다 — 지도를 열 때 한 번.
+   *  다른 창의 알림으로 다시 읽을 때는 받지 않는다(받으면 저장 → 알림 → 다시 받기로 돈다). */
+  function loadPersonal(fresh) {
     if (!Personal) return;
     Personal.setTranslator(T);
+    Personal.configure({ proxy: document.body.dataset.linkedProxy === "1" ? BASE + "linked/fetch/" : "", csrf: csrf });
     Personal.list().then(function (rows) {
       personal = rows;
       drawPersonal();
+      if (fresh !== true) return;
+      // 마지막으로 받은 것을 먼저 그려 두고, 새것이 오면 그것만 바꿔 그린다
+      personal.filter(function (rec) { return rec.link; }).forEach(function (rec) {
+        Personal.refresh(rec).then(drawPersonal);
+      });
     }).catch(function () {
       personal = [];
       drawPersonal();
@@ -4010,8 +4018,17 @@
       name.textContent = rec.name;
       var count = document.createElement("span");
       count.className = "ps-count";
-      count.textContent = (rec.kind === "polygon" ? T("면 {n}", { n: rec.drawn }) : T("{n}점", { n: rec.drawn })) +
+      count.textContent = (rec.link ? "🔗 " : "") +
+        (rec.kind === "polygon" ? T("면 {n}", { n: rec.drawn }) : T("{n}점", { n: rec.drawn })) +
         (rec.count > rec.drawn ? " · " + T("좌표 없음 {n}", { n: rec.count - rec.drawn }) : "");
+      // 연결 레이어를 못 받았으면 옛것을 그리고 있다는 것을 적는다
+      if (rec.link && rec.status && !rec.status.ok) {
+        count.textContent += " · " + T("받지 못해 옛것");
+        count.classList.add("stale");
+        count.title = rec.status.error || "";
+      } else if (rec.link && rec.fetched) {
+        count.title = T("마지막으로 받은 때 {when}", { when: new Date(rec.fetched).toLocaleString() });
+      }
       var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () {
         var source = personalLayers[rec.id] && personalLayers[rec.id].getSource();
         var extent = source && source.getExtent();
@@ -4027,7 +4044,7 @@
     });
   }
 
-  if (Personal) Personal.onChange(loadPersonal);
+  if (Personal) Personal.onChange(function () { loadPersonal(false); });
 
   // ── 점묶음 ──────────────────────────────────────────────────────
 
@@ -5229,7 +5246,7 @@
   renderCatalog();
   renderActive();
   renderPointSets();
-  loadPersonal();
+  loadPersonal(true);
   wireTools();
   wireSettings();
   wireTabs();

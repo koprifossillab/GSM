@@ -10,7 +10,8 @@
 <link rel="stylesheet" href="{% static 'viewer/map.css' %}?v={{ stamp|default:version }}">
 <link rel="stylesheet" href="{% static 'viewer/manage.css' %}?v={{ stamp|default:version }}">
 </head>
-<body class="manage">
+<body class="manage" data-linked-proxy="{{ linked_proxy|yesno:"1,0" }}">
+<form id="csrf-form" hidden>{% csrf_token %}</form>
 
 <header class="mg-head">
   <a class="mg-brand" href="{{ base }}map/" title="{% t "지도로 돌아간다" %}">
@@ -52,6 +53,33 @@
           <button type="button" class="btn quiet" data-sample="polygon-csv">{% t "면 · CSV" %}</button>
         </div>
         <p id="mg-read-msg" class="msg"></p>
+      </div>
+    </div>
+
+    <div class="box" id="mg-link-box">
+      <h2 class="box-head">{% t "API 로 잇기" %} <span class="hint">{% t "지도를 열 때마다 새로 받는다 — 주소와 인증키는 이 브라우저에만" %}</span></h2>
+      <div class="box-body">
+        <p class="hint mg-format">
+          {% t "상대 사이트가 이 양식(JSON·CSV)으로 내주는 주소와 인증키를 넣는다. 브라우저가 곧장 받고, 상대가 CORS 를 열지 않아 막히면 우리 서버를 거친다 — 서버는 받은 것을 넘겨줄 뿐 주소·키를 적지 않는다." %}
+        </p>
+        <div class="mg-form mg-link-form">
+          <label class="wide"><span>{% t "API 주소" %}</span><input type="url" id="mg-link-url" placeholder="https://example.org/api/layer.json" autocomplete="off"></label>
+          <label><span>{% t "인증 방식" %}</span>
+            <select id="mg-link-mode">
+              <option value="none">{% t "없음" %}</option>
+              <option value="bearer">Authorization: Bearer</option>
+              <option value="header">{% t "머리(이름을 적는다)" %}</option>
+              <option value="query">{% t "주소 뒤 ?이름=키" %}</option>
+            </select>
+          </label>
+          <label id="mg-link-name-wrap" hidden><span>{% t "싣는 이름" %}</span><input type="text" id="mg-link-name" placeholder="X-API-Key" autocomplete="off"></label>
+          <label id="mg-link-key-wrap" hidden><span>{% t "인증키" %}</span><input type="password" id="mg-link-key" autocomplete="off"></label>
+        </div>
+        <div class="mg-acts">
+          <button type="button" class="btn" id="mg-link-try">{% t "받아 본다" %}</button>
+          <span class="hint" id="mg-link-editing"></span>
+        </div>
+        <p id="mg-link-msg" class="msg"></p>
       </div>
     </div>
 

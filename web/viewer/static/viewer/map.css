@@ -593,6 +593,7 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
   border-bottom: 1px dashed var(--line-soft);
 }
 #personal-list li:last-child { border-bottom: 0; }
+#personal-list .ps-count.stale { color: var(--bad); }
 #personal-list .swatch { border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .45); }
 .personal-manage { margin-top: 8px; justify-content: center; text-decoration: none; }
 
