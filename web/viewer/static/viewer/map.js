@@ -1473,8 +1473,6 @@
         entry.opacity = Math.min(1, Math.max(0, row.opacity));
         entry.layer.setOpacity(entry.opacity);
       }
-      var box = document.querySelector('input[data-layer="' + cssEscape(row.name) + '"]');
-      if (box) box.checked = true;
     });
     restoring = false;
     renderActive();
@@ -1532,8 +1530,6 @@
     map.removeLayer(active[index].layer);
     active.splice(index, 1);
     restack();
-    var box = document.querySelector('input[data-layer="' + cssEscape(name) + '"]');
-    if (box) box.checked = false;
   }
 
   function move(name, delta) {
@@ -1608,27 +1604,70 @@
    *  "그리기" 칸이 밀려 안 보인다. 늘 보는 것과 찾아서 켜는 것의 차이를
    *  접기로 나타낸다. 추가 지질도 안에서는 상류의 레이어군을 그대로 쓴다.
    */
+  // ── 레이어 목록 (wetherilli 133) ─────────────────────────────────
+  //
+  // 줄을 눌러 켜고 끈다 — 줄에 다른 기능이 없어 체크박스를 겨눌 까닭이 없다. 체크박스 자리에는 **상류 딱지**를 두고,
+  // 같은 상류가 이어지는 줄은 딱지 밑으로 줄을 그어 묶는다(어느 레이어가 어느 기관 것인지 한눈에). 레이어군 머리에는
+  // "모두 켜기" — 그 군을 다 켜고, 다 켜져 있으면 "모두 끄기" 가 된다.
+
+  //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
+  var UPSTREAM_TAGS = {
+    kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
+    gsj: "GSJ", ccop: "CCOP", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    phyloserver: "LAB", peninsula: "LAB",
+  };
+  var UPSTREAM_NAMES = {
+    kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
+    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
+    ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
+  };
+
+  function upstreamOf(name) { return (byName[name] && byName[name].upstream) || "kigam"; }
+  function isOn(name) { return active.some(function (e) { return e.name === name; }); }
+  function toggleLayer(name) { if (isOn(name)) removeLayer(name); else addLayer(name); }
+
+  /** 목록의 켜짐 표시를 `active` 에 맞춘다 — 켜고 끄는 길이 여럿이라(줄·켠 목록의 ×·모두 끄기·되살리기) 한 곳에서 */
+  function syncRows() {
+    document.querySelectorAll("#layer-catalog .layer-row").forEach(function (row) {
+      var on = isOn(row.dataset.layer);
+      row.classList.toggle("on", on);
+      row.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    document.querySelectorAll("#layer-catalog .group-all").forEach(function (b) {
+      var all = JSON.parse(b.dataset.layers).every(isOn);
+      b.textContent = all ? T("모두 끄기") : T("모두 켜기");
+      b.title = all ? T("이 묶음의 레이어를 모두 끈다") : T("이 묶음의 레이어를 모두 켠다");
+    });
+  }
+
   function renderCatalog() {
     var host = document.getElementById("layer-catalog");
     host.innerHTML = "";
 
-    function layerRow(layer) {
+    /** 레이어 줄. `tie` 는 앞 줄과 같은 상류인가(딱지 대신 묶는 줄), `last` 는 그 묶음의 끝인가,
+     *  `lead` 는 뒤에 같은 상류가 이어지는 첫 줄인가(딱지 밑으로 줄을 내린다) */
+    function layerRow(layer, tie, last, lead) {
       var row = document.createElement("div");
       row.className = "layer-row";
       row.dataset.search = (layer.title + " " + layer.name).toLowerCase();
+      row.dataset.layer = layer.name;
+      row.setAttribute("role", "switch");
+      row.setAttribute("aria-checked", "false");
+      row.tabIndex = 0;
 
-      var box = document.createElement("input");
-      box.type = "checkbox";
-      box.id = "lyr-" + layer.name;
-      box.dataset.layer = layer.name;
-      box.addEventListener("change", function () {
-        if (box.checked) addLayer(layer.name); else removeLayer(layer.name);
-      });
+      var up = upstreamOf(layer.name);
+      var tag = document.createElement("span");
+      tag.className = "up up-" + up + (tie ? " tie" : "") + (last ? " end" : "") + (lead ? " lead" : "");
+      if (!tie) {
+        tag.textContent = UPSTREAM_TAGS[up] || up.toUpperCase();
+        tag.title = UPSTREAM_NAMES[up] || up;
+      }
 
-      var label = document.createElement("label");
-      label.htmlFor = box.id;
+      var label = document.createElement("span");
+      label.className = "layer-name";
       label.textContent = layerTitle(layer.name);
-      if (layer.abstract) label.title = layer.abstract;
+      if (layer.abstract) row.title = layer.abstract;
       if (!layer.verified) {
         var mark = document.createElement("span");
         mark.className = "unverified";
@@ -1637,17 +1676,45 @@
         label.appendChild(mark);
       }
 
-      row.appendChild(box);
-      row.appendChild(label);
+      row.addEventListener("click", function () { toggleLayer(layer.name); });
+      row.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleLayer(layer.name); }
+      });
+      row.append(tag, label);
       return row;
     }
 
-    function folder(className, title, count, open) {
+    /** 레이어들을 줄로 — 같은 상류가 이어지면 묶는다 */
+    function fill(box, layers) {
+      layers.forEach(function (layer, i) {
+        var up = upstreamOf(layer.name);
+        var prev = i > 0 && upstreamOf(layers[i - 1].name) === up;
+        var next = i < layers.length - 1 && upstreamOf(layers[i + 1].name) === up;
+        box.appendChild(layerRow(layer, prev, prev && !next, !prev && next));
+      });
+    }
+
+    function folder(className, title, count, open, layers) {
       var details = document.createElement("details");
       details.className = className;
       details.open = !!open;
       var summary = document.createElement("summary");
-      summary.innerHTML = esc(title) + ' <span class="count">' + count + "</span>";
+      summary.innerHTML = '<span class="group-title">' + esc(title) + '</span> <span class="count">' + count + "</span>";
+      if (layers && layers.length > 1) {
+        var all = document.createElement("button");
+        all.type = "button";
+        all.className = "group-all";
+        all.dataset.layers = JSON.stringify(layers.map(function (l) { return l.name; }));
+        all.addEventListener("click", function (e) {
+          e.preventDefault();               // 접고 펴지 않는다
+          e.stopPropagation();
+          var names = layers.map(function (l) { return l.name; });
+          if (names.every(isOn)) names.forEach(removeLayer);
+          // 거꾸로 켠다 — 나중에 켠 것이 위에 얹히므로, 목록의 첫 줄이 맨 위에 오게
+          else names.slice().reverse().forEach(function (n) { if (!isOn(n)) addLayer(n); });
+        });
+        summary.appendChild(all);
+      }
       details.appendChild(summary);
       return details;
     }
@@ -1657,8 +1724,9 @@
     // 기본으로 펼쳐 둘 것이 카탈로그에 하나도 없는 지역은 기본 칸을 두지 않고
     // 아래의 "추가 지질도" 를 펼친다
     if (base.length) {
-      var baseBox = folder("group base", T("기본 지질도"), base.length, true);
-      base.forEach(function (name) { baseBox.appendChild(layerRow(byName[name])); });
+      var baseLayers = base.map(function (name) { return byName[name]; });
+      var baseBox = folder("group base", T("기본 지질도"), base.length, true, baseLayers);
+      fill(baseBox, baseLayers);
       host.appendChild(baseBox);
     }
 
@@ -1672,16 +1740,18 @@
       var where = REGIONS[region].includes && REGIONS[group.region] ? T(REGIONS[group.region].title) + " · " : "";
       rest.push({ name: where + group.name, layers: layers });
     });
-    if (!restCount) return;
-
-    var more = folder("group more", T("추가 지질도"), restCount, !base.length);
-    rest.forEach(function (group) {
-      // 기본 칸이 없고 레이어군이 하나뿐이면(북극해) 그것까지 펼친다 — 두 번 눌러야 레이어가 보이지 않게
-      var details = folder("group", group.name, group.layers.length, !base.length && rest.length === 1);
-      group.layers.forEach(function (layer) { details.appendChild(layerRow(layer)); });
-      more.appendChild(details);
-    });
-    host.appendChild(more);
+    if (restCount) {
+      // "추가 지질도" 통째로는 모두 켜기를 두지 않는다 — 수십 장을 한꺼번에 켜게 된다
+      var more = folder("group more", T("추가 지질도"), restCount, !base.length);
+      rest.forEach(function (group) {
+        // 기본 칸이 없고 레이어군이 하나뿐이면(북극해) 그것까지 펼친다 — 두 번 눌러야 레이어가 보이지 않게
+        var details = folder("group", group.name, group.layers.length, !base.length && rest.length === 1, group.layers);
+        fill(details, group.layers);
+        more.appendChild(details);
+      });
+      host.appendChild(more);
+    }
+    syncRows();
   }
 
   function setCount(id, n) {
@@ -1695,6 +1765,7 @@
   }
 
   function renderActive() {
+    syncRows();
     var off = document.getElementById("layers-off");
     if (off) off.disabled = !active.length;
     var host = document.getElementById("active-list");
@@ -4697,8 +4768,6 @@
     var firsts = [].concat(REGIONS[region].first || []).filter(function (n) { return byName[n]; });
     if (!firsts.length && here[0] && here[0].layers[0]) firsts = [here[0].layers[0].name];
     firsts.forEach(function (first) {
-      var box = document.querySelector('input[data-layer="' + cssEscape(first) + '"]');
-      if (box) box.checked = true;
       addLayer(first);
     });
   }
