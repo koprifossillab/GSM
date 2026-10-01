@@ -167,6 +167,7 @@
 | wetherilli 123 | 2026-10-01 | [극지 아이콘과 대기 화면 — 지도와 소개에](20261001_wetherilli_123_polar_emblem.md) |
 | wetherilli 124 | 2026-10-01 | [연결 레이어 — 전체 마감 20 초, https 에서 내려가면 키를 빼고](20261001_wetherilli_124_linked_deadline.md) |
 | wetherilli 125 | 2026-10-01 | [소개 시작 장 — 지구와 극지를 한 줄에](20261001_wetherilli_125_intro_doors_row.md) |
+| wetherilli 127 | 2026-10-01 | [소개 — "…에서 만들었습니다", 위로 올린 "그래서"](20261001_wetherilli_127_intro_credit_wording.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
