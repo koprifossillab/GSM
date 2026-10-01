@@ -222,7 +222,7 @@ class MarsView(TestCase):
     def test_2D_의_숨은_차림이_화성을_연다(self):
         html = self.client.get(reverse("viewer:map")).content.decode()
         menu = re.search(r'<nav class="hidden-menu" id="hidden-menu"[^>]*hidden>(.*?)</nav>', html, re.S)
-        self.assertIn('href="mars/"', menu.group(1))
+        self.assertIn('href="/GSM/mars/"', menu.group(1))   # 지도는 map/ 에 산다 (wetherilli 113)
 
     def test_화성은_지역_탭이_아니다(self):
         self.assertNotIn("mars", dict(REGIONS))

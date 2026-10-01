@@ -19,7 +19,7 @@ def used_keys():
     js = "".join((HERE / "static/viewer" / n).read_text(encoding="utf-8")
                  for n in ("map.js", "map3d.js", "moon.js", "mars.js", "earth.js"))
     html = "".join((HERE / "templates/viewer" / n).read_text(encoding="utf-8")
-                   for n in ("map.html", "map3d.html", "moon.html", "mars.html", "earth.html"))
+                   for n in ("map.html", "map3d.html", "moon.html", "mars.html", "earth.html", "intro.html"))
     keys = set(re.findall(r'\bT\("((?:[^"\\]|\\.)*)"', js))
     keys |= set(re.findall(r'\{% t "((?:[^"\\]|\\.)*)" %\}', html))
     for name in ("views.py", "pointsets.py"):
@@ -175,7 +175,7 @@ class Page(TestCase):
 
     def get(self, lang):
         self.client.cookies["gsm_lang"] = lang
-        return self.client.get("/GSM/").content.decode("utf-8")
+        return self.client.get("/GSM/map/").content.decode("utf-8")
 
     def test_영어판_화면(self):
         html = self.get("en")

@@ -108,7 +108,7 @@ def _split_links(value):
 
 #: 주소 끝에 붙여 캐시를 끊는 파일들.
 STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js", "viewer/moon.js",
-           "viewer/mars.js")
+           "viewer/mars.js", "viewer/intro.css", "viewer/intro.js")
 
 
 @functools.lru_cache(maxsize=1)
@@ -208,6 +208,22 @@ def healthz(request):
 
 
 @require_GET
+def intro_view(request):
+    """소개 (wetherilli 113). 뿌리(`/GSM/`)는 늘 이 화면이고 지도는 `map/` 이다.
+
+    스크롤로 장면을 넘기며 무엇을 할 수 있는지 보인다. 그림은 운영 화면을 찍어 둔 것
+    (`static/viewer/intro/<언어>/`, `deploy/host/intro_shots.sh`)이라 상류를 타지 않는다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/intro.html", {
+        "lang": lang,
+        "base": request.path,
+        "shots": f"viewer/intro/{lang}/",
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+@require_GET
 def map_view(request):
     lang = i18n.lang_of(request)
     return render(request, "viewer/map.html", {
@@ -220,6 +236,7 @@ def map_view(request):
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
         "vworld_key": settings.VWORLD_KEY,
+        "base": request.path.rsplit("map", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })

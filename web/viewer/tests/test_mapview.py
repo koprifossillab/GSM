@@ -116,7 +116,7 @@ class MoonView(TestCase):
         self.assertIn('id="emblem-btn"', html)
         menu = re.search(r'<nav class="hidden-menu" id="hidden-menu"[^>]*hidden>(.*?)</nav>', html, re.S)
         self.assertIsNotNone(menu)
-        self.assertIn('href="moon/"', menu.group(1))
+        self.assertIn('href="/GSM/moon/"', menu.group(1))   # 지도는 map/ 에 산다 (wetherilli 113)
 
     def test_달은_지역_탭이_아니다(self):
         from viewer.models import REGIONS

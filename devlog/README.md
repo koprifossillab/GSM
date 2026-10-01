@@ -152,6 +152,7 @@
 | wetherilli 110 | 2026-09-30 | [온 지구 — 구의 그리기가 멈췄을 때](20260930_wetherilli_110_earth_render_failure.md) |
 | wetherilli 111 | 2026-09-30 | [지역 탭 — "+ 추가 지역" 목록을 묶음 아래 들여 세운다](20260930_wetherilli_111_region_menu_nesting.md) |
 | wetherilli 112 | 2026-10-01 | [온 지구 — PBDB 산지 링크를 displayCollectionDetails 로](20261001_wetherilli_112_pbdb_collection_link.md) |
+| wetherilli 113 | 2026-10-01 | [첫 화면 — 스스로 넘어가는 소개, 지도는 `map/` 으로](20261001_wetherilli_113_intro_page.md) |
 | wetherilli 114 | 2026-10-01 | [2D 지도 — 우클릭 끌기로 돌리고, 자세 묶음의 방위 단추로 되돌린다](20261001_wetherilli_114_map_right_drag_rotate.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |

@@ -9,7 +9,8 @@
 (function () {
   "use strict";
 
-  var BASE = location.pathname.replace(/\/+$/, "") + "/";
+  // 지도는 `map/` 에 산다 — 뿌리는 소개 화면이다 (wetherilli 113). 다른 갈래는 뿌리 밑이다
+  var BASE = location.pathname.replace(/map\/?$/, "");
 
   // ── 말 ───────────────────────────────────────────────────────────
   //
@@ -2332,7 +2333,7 @@
       // 경도 140° 폭(남극횡단산맥 하나)이 한 화면에 든다. 더 낮추면 메르카토르의 세계 전체와 85° 의 끝이
       // 절벽처럼 드러난다 (2026-09-29, 050)
       var lat = Math.max(-80, Math.min(80, ll[1]));
-      this.href = "3d/?lat=" + lat.toFixed(5) + "&lon=" + ll[0].toFixed(5) +
+      this.href = BASE + "3d/?lat=" + lat.toFixed(5) + "&lon=" + ll[0].toFixed(5) +
         "&z=" + Math.max(isMercator() ? 8 : 5, mercZoom(view.getResolution())).toFixed(2) +
         "&region=" + region +                    // 3D 도 이 지역의 색으로 뜬다
         (top ? "&layer=" + encodeURIComponent(top.name) : "");
@@ -4032,6 +4033,17 @@
       var saved = localStorage.getItem("gsm.region");
       if (saved && addedRegions.indexOf(saved) >= 0) region = saved;
     } catch (e) { /* 사생활 모드 */ }
+    // 소개 화면의 "이 지도로" 가 지역을 주소로 넘긴다(`?region=`). 탭이 없으면 더하고, 주소에서는
+    // 지운다 — 새로 고칠 때마다 그 지역으로 끌려가지 않게 (wetherilli 113)
+    var params = new URLSearchParams(location.search);
+    var wanted = params.get("region");
+    if (wanted && REGIONS[wanted]) {
+      if (addedRegions.indexOf(wanted) < 0) addedRegions.push(wanted);
+      region = wanted;
+      params.delete("region");
+      var qs = params.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+    }
   }
 
   function saveRegions() {

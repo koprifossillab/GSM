@@ -44,7 +44,7 @@
       <img class="emblem" src="{% static 'viewer/emblem-moon.png' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
     </button>
     <nav class="hidden-menu" id="hidden-menu" role="menu" hidden>
-      <a role="menuitem" href="{{ base }}"><span class="moon-dot earth-dot" aria-hidden="true"></span>{% t "지구" %}</a>
+      <a role="menuitem" href="{{ base }}map/"><span class="moon-dot earth-dot" aria-hidden="true"></span>{% t "지구" %}</a>
       <a role="menuitem" href="{{ base }}earth/"><span class="moon-dot whole-dot" aria-hidden="true"></span>{% t "온 지구" %}</a>
       <a role="menuitem" href="{{ base }}mars/"><span class="moon-dot mars-dot" aria-hidden="true"></span>{% t "화성" %}</a>
     </nav>
@@ -54,7 +54,7 @@
     </div>
   </header>
   <nav class="regions body-tabs" aria-label="{% t "지역" %}">
-    <a class="region-tab" href="{{ base }}">{% t "지구" %}</a>
+    <a class="region-tab" href="{{ base }}map/">{% t "지구" %}</a>
     <a class="region-tab" href="{{ base }}earth/">{% t "온 지구" %}</a>
     <span class="region-tab on" aria-current="page">{% t "달" %}</span>
     <a class="region-tab" href="{{ base }}mars/">{% t "화성" %}</a>
@@ -195,7 +195,7 @@
 
   <footer id="panel-foot">
     <span class="foot-name">GSM <span class="ver">v{{ version }}</span></span>
-    <a class="gear" href="{{ base }}" title="{% t "지구로 돌아간다" %}">
+    <a class="gear" href="{{ base }}map/" title="{% t "지구로 돌아간다" %}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="stroke" cx="12" cy="12" r="8.5"/><path class="stroke" d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5S9.6 5.8 12 3.5Z"/></svg>
       <span>{% t "지구" %}</span>
     </a>
