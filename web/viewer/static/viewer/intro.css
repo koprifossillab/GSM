@@ -23,6 +23,11 @@ body[data-theme="antarctica"] {
   --ink: #e6f2f4; --soft: #a9c4cc; --faint: #6f8a99;
   --accent: #9ff2d4; --accent-2: #5fe0b4; --on-accent: #0c1122;
 }
+body[data-theme="polar"] {
+  --bg: #07121c; --raise: #0f2030; --line: #1f3a52;
+  --ink: #e4f3fb; --soft: #a6c8da; --faint: #6b8ba0;
+  --accent: #9fd8f2; --accent-2: #5fb6de; --on-accent: #07121c;
+}
 body[data-theme="greenland"] {
   --bg: #0f1c26; --raise: #15252f; --line: #27404f;
   --ink: #e5f1f6; --soft: #a9c6d2; --faint: #6d8b98;
@@ -64,6 +69,7 @@ body {
 a { color: inherit; }
 h1, h2, h3 { margin: 0; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
 p, li, figcaption { text-wrap: pretty; }
+.kicker-icon { width: 22px; height: 22px; vertical-align: -6px; margin-right: 8px; }
 .kicker {
   margin: 0 0 12px;
   font-size: 12.5px; letter-spacing: .2em; text-transform: uppercase;
@@ -328,6 +334,12 @@ html[lang="en"] .title h1 { font-size: clamp(46px, 5.4vw, 82px); }
 }
 .route li { color: var(--accent); font-weight: 700; letter-spacing: .08em; }
 .route li + li::before { content: ""; display: inline-block; width: 46px; height: 1px; margin: 0 14px; vertical-align: middle; background: var(--line); }
+
+/* ── 극지 표지 — 대기 화면 애니메이션 한 장. 바탕은 그 그림의 바탕색 ── */
+.polartitle .stage { display: grid; place-items: center; padding: 76px 24px 60px; }
+.polartitle .replay { width: min(1100px, 86vw); height: auto; }
+.cat.polar .door { border-color: #1f3a52; }
+.cat.polar .door b { color: #9fd8f2; }
 
 /* ── 우주 — 별밤에 구가 돌고, 왼쪽 글, 오른쪽 아래 찍은 화면 ── */
 .space .stage { display: block; }

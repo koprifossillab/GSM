@@ -4385,8 +4385,22 @@
   }
 
   /** 지역에 딸린 겉모습 — 색 테마, 배경 고르개, 한국 전용 칸, 준비 중 알림. */
+  /** 극지(평사도법으로 보는 지역)에서는 극지 아이콘 — 숨은 차림 단추·설정 제목·브라우저 탭 (wetherilli 123) */
+  function setEmblem() {
+    var btn = document.getElementById("emblem-btn");
+    var polar = REGIONS[region].proj !== "EPSG:3857";
+    var src = polar ? btn.dataset.emblemPolar : btn.dataset.emblem;
+    document.querySelectorAll("img.emblem").forEach(function (img) { if (img.getAttribute("src") !== src) img.src = src; });
+    var icon = document.getElementById("favicon");
+    if (icon && icon.getAttribute("href") !== src) {
+      icon.setAttribute("type", polar ? "image/png" : "image/svg+xml");
+      icon.setAttribute("href", src);
+    }
+  }
+
   function applyRegion() {
     document.documentElement.setAttribute("data-region", region);
+    setEmblem();
     var spec = REGIONS[region];
     fillBasemaps();
     var select = document.getElementById("basemap");
@@ -5240,6 +5254,7 @@
   initLooks();
   readRegions();
   document.documentElement.setAttribute("data-region", region);
+  setEmblem();
   initMap();
   wireBasemap();
   wireCompare();

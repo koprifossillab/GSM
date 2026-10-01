@@ -164,6 +164,7 @@
 | wetherilli 121 | 2026-10-01 | [소개 — 공식 CI 원본, 굵게, 만든 이를 길게](20261001_wetherilli_121_intro_polish.md) |
 | wetherilli P09 | 2026-10-01 | [연결 레이어 — 남의 API 를 개인 레이어로 잇는다 (계획)](20261001_wetherilli_P09_linked_layers.md) |
 | wetherilli 122 | 2026-10-01 | [연결 레이어 — 곧장 받고, 막히면 서버를 거치고, 못 받으면 옛것](20261001_wetherilli_122_linked_layers.md) |
+| wetherilli 123 | 2026-10-01 | [극지 아이콘과 대기 화면 — 지도와 소개에](20261001_wetherilli_123_polar_emblem.md) |
 | wetherilli 124 | 2026-10-01 | [연결 레이어 — 전체 마감 20 초, https 에서 내려가면 키를 빼고](20261001_wetherilli_124_linked_deadline.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
