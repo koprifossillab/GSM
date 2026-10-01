@@ -5,6 +5,11 @@
 - **왜 그렇게 했는지**는 `devlog/` — 괄호 안의 번호가 그 문서다
 - 날짜는 그 판을 붙인 날이다
 
+## v0.26.1 — 2026-10-01 · PBDB 산지 링크 고침 (wetherilli 112)
+
+- 고침 — 온 지구 화석 산지의 PBDB 링크가 403 이던 것. `classic/basicCollectionSearch` 를 PBDB 가 닫아
+  `classic/displayCollectionDetails` 로 옮겼다 (wetherilli 112)
+
 ## v0.26.0 — 2026-09-30 · CCOP 동·동남아시아 지질도, 지구 높이 그래프, 온 지구 그리기 멈춤 안내, 추가 지역 목록 (wetherilli 108–111)
 
 두 세션이 나눠 지은 것을 한 판에 모았다 — PR #50·#51·#53–#55.
