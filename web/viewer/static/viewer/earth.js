@@ -483,8 +483,14 @@
   // 길이만 타원체의 겉에 맞춘다 — 반지름 비(깊이)가 지켜진다. 켜면 땅을 비치게 한다(`globe.translucency`). 평면에는 없다.
   // **모의 결과이지 관측이 아니다.** 옛 연대에는 OPT1 의 맨틀 기준틀이라 PALEOMAP 판 조각과 맞지 않는다 — 캡션에 적는다
   var MANTLE = THEN.mantle || {};                    // {시점: {slabs: 점 수, piles: …, boundaries: …}}
-  // 섭입한 판은 바다의 파랑에 묻히지 않게 옅은 청록 — 찬 것, 더미는 주황 — 뜨거운 것
-  var MANTLE_COLOURS = { slabs: "#7fe8d0", piles: "#e8833a", boundaries: "#ffe066" };
+  // 토모그래피 그림의 관례대로 찬 슬랩은 파랑, 뜨거운 더미는 빨강 (wetherilli 116). 앞서는 바다에 묻힐까 옅은 청록을
+  // 썼는데, 그 청록이 이 화면의 테마색·비친 바다와 겹쳐 슬랩이 보이지 않았다. 이제는 맨틀을 켜면 땅이 물러나므로
+  // (`MANTLE_SURFACE`) 바다의 파랑과 다툴 일이 적다. 검은 하늘에서도 보이게 둘 다 밝게 잡았다
+  var MANTLE_COLOURS = { slabs: "#4d8dff", piles: "#ff4a3d", boundaries: "#ffe066" };
+  // 맨틀을 켜면 땅이 물러난다 (wetherilli 116) — 구의 겉은 이만큼만 비치고(`frontFaceAlpha`), 그 위에 얹은
+  // 레이어(지질·화석 산지·옛 해안선…)는 제 투명도에 `overlay` 를 한 번 더 곱한다. 겉을 35% 로만 비쳤을 때는 화석 산지 점과
+  // 지질 단위가 맨틀을 덮어 땅속을 보려고 켰는데 땅 위가 가장 시끄러웠다. 평면에는 맨틀이 없어 구에만 건다
+  var MANTLE_SURFACE = { globe: 0.2, overlay: 0.4 };
   var mantleFrame = null, mantlePrims = [], mantleAsked = 0;
   function mantleFrameOf(a) {                       // 서버의 `mantle.frame_of` 와 같다 — 가장 가까운 것, 같으면 오래된 쪽
     return Math.max(0, Math.min(50, Math.floor((1000 - a) / 20 + 0.5 - 1e-9)));
@@ -518,14 +524,20 @@
       appearance: new Cesium.MaterialAppearance({ material: Cesium.Material.fromType("Color", { color: colour }),
                                                    faceForward: true, translucent: alpha < 1, closed: false }) });
   }
+  /** 구에 맨틀이 서 있나 — 땅이 물러날지 정한다 */
+  function mantleShown() {
+    return isOn("mantle") && visibleNow("mantle") && Object.keys(MANTLE).length > 0;
+  }
+  /** 구에 얹은 레이어의 투명도 — 맨틀이 서면 물러난다 */
+  function globeAlpha(e) { return e.opacity * (mantleShown() ? MANTLE_SURFACE.overlay : 1); }
   function dropMantle() {
     mantlePrims.forEach(function (p) { scene.primitives.remove(p); });
     mantlePrims = [];
   }
   function syncMantle(restyle) {
-    var e = entryOf("mantle"), on = !!e && visibleNow("mantle") && Object.keys(MANTLE).length > 0;
+    var e = entryOf("mantle"), on = mantleShown();
     scene.globe.translucency.enabled = on;
-    scene.globe.translucency.frontFaceAlpha = 0.35;
+    scene.globe.translucency.frontFaceAlpha = MANTLE_SURFACE.globe;
     scene.globe.translucency.backFaceAlpha = 0.0;
     if (!on) { dropMantle(); mantleFrame = null; return; }
     var frame = mantleFrameOf(age);
@@ -892,7 +904,7 @@
       var shown = !!e && visibleNow(name);
       cGeo[name].show = shown;
       oGeo[name].setVisible(shown);
-      if (e) { cGeo[name].alpha = e.opacity; oGeo[name].setOpacity(e.opacity); }
+      if (e) { cGeo[name].alpha = globeAlpha(e); oGeo[name].setOpacity(e.opacity); }
     });
     // 구 — 영상 레이어만 차례가 있다(벡터 데이터 소스는 늘 영상 위다). 평면 — zIndex
     active.slice().reverse().forEach(function (e, i) {
@@ -953,7 +965,7 @@
       num.textContent = range.value + "%";
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
-        if (cGeo[e.name]) { cGeo[e.name].alpha = e.opacity; oGeo[e.name].setOpacity(e.opacity); }
+        if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
         else { syncLabels(); syncMantle(true); }
         num.textContent = range.value + "%";
       });
