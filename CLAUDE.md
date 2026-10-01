@@ -353,7 +353,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS)
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
-  gfs.py          NOAA GFS 로 나가는 문 (지금의 바람 u·v, 10 m·250 hPa). 호스트 cron 이 받는다(`fetch_gfs_wind`)
+  gfs.py          NOAA GFS 로 나가는 문 (지금의 바람 u·v, 10 m·250 hPa, 분석과 +12 시간까지 예보). 호스트 cron 이 받는다(`fetch_gfs_wind`)
   era5.py         ARCO-ERA5(Google Cloud 공개 버킷)로 나가는 문 (지난 바람). 37 층 덩이에서 그 층만 Range 로. 사람이 부른다(`build_era5_wind`)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버·아라온호 위치). 목록은 모아 둔다(`fetch_kopri`), 아라온호는 매시간 쌓아(`fetch_araon`) 항적 레이어로 낸다 — 남극·북극해 탭과 온 지구
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다

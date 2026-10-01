@@ -8,6 +8,8 @@
   화면이 다시 돌리지 않게
 - R=u, G=v 를 그 장의 최솟값·최댓값으로 0–255 에 담는다. 되돌릴 값은 출처의 `index.json` 에 적는다. B 는 비운다
 - 자리 — `<WIND_DIR>/<출처>/<시각>/<높이>.png`, 출처마다 `index.json`. 시각은 GFS 가 `YYYYMMDDHH`, ERA5 가 `YYYYMMDD`(00 UTC)
+- GFS 의 시각은 **유효 시각**이다 — 목록 한 줄에 판(`run`)과 예보 시간(`fh`, 0 이 분석)을 함께 적는다. 같은 유효 시각을 여러
+  판이 내면 새 판이 이긴다. 그래서 같은 주소의 그림이 바뀔 수 있어 화면은 `?run=` 을 붙여 부른다 (koprifossillab 008)
 """
 import io
 import json
@@ -112,4 +114,16 @@ def prune(source: str, keep: int) -> list:
         write_index(source, times[-keep:])
         for stamp in gone:
             shutil.rmtree(root() / source / stamp, ignore_errors=True)
+    return gone
+
+
+def prune_before(source: str, stamp: str) -> list:
+    """시각이 `stamp` 보다 앞선 것을 지운다. 지운 시각들."""
+    index = read_index(source)
+    times = sorted(index["times"], key=lambda e: e["t"])
+    gone = [e["t"] for e in times if e["t"] < stamp]
+    if gone:
+        write_index(source, [e for e in times if e["t"] >= stamp])
+        for old in gone:
+            shutil.rmtree(root() / source / old, ignore_errors=True)
     return gone

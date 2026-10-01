@@ -1025,10 +1025,29 @@
   function windEntry(offset) {
     var list = windTimes();
     if (!list.length) return null;
-    if (WIND.src === "gfs") return list[list.length - 1];
+    if (WIND.src === "gfs") { var pair = windNowPair(); return pair && pair.a; }
     var i = 0;
     for (var k = 0; k < list.length; k++) if (list[k].t <= WIND.day) i = k;
     return list[Math.min(list.length - 1, i + (offset || 0))] || null;
+  }
+  function stampMs(t) { return Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t.slice(6, 8), +(t.slice(8, 10) || 0)); }
+  /** 지금의 바람 (koprifossillab 008) — 지금 시각 바로 앞의 장(분석이나 앞선 예보, `a`)과 바로 뒤의 장(예보, `b`), 그리고 `b` 의
+   *  가중치 `w`. 목록의 시각은 유효 시각이고 차례로 서 있다. 뒤 장이 없으면(새 판이 늦다) 가장 새 장 하나를 그대로 */
+  function windNowPair() {
+    var list = windTimes(), now = Date.now(), a = null, b = null;
+    list.forEach(function (e) { if (stampMs(e.t) <= now) a = e; else if (!b) b = e; });
+    if (!a) return b ? { a: b, b: null, w: 0 } : null;
+    if (!b) return { a: a, b: null, w: 0 };
+    return { a: a, b: b, w: (now - stampMs(a.t)) / (stampMs(b.t) - stampMs(a.t)) };
+  }
+  var windPair = null;
+  function windNowText() {
+    var p = windPair;
+    if (!p) return T("바람 자료가 아직 없다");
+    function side(e) { return T(e.fh ? "{t} 예보" : "{t} 분석", { t: e.t.slice(8, 10) + " UTC" }); }
+    if (!p.b) return T(p.a.fh ? "{t} UTC · GFS 예보" : "{t} UTC · GFS 분석", { t: windStampText(p.a.t) });
+    var now = new Date().toISOString();
+    return T("{now} UTC 무렵 — GFS {from} ↔ {to}", { now: now.slice(0, 10) + " " + now.slice(11, 16), from: side(p.a), to: side(p.b) });
   }
   function windStampText(t) {
     return t.slice(0, 4) + "-" + t.slice(4, 6) + "-" + t.slice(6, 8) + (t.length > 8 ? " " + t.slice(8, 10) + ":00" : " 00:00");
@@ -1043,6 +1062,9 @@
   /** 텍스처 한 장 -> {u, v} (Float32Array, 721×1440). 같은 것을 두 번 받지 않게 몇 장만 들고 있다 */
   function windLoad(entry) {
     var key = WIND.src + "/" + entry.t + "/" + WIND.level;
+    // GFS 는 같은 유효 시각을 새 판이 다시 낸다 — 판을 주소에 붙여 브라우저 캐시가 옛 그림을 내지 않게 (koprifossillab 008)
+    var url = BASE + "earth/wind/" + key + ".png" + (entry.run ? "?run=" + entry.run : "");
+    key = url;
     if (windCache[key]) return windCache[key];
     var scale = entry[WIND.level];
     windCache[key] = new Promise(function (resolve, reject) {
@@ -1059,7 +1081,7 @@
         resolve({ u: u, v: v, t: entry.t });
       };
       img.onerror = function () { delete windCache[key]; reject(new Error(key)); };
-      img.src = BASE + "earth/wind/" + key + ".png";
+      img.src = url;
     });
     var keys = Object.keys(windCache);
     if (keys.length > 6) delete windCache[keys[0]];
@@ -1201,12 +1223,16 @@
     }
     var mine = ++windAsked;
     (WIND.index && !reload ? Promise.resolve(WIND.index) : windIndex()).then(function () {
-      var entry = windEntry(0);
+      // 지금의 바람은 앞뒤 두 장을 섞는다 — 재생과 같은 섞기(`windAt`)다
+      var pair = WIND.src === "gfs" ? windNowPair() : null;
+      var entry = pair ? pair.a : windEntry(0);
+      windPair = pair;
       renderWind();
       if (!entry) { windField = null; return null; }
-      return windLoad(entry).then(function (f) {
+      return Promise.all([windLoad(entry), pair && pair.b ? windLoad(pair.b) : null]).then(function (fs) {
         if (mine !== windAsked) return;
-        windField = f; windNext = null; windBlend = 0;
+        var f = fs[0];
+        windField = f; windNext = fs[1]; windBlend = fs[1] ? pair.w : 0;
         if (WIND.playing) windPrefetch();
         windResize();
         windViewKey = "";
@@ -1231,6 +1257,14 @@
   window.addEventListener("resize", function () { if (windShown()) { windResize(); windViewKey = ""; } });
   // 지금의 바람은 여섯 시간마다 새 판이 선다 — 반 시간마다 목록을 다시 본다
   setInterval(function () { if (windShown() && WIND.src === "gfs") syncWind(true); }, 30 * 60 * 1000);
+  // 지금의 바람은 일 분마다 가중치를 다시 센다. 지금이 뒤 장을 지나면 두 장을 다시 고른다
+  setInterval(function () {
+    if (!windShown() || WIND.src !== "gfs" || !windPair || !windNext) return;
+    var p = windNowPair();
+    if (!p || !p.b || p.a.t !== windPair.a.t || p.b.t !== windPair.b.t) { syncWind(); return; }
+    windPair = p; windBlend = p.w;
+    renderWind();
+  }, 60 * 1000);
 
   /** 바람 카드의 고르개 — 지금/지난, 높이, (지난이면) 날짜·재생, 그리고 지금 보이는 시각과 출처 */
   var windBox = null;
@@ -1251,7 +1285,7 @@
     play.title = WIND.playing ? T("멈춤") : T("재생");
     var when = windBox.querySelector(".wind-when");
     when.textContent = !entry ? T("바람 자료가 아직 없다")
-      : WIND.src === "gfs" ? T("{t} UTC · GFS 분석", { t: windStampText(entry.t) })
+      : WIND.src === "gfs" ? windNowText()
       : T("{t} UTC · ERA5 재분석", { t: windStampText(entry.t) });
     var src = windBox.parentNode && windBox.parentNode.querySelector(".active-src");
     if (src && WIND.index && WIND.index[WIND.src]) src.textContent = WIND.index[WIND.src].credit;

@@ -125,6 +125,12 @@ class GFS(SimpleTestCase):
         for key in ("var_UGRD", "var_VGRD", "lev_10_m_above_ground", "lev_250_mb"):
             self.assertEqual(q[key], "on")
 
+    def test_예보_장의_파일과_유효_시각(self):
+        self.assertEqual(gfs.params("2026100106", 9)["file"], "gfs.t06z.pgrb2.0p25.f009")
+        self.assertEqual(gfs.valid_time("2026100118", 12), "2026100206")       # 날을 넘는다
+        self.assertEqual(gfs.FORECAST_HOURS[0], 0)
+        self.assertGreaterEqual(gfs.FORECAST_HOURS[-1], 12)                     # 다음 판이 올라오기까지를 덮는다
+
     def test_아직_없는_판은_None(self):
         fake = mock.Mock(status_code=404, content=b"<html>no file</html>")
         with mock.patch("viewer.gfs.requests.get", return_value=fake), mock.patch("viewer.gfs.usage.record") as rec:
@@ -214,3 +220,78 @@ class 시험용_목록_꼴(SimpleTestCase):
             data = json.loads((Path(d) / "gfs" / "index.json").read_text(encoding="utf-8"))
         self.assertEqual(data["width"], 1440)
         self.assertEqual(data["levels"], ["10m", "250hPa"])
+
+
+@override_settings()
+class 지금의_바람_받기(SimpleTestCase):
+    """`fetch_gfs_wind` — 상류와 굽기를 흉내 낸다. 판마다 어느 장을 받는지, 새 판이 이기는지 (koprifossillab 008)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = override_settings(WIND_DIR=self.tmp.name)
+        patcher.enable()
+        self.addCleanup(patcher.disable)
+        self.asked = []
+
+    def run_cmd(self, up, now):
+        """`up` — 올라와 있는 (판, 예보 시간). `now` — 그때의 UTC."""
+        from django.core.management import call_command
+
+        def fake_download(cycle, fh=0):
+            self.asked.append((cycle, fh))
+            return b"GRIB" if (cycle, fh) in up else None
+
+        def fake_write(source, stamp, fields):
+            (Path(self.tmp.name) / source / stamp).mkdir(parents=True, exist_ok=True)
+            return {"t": stamp}
+
+        class FakeNow(dt.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return now
+
+        with mock.patch("viewer.gfs.download", side_effect=fake_download), \
+             mock.patch("viewer.gfs.decode", return_value={}), \
+             mock.patch("viewer.wind.write_time", side_effect=fake_write), \
+             mock.patch("viewer.management.commands.fetch_gfs_wind.dt.datetime", FakeNow):
+            call_command("fetch_gfs_wind", pause=0, stdout=mock.Mock())
+        return {e["t"]: (e["run"], e["fh"]) for e in wind.read_index("gfs")["times"]}
+
+    def test_가장_새_판의_분석과_예보를_받는다(self):
+        now = dt.datetime(2026, 10, 1, 10, 40, tzinfo=dt.timezone.utc)
+        up = {("2026100106", h) for h in gfs.FORECAST_HOURS}
+        got = self.run_cmd(up, now)
+        self.assertEqual(got["2026100106"], ("2026100106", 0))
+        self.assertEqual(got["2026100118"], ("2026100106", 12))
+
+    def test_분석이_아직이면_앞_판으로(self):
+        now = dt.datetime(2026, 10, 1, 13, 0, tzinfo=dt.timezone.utc)     # 12 판은 아직
+        up = {("2026100106", h) for h in gfs.FORECAST_HOURS}
+        got = self.run_cmd(up, now)
+        self.assertIn(("2026100112", 0), self.asked)
+        self.assertNotIn(("2026100112", 3), self.asked)                   # 분석이 없으면 예보를 묻지 않는다
+        self.assertEqual(got["2026100112"], ("2026100106", 6))            # 그 시각은 앞 판의 예보로
+
+    def test_새_판이_같은_시각을_이긴다(self):
+        up = {("2026100106", h) for h in gfs.FORECAST_HOURS}
+        self.run_cmd(up, dt.datetime(2026, 10, 1, 11, 0, tzinfo=dt.timezone.utc))
+        up |= {("2026100112", h) for h in gfs.FORECAST_HOURS}
+        got = self.run_cmd(up, dt.datetime(2026, 10, 1, 17, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(got["2026100112"], ("2026100112", 0))            # 06 판의 +6 예보가 12 판의 분석으로
+        self.assertEqual(got["2026100109"], ("2026100106", 3))            # 12 판이 내지 않는 시각은 그대로
+
+    def test_빠진_장만_다시_받는다(self):
+        now = dt.datetime(2026, 10, 1, 10, 40, tzinfo=dt.timezone.utc)
+        self.run_cmd({("2026100106", 0), ("2026100106", 3)}, now)
+        self.asked.clear()
+        self.run_cmd({("2026100106", h) for h in gfs.FORECAST_HOURS}, now)
+        self.assertEqual(self.asked, [("2026100106", h) for h in (6, 9, 12)])
+
+    def test_오래된_것은_지운다(self):
+        stamps = ["2026092800", "2026093006", "2026100106"]
+        for s in stamps:
+            (Path(self.tmp.name) / "gfs" / s).mkdir(parents=True)
+        wind.write_index("gfs", [{"t": s, "run": s, "fh": 0} for s in stamps])
+        self.assertEqual(wind.prune_before("gfs", "2026093000"), ["2026092800"])
+        self.assertFalse((Path(self.tmp.name) / "gfs" / "2026092800").exists())
