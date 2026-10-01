@@ -3,8 +3,10 @@
 GFS 는 여기로만 받는다 (CLAUDE.md "상류마다 문이 하나").
 
 - 주소 `nomads.ncep.noaa.gov` 의 grib filter(`filter_gfs_0p25.pl`). **열쇠가 없다.** 미국 정부 자료라 쓰는 데 제한이 없다
-- 하루 네 번(00·06·12·18 UTC) 판이 서고, 판은 그 시각에서 네 시간 남짓 뒤에 올라온다. 받는 것은 분석(f000)의 u·v 를
-  두 높이(10 m·250 hPa)에서 — **한 판에 한 번 부른다**(3 MB 남짓)
+- 하루 네 번(00·06·12·18 UTC) 판이 서고, 판은 그 시각에서 네 시간 남짓 뒤에 올라온다. 받는 것은 분석(f000)과 예보
+  +3·+6·+9·+12 시간(`FORECAST_HOURS`)의 u·v 를 두 높이(10 m·250 hPa)에서 — 한 장에 한 번, 판마다 다섯 번 부른다(장마다 3 MB
+  남짓). 다음 판이 올라오기까지 판 시각에서 10 시간 남짓이 걸려 +12 시간까지 받는다 — 화면이 "지금" 을 앞뒤 두 장 사이로
+  섞어 보이려면 지금보다 뒤의 장이 늘 있어야 한다 (koprifossillab 008)
 - NOMADS 는 **분당 120 번**을 넘으면 막는다. 우리는 한 시간에 한두 번이다
 - **화면이 부를 때 상류를 타지 않는다.** 호스트의 cron 이 `manage.py fetch_gfs_wind` 로 받아 `wind.py` 가 PNG 로 굽는다
 - GRIB2 는 ecCodes 로 푼다 — **cron 의 전용 venv(`/srv/GSM/scripts/venv`, `run.sh`) 에만 있다**(`requirements-wind.txt`, koprifossillab 005). 그래서 `decode` 안에서만 부른다
@@ -23,6 +25,8 @@ FILTER = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
 #: 받는 높이 — grib filter 의 이름과 우리 이름(`wind.LEVELS`)
 LEVELS = {"10m": "lev_10_m_above_ground", "250hPa": "lev_250_mb"}
 CYCLE_HOURS = 6
+#: 받는 예보 시간 — 0 이 분석이다
+FORECAST_HOURS = (0, 3, 6, 9, 12)
 
 
 class GfsError(RuntimeError):
@@ -35,26 +39,31 @@ def recent_cycles(now: dt.datetime, count: int = 3) -> list:
     return [(start - dt.timedelta(hours=CYCLE_HOURS * i)).strftime("%Y%m%d%H") for i in range(count)]
 
 
-def params(cycle: str) -> dict:
+def valid_time(cycle: str, fh: int) -> str:
+    """판 `cycle` 의 예보 `fh` 시간이 가리키는 시각 — `YYYYMMDDHH`."""
+    return (dt.datetime.strptime(cycle, "%Y%m%d%H") + dt.timedelta(hours=fh)).strftime("%Y%m%d%H")
+
+
+def params(cycle: str, fh: int = 0) -> dict:
     day, hour = cycle[:8], cycle[8:]
-    query = {"dir": f"/gfs.{day}/{hour}/atmos", "file": f"gfs.t{hour}z.pgrb2.0p25.f000",
+    query = {"dir": f"/gfs.{day}/{hour}/atmos", "file": f"gfs.t{hour}z.pgrb2.0p25.f{fh:03d}",
              "var_UGRD": "on", "var_VGRD": "on"}
     query.update({name: "on" for name in LEVELS.values()})
     return query
 
 
-def download(cycle: str) -> bytes | None:
-    """그 판의 u·v 를 GRIB2 로. 판이 아직 없으면 None."""
+def download(cycle: str, fh: int = 0) -> bytes | None:
+    """그 판·그 예보 시간의 u·v 를 GRIB2 로. 아직 올라오지 않았으면 None."""
     left = usage.paused()
     if left:
         raise GfsError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
     try:
-        r = requests.get(FILTER, params=params(cycle), timeout=(settings.UPSTREAM_TIMEOUT, 120),
+        r = requests.get(FILTER, params=params(cycle, fh), timeout=(settings.UPSTREAM_TIMEOUT, 120),
                          verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
     except requests.RequestException as exc:
         usage.record("gfs", ok=False)
         raise GfsError(f"NOMADS 에 닿지 못했다: {exc}") from exc
-    log.info("GFS %s -> %s (%d B)", cycle, r.status_code, len(r.content))
+    log.info("GFS %s f%03d -> %s (%d B)", cycle, fh, r.status_code, len(r.content))
     if r.status_code == 200 and r.content[:4] == b"GRIB":
         usage.record("gfs", ok=True)
         return r.content
