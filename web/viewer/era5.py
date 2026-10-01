@@ -33,6 +33,8 @@ LEVELS = {
     "10m": ("10m_u_component_of_wind", "10m_v_component_of_wind", None),
     "250hPa": ("u_component_of_wind", "v_component_of_wind", 250),
 }
+#: 구름량 — 우리 종류 -> 변수(지상 한 장, 0–1) (koprifossillab 011)
+CLOUDS = {"total": "total_cloud_cover", "low": "low_cloud_cover", "mid": "medium_cloud_cover", "high": "high_cloud_cover"}
 NY, NX = 721, 1440
 PLANE = NY * NX * 4          # float32 한 장의 바이트
 
@@ -119,3 +121,8 @@ def winds(when: dt.datetime) -> dict:
     for level, (u_name, v_name, hpa) in LEVELS.items():
         out[level] = (field(u_name, when, hpa), field(v_name, when, hpa))
     return out
+
+
+def clouds(when: dt.datetime) -> dict:
+    """그 시각의 `{구름 종류: 구름량 0–1}`. 덩이가 하나에 2 MB 남짓이다."""
+    return {kind: field(name, when) for kind, name in CLOUDS.items()}

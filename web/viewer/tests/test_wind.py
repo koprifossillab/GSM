@@ -242,9 +242,9 @@ class 지금의_바람_받기(SimpleTestCase):
             self.asked.append((cycle, fh))
             return b"GRIB" if (cycle, fh) in up else None
 
-        def fake_write(source, stamp, fields):
+        def fake_write(source, stamp, fields, clouds=None):
             (Path(self.tmp.name) / source / stamp).mkdir(parents=True, exist_ok=True)
-            return {"t": stamp}
+            return {"t": stamp, "clouds": ["total"]}
 
         class FakeNow(dt.datetime):
             @classmethod
@@ -252,7 +252,7 @@ class 지금의_바람_받기(SimpleTestCase):
                 return now
 
         with mock.patch("viewer.gfs.download", side_effect=fake_download), \
-             mock.patch("viewer.gfs.decode", return_value={}), \
+             mock.patch("viewer.gfs.decode_all", return_value=({}, {})), \
              mock.patch("viewer.wind.write_time", side_effect=fake_write), \
              mock.patch("viewer.management.commands.fetch_gfs_wind.dt.datetime", FakeNow):
             call_command("fetch_gfs_wind", pause=0, stdout=mock.Mock())
@@ -288,6 +288,14 @@ class 지금의_바람_받기(SimpleTestCase):
         self.run_cmd({("2026100106", h) for h in gfs.FORECAST_HOURS}, now)
         self.assertEqual(self.asked, [("2026100106", h) for h in (6, 9, 12)])
 
+    def test_구름이_없는_장은_다시_받는다(self):
+        """0.35 까지 받은 장에는 구름이 없다 — 구름을 받으려고 그 판을 다시 받는다 (koprifossillab 011)."""
+        now = dt.datetime(2026, 10, 1, 10, 40, tzinfo=dt.timezone.utc)
+        wind.write_index("gfs", [{"t": gfs.valid_time("2026100106", h), "run": "2026100106", "fh": h}
+                                 for h in gfs.FORECAST_HOURS])
+        self.run_cmd({("2026100106", h) for h in gfs.FORECAST_HOURS}, now)
+        self.assertEqual(self.asked, [("2026100106", h) for h in gfs.FORECAST_HOURS])
+
     def test_오래된_것은_지운다(self):
         stamps = ["2026092800", "2026093006", "2026100106"]
         for s in stamps:
@@ -295,3 +303,86 @@ class 지금의_바람_받기(SimpleTestCase):
         wind.write_index("gfs", [{"t": s, "run": s, "fh": 0} for s in stamps])
         self.assertEqual(wind.prune_before("gfs", "2026093000"), ["2026092800"])
         self.assertFalse((Path(self.tmp.name) / "gfs" / "2026092800").exists())
+
+
+class 구름(SimpleTestCase):
+    """구름량 — 주소·굽기·GFS 의 순간값 고르기·ERA5 덧굽기 (koprifossillab 011)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = override_settings(WIND_DIR=self.tmp.name)
+        patcher.enable()
+        self.addCleanup(patcher.disable)
+
+    def test_구름_주소의_꼴(self):
+        for kind in wind.CLOUD_KINDS:
+            self.assertTrue(wind.valid("gfs", "2026100106", f"cloud-{kind}"))
+        self.assertFalse(wind.valid("gfs", "2026100106", "cloud-fog"))
+        path = Path(self.tmp.name) / "era5" / "20050601" / "cloud-low.png"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"\x89PNG fake")
+        self.assertEqual(self.client.get("/GSM/earth/wind/era5/20050601/cloud-low.png").status_code, 200)
+        self.assertEqual(self.client.get("/GSM/earth/wind/era5/20050601/cloud-fog.png").status_code, 404)
+
+    def test_GFS_요청에_구름_변수와_층(self):
+        q = gfs.params("2026100106", 3)
+        for key in ("var_TCDC", "var_LCDC", "var_MCDC", "var_HCDC", "lev_entire_atmosphere", "lev_low_cloud_layer",
+                    "lev_middle_cloud_layer", "lev_high_cloud_layer"):
+            self.assertEqual(q[key], "on")
+
+    @skipUnless(HAS_NUMPY, "numpy 가 없다 — 운영 이미지")
+    def test_회색으로_굽고_경도를_돌린다(self):
+        import numpy as np
+        from PIL import Image
+        lon = np.arange(1440) * 0.25
+        frac = np.tile(np.where(lon < 180, 1.0, 0.0), (721, 1)).astype("f4")
+        entry = wind.write_time("gfs", "2026100106", {}, {"total": frac, "low": frac * 0.5})
+        self.assertEqual(entry["clouds"], ["total", "low"])
+        img = np.asarray(Image.open(wind.png_path("gfs", "2026100106", "cloud-total")))
+        self.assertEqual(img.shape, (721, 1440))
+        self.assertEqual(img[0, 0], 0)          # 열 0 = 경도 −180 = 원본의 180°(구름 없음)
+        self.assertEqual(img[0, 720], 255)      # 열 720 = 경도 0(구름 가득)
+
+    @skipUnless(HAS_NUMPY, "numpy 가 없다 — 운영 이미지")
+    def test_이미_구운_날에_구름만_덧굽는다(self):
+        import numpy as np
+        stamp_dir = Path(self.tmp.name) / "era5" / "20050601"
+        stamp_dir.mkdir(parents=True)
+        (stamp_dir / "10m.png").write_bytes(b"wind")
+        kinds = wind.add_clouds("era5", "20050601", {k: np.zeros((721, 1440), "f4") for k in wind.CLOUD_KINDS})
+        self.assertEqual(kinds, list(wind.CLOUD_KINDS))
+        self.assertEqual((stamp_dir / "10m.png").read_bytes(), b"wind")      # 바람은 그대로
+        self.assertTrue((stamp_dir / "cloud-high.png").exists())
+        self.assertFalse(list(stamp_dir.glob("*.part")))
+
+    @skipUnless(HAS_ECCODES and HAS_NUMPY, "ecCodes 가 없다")
+    def test_GFS_의_순간값만_고른다(self):
+        import eccodes
+        import numpy as np
+
+        def message(short, tol, value, step_type="instant", level=0):
+            h = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib2")
+            for key, val in (("Ni", 1440), ("Nj", 721), ("latitudeOfFirstGridPointInDegrees", 90),
+                             ("longitudeOfFirstGridPointInDegrees", 0), ("latitudeOfLastGridPointInDegrees", -90),
+                             ("longitudeOfLastGridPointInDegrees", 359.75), ("iDirectionIncrementInDegrees", 0.25),
+                             ("jDirectionIncrementInDegrees", 0.25), ("typeOfLevel", tol), ("level", level)):
+                eccodes.codes_set(h, key, val)
+            if step_type == "avg":
+                eccodes.codes_set(h, "stepType", "avg")
+                eccodes.codes_set(h, "startStep", 0)
+                eccodes.codes_set(h, "endStep", 3)
+            eccodes.codes_set(h, "shortName", short)
+            eccodes.codes_set_values(h, np.full(1440 * 721, value))
+            out = eccodes.codes_get_message(h)
+            eccodes.codes_release(h)
+            return out
+
+        msgs = [message("10u", "heightAboveGround", 1.0, level=10), message("10v", "heightAboveGround", 2.0, level=10),
+                message("u", "isobaricInhPa", 3.0, level=250), message("v", "isobaricInhPa", 4.0, level=250),
+                message("tcc", "isobaricInhPa", 99.0, level=250),        # 기압면의 구름량 — 거른다
+                message("lcc", "lowCloudLayer", 40.0), message("lcc", "lowCloudLayer", 90.0, "avg")]
+        winds, clouds = gfs.decode_all(b"".join(msgs))
+        self.assertEqual(set(winds), {"10m", "250hPa"})
+        self.assertEqual(set(clouds), {"low"})
+        self.assertAlmostEqual(float(clouds["low"][0, 0]), 0.40, places=2)    # 순간값, 퍼센트 -> 비율

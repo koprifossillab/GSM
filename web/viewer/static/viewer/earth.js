@@ -92,6 +92,8 @@
     // 타일이 아니라 입자로 그린다(`syncWind`) (koprifossillab P02)
     { group: "움직이는 지구", flux: true, layers: [
       { name: "wind", title: "바람", wind: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
+      // 구름량 — 바람과 같은 시각 축(지금/지난·날짜·재생)을 쓴다. 영상 한 장으로 덮는다(`applyCloud`) (koprifossillab 011)
+      { name: "cloud", title: "구름", cloud: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
     ] },
     { group: "그때의 지구", layers: [
       { name: "coast", title: "옛 해안선", grid: "ll", then: true,
@@ -109,7 +111,7 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind && !LAYER[n].cloud; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -1173,7 +1175,14 @@
   }
   function windFrame(now) {
     windRaf = requestAnimationFrame(windFrame);
-    if (!windField || document.hidden) return;
+    if (document.hidden) return;
+    // 재생 — 다음 날의 바람·구름이 다 왔으면 섞기를 채운다. 바람이 꺼져 있어도 구름을 위해 돈다
+    if (WIND.playing && nextReady) {
+      windBlend += (now - (windLast || now)) / WIND_PLAY_MS;
+      if (windBlend >= 1) windAdvance();
+      else applyCloud();
+    }
+    if (!windShown() || !windField) { windLast = now; return; }
     if (mode === "globe") windOccluder = new Cesium.EllipsoidalOccluder(ELL, viewer.camera.positionWC);
     var w = windCanvas.clientWidth, h = windCanvas.clientHeight;
     var key = windKey();
@@ -1186,10 +1195,6 @@
       windCtx.fillStyle = "rgba(0,0,0," + WIND_FADE + ")";
       windCtx.fillRect(0, 0, w, h);
       windCtx.globalCompositeOperation = "source-over";
-    }
-    if (WIND.playing && windNext) {
-      windBlend += (now - (windLast || now)) / WIND_PLAY_MS;
-      if (windBlend >= 1) windAdvance();
     }
     windLast = now;
     var ref = WIND_REF[WIND.level], k = windMpp() * WIND_PX / ref;  // 1 m/s 가 한 프레임에 가는 미터
@@ -1220,68 +1225,171 @@
     });
   }
   function windShown() { return isOn("wind") && visibleNow("wind"); }
-  /** 켜고 끄고, 출처·높이·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
+  function cloudShown() { return isOn("cloud") && visibleNow("cloud"); }
+  /** 시각을 맞추는 일(목록·가중치·재생)은 바람과 구름이 함께 쓴다 — 둘 가운데 하나라도 켜져 있으면 돈다 (koprifossillab 011) */
+  function fluxShown() { return windShown() || cloudShown(); }
+
+  // ── 구름 (koprifossillab 011) ──
+  //
+  // 서버가 종류마다 회색 PNG(0–255 = 구름량 0–1)를 준다. 두 시각의 구름량을 가중치로 섞어 흰색·투명도 영상 한 장을 만들어
+  // 구(Cesium 영상 레이어)와 평면(OpenLayers `ImageStatic`, 극 평면은 OpenLayers 가 옮겨 그린다)에 덮는다. 투명도 레이어 두
+  // 장을 겹치지 않는 것은 가운데 시각에 구름이 옅어 보이기 때문이다. 가중치는 1/16 로 끊어 영상을 바뀔 때만 다시 만든다
+  var CLOUD = { kind: saved("gsm.earth.cloud.kind", "total") };
+  if (["total", "low", "mid", "high"].indexOf(CLOUD.kind) < 0) CLOUD.kind = "total";
+  var CLOUD_ALPHA = new Uint8ClampedArray(256);     // 구름량 -> 투명도. 옅은 구름도 보이게 조금 굽혔다
+  for (var ci = 0; ci < 256; ci++) CLOUD_ALPHA[ci] = Math.round(255 * 0.9 * Math.pow(ci / 255, 0.85));
+  var cloudA = null, cloudB = null, cloudNext = null, cloudCache = {}, cloudShownKey = "";
+  var cloudCanvas = document.createElement("canvas");
+  cloudCanvas.width = 1440; cloudCanvas.height = 721;
+  var cloudCtx = cloudCanvas.getContext("2d"), cloudImage = cloudCtx.createImageData(1440, 721);
+  for (var cj = 0; cj < cloudImage.data.length; cj += 4) {
+    cloudImage.data[cj] = cloudImage.data[cj + 1] = cloudImage.data[cj + 2] = 255;
+  }
+  var cCloud = null, cloudBlob = null;
+  var oCloud = new ol.layer.Image({ zIndex: 60, visible: false });
+  flat.addLayer(oCloud);
+  function cloudLoad(entry) {
+    if (!entry || !entry.clouds || entry.clouds.indexOf(CLOUD.kind) < 0) return Promise.resolve(null);
+    var url = BASE + "earth/wind/" + WIND.src + "/" + entry.t + "/cloud-" + CLOUD.kind + ".png" +
+              (entry.run ? "?run=" + entry.run : "");
+    if (cloudCache[url]) return cloudCache[url];
+    cloudCache[url] = new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement("canvas");
+        c.width = 1440; c.height = 721;
+        var g = c.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        var px = g.getImageData(0, 0, 1440, 721).data, n = 1440 * 721, out = new Uint8Array(n);
+        for (var i = 0; i < n; i++) out[i] = px[4 * i];
+        out.t = entry.t;
+        resolve(out);
+      };
+      img.onerror = function () { delete cloudCache[url]; reject(new Error(url)); };
+      img.src = url;
+    });
+    var keys = Object.keys(cloudCache);
+    if (keys.length > 6) delete cloudCache[keys[0]];
+    return cloudCache[url];
+  }
+  function hideCloud() {
+    if (cCloud) { viewer.imageryLayers.remove(cCloud, true); cCloud = null; }
+    oCloud.setVisible(false);
+    cloudShownKey = "";
+  }
+  /** 지금의 가중치(`windBlend`)로 두 구름을 섞어 덮는다. `force` 가 아니면 1/16 이 바뀔 때만 */
+  function applyCloud(force) {
+    var e = entryOf("cloud");
+    if (!cloudShown() || !cloudA) { hideCloud(); return; }
+    var b = cloudB || cloudNext, w = b ? Math.round(windBlend * 16) / 16 : 0;
+    var key = cloudA.t + "/" + (b ? b.t : "") + "/" + w + "/" + CLOUD.kind;
+    if (cCloud) { cCloud.alpha = e.opacity; viewer.imageryLayers.raiseToTop(cCloud); }
+    oCloud.setOpacity(e.opacity);
+    if (!force && key === cloudShownKey) return;
+    cloudShownKey = key;
+    var d = cloudImage.data, n = 1440 * 721, a = cloudA;
+    if (b && w > 0) for (var i = 0; i < n; i++) d[4 * i + 3] = CLOUD_ALPHA[(a[i] * (1 - w) + b[i] * w + 0.5) | 0];
+    else for (var k = 0; k < n; k++) d[4 * k + 3] = CLOUD_ALPHA[a[k]];
+    cloudCtx.putImageData(cloudImage, 0, 0);
+    cloudCanvas.toBlob(function (blob) {
+      if (key !== cloudShownKey || !cloudShown()) return;
+      var url = URL.createObjectURL(blob), old = cCloud, oldBlob = cloudBlob;
+      cloudBlob = url;
+      var layer = Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(url, {
+        rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90), credit: "NOAA GFS · ERA5 (Copernicus)" }));
+      layer.alpha = entryOf("cloud").opacity;
+      viewer.imageryLayers.add(layer);
+      cCloud = layer;
+      // 새 장이 선 뒤에 옛 장을 걷는다 — 바꾸는 사이에 구름이 깜박이지 않게
+      layer.readyEvent.addEventListener(function () {
+        if (old) viewer.imageryLayers.remove(old, true);
+        if (oldBlob) setTimeout(function () { URL.revokeObjectURL(oldBlob); }, 2000);
+      });
+      oCloud.setSource(new ol.source.ImageStatic({ url: url, imageExtent: [-180, -90, 180, 90], projection: LL,
+                                                   interpolate: true }));
+      oCloud.setVisible(true);
+    }, "image/png");
+  }
+
+  /** 켜고 끄고, 출처·높이·종류·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
   function syncWind(reload) {
-    var e = entryOf("wind"), on = windShown();
-    windCanvas.hidden = !on;
+    var e = entryOf("wind"), won = windShown(), con = cloudShown();
+    windCanvas.hidden = !won;
     if (e) windCanvas.style.opacity = e.opacity;
-    if (!on) {
+    if (!con) { hideCloud(); cloudA = cloudB = null; }
+    if (!won && !con) {
       if (windRaf) { cancelAnimationFrame(windRaf); windRaf = 0; }
       WIND.playing = false;
       return;
     }
     var mine = ++windAsked;
     (WIND.index && !reload ? Promise.resolve(WIND.index) : windIndex()).then(function () {
-      // 지금의 바람은 앞뒤 두 장을 섞는다 — 재생과 같은 섞기(`windAt`)다
+      // 지금은 앞뒤 두 장을 섞는다 — 재생과 같은 섞기다
       var pair = WIND.src === "gfs" ? windNowPair() : null;
-      var entry = pair ? pair.a : windEntry(0);
+      var entry = pair ? pair.a : windEntry(0), later = pair && pair.b;
       windPair = pair;
       renderWind();
-      if (!entry) { windField = null; return null; }
-      return Promise.all([windLoad(entry), pair && pair.b ? windLoad(pair.b) : null]).then(function (fs) {
+      if (!entry) { windField = null; cloudA = null; applyCloud(true); return null; }
+      return Promise.all([won ? windLoad(entry) : null, won && later ? windLoad(later) : null,
+                          con ? cloudLoad(entry) : null, con && later ? cloudLoad(later) : null]).then(function (fs) {
         if (mine !== windAsked) return;
-        var f = fs[0];
-        windField = f; windNext = fs[1]; windBlend = fs[1] ? pair.w : 0;
+        windField = fs[0]; windNext = fs[1]; cloudA = fs[2]; cloudB = fs[3];
+        windBlend = later ? pair.w : 0;
+        nextReady = false; cloudNext = null;
         if (WIND.playing) windPrefetch();
-        windResize();
-        windViewKey = "";
+        applyCloud(true);
+        renderWind();
+        if (won) { windResize(); windViewKey = ""; }
         if (!windRaf) windRaf = requestAnimationFrame(windFrame);
       });
-    }).catch(function () { if (mine === windAsked) { windField = null; renderWind(); } });
+    }).catch(function () { if (mine === windAsked) { windField = null; cloudA = null; applyCloud(true); renderWind(); } });
   }
-  /** 재생 — 다음 날을 미리 받아 두고, 섞기가 다 차면 넘긴다. 끝에 닿으면 처음으로 */
+  /** 재생 — 다음 날의 바람·구름을 미리 받아 두고(`nextReady`), 섞기가 다 차면 넘긴다. 끝에 닿으면 처음으로 */
+  var nextEntry = null, nextReady = false;
   function windPrefetch() {
     var list = windTimes(), cur = windEntry(0);
     if (!cur || list.length < 2) { WIND.playing = false; return; }
     var i = list.indexOf(cur), next = list[(i + 1) % list.length];
-    windLoad(next).then(function (f) { if (WIND.playing) windNext = f; });
+    nextEntry = next; nextReady = false;
+    Promise.all([windShown() ? windLoad(next) : null, cloudShown() ? cloudLoad(next) : null]).then(function (fs) {
+      if (!WIND.playing || nextEntry !== next) return;
+      windNext = fs[0]; cloudNext = fs[1]; nextReady = true;
+    });
   }
   function windAdvance() {
-    windField = windNext; windNext = null; windBlend = 0;
-    WIND.day = windField.t;
+    if (windNext) windField = windNext;
+    cloudA = cloudNext;
+    windNext = null; cloudNext = null; nextReady = false; windBlend = 0;
+    WIND.day = nextEntry.t;
     save("gsm.earth.wind.day", WIND.day);
+    applyCloud(true);
     renderWind();
     windPrefetch();
   }
   window.addEventListener("resize", function () { if (windShown()) { windResize(); windViewKey = ""; } });
-  // 지금의 바람은 여섯 시간마다 새 판이 선다 — 반 시간마다 목록을 다시 본다
-  setInterval(function () { if (windShown() && WIND.src === "gfs") syncWind(true); }, 30 * 60 * 1000);
-  // 지금의 바람은 일 분마다 가중치를 다시 센다. 지금이 뒤 장을 지나면 두 장을 다시 고른다
+  // 지금의 것은 여섯 시간마다 새 판이 선다 — 반 시간마다 목록을 다시 본다
+  setInterval(function () { if (fluxShown() && WIND.src === "gfs") syncWind(true); }, 30 * 60 * 1000);
+  // 지금의 것은 일 분마다 가중치를 다시 센다. 지금이 뒤 장을 지나면 두 장을 다시 고른다
   setInterval(function () {
-    if (!windShown() || WIND.src !== "gfs" || !windPair || !windNext) return;
+    if (!fluxShown() || WIND.src !== "gfs" || !windPair || !windPair.b) return;
     var p = windNowPair();
     if (!p || !p.b || p.a.t !== windPair.a.t || p.b.t !== windPair.b.t) { syncWind(); return; }
     windPair = p; windBlend = p.w;
+    applyCloud();
     renderWind();
   }, 60 * 1000);
 
-  /** 바람 카드의 고르개 — 지금/지난, 높이, (지난이면) 날짜·재생, 그리고 지금 보이는 시각과 출처 */
-  var windBox = null;
+  /** 바람·구름 카드의 고르개 — 지금/지난, 높이(바람)·종류(구름), (지난이면) 날짜·재생, 그리고 지금 보이는 시각과 출처.
+   *  시각에 닿는 고르개는 두 카드가 함께 따른다 (koprifossillab 011) */
+  var windBoxes = [];
   function renderWind() {
-    if (!windBox) return;
-    var entry = windEntry(0), list = windTimes();
+    windBoxes.forEach(renderFluxBox);
+  }
+  function renderFluxBox(windBox) {
+    var entry = windEntry(0), list = windTimes(), isCloud = windBox.dataset.layer === "cloud";
     windBox.querySelector(".wind-src").value = WIND.src;
-    windBox.querySelector(".wind-level").value = WIND.level;
+    if (isCloud) windBox.querySelector(".cloud-kind").value = CLOUD.kind;
+    else windBox.querySelector(".wind-level").value = WIND.level;
     var past = windBox.querySelector(".wind-past"), day = windBox.querySelector(".wind-day");
     past.hidden = WIND.src !== "era5";
     if (list.length && WIND.src === "era5") {
@@ -1294,20 +1402,27 @@
     play.title = WIND.playing ? T("멈춤") : T("재생");
     var when = windBox.querySelector(".wind-when");
     when.textContent = !entry ? T("바람 자료가 아직 없다")
+      : isCloud && (!entry.clouds || entry.clouds.indexOf(CLOUD.kind) < 0) ? T("이 시각에는 구름 자료가 없다")
       : WIND.src === "gfs" ? windNowText()
       : T("{t} UTC · ERA5 재분석", { t: windStampText(entry.t) });
     var src = windBox.parentNode && windBox.parentNode.querySelector(".active-src");
     if (src && WIND.index && WIND.index[WIND.src]) src.textContent = WIND.index[WIND.src].credit;
   }
-  function windControls() {
-    var box = document.createElement("div");
+  function windControls(layer) {
+    var box = document.createElement("div"), cloud = layer === "cloud";
     box.className = "wind-controls";
+    box.dataset.layer = layer;
     box.innerHTML =
-      '<div class="wind-row"><select class="wind-src" aria-label="' + esc(T("바람")) + '">' +
-      '<option value="gfs">' + esc(T("지금의 바람")) + '</option><option value="era5">' + esc(T("지난 바람")) + "</option></select>" +
-      '<select class="wind-level" aria-label="' + esc(T("높이")) + '">' +
-      '<option value="10m">' + esc(T("지상 10 m")) + '</option><option value="250hPa">' + esc(T("250 hPa (제트기류)")) +
-      "</option></select></div>" +
+      '<div class="wind-row"><select class="wind-src" aria-label="' + esc(T(cloud ? "구름" : "바람")) + '">' +
+      '<option value="gfs">' + esc(T(cloud ? "지금의 구름" : "지금의 바람")) + '</option><option value="era5">' +
+      esc(T(cloud ? "지난 구름" : "지난 바람")) + "</option></select>" +
+      (cloud
+        ? '<select class="cloud-kind" aria-label="' + esc(T("구름 종류")) + '">' +
+          '<option value="total">' + esc(T("전체 구름")) + '</option><option value="low">' + esc(T("하층 구름")) + "</option>" +
+          '<option value="mid">' + esc(T("중층 구름")) + '</option><option value="high">' + esc(T("상층 구름")) + "</option></select>"
+        : '<select class="wind-level" aria-label="' + esc(T("높이")) + '">' +
+          '<option value="10m">' + esc(T("지상 10 m")) + '</option><option value="250hPa">' + esc(T("250 hPa (제트기류)")) +
+          "</option></select>") + "</div>" +
       '<div class="wind-row wind-past" hidden><input type="date" class="wind-day" aria-label="' + esc(T("날짜")) + '">' +
       '<button type="button" class="wind-play">▶</button></div>' +
       '<p class="wind-when"></p>';
@@ -1316,11 +1431,19 @@
       save("gsm.earth.wind.src", WIND.src);
       syncWind();
     });
-    box.querySelector(".wind-level").addEventListener("change", function (ev) {
-      WIND.level = ev.target.value;
-      save("gsm.earth.wind.level", WIND.level);
-      syncWind();
-    });
+    if (cloud) {
+      box.querySelector(".cloud-kind").addEventListener("change", function (ev) {
+        CLOUD.kind = ev.target.value;
+        save("gsm.earth.cloud.kind", CLOUD.kind);
+        syncWind();
+      });
+    } else {
+      box.querySelector(".wind-level").addEventListener("change", function (ev) {
+        WIND.level = ev.target.value;
+        save("gsm.earth.wind.level", WIND.level);
+        syncWind();
+      });
+    }
     box.querySelector(".wind-day").addEventListener("change", function (ev) {
       if (!ev.target.value) return;
       WIND.day = ev.target.value.replace(/-/g, "");
@@ -1330,11 +1453,12 @@
     });
     box.querySelector(".wind-play").addEventListener("click", function () {
       WIND.playing = !WIND.playing;
-      windNext = null; windBlend = 0; windLast = 0;
+      windNext = null; cloudNext = null; nextReady = false; windBlend = 0; windLast = 0;
       if (WIND.playing) windPrefetch();
+      applyCloud(true);
       renderWind();
     });
-    windBox = box;
+    windBoxes.push(box);
     return box;
   }
 
@@ -1365,7 +1489,8 @@
   }
   function addLayer(name) {
     if (isOn(name)) return;
-    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : name === "crust" ? 0.7 : 1 });
+    // 구름은 조금 비치게 — 흰 구름 위에서는 바람 입자가 묻힌다 (koprifossillab 011)
+    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : name === "crust" ? 0.7 : name === "cloud" ? 0.75 : 1 });
     saveLayers(); applyStack(); renderActive(); renderCatalog();
     showAge();   // 캡션은 켠 레이어를 따른다(맨틀·빙상·옛 해안선) — 연대를 바꿀 때만 다시 쓰면 켜도 안 뜬다
   }
@@ -1385,7 +1510,7 @@
     var host = $("active-list");
     $("count-layers").textContent = active.length;
     host.innerHTML = "";
-    windBox = null;                                  // 바람 카드는 다시 짓는다
+    windBoxes = [];                                  // 바람·구름 카드는 다시 짓는다
     if (!active.length) {
       host.innerHTML = '<li class="empty">' + esc(T("아직 켠 레이어가 없다")) + "</li>";
       return;
@@ -1414,7 +1539,8 @@
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
         if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
-        else { syncLabels(); syncTrack(); syncMantle(true); if (e.name === "wind") windCanvas.style.opacity = e.opacity; }
+        else { syncLabels(); syncTrack(); syncMantle(true); if (e.name === "wind") windCanvas.style.opacity = e.opacity;
+               if (e.name === "cloud") applyCloud(); }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1422,11 +1548,11 @@
       var src = document.createElement("p");
       src.className = "active-src";
       src.textContent = LAYER[e.name].src || "";
-      if (e.name === "wind") li.append(head, windControls(), foot, src);
+      if (e.name === "wind" || e.name === "cloud") li.append(head, windControls(e.name), foot, src);
       else li.append(head, foot, src);
       host.appendChild(li);
-      if (e.name === "wind") renderWind();
     });
+    renderWind();
   }
   function renderCatalog() {
     var host = $("layer-catalog");

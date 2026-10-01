@@ -188,3 +188,4 @@
 | koprifossillab 009 | 2026-10-01 | [아라온호 지난 1 년 항적 — 날짜는 하루 단위로](20261001_koprifossillab_009_araon_past.md) |
 | koprifossillab P03 | 2026-10-01 | [구름 — 모델 구름량을 바람과 같은 시각으로, 다음에 위성 적외선 (계획)](20261001_koprifossillab_P03_cloud.md) |
 | koprifossillab 010 | 2026-10-01 | [온 지구 — "움직이는 지구" 레이어군](20261001_koprifossillab_010_earth_in_flux.md) |
+| koprifossillab 011 | 2026-10-01 | [구름 1 단계 — 모델 구름량을 바람과 같은 시각으로](20261001_koprifossillab_011_cloud.md) |

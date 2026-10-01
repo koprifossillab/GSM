@@ -22,6 +22,9 @@ from django.conf import settings
 
 SOURCES = ("gfs", "era5")
 LEVELS = ("10m", "250hPa")
+#: 구름량 — 종류마다 회색 PNG 한 장(`cloud-<종류>.png`, 0–255 가 구름량 0–1). 화면이 두 시각을 섞어 흰색·투명도로 칠한다
+#: (koprifossillab P03·011). 흰색·투명도로 구워 두지 않은 것은 두 장을 투명도로 겹치면 가운데 시각에 구름이 옅어지기 때문이다
+CLOUD_KINDS = ("total", "low", "mid", "high")
 WIDTH, HEIGHT = 1440, 721
 STAMP = {"gfs": re.compile(r"^\d{10}$"), "era5": re.compile(r"^\d{8}$")}
 CREDIT = {
@@ -39,7 +42,8 @@ def png_path(source: str, stamp: str, level: str) -> Path:
 
 
 def valid(source: str, stamp: str, level: str) -> bool:
-    return source in SOURCES and level in LEVELS and bool(STAMP[source].match(stamp))
+    known = level in LEVELS or (level.startswith("cloud-") and level[6:] in CLOUD_KINDS)
+    return source in SOURCES and known and bool(STAMP[source].match(stamp))
 
 
 def read_index(source: str) -> dict:
@@ -89,8 +93,23 @@ def encode(u, v) -> tuple:
     return out.getvalue(), scale
 
 
-def write_time(source: str, stamp: str, fields: dict) -> dict:
-    """한 시각의 높이들(`{높이: (u, v)}`)을 굽고, 그 시각의 목록 한 줄을 낸다. 옆 자리에 다 쓴 뒤 바꿔 끼운다."""
+def encode_cloud(fraction) -> bytes:
+    """구름량 격자(721×1440, 경도 0 부터, 0–1) -> 회색 PNG. **호스트에서만** — numpy 를 쓴다."""
+    import numpy as np
+    from PIL import Image
+
+    f = np.asarray(fraction, dtype=np.float32).reshape(HEIGHT, WIDTH)
+    if not np.isfinite(f).all():
+        raise ValueError("빈 값(NaN)이 섞였다")
+    f = np.roll(np.clip(f, 0, 1), WIDTH // 2, axis=1)
+    out = io.BytesIO()
+    Image.fromarray(np.rint(f * 255).astype(np.uint8), "L").save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
+def write_time(source: str, stamp: str, fields: dict, clouds: dict | None = None) -> dict:
+    """한 시각의 높이들(`{높이: (u, v)}`)과 구름량(`{종류: 격자}`)을 굽고, 그 시각의 목록 한 줄을 낸다.
+    옆 자리에 다 쓴 뒤 바꿔 끼운다."""
     final = root() / source / stamp
     tmp = root() / source / f"{stamp}.part"
     shutil.rmtree(tmp, ignore_errors=True)
@@ -100,9 +119,23 @@ def write_time(source: str, stamp: str, fields: dict) -> dict:
         png, scale = encode(u, v)
         (tmp / f"{level}.png").write_bytes(png)
         entry[level] = scale
+    for kind, grid in (clouds or {}).items():
+        (tmp / f"cloud-{kind}.png").write_bytes(encode_cloud(grid))
+    if clouds:
+        entry["clouds"] = [k for k in CLOUD_KINDS if k in clouds]
     shutil.rmtree(final, ignore_errors=True)
     os.replace(tmp, final)
     return entry
+
+
+def add_clouds(source: str, stamp: str, clouds: dict) -> list:
+    """이미 구운 시각에 구름량만 덧굽는다. 장마다 옆 이름에 쓴 뒤 바꿔 끼운다. 덧구운 종류들."""
+    final = root() / source / stamp
+    for kind, grid in clouds.items():
+        tmp = final / f"cloud-{kind}.png.part"
+        tmp.write_bytes(encode_cloud(grid))
+        os.replace(tmp, final / f"cloud-{kind}.png")
+    return [k for k in CLOUD_KINDS if k in clouds]
 
 
 def prune(source: str, keep: int) -> list:
