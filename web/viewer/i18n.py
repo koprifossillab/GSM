@@ -98,7 +98,7 @@ EN = {
     "위가 앞이다": "top is front",
     "아직 켠 레이어가 없다": "No layers on yet",
     # 바람 (koprifossillab P02)
-    "바람 (GFS·ERA5)": "Wind (GFS·ERA5)",
+    "움직이는 지구": "Earth in flux",
     "바람": "Wind",
     "지금의 바람": "Current wind",
     "지난 바람": "Past wind",
