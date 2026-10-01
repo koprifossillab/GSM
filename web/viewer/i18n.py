@@ -450,6 +450,8 @@ EN = {
     "음영 보이기": "Show hillshade",
     "오른쪽 단추를 누른 채 끌면(또는 Ctrl+끌기) 기울이고 돌린다.":
         "Drag with the right button (or Ctrl+drag) to tilt and rotate.",
+    "두 손가락을 위아래로 끌면 기울이고, 비틀면 돌린다.":
+        "Drag two fingers up or down to tilt; twist them to rotate.",
     "표고: AWS Terrain Tiles (SRTM 등, 약 30 m) · 일본 국토지리원 (10 m) · 극지 PGC ArcticDEM·REMA (2 m) · 남빙양 IBCSO v2 (500 m). 지질도: 한국지질자원연구원 등.":
         "Elevation: AWS Terrain Tiles (SRTM etc., ~30 m) · Japan GSI (10 m) · polar PGC ArcticDEM/REMA (2 m) · Southern Ocean IBCSO v2 (500 m). Geology: KIGAM and others.",
     # 3D 남극 IBCSO (051)
