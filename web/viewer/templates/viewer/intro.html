@@ -67,11 +67,11 @@
             data-mars="{% static 'viewer/intro/globe-mars.webp' %}"></canvas>
     <div class="title-text">
       <p class="kicker">{% t "극지연구소 고생물진화연구실" %}</p>
-      <h1>{% t "대돌여지도" %}<span>GREAT STONE MAP</span></h1>
+      <h1>{% t "대돌여지도" %}<span>{% if lang == "en" %}대돌여지도{% else %}GREAT STONE MAP{% endif %}</span></h1>
       <p class="lead">{% t "지질도를 겹쳐 보고, 눌러 속성을 읽고, 내 좌표를 얹는 지도." %}</p>
       <ul class="chips regions" aria-label="{% t "다루는 곳" %}">
         <li>{% t "한국" %}</li><li>{% t "일본" %}</li><li>{% t "동아시아" %}</li>
-        <li>{% t "남극" %}</li><li>{% t "그린란드" %}</li><li>{% t "스발바르" %}</li><li>{% t "얀마옌" %}</li><li>{% t "북극해" %}</li>
+        <li class="polar">{% t "남극" %}</li><li class="polar">{% t "그린란드" %}</li><li class="polar">{% t "스발바르" %}</li><li class="polar">{% t "얀마옌" %}</li><li class="polar">{% t "북극해" %}</li>
         <li>{% t "온 지구" %}</li><li class="moon">{% t "달" %}</li><li class="mars">{% t "화성" %}</li>
       </ul>
       <ul class="chips feats" aria-label="{% t "할 수 있는 것" %}">
@@ -84,7 +84,7 @@
 </section>
 
 {# ── 불편 — 종이 다섯 장, 이어 수십 장이 쏟아지고, 한 화면으로 모인다 ── #}
-<section class="scene hook" id="hook" data-steps="3" data-stops="0 0.2 0.62 1" data-durs="0 1300 2600 1400" data-theme="korea"
+<section class="scene hook" id="hook" data-steps="3" data-stops="0 0.2 0.62 1" data-durs="0 1300 2600 1400" data-holds="- - 0 -" data-theme="korea"
          data-go="map/?region=korea" data-go-label="{% t "한국 지도" %}">
   <div class="stage">
     <div class="papers" aria-hidden="true" data-flood="{% static shots|add:'thumb/' %}"
@@ -123,15 +123,15 @@
 </section>
 
 {# ── 만든 곳 ── #}
-<section class="scene who" id="polar" data-steps="1" data-theme="antarctica"
+<section class="scene who" id="polar" data-steps="1" data-dwell="5500" data-theme="antarctica"
          data-go="map/?region=antarctica" data-go-label="{% t "남극 지도" %}">
   <div class="stage">
     <div class="who-text">
       <p class="kicker">{% t "만든 곳" %}</p>
-      <div class="kopri"><img src="{% static 'viewer/intro/kopri-ci.webp' %}" alt="{% t "극지연구소" %}" width="360" height="126"></div>
+      <div class="kopri"><img src="{% if lang == "en" %}{% static 'viewer/intro/kopri-ci-en.svg' %}{% else %}{% static 'viewer/intro/kopri-ci-ko.svg' %}{% endif %}" alt="{% t "극지연구소" %}"></div>
       <h2><em>{% t "극지연구소 고생물진화연구실" %}</em><span>{% t "이 만들었습니다." %}</span></h2>
       <p class="makers">{% t "만든 이 — 극지연구소 이승찬 · 극지연구소 정직한" %}</p>
-      <p>{% t "그래서 우리가 일하는 극지부터 보여 드립니다." %}</p>
+      <p>{% t "그래서 우리가 일하는 <b>극지</b>부터 보여 드립니다." %}</p>
       <ol class="route" aria-label="{% t "가는 길" %}">
         <li>{% t "남극" %}</li><li>{% t "그린란드" %}</li><li>{% t "스발바르" %}</li>
       </ol>
@@ -146,10 +146,10 @@
     <div class="copy">
       <p class="kicker">{% t "남극" %} · EPSG:3031</p>
       <h2>{% t "남극은 남극점을 가운데 두고 봅니다." %}</h2>
-      <p class="step-text" data-step="0">{% t "메르카토르에서 찢어지던 대륙이 제 모양으로 섭니다. SCAR GeoMAP 지질도는 우리 서버가 직접 그립니다." %}</p>
-      <p class="step-text" data-step="1">{% t "가까이 가면 극지연구소가 모은 암석 시료의 자리가 뜹니다. 장보고기지가 있는 빅토리아랜드입니다." %}</p>
-      <p class="step-text" data-step="2">{% t "드로닝모드랜드는 노르웨이 극지연구소의 1:25만 지질도와 구조선으로." %}</p>
-      <p class="step-text" data-step="3">{% t "빙상 밑의 땅(IBCSO)을 배경으로 깔고, 남극의 기지와 운석 발견 지점을 얹습니다." %}</p>
+      <p class="step-text" data-step="0">{% t "메르카토르에서 찢어지던 대륙이 <b>제 모양</b>으로 섭니다. SCAR GeoMAP 지질도는 <b>우리 서버가 직접</b> 그립니다." %}</p>
+      <p class="step-text" data-step="1">{% t "가까이 가면 <b>극지연구소가 모은 암석 시료</b>의 자리가 뜹니다. 장보고기지가 있는 빅토리아랜드입니다." %}</p>
+      <p class="step-text" data-step="2">{% t "드로닝모드랜드는 노르웨이 극지연구소의 <b>1:25만 지질도</b>와 구조선으로." %}</p>
+      <p class="step-text" data-step="3">{% t "<b>빙상 밑의 땅</b>(IBCSO)을 배경으로 깔고, 남극의 <b>기지와 운석 발견 지점</b>을 얹습니다." %}</p>
       <p class="src">{% t "지질도 SCAR GeoMAP·NPI · 시료·기지·운석 위치 극지연구소 KPDC · 배경 PGC REMA·IBCSO" %}</p>
     </div>
     <figure class="frame">
@@ -168,9 +168,9 @@
     <div class="copy">
       <p class="kicker">{% t "그린란드" %} · EPSG:3413</p>
       <h2>{% t "그린란드는 GEUS의 50만 지질도로." %}</h2>
-      <p class="step-text" data-step="0">{% t "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 퇴적분지가 색으로 드러납니다." %}</p>
-      <p class="step-text" data-step="1">{% t "GEUS의 하천 퇴적물 지화학도도 같은 화면에서 켭니다." %}</p>
-      <p class="step-text" data-step="2">{% t "그린란드 정부 포털의 연대측정 지점과 극지연구소 시료를 겹쳐 봅니다." %}</p>
+      <p class="step-text" data-step="0">{% t "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 <b>퇴적분지</b>가 색으로 드러납니다." %}</p>
+      <p class="step-text" data-step="1">{% t "GEUS의 <b>하천 퇴적물 지화학도</b>도 같은 화면에서 켭니다." %}</p>
+      <p class="step-text" data-step="2">{% t "그린란드 정부 포털의 <b>연대측정 지점</b>과 극지연구소 시료를 겹쳐 봅니다." %}</p>
       <p class="src">{% t "지질도·지화학 GEUS · 연대측정 그린란드 정부 포털 · 시료 위치 극지연구소 KPDC · 배경 PGC ArcticDEM" %}</p>
     </div>
     <figure class="frame">
@@ -188,10 +188,10 @@
     <div class="copy">
       <p class="kicker">{% t "스발바르 · 다산기지가 있는 곳" %}</p>
       <h2>{% t "스발바르는 노르웨이 극지연구소의 지질도로." %}</h2>
-      <p class="step-text" data-step="0">{% t "NPI의 지질 단위·단층을 그대로 받아 오고, 극지연구소 암석 시료를 함께 얹습니다." %}</p>
-      <p class="step-text" data-step="1">{% t "종이로 찍었던 지질도도 음영째 그대로 볼 수 있습니다." %}</p>
-      <p class="step-text" data-step="2">{% t "다산기지가 있는 뉘올레순 — 1936년부터 2025년까지 빙하 전면이 물러난 자리." %}</p>
-      <p class="step-text" data-step="3" data-go="map/?region=jan_mayen" data-go-label="{% t "얀마옌 지도" %}">{% t "얀마옌 — 북대서양의 화산섬. NPI 지질도를 모양째 받아 우리가 그립니다." %}</p>
+      <p class="step-text" data-step="0">{% t "NPI의 지질 단위·단층을 그대로 받아 오고, <b>극지연구소 암석 시료</b>를 함께 얹습니다." %}</p>
+      <p class="step-text" data-step="1">{% t "<b>종이로 찍었던 지질도</b>도 음영째 그대로 볼 수 있습니다." %}</p>
+      <p class="step-text" data-step="2">{% t "다산기지가 있는 뉘올레순 — <b>1936년부터 2025년까지</b> 빙하 전면이 물러난 자리." %}</p>
+      <p class="step-text" data-step="3" data-go="map/?region=jan_mayen" data-go-label="{% t "얀마옌 지도" %}">{% t "얀마옌 — 북대서양의 화산섬. NPI 지질도를 모양째 받아 <b>우리가 그립니다</b>." %}</p>
       <p class="src">{% t "지질도·빙하 NPI · 시료 위치 극지연구소 KPDC · 배경 NPI Sentinel-2·PGC ArcticDEM" %}</p>
     </div>
     <figure class="frame">
@@ -216,7 +216,7 @@
         <li>{% t "<b>스발바르·얀마옌</b> — NPI 지질도·도폭·빙하 전면 변화" %}</li>
         <li>{% t "<b>북극해</b> — KPDC 관측 자료" %}</li>
       </ul>
-      <p>{% t "기관마다 다른 투영과 서버를 극 평사도법(3031·3413) 하나로 맞췄습니다." %}</p>
+      <p>{% t "기관마다 다른 투영과 서버를 <b>극 평사도법(3031·3413) 하나</b>로 맞췄습니다." %}</p>
     </div>
     <figure class="mosaic" aria-label="{% t "극지 화면 여섯 장" %}">
       <img loading="lazy" src="{% static shots|add:'thumb/antarctica_close.webp' %}" alt="">
@@ -236,9 +236,9 @@
     <div class="copy">
       <p class="kicker">{% t "다시 한국으로" %} · 3D</p>
       <h2>{% t "지질도를 지형 위에 얹습니다." %}</h2>
-      <p class="step-text" data-step="0">{% t "보던 자리에서 3D 단추 하나면 됩니다. 25만 지질도가 태백산맥을 따라 접힙니다." %}</p>
-      <p class="step-text" data-step="1">{% t "가까이 가면 5만 지질도입니다. 기울이고 돌려 가며 지층과 단층이 산줄기 어디로 이어지는지 봅니다. 설악산입니다." %}</p>
-      <p class="step-text" data-step="2">{% t "극지도 3D로 — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에." %}</p>
+      <p class="step-text" data-step="0">{% t "보던 자리에서 <b>3D 단추 하나</b>면 됩니다. 25만 지질도가 태백산맥을 따라 접힙니다." %}</p>
+      <p class="step-text" data-step="1">{% t "가까이 가면 5만 지질도입니다. 기울이고 돌려 가며 <b>지층과 단층</b>이 산줄기 어디로 이어지는지 봅니다. 설악산입니다." %}</p>
+      <p class="step-text" data-step="2">{% t "<b>극지도 3D로</b> — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에." %}</p>
       <p class="src">{% t "지질도 한국지질자원연구원·NPI · 지형 AWS Terrain Tiles·ArcticDEM · 배경 VWorld" %}</p>
     </div>
     <figure class="frame">
@@ -262,7 +262,7 @@
         <li data-step="2">{% t "<b>넓이</b> — 면을 두르면 넓이가 km²와 ha로 뜹니다." %}</li>
         <li data-step="3">{% t "<b>그림으로 내려받기</b> — 지금 보는 지도를 축척·좌표·출처가 붙은 PNG 한 장으로 받습니다." %}</li>
       </ol>
-      <p class="src">{% t "내 CSV·GeoJSON을 올리면 점묶음으로 지도에 얹힙니다." %}</p>
+      <p class="src">{% t "내 CSV·GeoJSON을 올리면 <b>점묶음</b>으로 지도에 얹힙니다." %}</p>
     </div>
     <figure class="frame">
       <img data-step="0" class="zoom-point" loading="lazy" src="{% static shots|add:'measure.webp' %}" alt="{% t "점을 찍은 화면 — 번호가 붙은 점 둘" %}">
@@ -320,14 +320,14 @@
         <img class="body-icon" src="{% static 'viewer/emblem-moon.png' %}" alt="" width="72" height="72">
         <p class="kicker">{% t "달" %}</p>
         <h2>{% t "둥근 달 위의 지질도." %}</h2>
-        <p>{% t "USGS 달 통합 지질도와 LOLA 지형. 아폴로 착륙지와 1970년대 원도 여섯 장도 있습니다." %}</p>
+        <p>{% t "USGS 달 통합 지질도와 LOLA 지형. <b>아폴로 착륙지</b>와 1970년대 <b>원도 여섯 장</b>도 있습니다." %}</p>
         <p class="src">{% t "지질도 USGS · 지형·영상 NASA Trek" %}</p>
       </div>
       <div class="step-text body" data-step="2" data-theme="mars" data-go="mars/" data-go-label="{% t "화성" %}">
         <img class="body-icon" src="{% static 'viewer/emblem-mars.png' %}" alt="" width="72" height="72">
         <p class="kicker">{% t "화성" %}</p>
         <h2>{% t "붉은 행성의 지층까지." %}</h2>
-        <p>{% t "USGS 화성 지질도와 MOLA–HRSC 지형, 크레이터 38만 개." %}</p>
+        <p>{% t "USGS 화성 지질도와 MOLA–HRSC 지형, <b>크레이터 38만 개</b>." %}</p>
         <p class="src">{% t "지질도 USGS · 지형·영상 NASA Trek" %}</p>
       </div>
     </div>

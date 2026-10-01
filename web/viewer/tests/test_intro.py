@@ -68,5 +68,5 @@ class IntroTests(TestCase):
         for lang in ("ko", "en"):
             for name in thumbs:
                 self.assertTrue((SHOTS / lang / "thumb" / name).is_file(), f"{lang}/thumb/{name}")
-        for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "kopri-ci.webp"):
+        for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "kopri-ci-ko.svg", "kopri-ci-en.svg"):
             self.assertTrue((SHOTS / name).is_file(), name)

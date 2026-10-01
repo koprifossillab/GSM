@@ -338,7 +338,12 @@
              : steps ? Array.apply(null, Array(steps)).map(function (_, k) { return (k + .5) / steps; })
              : [0];
       var durs = s.dataset.durs ? s.dataset.durs.split(" ").map(Number) : [];
-      fs.forEach(function (f, k) { stops.push({ scene: s, y: Math.round(top + run * f), dur: durs[k] || 0, first: k === 0 }); });
+      // `data-holds` — 자리마다 머무는 시간을 박는다(밀리초, `-` 는 글 길이로). 쏟아짐이 끝난 자리는 0 — 바로 모인다
+      var holds = s.dataset.holds ? s.dataset.holds.split(" ") : [];
+      fs.forEach(function (f, k) {
+        stops.push({ scene: s, y: Math.round(top + run * f), dur: durs[k] || 0, first: k === 0,
+                     hold: holds[k] && holds[k] !== "-" ? +holds[k] : null });
+      });
     });
   }
 
@@ -355,11 +360,11 @@
       else if (+getComputedStyle(el.closest(".paper, .hook-text, .resolve, .title-text") || el).opacity < .5) return;
       text += el.textContent.replace(/\s+/g, " ");
     });
-    if (s.classList.contains("doors-wrap")) return 0;
+    if (stop.hold !== null) return stop.hold;
     if (s.dataset.dwell && stop.first) return +s.dataset.dwell;
-    // 한 장 한 장 들여다보라는 것이 아니다 — 훑고 지나간다 (wetherilli 119: 2.2~7.5 초에서 1.1~3 초로)
-    var ms = 500 + text.length * (EN ? 7 : 15);
-    return Math.max(1100, Math.min(3000, ms));
+    // 한 장 한 장 들여다보라는 것이 아니다 — 훑고 지나간다. 119 의 1.1~3 초가 조금 빨라 1.4~3.6 초로 (wetherilli 121)
+    var ms = 700 + text.length * (EN ? 9 : 18);
+    return Math.max(1400, Math.min(3600, ms));
   }
 
   var playing = false, idx = 0, raf = 0, expectY = null;
@@ -388,7 +393,7 @@
   function go(i) {
     idx = i;
     var from = scrollY, to = stops[i].y, d = to - from;
-    var dur = still || !d ? 0 : stops[i].dur || Math.max(420, Math.min(900, Math.abs(d) / innerHeight * 300));
+    var dur = still || !d ? 0 : stops[i].dur || Math.max(480, Math.min(1000, Math.abs(d) / innerHeight * 340));
     var start = performance.now();
     function step(now) {
       var t = dur ? Math.min(1, (now - start) / dur) : 1;
@@ -403,9 +408,10 @@
   }
 
   function stay() {
-    var last = idx >= stops.length - 1;
+    // 끝(갈래)에 닿으면 멈춘다. 머무는 시간이 0 인 자리는 곧장 다음으로
+    if (idx >= stops.length - 1) { setPlaying(false); return; }
     var ms = dwell(stops[idx]);
-    if (last || !ms) { setPlaying(false); return; }
+    if (!ms) { go(idx + 1); return; }
     var spent = 0, prev = performance.now();
     function tick(now) {
       if (!document.hidden) spent += now - prev;       // 다른 탭에 있는 동안은 세지 않는다

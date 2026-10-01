@@ -945,13 +945,14 @@ EN = {
         "A map for overlaying geological maps, clicking to read attributes and adding your own coordinates — Great Stone Map.",
     "남극 지도": "Antarctica map",
     "만든 곳": "Made by",
-    "그래서 우리가 일하는 극지부터 보여 드립니다.": "So we start where we work — the poles.",
+    "그래서 우리가 일하는 <b>극지</b>부터 보여 드립니다.":
+        "So we start where we work — <b>the poles</b>.",
     "가는 길": "Route",
     "남극은 남극점을 가운데 두고 봅니다.": "Antarctica, seen with the South Pole at the centre.",
-    "메르카토르에서 찢어지던 대륙이 제 모양으로 섭니다. SCAR GeoMAP 지질도는 우리 서버가 직접 그립니다.":
-        "The continent that Mercator tears apart stands in its true shape. Our server draws the SCAR GeoMAP geology itself.",
-    "가까이 가면 극지연구소가 모은 암석 시료의 자리가 뜹니다. 장보고기지가 있는 빅토리아랜드입니다.":
-        "Zoom in and the locations of KOPRI's rock samples appear. This is Victoria Land, home of Jang Bogo Station.",
+    "메르카토르에서 찢어지던 대륙이 <b>제 모양</b>으로 섭니다. SCAR GeoMAP 지질도는 <b>우리 서버가 직접</b> 그립니다.":
+        "The continent that Mercator tears apart stands in its <b>true shape</b>. <b>Our server draws</b> the SCAR GeoMAP geology itself.",
+    "가까이 가면 <b>극지연구소가 모은 암석 시료</b>의 자리가 뜹니다. 장보고기지가 있는 빅토리아랜드입니다.":
+        "Zoom in and the locations of <b>KOPRI's rock samples</b> appear. This is Victoria Land, home of Jang Bogo Station.",
     "남극 지역 화면 — 남극 평사도법의 대륙 전체에 GeoMAP 지질도와 암석 시료":
         "Antarctica tab — GeoMAP geology and rock samples over the whole continent in polar stereographic",
     "빅토리아랜드를 가까이 본 화면 — 지질도 위의 극지연구소 암석 시료 점":
@@ -970,16 +971,16 @@ EN = {
     "<b>스발바르·얀마옌</b> — NPI 지질도·도폭·빙하 전면 변화":
         "<b>Svalbard &amp; Jan Mayen</b> — NPI geology, map sheets and glacier front changes",
     "<b>북극해</b> — KPDC 관측 자료": "<b>Arctic Ocean</b> — KPDC observation data",
-    "기관마다 다른 투영과 서버를 극 평사도법(3031·3413) 하나로 맞췄습니다.":
-        "Each agency's projection and server, aligned into polar stereographic (3031 · 3413).",
+    "기관마다 다른 투영과 서버를 <b>극 평사도법(3031·3413) 하나</b>로 맞췄습니다.":
+        "Each agency's projection and server, aligned into <b>one polar stereographic</b> (3031 · 3413).",
     "스발바르 화면 — NPI 지질 단위와 단층, 극지연구소 암석 시료":
         "Svalbard tab — NPI geological units and faults, KOPRI rock samples",
     "다시 한국으로": "Back to Korea",
     "지질도를 지형 위에 얹습니다.": "Geology draped over the terrain.",
-    "보던 자리에서 3D 단추 하나면 됩니다. 25만 지질도가 태백산맥을 따라 접힙니다.":
-        "One 3D button from wherever you are. The 1:250,000 geology folds along the Taebaek Mountains.",
-    "가까이 가면 5만 지질도입니다. 기울이고 돌려 가며 지층과 단층이 산줄기 어디로 이어지는지 봅니다. 설악산입니다.":
-        "Closer in, the 1:50,000 map. Tilt and turn to follow strata and faults across the ridges. This is Seoraksan.",
+    "보던 자리에서 <b>3D 단추 하나</b>면 됩니다. 25만 지질도가 태백산맥을 따라 접힙니다.":
+        "<b>One 3D button</b> from wherever you are. The 1:250,000 geology folds along the Taebaek Mountains.",
+    "가까이 가면 5만 지질도입니다. 기울이고 돌려 가며 <b>지층과 단층</b>이 산줄기 어디로 이어지는지 봅니다. 설악산입니다.":
+        "Closer in, the 1:50,000 map. Tilt and turn to follow <b>strata and faults</b> across the ridges. This is Seoraksan.",
     "3D 화면 — 지형 위에 얹은 25만 지질도": "3D view — 1:250,000 geology draped over the terrain",
     "3D 화면 — 설악산 지형 위의 5만 지질도": "3D view — 1:50,000 geology over Seoraksan",
     "야외에서 쓰는 도구": "Tools for the field",
@@ -992,7 +993,8 @@ EN = {
         "<b>Area</b> — outline a polygon and its area appears in km² and ha.",
     "<b>그림으로 내려받기</b> — 지금 보는 지도를 축척·좌표·출처가 붙은 PNG 한 장으로 받습니다.":
         "<b>Save as image</b> — download the current map as a PNG with scale bar, coordinates and sources.",
-    "내 CSV·GeoJSON을 올리면 점묶음으로 지도에 얹힙니다.": "Upload your CSV or GeoJSON and it lands on the map as a point set.",
+    "내 CSV·GeoJSON을 올리면 <b>점묶음</b>으로 지도에 얹힙니다.":
+        "Upload your CSV or GeoJSON and it lands on the map as a <b>point set</b>.",
     "점을 찍은 화면 — 번호가 붙은 점 둘": "Marked points — two numbered points",
     "거리를 잰 화면 — 선 아래에 높이 그래프": "Measured distance — an elevation graph beneath the line",
     "넓이를 잰 화면 — 두른 면에 넓이가 적혀 있다": "Measured area — the area written on the outlined polygon",
@@ -1012,11 +1014,11 @@ EN = {
     "그리고": "And then",
     "지구를 넘어, 우주로.": "Beyond Earth, into space.",
     "둥근 달 위의 지질도.": "Geology on a round Moon.",
-    "USGS 달 통합 지질도와 LOLA 지형. 아폴로 착륙지와 1970년대 원도 여섯 장도 있습니다.":
-        "The USGS Unified Geologic Map of the Moon and LOLA terrain, with the Apollo landing sites and six original 1970s maps.",
+    "USGS 달 통합 지질도와 LOLA 지형. <b>아폴로 착륙지</b>와 1970년대 <b>원도 여섯 장</b>도 있습니다.":
+        "The USGS Unified Geologic Map of the Moon and LOLA terrain, with the <b>Apollo landing sites</b> and <b>six original 1970s maps</b>.",
     "붉은 행성의 지층까지.": "Down to the strata of the red planet.",
-    "USGS 화성 지질도와 MOLA–HRSC 지형, 크레이터 38만 개.":
-        "The USGS geologic map of Mars, MOLA–HRSC terrain and 380,000 craters.",
+    "USGS 화성 지질도와 MOLA–HRSC 지형, <b>크레이터 38만 개</b>.":
+        "The USGS geologic map of Mars, MOLA–HRSC terrain and <b>380,000 craters</b>.",
     "지질도 USGS · 지형·영상 NASA Trek": "Geology USGS · Terrain and imagery NASA Trek",
     "달 화면 — 둥근 달 위의 USGS 지질도": "Moon view — USGS geology on the globe",
     "화성 화면 — 둥근 화성 위의 USGS 지질도": "Mars view — USGS geology on the globe",
@@ -1051,38 +1053,40 @@ EN = {
     "극지연구소": "Korea Polar Research Institute (KOPRI)",
     "이 만들었습니다.": "made this map.",
     "만든 이 — 극지연구소 이승찬 · 극지연구소 정직한": "Made by Seungchan Lee (KOPRI) · Jikhan Jung (KOPRI)",
-    "드로닝모드랜드는 노르웨이 극지연구소의 1:25만 지질도와 구조선으로.":
-        "Dronning Maud Land, with the Norwegian Polar Institute's 1:250,000 geology and structural lines.",
-    "빙상 밑의 땅(IBCSO)을 배경으로 깔고, 남극의 기지와 운석 발견 지점을 얹습니다.":
-        "With the land beneath the ice sheet (IBCSO) as the basemap, add Antarctic stations and meteorite finds.",
+    "드로닝모드랜드는 노르웨이 극지연구소의 <b>1:25만 지질도</b>와 구조선으로.":
+        "Dronning Maud Land, with the Norwegian Polar Institute's <b>1:250,000 geology</b> and structural lines.",
+    "<b>빙상 밑의 땅</b>(IBCSO)을 배경으로 깔고, 남극의 <b>기지와 운석 발견 지점</b>을 얹습니다.":
+        "With <b>the land beneath the ice sheet</b> (IBCSO) as the basemap, add <b>Antarctic stations and meteorite finds</b>.",
     "지질도 SCAR GeoMAP·NPI · 시료·기지·운석 위치 극지연구소 KPDC · 배경 PGC REMA·IBCSO":
         "Geology SCAR GeoMAP · NPI · Sample, station and meteorite locations KOPRI KPDC · Basemap PGC REMA · IBCSO",
     "드로닝모드랜드 — NPI 지질 단위와 구조선": "Dronning Maud Land — NPI geological units and structural lines",
     "IBCSO 빙저 지형 위의 남극 기지와 운석 발견 지점": "Antarctic stations and meteorite finds over IBCSO bed topography",
-    "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 퇴적분지가 색으로 드러납니다.":
-        "The Geological Survey of Denmark and Greenland (GEUS) map — East Greenland's sedimentary basins stand out in colour.",
-    "GEUS의 하천 퇴적물 지화학도도 같은 화면에서 켭니다.": "GEUS stream-sediment geochemistry switches on in the same view.",
-    "그린란드 정부 포털의 연대측정 지점과 극지연구소 시료를 겹쳐 봅니다.":
-        "Overlay dating sites from the Greenland government portal and KOPRI's samples.",
+    "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 <b>퇴적분지</b>가 색으로 드러납니다.":
+        "The Geological Survey of Denmark and Greenland (GEUS) map — East Greenland's <b>sedimentary basins</b> stand out in colour.",
+    "GEUS의 <b>하천 퇴적물 지화학도</b>도 같은 화면에서 켭니다.":
+        "GEUS <b>stream-sediment geochemistry</b> switches on in the same view.",
+    "그린란드 정부 포털의 <b>연대측정 지점</b>과 극지연구소 시료를 겹쳐 봅니다.":
+        "Overlay <b>dating sites</b> from the Greenland government portal and KOPRI's samples.",
     "지질도·지화학 GEUS · 연대측정 그린란드 정부 포털 · 시료 위치 극지연구소 KPDC · 배경 PGC ArcticDEM":
         "Geology and geochemistry GEUS · Dating Greenland government portal · Sample locations KOPRI KPDC · Basemap PGC ArcticDEM",
     "남서 그린란드 — 하천 퇴적물 지화학도": "Southwest Greenland — stream-sediment geochemistry",
     "그린란드 전체 — 정부 포털의 연대측정 지점": "All of Greenland — dating sites from the government portal",
-    "NPI의 지질 단위·단층을 그대로 받아 오고, 극지연구소 암석 시료를 함께 얹습니다.":
-        "NPI's geological units and faults come straight through, with KOPRI's rock samples on top.",
-    "종이로 찍었던 지질도도 음영째 그대로 볼 수 있습니다.": "The printed paper maps are there too, hill shading and all.",
-    "다산기지가 있는 뉘올레순 — 1936년부터 2025년까지 빙하 전면이 물러난 자리.":
-        "Ny-Ålesund, home of Dasan Station — where the glacier fronts retreated from 1936 to 2025.",
+    "NPI의 지질 단위·단층을 그대로 받아 오고, <b>극지연구소 암석 시료</b>를 함께 얹습니다.":
+        "NPI's geological units and faults come straight through, with <b>KOPRI's rock samples</b> on top.",
+    "<b>종이로 찍었던 지질도</b>도 음영째 그대로 볼 수 있습니다.":
+        "<b>The printed paper maps</b> are there too, hill shading and all.",
+    "다산기지가 있는 뉘올레순 — <b>1936년부터 2025년까지</b> 빙하 전면이 물러난 자리.":
+        "Ny-Ålesund, home of Dasan Station — where the glacier fronts retreated <b>from 1936 to 2025</b>.",
     "얀마옌 지도": "Jan Mayen map",
-    "얀마옌 — 북대서양의 화산섬. NPI 지질도를 모양째 받아 우리가 그립니다.":
-        "Jan Mayen — a volcanic island in the North Atlantic. We take NPI's geology as shapes and draw it ourselves.",
+    "얀마옌 — 북대서양의 화산섬. NPI 지질도를 모양째 받아 <b>우리가 그립니다</b>.":
+        "Jan Mayen — a volcanic island in the North Atlantic. We take NPI's geology as shapes and <b>draw it ourselves</b>.",
     "지질도·빙하 NPI · 시료 위치 극지연구소 KPDC · 배경 NPI Sentinel-2·PGC ArcticDEM":
         "Geology and glaciers NPI · Sample locations KOPRI KPDC · Basemap NPI Sentinel-2 · PGC ArcticDEM",
     "롱위에아르뷔엔 둘레의 NPI 종이 지질도(음영)": "NPI paper geological map (shaded) around Longyearbyen",
     "뉘올레순 둘레의 빙하 전면 변화 선": "Glacier front change lines around Ny-Ålesund",
     "얀마옌 지질도 — 지질 단위와 분화구": "Jan Mayen geology — units and vents",
-    "극지도 3D로 — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에.":
-        "The poles in 3D too — Svalbard's NPI geological units on ArcticDEM terrain.",
+    "<b>극지도 3D로</b> — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에.":
+        "<b>The poles in 3D too</b> — Svalbard's NPI geological units on ArcticDEM terrain.",
     "지질도 한국지질자원연구원·NPI · 지형 AWS Terrain Tiles·ArcticDEM · 배경 VWorld":
         "Geology KIGAM · NPI · Terrain AWS Terrain Tiles · ArcticDEM · Basemap VWorld",
     "3D 화면 — 스발바르 지형 위의 NPI 지질 단위": "3D view — NPI geological units over Svalbard terrain",
