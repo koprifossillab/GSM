@@ -98,6 +98,15 @@
       </div>
     </div>
 
+    <div class="box" id="box-personal">
+      <h2 class="box-head">{% t "개인 레이어" %} <span class="count" id="count-personal">0</span>
+        <span class="hint">{% t "이 브라우저에만" %}</span></h2>
+      <div class="box-body">
+        <ul id="personal-list"></ul>
+        <a class="btn quiet wide personal-manage" href="{{ base }}manage/">{% t "반입·관리" %}</a>
+      </div>
+    </div>
+
     <div class="box">
       <h2 class="box-head">{% t "그리기" %} <span class="hint">{% t "지도에 얹은 내 것" %}</span></h2>
       <div class="box-body">
@@ -172,6 +181,10 @@
 
   <footer id="panel-foot">
     <span class="foot-name">GSM <span class="ver">v{{ version }}</span></span>
+    <a id="manage-btn" class="gear manage-btn" href="{{ base }}manage/" title="{% t "관리 화면 — 개인 레이어 반입, 저장 자료 관리" %}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect class="stroke" x="4" y="4" width="16" height="16" rx="2"/><path class="stroke" d="M8 9h8M8 12h8M8 15h5"/></svg>
+      <span>{% t "관리" %}</span>
+    </a>
     <button type="button" id="gear" class="gear" title="{% t "설정과 판 이력" %}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path class="stroke" d="m19.2 13.6.1-1.6-.1-1.6 1.7-1.3-1.7-2.9-2 .7a7.4 7.4 0 0 0-2.8-1.6L14 3h-4l-.4 2.3a7.4 7.4 0 0 0-2.8 1.6l-2-.7-1.7 2.9 1.7 1.3-.1 1.6.1 1.6-1.7 1.3 1.7 2.9 2-.7a7.4 7.4 0 0 0 2.8 1.6L10 21h4l.4-2.3a7.4 7.4 0 0 0 2.8-1.6l2 .7 1.7-2.9-1.7-1.3Z"/></svg>
       <span>{% t "설정" %}</span>
@@ -364,6 +377,7 @@
 <script id="pointset-data" type="application/json">{{ pointsets|safe }}</script>
 <script src="{% static 'viewer/vendor/ol.js' %}"></script>
 <script src="{% static 'viewer/vendor/proj4.js' %}"></script>
+<script src="{% static 'viewer/personal.js' %}?v={{ stamp|default:version }}"></script>
 <script src="{% static 'viewer/map.js' %}?v={{ stamp|default:version }}"></script>
 </body>
 </html>

@@ -108,7 +108,8 @@ def _split_links(value):
 
 #: 주소 끝에 붙여 캐시를 끊는 파일들.
 STAMPED = ("viewer/map.css", "viewer/map.js", "viewer/emblem.svg", "viewer/map3d.js", "viewer/moon.js",
-           "viewer/mars.js", "viewer/intro.css", "viewer/intro.js")
+           "viewer/mars.js", "viewer/intro.css", "viewer/intro.js", "viewer/personal.js", "viewer/manage.js",
+           "viewer/manage.css")
 
 
 @functools.lru_cache(maxsize=1)
@@ -218,6 +219,22 @@ def intro_view(request):
         "lang": lang,
         "base": request.path,
         "shots": f"viewer/intro/{lang}/",
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+@require_GET
+def manage_view(request):
+    """관리 화면 (wetherilli P08·118). 지금은 개인 레이어 반입과 이 브라우저의 저장 자료 관리 둘이다.
+
+    **서버는 화면만 내준다.** 개인 레이어는 브라우저가 읽어 브라우저(IndexedDB)에 둔다 — 서버로 오지 않는다.
+    관리라는 이름이지만 지우고 고치는 것은 그 브라우저의 것뿐이라 계정을 묻지 않는다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/manage.html", {
+        "lang": lang,
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "base": request.path.rsplit("manage", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
