@@ -957,7 +957,7 @@ EN = {
     "빅토리아랜드를 가까이 본 화면 — 지질도 위의 극지연구소 암석 시료 점":
         "Close-up of Victoria Land — KOPRI rock sample points over the geology",
     "그린란드 지도": "Greenland map",
-    "그린란드는 GEUS 의 50만 지질도로.": "Greenland, with the GEUS 1:500,000 geological map.",
+    "그린란드는 GEUS의 50만 지질도로.": "Greenland, with the GEUS 1:500,000 geological map.",
     "동그린란드 화면 — GEUS 50만 지질도": "East Greenland — GEUS 1:500,000 geology",
     "스발바르 지도": "Svalbard map",
     "스발바르 · 다산기지가 있는 곳": "Svalbard · home of Dasan Station",
@@ -988,11 +988,11 @@ EN = {
         "<b>Points</b> — note the latitude and longitude where you click, and save them as a list.",
     "<b>거리와 높이</b> — 선을 그으면 거리와 함께 높이 그래프가 뜹니다.":
         "<b>Distance and elevation</b> — draw a line and an elevation graph appears with the distance.",
-    "<b>넓이</b> — 면을 두르면 넓이가 km² 와 ha 로 뜹니다.":
+    "<b>넓이</b> — 면을 두르면 넓이가 km²와 ha로 뜹니다.":
         "<b>Area</b> — outline a polygon and its area appears in km² and ha.",
     "<b>그림으로 내려받기</b> — 지금 보는 지도를 축척·좌표·출처가 붙은 PNG 한 장으로 받습니다.":
         "<b>Save as image</b> — download the current map as a PNG with scale bar, coordinates and sources.",
-    "내 CSV·GeoJSON 을 올리면 점묶음으로 지도에 얹힙니다.": "Upload your CSV or GeoJSON and it lands on the map as a point set.",
+    "내 CSV·GeoJSON을 올리면 점묶음으로 지도에 얹힙니다.": "Upload your CSV or GeoJSON and it lands on the map as a point set.",
     "점을 찍은 화면 — 번호가 붙은 점 둘": "Marked points — two numbered points",
     "거리를 잰 화면 — 선 아래에 높이 그래프": "Measured distance — an elevation graph beneath the line",
     "넓이를 잰 화면 — 두른 면에 넓이가 적혀 있다": "Measured area — the area written on the outlined polygon",
@@ -1012,10 +1012,10 @@ EN = {
     "그리고": "And then",
     "지구를 넘어, 우주로.": "Beyond Earth, into space.",
     "둥근 달 위의 지질도.": "Geology on a round Moon.",
-    "USGS 달 통합 지질도와 LOLA 지형. 아폴로 착륙지와 1970 년대 원도 여섯 장도 있습니다.":
+    "USGS 달 통합 지질도와 LOLA 지형. 아폴로 착륙지와 1970년대 원도 여섯 장도 있습니다.":
         "The USGS Unified Geologic Map of the Moon and LOLA terrain, with the Apollo landing sites and six original 1970s maps.",
     "붉은 행성의 지층까지.": "Down to the strata of the red planet.",
-    "USGS 화성 지질도와 MOLA–HRSC 지형, 크레이터 38 만 개.":
+    "USGS 화성 지질도와 MOLA–HRSC 지형, 크레이터 38만 개.":
         "The USGS geologic map of Mars, MOLA–HRSC terrain and 380,000 craters.",
     "지질도 USGS · 지형·영상 NASA Trek": "Geology USGS · Terrain and imagery NASA Trek",
     "달 화면 — 둥근 달 위의 USGS 지질도": "Moon view — USGS geology on the globe",
@@ -1061,17 +1061,17 @@ EN = {
     "IBCSO 빙저 지형 위의 남극 기지와 운석 발견 지점": "Antarctic stations and meteorite finds over IBCSO bed topography",
     "덴마크·그린란드 지질조사소(GEUS)의 지질도. 동그린란드의 퇴적분지가 색으로 드러납니다.":
         "The Geological Survey of Denmark and Greenland (GEUS) map — East Greenland's sedimentary basins stand out in colour.",
-    "GEUS 의 하천 퇴적물 지화학도도 같은 화면에서 켭니다.": "GEUS stream-sediment geochemistry switches on in the same view.",
+    "GEUS의 하천 퇴적물 지화학도도 같은 화면에서 켭니다.": "GEUS stream-sediment geochemistry switches on in the same view.",
     "그린란드 정부 포털의 연대측정 지점과 극지연구소 시료를 겹쳐 봅니다.":
         "Overlay dating sites from the Greenland government portal and KOPRI's samples.",
     "지질도·지화학 GEUS · 연대측정 그린란드 정부 포털 · 시료 위치 극지연구소 KPDC · 배경 PGC ArcticDEM":
         "Geology and geochemistry GEUS · Dating Greenland government portal · Sample locations KOPRI KPDC · Basemap PGC ArcticDEM",
     "남서 그린란드 — 하천 퇴적물 지화학도": "Southwest Greenland — stream-sediment geochemistry",
     "그린란드 전체 — 정부 포털의 연대측정 지점": "All of Greenland — dating sites from the government portal",
-    "NPI 의 지질 단위·단층을 그대로 받아 오고, 극지연구소 암석 시료를 함께 얹습니다.":
+    "NPI의 지질 단위·단층을 그대로 받아 오고, 극지연구소 암석 시료를 함께 얹습니다.":
         "NPI's geological units and faults come straight through, with KOPRI's rock samples on top.",
     "종이로 찍었던 지질도도 음영째 그대로 볼 수 있습니다.": "The printed paper maps are there too, hill shading and all.",
-    "다산기지가 있는 뉘올레순 — 1936 년부터 2025 년까지 빙하 전면이 물러난 자리.":
+    "다산기지가 있는 뉘올레순 — 1936년부터 2025년까지 빙하 전면이 물러난 자리.":
         "Ny-Ålesund, home of Dasan Station — where the glacier fronts retreated from 1936 to 2025.",
     "얀마옌 지도": "Jan Mayen map",
     "얀마옌 — 북대서양의 화산섬. NPI 지질도를 모양째 받아 우리가 그립니다.":
@@ -1081,7 +1081,7 @@ EN = {
     "롱위에아르뷔엔 둘레의 NPI 종이 지질도(음영)": "NPI paper geological map (shaded) around Longyearbyen",
     "뉘올레순 둘레의 빙하 전면 변화 선": "Glacier front change lines around Ny-Ålesund",
     "얀마옌 지질도 — 지질 단위와 분화구": "Jan Mayen geology — units and vents",
-    "극지도 3D 로 — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에.":
+    "극지도 3D로 — 스발바르의 NPI 지질 단위를 ArcticDEM 지형 위에.":
         "The poles in 3D too — Svalbard's NPI geological units on ArcticDEM terrain.",
     "지질도 한국지질자원연구원·NPI · 지형 AWS Terrain Tiles·ArcticDEM · 배경 VWorld":
         "Geology KIGAM · NPI · Terrain AWS Terrain Tiles · ArcticDEM · Basemap VWorld",
@@ -1095,7 +1095,11 @@ EN = {
     "한국과 일본을 한 화면에": "Korea and Japan on one screen",
     "USGS 달 통합 지질도 · LOLA 지형 · 원도 여섯 장 · 아폴로 착륙지":
         "USGS Unified Geologic Map · LOLA terrain · six original maps · Apollo landing sites",
-    "USGS 화성 지질도 · MOLA–HRSC 지형 · 크레이터 38 만 개": "USGS geologic map · MOLA–HRSC terrain · 380,000 craters",
+    "USGS 화성 지질도 · MOLA–HRSC 지형 · 크레이터 38만 개": "USGS geologic map · MOLA–HRSC terrain · 380,000 craters",
+    # (wetherilli 119) 극지 정리를 스발바르에서 떼어 따로 세웠다
+    "북극 지도": "Arctic map",
+    "극지 정리": "The poles, together",
+    "극지 화면 여섯 장": "Six polar views",
     # 개인 레이어·관리 화면 (wetherilli P08·118)
     "대돌여지도 관리": "Great Stone Map — manage",
     "관리": "Manage",

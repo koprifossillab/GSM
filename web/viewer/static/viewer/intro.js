@@ -26,8 +26,9 @@
 
   // ── 첫 장면의 수십 장 — 다섯 장 뒤에 쏟아진다 ─────────────────────
   //
-  // 찍어 둔 화면의 작은 판을 다시 쓴다. 자리는 씨앗을 둔 난수라 열 때마다 같다. 진행 .2 에서 .58 사이에
+  // 찍어 둔 화면의 작은 판을 다시 쓴다. 자리는 씨앗을 둔 난수라 열 때마다 같다. 진행 .21 에서 .6 사이에
   // 하나씩 뜨고(`--t`), 화면을 덮을 만큼 쌓인 뒤 다 같이 가운데로 빨려 든다(CSS 의 `--q`).
+  // 뜨는 때는 i/N 의 거듭제곱(0.42)이다 — 처음 한두 장은 띄엄띄엄 떨어지고 뒤로 갈수록 훅훅 쏟아진다 (wetherilli 119)
   (function flood() {
     var host = document.querySelector(".papers[data-flood]");
     if (!host) return;
@@ -47,7 +48,7 @@
       // 가장자리부터 안쪽까지 고루 — 물음과 마지막 화면이 설 가운데 띠도 결국 덮인다
       var ang = rnd() * Math.PI * 2, rad = .25 + rnd() * .75;
       f.style.cssText = "--x:" + (Math.cos(ang) * rad * 44).toFixed(1) + "vw;--y:" + (Math.sin(ang) * rad * 40).toFixed(1) +
-        "vh;--r:" + ((rnd() - .5) * 34).toFixed(1) + "deg;--t:" + (.2 + i / N * .38 + rnd() * .01).toFixed(3) + ";--z:" + (10 + i);
+        "vh;--r:" + ((rnd() - .5) * 34).toFixed(1) + "deg;--t:" + (.21 + Math.pow(i / N, .42) * .39).toFixed(3) + ";--z:" + (10 + i);
       host.appendChild(f);
     }
   })();
@@ -320,7 +321,8 @@
   // 스크롤하지 않아도 넘어간다. 멈출 자리(stop)는 장면의 단계마다 하나 — 단계 k 의 가운데
   // `(k + .5) / 단계 수` 이고, 움직임이 스크롤에 걸린 장면은 `data-stops` 로 적는다. 그 자리로 가는 데
   // 걸릴 시간을 따로 주려면 `data-durs`(밀리초) — 첫 장면의 수십 장은 천천히 넘어가야 쏟아지는 것이 보인다.
-  // 자리마다 **보이는 글의 길이만큼** 머문다(읽을 틈). 사람이 휠·터치·키·스크롤 막대로 움직이면 멈춘다.
+  // 자리마다 **보이는 글의 길이만큼** 머문다(훑을 틈). 장면 첫 자리에 `data-dwell` 이 있으면 그만큼.
+  // 사람이 휠·터치·키·스크롤 막대로 움직이면 멈춘다.
 
   var EN = document.documentElement.lang === "en";
   var play = document.getElementById("play");
@@ -336,7 +338,7 @@
              : steps ? Array.apply(null, Array(steps)).map(function (_, k) { return (k + .5) / steps; })
              : [0];
       var durs = s.dataset.durs ? s.dataset.durs.split(" ").map(Number) : [];
-      fs.forEach(function (f, k) { stops.push({ scene: s, y: Math.round(top + run * f), dur: durs[k] || 0 }); });
+      fs.forEach(function (f, k) { stops.push({ scene: s, y: Math.round(top + run * f), dur: durs[k] || 0, first: k === 0 }); });
     });
   }
 
@@ -354,8 +356,10 @@
       text += el.textContent.replace(/\s+/g, " ");
     });
     if (s.classList.contains("doors-wrap")) return 0;
-    var ms = 900 + text.length * (EN ? 20 : 45);
-    return Math.max(2200, Math.min(7500, ms));
+    if (s.dataset.dwell && stop.first) return +s.dataset.dwell;
+    // 한 장 한 장 들여다보라는 것이 아니다 — 훑고 지나간다 (wetherilli 119: 2.2~7.5 초에서 1.1~3 초로)
+    var ms = 500 + text.length * (EN ? 7 : 15);
+    return Math.max(1100, Math.min(3000, ms));
   }
 
   var playing = false, idx = 0, raf = 0, expectY = null;
@@ -384,7 +388,7 @@
   function go(i) {
     idx = i;
     var from = scrollY, to = stops[i].y, d = to - from;
-    var dur = still || !d ? 0 : stops[i].dur || Math.max(600, Math.min(1500, Math.abs(d) / innerHeight * 520));
+    var dur = still || !d ? 0 : stops[i].dur || Math.max(420, Math.min(900, Math.abs(d) / innerHeight * 300));
     var start = performance.now();
     function step(now) {
       var t = dur ? Math.min(1, (now - start) / dur) : 1;
