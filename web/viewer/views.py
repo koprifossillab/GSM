@@ -29,7 +29,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, wind
+from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, ocean, wind
 from . import linked
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -1185,6 +1185,8 @@ def earth_view(request):
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
+                                   # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
+                                   "ocean": bool(ocean.read_index("ecco2")["times"]),
                                    # 아라온호 항적 (koprifossillab 006) — 쌓은 것이 있고 연구실 안에서 열 때만
                                    "araon": kopri.araon_available() and not _lab_only("kopri:araon"),
                                    # 맨틀 — 시점마다 레이어의 점 수(받은 바이트를 점과 이음으로 가르는 데 쓴다)
@@ -1461,6 +1463,30 @@ def earth_wind_png(request, source, stamp, level):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     response = HttpResponse(png, content_type="image/png")
     # 시각이 주소에 있다 — 한 번 구운 것은 바뀌지 않는다. 다시 굽는 일이 드물어 하루로 둔다
+    response["Cache-Control"] = "public, max-age=86400"
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
+@require_GET
+def earth_ocean_index(request):
+    """`earth/ocean/` — 구워 둔 해류의 목록 (koprifossillab 014). 날마다 u·v 를 되돌릴 값. 사람이 구울 때만 바뀐다."""
+    response = JsonResponse({source: ocean.read_index(source) for source in ocean.SOURCES},
+                            json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@require_GET
+def earth_ocean_png(request, source, stamp):
+    """`earth/ocean/<출처>/<날>/surface.png` — R=u·G=v·B=바다 가리개, 1440×720 (`ocean.encode`)."""
+    if not ocean.valid(source, stamp):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    try:
+        png = ocean.png_path(source, stamp).read_bytes()
+    except OSError:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    response = HttpResponse(png, content_type="image/png")
     response["Cache-Control"] = "public, max-age=86400"
     response["Access-Control-Allow-Origin"] = "*"
     return response
