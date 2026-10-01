@@ -520,13 +520,18 @@
         var g = f.geometry, props = f.properties;
         function add(opts) { var x = cTrack.entities.add(opts); x.gsmProps = props; x.gsmSet = TRACK_SET; }
         if (g.type === "MultiLineString") {
+          // 지난 항적(`past`, 날짜만 안다)은 가늘게 끊어 — 지금 쌓는 항적과 갈라 보이게 (koprifossillab 009)
+          var past = props._code === "past";
           g.coordinates.forEach(function (line) {
             var flatArr = [];
             line.forEach(function (c) { flatArr.push(c[0], c[1]); });
-            add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, ELL), width: 3, clampToGround: true,
-                              material: new Cesium.PolylineOutlineMaterialProperty({
-                                color: Cesium.Color.fromCssColorString(TRACK_SET.color),
-                                outlineColor: Cesium.Color.BLACK.withAlpha(0.6), outlineWidth: 1 }) } });
+            add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, ELL), width: past ? 2 : 3, clampToGround: true,
+                              material: past
+                                ? new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString(TRACK_SET.color),
+                                                                            dashLength: 12 })
+                                : new Cesium.PolylineOutlineMaterialProperty({
+                                    color: Cesium.Color.fromCssColorString(TRACK_SET.color),
+                                    outlineColor: Cesium.Color.BLACK.withAlpha(0.6), outlineWidth: 1 }) } });
           });
         } else if (g.type === "Point") {
           add({ position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, ELL),
@@ -542,6 +547,7 @@
       viewer.dataSources.add(cTrack);
       var edge = new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,0.55)", width: 4.5 }) });
       var line = new ol.style.Style({ stroke: new ol.style.Stroke({ color: TRACK_SET.color, width: 2.5 }) });
+      var pastLine = new ol.style.Style({ stroke: new ol.style.Stroke({ color: TRACK_SET.color, width: 1.6, lineDash: [6, 4] }) });
       var dot = new ol.style.Style({
         image: new ol.style.Circle({ radius: 6, fill: new ol.style.Fill({ color: LAST_COLOR }),
                                      stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }),
@@ -550,7 +556,9 @@
       oTrack = new ol.layer.Vector({
         source: new ol.source.Vector({ features: new ol.format.GeoJSON().readFeatures(d,
                                          { dataProjection: LL, featureProjection: proj }) }),
-        style: function (f) { return f.getGeometry().getType() === "Point" ? dot : [edge, line]; },
+        style: function (f) {
+          return f.getGeometry().getType() === "Point" ? dot : f.get("_code") === "past" ? pastLine : [edge, line];
+        },
       });
       oTrack.set("gsmSet", TRACK_SET);
       oPoints.getLayers().push(oTrack);

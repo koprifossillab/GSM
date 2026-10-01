@@ -940,6 +940,7 @@ EN = {
     # 아라온호 항적 (koprifossillab 006)
     "아라온호 마지막 자리": "Araon, latest position",
     "아라온호 항적": "Araon track",
+    "지난 항적 (날짜는 하루 단위)": "Past track (dated to the day)",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
 
     # ── 소개 (wetherilli 113) ──
@@ -1701,6 +1702,8 @@ PROP_EN = {
     "첫 기록": "First fix",
     "마지막 기록": "Latest fix",
     "자리 수": "Fixes",
+    "날짜 (하루 창, UTC)": "Date (24 h window, UTC)",
+    "받은 때": "Harvested",
     "여름 최대 인원": "Peak population",
     "고도": "Altitude",
     "다른 이름": "Other names",

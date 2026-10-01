@@ -371,3 +371,46 @@ class AraonViewTests(TestCase):
             self.assertEqual(self.client.get("/GSM/points/", {"layer": "kopri:araon"}).status_code, 404)
             page = self.client.get("/GSM/earth/").content.decode()
         self.assertIn('"araon": false', page)
+
+
+class AraonPastTests(SimpleTestCase):
+    """날짜를 하루 단위로 붙인 지난 항적 (koprifossillab 009)."""
+
+    def test_latlngs_and_lon_fold(self):
+        page = "<script>var latlngs = [[77.7,192.33],[35.76,130.03]];\nvar polyline = 1;</script>"
+        pairs = kopri._latlngs(page)
+        self.assertEqual([kopri._lonlat(p) for p in pairs], [[-167.67, 77.7], [130.03, 35.76]])
+
+    def test_counted_prefix_and_shift(self):
+        base = [[3, 3], [2, 2], [1, 1]]
+        self.assertEqual(kopri._counted(base, [[3, 3], [2, 2]]), 2)
+        self.assertEqual(kopri._counted(base, [[4, 4], [3, 3], [2, 2]]), 2)     # 받는 사이에 새 자리가 붙었다
+        self.assertEqual(kopri._counted(base, []), 0)
+        with self.assertRaises(kopri.KopriError):
+            kopri._counted(base, [[3, 3], [9, 9]])
+
+    def test_fetch_assigns_days(self):
+        # 새것부터 다섯 자리 — 1 일 창에 둘, 2 일 창에 넷(하나 더해 셋째·넷째), 3 일 창에 다섯
+        base = [[5, 5], [4, 4], [3, 3], [2, 2], [1, 1]]
+        sizes = {3: 5, 1: 2, 2: 4}
+
+        def page(nday, nhour):
+            pairs = base[:sizes[nday]]
+            return ('<div id="dashboard_show"><b>DATE :</b> Thu Oct 01<br><b>TIME :</b> 04:00 UTC<br>'
+                    '<b>LAT :</b> 5<br><b>LON :</b> 5<br></div><script>var latlngs = '
+                    + json.dumps(pairs) + ";</script>")
+        with mock.patch.object(kopri, "_araon_page", side_effect=page):
+            data = kopri.fetch_araon_past(3, pause=0)
+        self.assertEqual(data["counts"], [2, 4, 5])
+        self.assertEqual([p[2] for p in data["points"]], [3, 2, 2, 1, 1])     # 오래된 것부터
+
+    def test_days_join_and_window(self):
+        past = {"harvested": "2026-10-01T09:43Z",
+                "points": [[0, 0, 3], [0.1, 0, 3], [0.2, 0, 2], [0.3, 0, 2], [5, 0, 2], [5.1, 0, 2]]}
+        days = kopri._araon_past_days(past)
+        self.assertEqual([(ago, n) for ago, _, n in days], [(3, 2), (2, 4)])
+        # 2 일 전은 앞날의 마지막 자리에서 이어 시작하고, 500 km 넘게 뛴 곳에서 끊긴다
+        self.assertEqual(days[1][1], [[[0.1, 0], [0.2, 0], [0.3, 0]], [[5, 0], [5.1, 0]]])
+        self.assertEqual(kopri._day_window("2026-10-01T09:43Z", 1), "2026-09-30 09:43Z ~ 2026-10-01 09:43Z")
+        features = kopri.araon_features([], past)
+        self.assertEqual([f["properties"]["code"] for f in features], ["past", "past"])
