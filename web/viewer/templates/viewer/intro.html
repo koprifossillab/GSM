@@ -352,43 +352,46 @@
   <p class="kicker">{% t "이제 직접 볼 차례입니다" %}</p>
   <h2>{% t "어디부터 볼까요?" %}</h2>
 
-  <div class="cat earth">
-    <h3><img src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="40" height="40">{% t "지구" %}</h3>
-    <div class="doors">
-      <a class="door" href="{{ base }}map/?region=korea">
-        <img loading="lazy" src="{% static shots|add:'thumb/src_kigam.webp' %}" alt="">
-        <b>{% t "한국" %}</b><span>{% t "KIGAM 지질도와 VWorld" %}</span>
-      </a>
-      <a class="door" href="{{ base }}map/?region=japan">
-        <img loading="lazy" src="{% static shots|add:'thumb/src_gsj.webp' %}" alt="">
-        <b>{% t "일본" %}</b><span>{% t "GSJ 심리스 지질도" %}</span>
-      </a>
-      <a class="door" href="{{ base }}map/?region=eastasia">
-        <img loading="lazy" src="{% static shots|add:'thumb/eastasia.webp' %}" alt="">
-        <b>{% t "동아시아" %}</b><span>{% t "한국과 일본을 한 화면에" %}</span>
-      </a>
-      <a class="door" href="{{ base }}3d/">
-        <img loading="lazy" src="{% static shots|add:'thumb/korea3d.webp' %}" alt="">
-        <b>3D</b><span>{% t "지형 위의 지질도" %}</span>
-      </a>
-      <a class="door" href="{{ base }}earth/">
-        <img loading="lazy" src="{% static shots|add:'thumb/earth.webp' %}" alt="">
-        <b>{% t "온 지구" %}</b><span>{% t "Macrostrat 지질도와 판의 옛 자리" %}</span>
-      </a>
+  {# 지구와 극지는 한 줄에 — 카드 다섯 장과 두 장이 같은 폭으로 서게 5:2 (wetherilli 125) #}
+  <div class="cats-earth">
+    <div class="cat earth">
+      <h3><img src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="40" height="40">{% t "지구" %}</h3>
+      <div class="doors">
+        <a class="door" href="{{ base }}map/?region=korea">
+          <img loading="lazy" src="{% static shots|add:'thumb/src_kigam.webp' %}" alt="">
+          <b>{% t "한국" %}</b><span>{% t "KIGAM 지질도와 VWorld" %}</span>
+        </a>
+        <a class="door" href="{{ base }}map/?region=japan">
+          <img loading="lazy" src="{% static shots|add:'thumb/src_gsj.webp' %}" alt="">
+          <b>{% t "일본" %}</b><span>{% t "GSJ 심리스 지질도" %}</span>
+        </a>
+        <a class="door" href="{{ base }}map/?region=eastasia">
+          <img loading="lazy" src="{% static shots|add:'thumb/eastasia.webp' %}" alt="">
+          <b>{% t "동아시아" %}</b><span>{% t "한국과 일본을 한 화면에" %}</span>
+        </a>
+        <a class="door" href="{{ base }}3d/">
+          <img loading="lazy" src="{% static shots|add:'thumb/korea3d.webp' %}" alt="">
+          <b>3D</b><span>{% t "지형 위의 지질도" %}</span>
+        </a>
+        <a class="door" href="{{ base }}earth/">
+          <img loading="lazy" src="{% static shots|add:'thumb/earth.webp' %}" alt="">
+          <b>{% t "온 지구" %}</b><span>{% t "Macrostrat 지질도와 판의 옛 자리" %}</span>
+        </a>
+      </div>
     </div>
-  </div>
 
-  <div class="cat polar">
-    <h3><img src="{% static 'viewer/emblem-polar.png' %}" alt="" width="40" height="40">{% t "극지" %}</h3>
-    <div class="doors">
-      <a class="door" href="{{ base }}map/?region=antarctica">
-        <img loading="lazy" src="{% static shots|add:'thumb/antarctica_close.webp' %}" alt="">
-        <b>{% t "남극" %}</b><span>{% t "남극점을 가운데 둔 GeoMAP" %}</span>
-      </a>
-      <a class="door" href="{{ base }}map/?region=arctic">
-        <img loading="lazy" src="{% static shots|add:'thumb/svalbard.webp' %}" alt="">
-        <b>{% t "북극" %}</b><span>{% t "그린란드·스발바르·얀마옌을 한 화면에" %}</span>
-      </a>
+    <div class="cat polar">
+      <h3><img src="{% static 'viewer/emblem-polar.png' %}" alt="" width="40" height="40">{% t "극지" %}</h3>
+      <div class="doors">
+        <a class="door" href="{{ base }}map/?region=antarctica">
+          <img loading="lazy" src="{% static shots|add:'thumb/antarctica_close.webp' %}" alt="">
+          <b>{% t "남극" %}</b><span>{% t "남극점을 가운데 둔 GeoMAP" %}</span>
+        </a>
+        <a class="door" href="{{ base }}map/?region=arctic">
+          <img loading="lazy" src="{% static shots|add:'thumb/svalbard.webp' %}" alt="">
+          <b>{% t "북극" %}</b><span>{% t "그린란드·스발바르·얀마옌을 한 화면에" %}</span>
+        </a>
+      </div>
     </div>
   </div>
 
