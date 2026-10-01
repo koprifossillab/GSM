@@ -87,9 +87,10 @@
       { name: "icemargins", title: "빙상 가장자리", grid: "ll", ka: true,
         src: "NADI-1 (Dalton et al. 2023) · DATED-1 (Hughes et al. 2016)" },
     ] },
-    // 바람 — 오늘의 레이어다. 지금(GFS, 기본)과 지난(ERA5 2005-06 ~ 2007-12), 지상 10 m(기본)·250 hPa 를 카드에서 고른다.
+    // 움직이는 지구 — 시시각각 바뀌는 것을 한 레이어군에 모은다: 바람, 아라온호(아래에서 더한다), 앞으로 구름·해류 (koprifossillab 010).
+    // 바람은 오늘의 레이어다. 지금(GFS, 기본)과 지난(ERA5 2005-06 ~ 2007-12), 지상 10 m(기본)·250 hPa 를 카드에서 고른다.
     // 타일이 아니라 입자로 그린다(`syncWind`) (koprifossillab P02)
-    { group: "바람 (GFS·ERA5)", layers: [
+    { group: "움직이는 지구", flux: true, layers: [
       { name: "wind", title: "바람", wind: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
     ] },
     { group: "그때의 지구", layers: [
@@ -100,10 +101,10 @@
   var THEN = JSON.parse(($("then-data") || {}).textContent || "{}");
   // 아라온호 항적 — 극지연구소 위치 판에서 매시간 쌓은 것. 쌓은 것이 있고 연구실 안에서 열 때만 (koprifossillab 006)
   //   track  타일이 아니라 화면이 GeoJSON 을 그린다(`syncTrack`). 오늘의 것이다
+  // 레이어군은 "움직이는 지구" 다 (koprifossillab 010)
   if (THEN.araon) {
-    CATALOG.push({ group: "쇄빙연구선 아라온호", layers: [
-      { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" },
-    ] });
+    CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
+      { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
   }
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
