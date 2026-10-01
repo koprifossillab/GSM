@@ -20,17 +20,21 @@ from pathlib import Path
 
 from django.conf import settings
 
-SOURCES = ("gfs", "era5")
+SOURCES = ("gfs", "era5", "gmgsi")
 LEVELS = ("10m", "250hPa")
 #: 구름량 — 종류마다 회색 PNG 한 장(`cloud-<종류>.png`, 0–255 가 구름량 0–1). 화면이 두 시각을 섞어 흰색·투명도로 칠한다
 #: (koprifossillab P03·011). 흰색·투명도로 구워 두지 않은 것은 두 장을 투명도로 겹치면 가운데 시각에 구름이 옅어지기 때문이다
 CLOUD_KINDS = ("total", "low", "mid", "high")
 WIDTH, HEIGHT = 1440, 721
-STAMP = {"gfs": re.compile(r"^\d{10}$"), "era5": re.compile(r"^\d{8}$")}
+STAMP = {"gfs": re.compile(r"^\d{10}$"), "era5": re.compile(r"^\d{8}$"), "gmgsi": re.compile(r"^\d{10}$")}
 CREDIT = {
     "gfs": "NOAA/NCEP GFS 0.25° (public domain)",
     "era5": "Contains modified Copernicus Climate Change Service information — ERA5 (Hersbach et al. 2020), CC BY 4.0",
+    "gmgsi": "NOAA/NESDIS GMGSI — geostationary IR mosaic (public domain)",
 }
+#: 위성 구름(GMGSI)의 밝기 -> 투명도. 맑은 열대 바다는 90, 사막은 70–105, 구름은 130–255 였다(2026-10-01 10 UTC 장) —
+#: 105 밑은 비우고 210 위는 짙게 (koprifossillab 012)
+SAT_CLEAR, SAT_FULL = 105, 210
 
 
 def root() -> Path:
@@ -42,6 +46,8 @@ def png_path(source: str, stamp: str, level: str) -> Path:
 
 
 def valid(source: str, stamp: str, level: str) -> bool:
+    if source == "gmgsi":
+        return level == "sat" and bool(STAMP[source].match(stamp))
     known = level in LEVELS or (level.startswith("cloud-") and level[6:] in CLOUD_KINDS)
     return source in SOURCES and known and bool(STAMP[source].match(stamp))
 
@@ -160,3 +166,31 @@ def prune_before(source: str, stamp: str) -> list:
         for old in gone:
             shutil.rmtree(root() / source / old, ignore_errors=True)
     return gone
+
+
+def encode_sat(gray) -> bytes:
+    """위성 적외선 회색 격자(0–255, 경도 −180 부터) -> 흰색·투명도 PNG. 섞지 않으므로 서버가 다 칠해 둔다 —
+    화면은 영상 한 장으로 덮기만 한다. **호스트에서만** — numpy."""
+    import numpy as np
+    from PIL import Image
+
+    g = np.asarray(gray, dtype=np.float32)
+    f = np.clip((g - SAT_CLEAR) / (SAT_FULL - SAT_CLEAR), 0, 1)
+    rgba = np.empty(g.shape + (4,), dtype=np.uint8)
+    rgba[..., :3] = 255
+    rgba[..., 3] = np.rint(255 * 0.92 * f ** 0.9).astype(np.uint8)
+    out = io.BytesIO()
+    Image.fromarray(rgba, "RGBA").save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
+def write_sat(stamp: str, gray) -> dict:
+    """위성 구름 한 장을 굽고 목록 한 줄을 낸다."""
+    final = root() / "gmgsi" / stamp
+    tmp = root() / "gmgsi" / f"{stamp}.part"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    (tmp / "sat.png").write_bytes(encode_sat(gray))
+    shutil.rmtree(final, ignore_errors=True)
+    os.replace(tmp, final)
+    return {"t": stamp, "width": int(gray.shape[1]), "height": int(gray.shape[0])}

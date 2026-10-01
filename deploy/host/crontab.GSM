@@ -25,3 +25,8 @@
 # 굽는다. 빠진 장만 받고, 다 있으면 아무것도 하지 않는다(판은 하루 네 번, 그 시각에서 네 시간 남짓 뒤에 올라온다). 48 시간만 둔다. numpy·ecCodes 는
 # 전용 venv 에 requirements-wind.txt 로 깔린다(install.sh 의 REQS) — 운영 이미지에는 없다. 로그: /data/GSM/logs/wind.log
 35 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_gfs_wind >> /data/GSM/logs/wind.log 2>&1
+
+# 위성 구름 (koprifossillab 012) — 매시 :45 에 NOAA GMGSI(정지궤도 적외선 합성)의 가장 새 장을 받아 /srv/GSM/db/wind/gmgsi/ 에
+# 굽는다. 장은 정시에서 30 분 남짓 뒤에 올라온다. 새 장이 없으면 아무것도 하지 않는다. 스물네 장만 둔다. h5py 는 전용 venv 에
+# requirements-wind.txt 로 깔린다. 로그: /data/GSM/logs/gmgsi.log
+45 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_gmgsi >> /data/GSM/logs/gmgsi.log 2>&1

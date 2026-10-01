@@ -16,18 +16,19 @@ from unittest import mock, skipUnless
 
 from django.test import SimpleTestCase, override_settings
 
-from viewer import era5, gfs, wind
+from viewer import era5, gfs, gmgsi, wind
 
 HAS_NUMPY = importlib.util.find_spec("numpy") is not None
 HAS_ECCODES = importlib.util.find_spec("eccodes") is not None
 HAS_NUMCODECS = importlib.util.find_spec("numcodecs") is not None
+HAS_H5PY = importlib.util.find_spec("h5py") is not None
 VIEWER = Path(wind.__file__).parent
 
 
 class 이미지에는_numpy_가_없다(SimpleTestCase):
     def test_바람_모듈은_맨_위에서_numpy_를_부르지_않는다(self):
-        heavy = {"numpy", "eccodes", "numcodecs", "PIL"}
-        for name in ("wind.py", "gfs.py", "era5.py"):
+        heavy = {"numpy", "eccodes", "numcodecs", "PIL", "h5py"}
+        for name in ("wind.py", "gfs.py", "era5.py", "gmgsi.py"):
             tree = ast.parse((VIEWER / name).read_text(encoding="utf-8"))
             for node in tree.body:                      # 맨 위만 — 함수 안에서 부르는 것은 괜찮다
                 names = [a.name for a in node.names] if isinstance(node, ast.Import) else \
@@ -73,7 +74,7 @@ class 자리와_목록(SimpleTestCase):
     def test_목록_주소(self):
         wind.write_index("era5", [{"t": "20050601", "10m": {"u": [-1, 1], "v": [-2, 2]}}])
         body = self.client.get("/GSM/earth/wind/").json()
-        self.assertEqual(set(body), {"gfs", "era5"})
+        self.assertEqual(set(body), {"gfs", "era5", "gmgsi"})
         self.assertEqual(body["era5"]["times"][0]["t"], "20050601")
         self.assertIn("Copernicus", body["era5"]["credit"])
 
@@ -211,6 +212,7 @@ class 백업_목록(SimpleTestCase):
     def test_지금의_바람은_구운_것_목록에서_뺀다(self):
         script = (VIEWER.parents[1] / "deploy" / "scripts" / "weekly_backup.sh").read_text(encoding="utf-8")
         self.assertIn("wind/gfs/.*", script)
+        self.assertIn("wind/gmgsi/.*", script)              # 위성 구름도 한 시간마다 바뀐다
 
 
 class 시험용_목록_꼴(SimpleTestCase):
@@ -386,3 +388,94 @@ class 구름(SimpleTestCase):
         self.assertEqual(set(winds), {"10m", "250hPa"})
         self.assertEqual(set(clouds), {"low"})
         self.assertAlmostEqual(float(clouds["low"][0, 0]), 0.40, places=2)    # 순간값, 퍼센트 -> 비율
+
+
+class 위성_구름(SimpleTestCase):
+    """NOAA GMGSI — 열쇠·주소·메르카토르 펴기·굽기·받기 (koprifossillab 012)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = override_settings(WIND_DIR=self.tmp.name)
+        patcher.enable()
+        self.addCleanup(patcher.disable)
+
+    def test_열쇠의_시각(self):
+        key = "GMGSI_LW/2026/10/01/10/GLOBCOMPLIR_v3r0_blend_s202610011000000_e202610011009599_c202610011033586.nc"
+        self.assertEqual(gmgsi.stamp_of(key), "2026100110")
+
+    def test_주소는_sat_만(self):
+        self.assertTrue(wind.valid("gmgsi", "2026100110", "sat"))
+        self.assertFalse(wind.valid("gmgsi", "2026100110", "10m"))
+        self.assertFalse(wind.valid("gfs", "2026100110", "sat"))
+        path = Path(self.tmp.name) / "gmgsi" / "2026100110" / "sat.png"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"\x89PNG fake")
+        self.assertEqual(self.client.get("/GSM/earth/wind/gmgsi/2026100110/sat.png").status_code, 200)
+        self.assertIn("gmgsi", self.client.get("/GSM/earth/wind/").json())
+
+    @skipUnless(HAS_H5PY and HAS_NUMPY, "h5py 가 없다")
+    def test_메르카토르를_경위도로_편다(self):
+        """날짜변경선부터 도는 경도, 행마다 간격이 다른 위도 — 북반구 동경 쪽만 밝게 칠해 두고 편 뒤 자리를 본다."""
+        import io
+
+        import h5py
+        import numpy as np
+        nx, ny = 500, 300
+        lon = (180 + np.arange(nx) * 360 / nx + 180) % 360 - 180          # 180 부터
+        merc = np.linspace(np.log(np.tan(np.pi / 4 + np.radians(72.7) / 2)), -np.log(np.tan(np.pi / 4 + np.radians(72.7) / 2)), ny)
+        lat = np.degrees(2 * np.arctan(np.exp(merc)) - np.pi / 2)
+        data = np.where((lat[:, None] > 0) & (lon[None, :] > 0), 250.0, 50.0).astype("f4")[None]
+        buf = io.BytesIO()
+        with h5py.File(buf, "w") as f:
+            f["data"] = data
+            f["lat"] = np.repeat(lat[:, None], nx, axis=1).astype("f4")
+            f["lon"] = np.repeat(lon[None, :], ny, axis=0).astype("f4")
+        grid = gmgsi.decode(buf.getvalue())
+        self.assertEqual(grid.shape, (gmgsi.HEIGHT, gmgsi.WIDTH))
+        self.assertEqual(grid[0, 0], 0)                          # 위도 72.7° 너머는 비운다
+        self.assertGreater(grid[600, 2700], 200)                 # 북위 30° 동경 90° — 밝다
+        self.assertLess(grid[600, 900], 100)                     # 북위 30° 서경 90° — 어둡다
+        self.assertLess(grid[1200, 2700], 100)                   # 남위 30° 동경 90° — 어둡다
+
+    @skipUnless(HAS_NUMPY, "numpy 가 없다 — 운영 이미지")
+    def test_맑은_곳은_비우고_구름만_희게(self):
+        import numpy as np
+        from PIL import Image
+        gray = np.zeros((1800, 3600), np.uint8)
+        gray[:, 1800:] = 250
+        gray[:, :900] = 90                                       # 맑은 열대 바다쯤
+        wind.write_sat("2026100110", gray)
+        img = np.asarray(Image.open(wind.png_path("gmgsi", "2026100110", "sat")))
+        self.assertEqual(img.shape, (1800, 3600, 4))
+        self.assertEqual(img[900, 100, 3], 0)
+        self.assertGreater(img[900, 2000, 3], 200)
+        self.assertEqual(tuple(img[900, 2000, :3]), (255, 255, 255))
+
+    def test_받기는_가장_새_장_하나(self):
+        from django.core.management import call_command
+
+        class FakeNow(dt.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return dt.datetime(2026, 10, 1, 11, 10, tzinfo=dt.timezone.utc)
+
+        asked = []
+
+        def fake_key(hour):
+            asked.append(hour.strftime("%Y%m%d%H"))
+            return None if hour.hour == 11 else f"GMGSI_LW/x_s{hour:%Y%m%d%H}00000_e.nc"
+
+        def fake_write(stamp, gray):
+            (Path(self.tmp.name) / "gmgsi" / stamp).mkdir(parents=True, exist_ok=True)
+            return {"t": stamp}
+
+        with mock.patch("viewer.gmgsi.hour_key", side_effect=fake_key), \
+             mock.patch("viewer.gmgsi.download", return_value=b"x"), \
+             mock.patch("viewer.gmgsi.decode", return_value=None), \
+             mock.patch("viewer.wind.write_sat", side_effect=fake_write), \
+             mock.patch("viewer.management.commands.fetch_gmgsi.dt.datetime", FakeNow):
+            call_command("fetch_gmgsi", stdout=mock.Mock())
+            call_command("fetch_gmgsi", stdout=mock.Mock())
+        self.assertEqual([e["t"] for e in wind.read_index("gmgsi")["times"]], ["2026100110"])
+        self.assertEqual(asked, ["2026100111", "2026100110", "2026100111"])     # 둘째는 10 시가 있어 멈춘다

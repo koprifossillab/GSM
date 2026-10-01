@@ -9,3 +9,4 @@
 numpy==2.5.3
 eccodes==2.49.0       # GFS 의 GRIB2 (viewer/gfs.py). 바이너리(eccodeslib·eckitlib)를 휠이 함께 깐다
 numcodecs==0.17.0     # ERA5 Zarr 덩이의 blosc-lz4 (viewer/era5.py)
+h5py==3.16.0          # GMGSI 위성 구름의 HDF5 (viewer/gmgsi.py, koprifossillab 012)
