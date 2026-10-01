@@ -3489,8 +3489,7 @@
         return;
       }
       if (feature.get("_개인")) {
-        var own = personalPart(feature, personalSeen);
-        if (own) parts.push(own);
+        personalParts(feature, personalSeen).forEach(function (own) { parts.push(own); });
         return;
       }
       parts.push({ title: feature.get("_점묶음") || T("내 자료"), props: plain(feature.getProperties()) });
@@ -3853,17 +3852,30 @@
     personal.forEach(function (rec) {
       var labels = {};
       (rec.columns || []).forEach(function (c) { labels[c.key] = c.label || c.key; });
+      // **같은 자리의 점은 하나로 모은다** (wetherilli 120). 지역 대표점에 수백 건이 겹치는 자료(nkfcluster)에서
+      // 네모 수백 장을 포개 그리면 하나로 보여 몇 건인지 모른다. 모은 점에는 건수를 단다(`stackIcon`).
+      // 자리는 원본 위경도로 맞춘다 — 화면 투영으로 옮긴 뒤에 맞추면 소수점 끝이 갈려 따로 놀 수 있다
       var features = [];
+      var stacks = {};
       rec.features.forEach(function (f, i) {
         if (!f.geometry) return;
+        var item = { props: f.properties, fid: f.id === undefined ? i + 1 : f.id };
+        if (f.geometry.type === "Point") {
+          var key = f.geometry.coordinates[0].toFixed(7) + "," + f.geometry.coordinates[1].toFixed(7);
+          if (stacks[key]) { stacks[key].get("_items").push(item); return; }
+        }
         var feature;
         try { feature = format.readFeature({ type: "Feature", geometry: f.geometry, properties: {} }); } catch (e) { return; }
         // 속성은 한 덩이로 붙인다 — 원본 열 이름이 ol 의 것(geometry 따위)과 부딪히지 않게
-        feature.setProperties({ _개인: rec.id, _props: f.properties, _fid: f.id === undefined ? i + 1 : f.id });
-        if (rec.label && f.properties[rec.label] !== null && f.properties[rec.label] !== undefined) {
-          feature.set("이름표", f.properties[rec.label]);
-        }
+        feature.setProperties({ _개인: rec.id, _items: [item] });
+        if (f.geometry.type === "Point") stacks[key] = feature;
         features.push(feature);
+      });
+      features.forEach(function (feature) {
+        var items = feature.get("_items");
+        var first = rec.label ? items[0].props[rec.label] : null;
+        if (first === null || first === undefined || first === "") return;
+        feature.set("이름표", items.length > 1 ? T("{name} 외 {n}건", { name: first, n: items.length - 1 }) : first);
       });
       var layer = new ol.layer.Vector({
         source: new ol.source.Vector({ features: features }),
@@ -3895,31 +3907,81 @@
     var base = pointStyle(color);
     return function (feature, resolution) {
       var text = base(feature, resolution).getText();
+      var n = (feature.get("_items") || []).length;
       if (feature.getGeometry().getType().indexOf("Point") >= 0) {
+        if (n > 1) return new ol.style.Style({ image: stackIcon(color, n), text: text });
         return [new ol.style.Style({ image: shadow }), new ol.style.Style({ image: dot, text: text })];
       }
       return [new ol.style.Style({ stroke: edge }), new ol.style.Style({ stroke: line, fill: area, text: text })];
     };
   }
 
-  /** 팝업 한 덩이. 열 이름은 반입한 양식의 label 로 적는다. */
-  function personalPart(feature, seen) {
+  /** 여러 건이 겹친 점 — 네모에 건수 딱지를 붙인 그림. 글자는 이름표처럼 겹침 거르기에 지워지면 안 되므로
+   *  그림 안에 그려 넣는다(이 판의 OL 은 글자에 `declutterMode` 를 주지 못한다). 색·건수마다 한 번만 굽는다. */
+  var stackIcons = {};
+  function stackIcon(color, n) {
+    var key = color + "/" + n;
+    if (stackIcons[key]) return stackIcons[key];
+    var label = n > 999 ? "999+" : String(n);
+    var r = label.length < 2 ? 7 : label.length < 3 ? 8.5 : 10.5;       // 딱지 반지름
+    var size = Math.ceil(2 * (8 + r + 2));
+    var c = size / 2, pr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    var canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size * pr;
+    var g = canvas.getContext("2d");
+    g.scale(pr, pr);
+    // 그림자 — 낱점과 같은 자리·같은 짙기
+    g.fillStyle = "rgba(0, 0, 0, 0.28)";
+    g.beginPath(); g.arc(c + 1.5, c + 1.5, 10, 0, 2 * Math.PI); g.fill();
+    // 겹친 장 — 뒤로 두 장을 비껴 둔다. 한 장이 아니라는 것이 건수보다 먼저 보인다
+    [[3.5, -3.5, 0.45], [1.75, -1.75, 0.7], [0, 0, 1]].forEach(function (s) {
+      g.globalAlpha = s[2];
+      g.fillStyle = color;
+      g.strokeStyle = "rgba(20, 12, 4, 0.85)";
+      g.lineWidth = 1.6;
+      g.beginPath(); g.rect(c - 6.5 + s[0], c - 6.5 + s[1], 13, 13); g.fill(); g.stroke();
+    });
+    g.globalAlpha = 1;
+    // 건수 딱지 — 오른쪽 위
+    var bx = c + 8, by = c - 8;
+    g.fillStyle = "#1f1409";
+    g.strokeStyle = "#fff";
+    g.lineWidth = 1.4;
+    g.beginPath(); g.arc(bx, by, r, 0, 2 * Math.PI); g.fill(); g.stroke();
+    g.fillStyle = "#fff";
+    g.font = "700 " + (label.length < 3 ? 10 : 8.5) + "px sans-serif";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(label, bx, by + 0.5);
+    stackIcons[key] = new ol.style.Icon({ img: canvas, size: [canvas.width, canvas.height], scale: 1 / pr,
+                                          declutterMode: "none" });
+    return stackIcons[key];
+  }
+
+  /** 팝업 덩이들 — 모은 점이면 든 것마다 하나. 열 이름은 반입한 양식의 label 로 적는다.
+   *  레이어마다 `PERSONAL_POPUP_MAX` 건까지만 내고 나머지는 세기만 한다(넘친 것은 onClick 이 한 줄로). */
+  function personalParts(feature, seen) {
     var id = feature.get("_개인");
     var layer = personalLayers[id];
     var info = layer && layer.get("gsmPersonal");
-    if (!info) return null;
+    if (!info) return [];
+    var items = feature.get("_items") || [];
     seen[id] = seen[id] || { n: 0, name: info.name };
-    seen[id].n += 1;
-    if (seen[id].n > PERSONAL_POPUP_MAX) return null;
-    var props = {};
-    var src = feature.get("_props") || {};
-    Object.keys(src).forEach(function (key) {
-      var value = src[key];
-      if (value === null || value === undefined || value === "") return;
-      if (/^https?:\/\//i.test(String(value))) value = { text: "", links: [{ url: String(value), label: T("열기") }] };
-      props[info.labels[key] || key] = value;
+    var out = [];
+    items.forEach(function (item, i) {
+      seen[id].n += 1;
+      if (seen[id].n > PERSONAL_POPUP_MAX) return;
+      var props = {};
+      Object.keys(item.props || {}).forEach(function (key) {
+        var value = item.props[key];
+        if (value === null || value === undefined || value === "") return;
+        if (/^https?:\/\//i.test(String(value))) value = { text: "", links: [{ url: String(value), label: T("열기") }] };
+        props[info.labels[key] || key] = value;
+      });
+      out.push({ title: items.length > 1 ? T("{name} — 이 자리 {i}/{n}", { name: info.name, i: i + 1, n: items.length }) : info.name,
+                 props: props });
     });
-    return { title: info.name, props: props };
+    return out;
   }
 
   function renderPersonal() {
@@ -3927,10 +3989,9 @@
     if (!host) return;
     setCount("count-personal", personal.length);
     host.innerHTML = "";
-    if (!personal.length) {
-      host.innerHTML = '<li class="empty">' + T("관리 화면에서 JSON·CSV 를 반입한다 — 이 브라우저에만 남는다") + "</li>";
-      return;
-    }
+    // 반입한 것이 없으면 블록을 감춘다 (wetherilli 120). 들어가는 길은 바닥의 관리 단추다
+    document.getElementById("box-personal").hidden = !personal.length;
+    if (!personal.length) return;
     personal.forEach(function (rec) {
       var li = document.createElement("li");
       var box = document.createElement("input");
