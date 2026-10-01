@@ -173,6 +173,7 @@
 | wetherilli 129 | 2026-10-01 | [연결 레이어 — API 의 목차 주소를 넣어도 자료 주소를 찾아간다](20261001_wetherilli_129_linked_endpoints.md) |
 | wetherilli 130 | 2026-10-01 | [관리 화면 — 반입 탭에 양식 예시를 펼쳐 보인다 (CSV·JSON·API)](20261001_wetherilli_130_format_examples.md) |
 | wetherilli 131 | 2026-10-01 | [개인 레이어 — 아이콘을 눌러 색·모양, 면 투명도, 용량 재기, 켠 지질 레이어 모두 끄기](20261001_wetherilli_131_personal_style_capacity.md) |
+| wetherilli 133 | 2026-10-01 | [레이어 목록 — 체크박스 대신 상류 딱지, 줄을 눌러 켜고 끄기, 레이어군 모두 켜기](20261001_wetherilli_133_catalog_rows.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |

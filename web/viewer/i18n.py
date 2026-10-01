@@ -1172,6 +1172,18 @@ EN = {
     "넘겨주기가 너무 많다": "Too many redirects",
     "API 의 목차라 자료 주소를 찾아 이었다 — {url}": "That was the API index — linked to the data address found there: {url}",
     "API 의 목차다 — 자료 주소를 찾지 못했다 ({urls})": "That is the API index — no data address worked ({urls})",
+    # 레이어 목록 줄 (wetherilli 133)
+    "모두 켜기": "All on",
+    "이 묶음의 레이어를 모두 켠다": "Turn on every layer in this group",
+    "이 묶음의 레이어를 모두 끈다": "Turn off every layer in this group",
+    "그린란드 정부 포털": "Government of Greenland portal",
+    "노르웨이 극지연구소": "Norwegian Polar Institute",
+    "덴마크·그린란드 지질조사소": "Geological Survey of Denmark and Greenland",
+    "미국 지질조사국": "U.S. Geological Survey",
+    "미네소타대 극지공간정보센터": "Polar Geospatial Center, University of Minnesota",
+    "브이월드(국토교통부)": "VWorld (Ministry of Land, Infrastructure and Transport)",
+    "연구실 자료": "Lab data",
+    "일본 지질조사종합센터": "Geological Survey of Japan",
     # 꾸밈·용량·모두 끄기 (wetherilli 131)
     "꾸밈": "Style",
     "색·모양을 바꾼다": "Change colour and shape",
