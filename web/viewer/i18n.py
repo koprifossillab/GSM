@@ -944,9 +944,9 @@ EN = {
     "지질도를 겹쳐 보고, 눌러 속성을 읽고, 내 좌표를 얹는 지도 — 대돌여지도입니다.":
         "A map for overlaying geological maps, clicking to read attributes and adding your own coordinates — Great Stone Map.",
     "남극 지도": "Antarctica map",
-    "만든 곳": "Made by",
-    "그래서 우리가 일하는 <b>극지</b>부터 보여 드립니다.":
-        "So we start where we work — <b>the poles</b>.",
+    "그래서": "So",
+    "우리가 일하는 <b>극지</b>부터 보여 드립니다.":
+        "We start where we work — <b>the poles</b>.",
     "가는 길": "Route",
     "남극은 남극점을 가운데 두고 봅니다.": "Antarctica, seen with the South Pole at the centre.",
     "메르카토르에서 찢어지던 대륙이 <b>제 모양</b>으로 섭니다. SCAR GeoMAP 지질도는 <b>우리 서버가 직접</b> 그립니다.":
@@ -1051,7 +1051,7 @@ EN = {
     "둘러보기": "Take the tour",
     "대돌여지도의 한국 지역 화면": "Great Stone Map's Korea tab",
     "극지연구소": "Korea Polar Research Institute (KOPRI)",
-    "이 만들었습니다.": "made this map.",
+    "에서 만들었습니다.": "made this map.",
     "만든 이 — 극지연구소 이승찬 · 극지연구소 정직한": "Made by Seungchan Lee (KOPRI) · Jikhan Jung (KOPRI)",
     "드로닝모드랜드는 노르웨이 극지연구소의 <b>1:25만 지질도</b>와 구조선으로.":
         "Dronning Maud Land, with the Norwegian Polar Institute's <b>1:250,000 geology</b> and structural lines.",
