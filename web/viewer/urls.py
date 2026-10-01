@@ -6,7 +6,8 @@ from . import views
 app_name = "viewer"
 
 urlpatterns = [
-    path("", views.map_view, name="map"),
+    path("", views.intro_view, name="intro"),
+    path("map/", views.map_view, name="map"),
     path("healthz/", views.healthz, name="healthz"),
     path("3d/", views.map3d_view, name="map3d"),
     path("moon/", views.moon_view, name="moon"),

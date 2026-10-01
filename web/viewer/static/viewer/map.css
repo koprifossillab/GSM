@@ -1661,6 +1661,9 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .moon-globe #scalebar { display: none; }
 .hidden-menu .moon-dot.earth-dot { background: radial-gradient(circle at 35% 35%, #9fd0ff, #3d6fa8 60%, #1d3a5c); }
 .hidden-menu .moon-dot.mars-dot { background: radial-gradient(circle at 35% 35%, #f6a36a, #c1552a 60%, #5a2210); }
+/* 소개 화면(뿌리)으로 — 몸이 아니라 금 테두리만 둔 빈 동그라미 (wetherilli 113) */
+.hidden-menu .intro-link { border-top: 1px solid var(--line); margin-top: 2px; }
+.hidden-menu .moon-dot.intro-dot { background: none; border: 2px solid var(--gold-bright); box-sizing: border-box; }
 .moon-credit { margin: 4px 2px 0; line-height: 1.5; }
 /* 지구·달·화성 — 2D 의 지역 탭 자리. 달·화성은 지역이 아니라 몸이다 */
 .body-tabs { margin: 0 16px 12px; }

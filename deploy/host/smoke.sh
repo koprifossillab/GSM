@@ -24,7 +24,8 @@ check() {
 }
 
 echo "== $BASE =="
-check "화면"      "$BASE/"          200
+check "소개"      "$BASE/"          200
+check "지도"      "$BASE/map/"      200
 check "카탈로그"  "$BASE/catalog/"  200
 check "점묶음"    "$BASE/pointsets/" 200
 check "좌표"      "$BASE/coords/parse/?q=37.5,127.0" 200
