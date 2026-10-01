@@ -274,8 +274,8 @@
 
   <div id="toolbar" class="toolbar" role="toolbar" aria-label="{% t "그리기 도구" %}">
     <div class="tool-col">
-      {% comment %}남극 탭에서는 옆에 "자세" 묶음이 서므로 두 묶음에 이름표를 단다 (049){% endcomment %}
-      <div class="tool-cap antarctica-only">{% t "도구" %}</div>
+      {% comment %}옆에 "자세" 묶음이 서므로 두 묶음에 이름표를 단다 (049). 방위 단추가 생겨 모든 탭에 선다 (wetherilli 114){% endcomment %}
+      <div class="tool-cap">{% t "도구" %}</div>
       <button type="button" class="tool" data-mode="point" title="{% t "점 찍기 — 누른 자리에 점을 찍고 위경도를 적는다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11Z"/><circle class="fill" cx="12" cy="10" r="2.4"/></svg>
         <span>{% t "점" %}</span>
@@ -306,14 +306,19 @@
         <span>{% t "지우기" %}</span>
       </button>
     </div>
-    {% comment %}남극 탭의 "자세" — 우리 기지로 바로 간다. `row-reverse` 라 도구 묶음의 왼쪽에 선다 (049){% endcomment %}
-    <div class="tool-col antarctica-only" role="group" aria-label="{% t "자세" %}">
+    {% comment %}"자세" — 방위는 모든 탭, 기지는 남극 탭만 (049). `row-reverse` 라 도구 묶음의 왼쪽에 선다.
+       우클릭한 채 끌면 지도가 돌고, 방위 단추가 처음 방위로 되돌린다 (wetherilli 114){% endcomment %}
+    <div class="tool-col" role="group" aria-label="{% t "자세" %}">
       <div class="tool-cap">{% t "자세" %}</div>
-      <button type="button" class="tool" data-goto="jangbogo" title="{% t "장보고과학기지로 간다 — 74°37′26″S 164°13′44″E" %}">
+      <button type="button" class="tool" id="tool-compass" disabled title="{% t "방위 — 바늘이 지도의 본래 위쪽을 가리킨다. 우클릭한 채 끌면 지도가 돌고, 누르면 처음 방위로 되돌린다" %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="stroke" cx="12" cy="12" r="8.5"/><g id="compass-needle"><path class="fill" d="M12 4.5 14.2 12h-4.4Z"/><path class="stroke" d="M9.8 12 12 19.5 14.2 12"/></g></svg>
+        <span>{% t "방위" %}</span>
+      </button>
+      <button type="button" class="tool antarctica-only" data-goto="jangbogo" title="{% t "장보고과학기지로 간다 — 74°37′26″S 164°13′44″E" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M6 21V4"/><path class="stroke tint" d="M6 4h11l-2.5 3.5L17 11H6"/><path class="stroke" d="M3 21h8"/></svg>
         <span>{% t "장보고" %}</span>
       </button>
-      <button type="button" class="tool" data-goto="sejong" title="{% t "세종과학기지로 간다 — 62°13′22″S 58°47′18″W" %}">
+      <button type="button" class="tool antarctica-only" data-goto="sejong" title="{% t "세종과학기지로 간다 — 62°13′22″S 58°47′18″W" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M6 21V4"/><path class="stroke tint" d="M6 4h11l-2.5 3.5L17 11H6"/><path class="stroke" d="M3 21h8"/></svg>
         <span>{% t "세종" %}</span>
       </button>
