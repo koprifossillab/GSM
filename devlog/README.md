@@ -179,3 +179,4 @@
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
 | koprifossillab P02 | 2026-10-01 | [바람을 온 지구 화면에서 흐르게 (계획)](20261001_koprifossillab_P02_wind.md) |
+| koprifossillab 004 | 2026-10-01 | [아라온호 위치를 매시간 쌓는다](20261001_koprifossillab_004_araon_track.md) |

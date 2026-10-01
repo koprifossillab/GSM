@@ -9,3 +9,9 @@
 # (매시 :20·:25, 03:00·04:00 phyloserver, 04:40·05:10 NAS 동기화, 05:00 타임랩스)과 겹치지 않게 비껴 뒀다.
 # 결과는 /data/GSM/logs/last_backup.json. 로그: /data/GSM/logs/weekly_backup.log
 40 1 * * 1 /home/paleoadmin/projects/GSM/deploy/host/weekly_backup.sh >> /data/GSM/logs/weekly_backup.log 2>&1
+
+# 아라온호 위치 (koprifossillab 004) — 매시 :50 에 극지연구소의 아라온호 위치 판에서 마지막 자리를 받아
+# /srv/GSM/db/kopri/araon.jsonl 에 한 줄 보탠다. 새 자리가 없으면 보태지 않는다. 극지연구소 쪽은 지난 자리를 지우므로
+# 이 파일이 우리 쪽 기록이다 — 주간 백업이 kopri 를 통째로 뜬다. 한 시간에 한 쪽이라 상류에 짐이 되지 않는다.
+# 다른 매시 일(:20·:25·:35)과 비껴 뒀다. 로그: /data/GSM/logs/araon.log
+50 * * * * cd /home/paleoadmin/projects/GSM/web && GSM_DB_PATH=/srv/GSM/db/GSM.db timeout 120 /home/paleoadmin/venv/GSM/bin/python manage.py fetch_araon >> /data/GSM/logs/araon.log 2>&1
