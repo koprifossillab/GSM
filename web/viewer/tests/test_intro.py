@@ -59,3 +59,14 @@ class IntroTests(TestCase):
         for lang in ("ko", "en"):
             for name in names:
                 self.assertTrue((SHOTS / lang / name).is_file(), f"{lang}/{name}")
+
+    def test_작은_판과_구와_로고가_있다(self):
+        """첫 장면에 쏟아지는 수십 장·갈래 단추는 작은 판(thumb/)을, 구는 감는 그림을 쓴다 (wetherilli 115)."""
+        html = (HERE / "templates" / "viewer" / "intro.html").read_text(encoding="utf-8")
+        thumbs = set(re.findall(r"shots\|add:'thumb/([\w.]+)'", html))
+        thumbs |= {n + ".webp" for n in re.search(r'data-names="([^"]+)"', html).group(1).split()}
+        for lang in ("ko", "en"):
+            for name in thumbs:
+                self.assertTrue((SHOTS / lang / "thumb" / name).is_file(), f"{lang}/thumb/{name}")
+        for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "kopri-ci.webp"):
+            self.assertTrue((SHOTS / name).is_file(), name)

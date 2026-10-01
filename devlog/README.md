@@ -154,6 +154,7 @@
 | wetherilli 112 | 2026-10-01 | [온 지구 — PBDB 산지 링크를 displayCollectionDetails 로](20261001_wetherilli_112_pbdb_collection_link.md) |
 | wetherilli 113 | 2026-10-01 | [첫 화면 — 스스로 넘어가는 소개, 지도는 `map/` 으로](20261001_wetherilli_113_intro_page.md) |
 | wetherilli 114 | 2026-10-01 | [2D 지도 — 우클릭 끌기로 돌리고, 자세 묶음의 방위 단추로 되돌린다](20261001_wetherilli_114_map_right_drag_rotate.md) |
+| wetherilli 115 | 2026-10-01 | [소개 다듬기 — 타이틀, 둥근 지구·달·화성, 쏟아지는 수십 장](20261001_wetherilli_115_intro_title.md) |
 | wetherilli 116 | 2026-10-01 | [온 지구 — 맨틀을 켜면 땅이 물러나고, 슬랩은 파랑·더미는 빨강](20261001_wetherilli_116_earth_mantle_visibility.md) |
 | wetherilli 117 | 2026-10-01 | [온 지구 — 맨틀을 깊이로 칠한다: 얕을수록 밝게](20261001_wetherilli_117_mantle_depth_shading.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
