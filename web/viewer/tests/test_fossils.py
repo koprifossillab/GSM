@@ -94,6 +94,11 @@ class Door(SimpleTestCase):
         download.assert_not_called()
         self.assertIn("1 곳", out.getvalue())
 
+    def test_산지_쪽은_displayCollectionDetails(self):
+        # basicCollectionSearch 는 2026-10-01 에 403 을 준다 (wetherilli 112)
+        self.assertEqual(pbdb.collection_url(1000),
+                         "https://paleobiodb.org/classic/displayCollectionDetails?collection_no=1000")
+
 
 class Views(TestCase):
     def setUp(self):

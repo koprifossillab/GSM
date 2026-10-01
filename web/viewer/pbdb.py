@@ -30,7 +30,7 @@ class PbdbError(RuntimeError):
 
 def collection_url(no: int) -> str:
     """사람이 읽는 산지 쪽."""
-    return f"https://paleobiodb.org/classic/basicCollectionSearch?collection_no={int(no)}"
+    return f"https://paleobiodb.org/classic/displayCollectionDetails?collection_no={int(no)}"
 
 
 def download(dest: Path, timeout: int = 900) -> int:
