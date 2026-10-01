@@ -327,6 +327,7 @@ EN = {
     "맨틀 슬랩·하부 더미": "Mantle slabs and basal piles",
     "맨틀 파일이 서버에 없다": "The mantle files are not on the server",
     "맨틀은 OPT1 의 {ma} Ma — 모의 결과이지 관측이 아니다": "Mantle from OPT1 at {ma} Ma — a model result, not an observation",
+    "(슬랩 파랑·더미 빨강, 밝을수록 얕다)": "(slabs blue, piles red; lighter is shallower)",
     "(맨틀 기준틀이라 판 조각과 어긋난다)": "(mantle reference frame — offset from the plate pieces)",
     # 그리기가 멈추면 (wetherilli 110)
     "WebGL 문맥을 잃었다": "The WebGL context was lost",
