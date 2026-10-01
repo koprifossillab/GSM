@@ -34,7 +34,7 @@
 | 길 | 결과 |
 |---|---|
 | **ECCO Drive** `ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/` | 302 → **Earthdata 로그인.** wget 으로 받을 때는 Earthdata 비밀번호가 아니라 ECCO Drive 가 내주는 **WebDAV 비밀번호**를 쓴다 |
-| **NASA NAS 데이터 포털** `data.nas.nasa.gov/ecco/` (`cs_510`) | 같은 위경도 파일과 THREDDS(OPeNDAP)가 있다고 한다. 페이지가 자바스크립트로 그려져 curl 로는 목록·readme 를 못 읽었다(500·404). **로그인이 필요한지 모른다** |
+| **NASA NAS 데이터 포털** `data.nas.nasa.gov/ecco/cs_510/` | **로그인 없이 받힌다**(같은 날 다시 찔러 봄, [ECCO_V4_해류.md](ECCO_V4_해류.md) §2). `eccodata/…` 꼴 주소는 500 을 주고, 목록의 링크 꼴(`/ecco/cs_510/UVEL.nc/UVEL.1440x720x50.19920105.nc`)이 맞다. 처음 찔렀을 때 못 읽은 것은 주소 꼴이 틀려서였다 |
 | 하와이대 APDRC 거울 | 문서 페이지가 404 |
 
 옛 FTP(`ftp://ecco.jpl.nasa.gov/ECCO2/…`, 2018 년 안내)는 지금 HTTPS 의 ECCO Drive 로 옮겨 갔다.
@@ -122,10 +122,11 @@ SVS 가 그렇게 보이는 것은 어두운 바다 밑 지형 덕이 크다. �
 
 ## 7. 정하기 전에 확인할 것
 
-- [ ] **Earthdata 계정이 있는가** — 없으면 사람이 만든다. ECCO Drive 의 WebDAV 비밀번호를 받는다
-- [ ] **OPeNDAP 으로 첫 층만 잘라 받을 수 있는가** — 되면 받는 양이 25 분의 1 이다. NAS 포털의 THREDDS 가 로그인을 묻는지도
-- [ ] **배포본의 끝 날짜** — 2019-03 인가 2024-12 인가(§1)
-- [ ] **netCDF 가 압축돼 있는가** — 받는 시간과 굽는 데 쓸 라이브러리가 달라진다
+- [x] ~~Earthdata 계정이 있는가~~ — **필요 없다.** NAS 포털이 로그인 없이 준다
+- [x] **첫 층만 잘라 받을 수 있는가** — **된다.** NAS 포털이 Range 를 받고(206), 파일이 압축 없는 netCDF classic(`CDF\x01`,
+  `UVEL` 한 장 207 369 800 바이트)이라 첫 층(1440×720 float32, 4 MB)의 자리가 머리에서 셈으로 나온다. OPeNDAP 이 없어도 된다
+- [x] **배포본의 끝 날짜** — NAS 의 `UVEL` 은 1992-01-05 ~ **2019-03-29**, 3 일마다 2 939 장
+- [x] **netCDF 가 압축돼 있는가** — 아니다(classic). 굽는 쪽은 표준 라이브러리만으로 읽을 수 있다
 - [ ] ECCO Drive 의 호출 제한 — KIGAM 처럼 **재려고 두드리지 않는다**(devlog 010). 받기는 천천히, `upstream_stats` 로 본다
 
 ## 8. 사람이 정할 것
