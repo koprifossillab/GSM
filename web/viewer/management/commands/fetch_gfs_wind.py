@@ -11,6 +11,9 @@
 아직 없는 장만 차례로 받는다 — 예보 장은 분석보다 조금 늦게 올라오기도 하므로, 다음 차례(한 시간 뒤)가 빠진 것을 채운다.
 목록의 시각은 **유효 시각**이다. 같은 유효 시각을 여러 판이 내면 새 판이 이긴다 — 00 판의 +6 예보는 06 판의 분석이 오면
 그것으로 바뀐다. 장 사이는 1 초 쉰다.
+
+구름량(전체·하층·중층·상층)도 같은 요청으로 받아 곁에 굽는다(koprifossillab 011). 구름이 없는 줄(구름을 받기 전의 장)은
+빠진 장으로 보아 다시 받는다.
 """
 import datetime as dt
 import time
@@ -37,7 +40,7 @@ class Command(BaseCommand):
         times = {e["t"]: e for e in wind.read_index("gfs")["times"]}
         cycles = [opts["cycle"]] if opts["cycle"] else gfs.recent_cycles(dt.datetime.now(dt.timezone.utc), 3)
         for cycle in cycles:
-            have = {e.get("fh", 0) for e in times.values() if run_of(e) == cycle}
+            have = {e.get("fh", 0) for e in times.values() if run_of(e) == cycle and e.get("clouds")}
             todo = [fh for fh in gfs.FORECAST_HOURS if fh not in have]
             if not todo:
                 self.stdout.write(f"{cycle} 은 다 있다 — 할 일 없음")
@@ -57,7 +60,8 @@ class Command(BaseCommand):
                 if valid in times and run_of(times[valid]) > cycle:
                     continue                         # 더 새 판이 이미 이 시각을 냈다
                 try:
-                    entry = wind.write_time("gfs", valid, gfs.decode(grib))
+                    winds, clouds = gfs.decode_all(grib)
+                    entry = wind.write_time("gfs", valid, winds, clouds)
                 except (gfs.GfsError, ValueError) as exc:
                     raise CommandError(f"{cycle} f{fh:03d}: {exc}") from exc
                 entry.update(run=cycle, fh=fh)

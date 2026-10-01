@@ -353,7 +353,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS)
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
-  gfs.py          NOAA GFS 로 나가는 문 (지금의 바람 u·v, 10 m·250 hPa, 분석과 +12 시간까지 예보). 호스트 cron 이 받는다(`fetch_gfs_wind`)
+  gfs.py          NOAA GFS 로 나가는 문 (지금의 바람 u·v, 10 m·250 hPa, 구름량 넷, 분석과 +12 시간까지 예보). 호스트 cron 이 받는다(`fetch_gfs_wind`)
   era5.py         ARCO-ERA5(Google Cloud 공개 버킷)로 나가는 문 (지난 바람). 37 층 덩이에서 그 층만 Range 로. 사람이 부른다(`build_era5_wind`)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버·아라온호 위치). 목록은 모아 둔다(`fetch_kopri`), 아라온호는 매시간 쌓아(`fetch_araon`) 항적 레이어로 낸다 — 남극·북극해 탭과 온 지구. 지난 1 년은 한 번 떠 둔 것(`fetch_araon --past`, 날짜는 하루 단위)
   trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
@@ -377,7 +377,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   naturalearth.py 온 지구의 지명·강·호수·빙하 Natural Earth (data/earth_*.json) -> 찾기·이름표·경위도 타일. 문이 아니다
   mantle.py       맨틀 슬랩 Müller 2022 OPT1 — ParaView VTK(numpy 없이) -> 시점마다 삼각형 덩이. 문이 아니다
   icemargins.py   최근 빙기의 빙상 가장자리 NADI-1·DATED-1 (data/ice_margins.json) -> 연대마다 경위도 타일. 문이 아니다
-  wind.py         바람 u·v 격자 -> PNG 텍스처(R=u·G=v)와 목록. 굽기는 호스트에서만(numpy). 문이 아니다
+  wind.py         바람 u·v 격자 -> PNG 텍스처(R=u·G=v), 구름량 -> 회색 PNG, 그리고 목록. 굽기는 호스트에서만(numpy). 문이 아니다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
   linked.py       연결 레이어로 나가는 문 — 사람이 준 주소(남의 API)를 대신 부른다. 사설망·낮은 포트를 막고 검사한 IP 로만 붙는다
   fossils.py      PBDB 화석 산지 CSV -> sqlite(R*Tree) -> 연대마다 그 자리의 점 타일·누른 자리. 문이 아니다

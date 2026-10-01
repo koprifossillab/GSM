@@ -24,6 +24,15 @@ log = logging.getLogger(__name__)
 FILTER = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
 #: 받는 높이 — grib filter 의 이름과 우리 이름(`wind.LEVELS`)
 LEVELS = {"10m": "lev_10_m_above_ground", "250hPa": "lev_250_mb"}
+#: 구름량 — 같은 요청에 더한다 (koprifossillab 011). 우리 종류 -> (변수, 층, ecCodes 의 shortName·typeOfLevel).
+#: 예보 장에는 순간값과 0–3 시간 평균이 함께 온다 — 바람과 짝짓도록 순간값(`instant`)만 쓴다. `TCDC` 는 기압면마다도 있어
+#: 250 mb 의 것이 딸려 오지만 층(`atmosphere`)으로 거른다
+CLOUDS = {
+    "total": ("var_TCDC", "lev_entire_atmosphere", "tcc", "atmosphere"),
+    "low": ("var_LCDC", "lev_low_cloud_layer", "lcc", "lowCloudLayer"),
+    "mid": ("var_MCDC", "lev_middle_cloud_layer", "mcc", "middleCloudLayer"),
+    "high": ("var_HCDC", "lev_high_cloud_layer", "hcc", "highCloudLayer"),
+}
 CYCLE_HOURS = 6
 #: 받는 예보 시간 — 0 이 분석이다
 FORECAST_HOURS = (0, 3, 6, 9, 12)
@@ -49,6 +58,8 @@ def params(cycle: str, fh: int = 0) -> dict:
     query = {"dir": f"/gfs.{day}/{hour}/atmos", "file": f"gfs.t{hour}z.pgrb2.0p25.f{fh:03d}",
              "var_UGRD": "on", "var_VGRD": "on"}
     query.update({name: "on" for name in LEVELS.values()})
+    for var, lev, _, _ in CLOUDS.values():
+        query[var] = query[lev] = "on"
     return query
 
 
@@ -79,11 +90,17 @@ def download(cycle: str, fh: int = 0) -> bytes | None:
 
 def decode(grib: bytes) -> dict:
     """GRIB2 -> `{높이: (u, v)}`, 격자는 721×1440(경도 0 부터, 위도 90 부터). **호스트에서만** — ecCodes·numpy."""
+    return decode_all(grib)[0]
+
+
+def decode_all(grib: bytes) -> tuple:
+    """GRIB2 -> (`{높이: (u, v)}`, `{구름 종류: 구름량 0–1}`). 구름이 오지 않았으면 둘째는 빈 사전."""
     import eccodes
     import numpy as np
 
     by_level = {"10": "10m", "25000": "250hPa", "250": "250hPa"}
-    found = {}
+    cloud_of = {(short, tol): kind for kind, (_, _, short, tol) in CLOUDS.items()}
+    found, clouds = {}, {}
     for msg in _messages(grib):
         handle = eccodes.codes_new_from_message(msg)
         try:
@@ -95,8 +112,14 @@ def decode(grib: bytes) -> dict:
             if (ni, nj) != (1440, 721) or first_lat != 90 or first_lon != 0:
                 raise GfsError(f"격자가 다르다: {ni}×{nj}, 첫 점 {first_lat},{first_lon}")
             values = np.asarray(eccodes.codes_get_values(handle), dtype=np.float32).reshape(721, 1440)
+            kind = cloud_of.get((name, eccodes.codes_get(handle, "typeOfLevel")))
+            instant = eccodes.codes_get(handle, "stepType") == "instant"
         finally:
             eccodes.codes_release(handle)
+        if kind:
+            if instant:
+                clouds[kind] = values / 100.0          # GFS 는 퍼센트다
+            continue
         comp = {"u": "u", "10u": "u", "v": "v", "10v": "v"}.get(name)
         if level and comp:
             found.setdefault(level, {})[comp] = values
@@ -106,7 +129,7 @@ def decode(grib: bytes) -> dict:
         if "u" not in pair or "v" not in pair:
             raise GfsError(f"{level} 의 u·v 가 다 오지 않았다")
         out[level] = (pair["u"], pair["v"])
-    return out
+    return out, clouds
 
 
 def _messages(grib: bytes):
