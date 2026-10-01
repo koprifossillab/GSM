@@ -386,7 +386,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
   models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
   views.py        화면 하나 + 프록시 둘 + 업로드
-deploy/           Docker·nginx·배포 스크립트
+deploy/           Docker·nginx·배포 스크립트. cron 이 부르는 것은 deploy/scripts/ — 컨테이너가 뜰 때 /srv/GSM/scripts/ 에 깔고
+                  호스트 cron 은 그 사본을 전용 venv 로 돌린다(run.sh). 저장소를 부르지 않는다 (koprifossillab 005)
 data/             카탈로그 씨앗
 web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/tiles, 컨테이너 안에서는 /srv/GSM/tiles)
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md

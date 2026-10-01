@@ -1,10 +1,10 @@
 #!/bin/bash
 # 매주 한 번(월요일 01:40): GSM 운영 자료를 백업하고, 상류에서 모아 두는 것을 새로 받는다 (koprifossillab P01).
-# paleoadmin 의 crontab 에서 돈다 — deploy/host/crontab.GSM. 틀은 WegenersDream 의 weekly_refresh.sh 다.
+# paleoadmin 의 crontab 에서 돈다 — deploy/host/crontab.GSM. 도는 것은 /srv/GSM/scripts/ 의 사본이다(koprifossillab 005). 틀은 WegenersDream 의 weekly_refresh.sh 다.
 #
-#   deploy/host/weekly_backup.sh                 ①–④ 백업 → ⑤–⑦ 받기
-#   deploy/host/weekly_backup.sh --backup-only   ①② 와 NAS 사본만
-#   deploy/host/weekly_backup.sh --no-fetch      ①–④ (거울까지, 받지 않는다)
+#   /srv/GSM/scripts/weekly_backup.sh                 ①–④ 백업 → ⑤–⑦ 받기
+#   /srv/GSM/scripts/weekly_backup.sh --backup-only   ①② 와 NAS 사본만
+#   /srv/GSM/scripts/weekly_backup.sh --no-fetch      ①–④ (거울까지, 받지 않는다)
 #
 # 바뀌는 빠르기대로 넷으로 가른다 — 한 tar 에 다 넣으면 주 2.7 GB 가운데 2.6 GB 가 안 바뀐 것이다.
 #   ① 주간 tar   /data/GSM/backups/GSM.<YYYYMMDD>.tar.gz — 다시 못 얻는 것. 모두 둔다

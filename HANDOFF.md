@@ -172,11 +172,20 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 
 ### 백업
 
-매주 월요일 01:40 `deploy/host/weekly_backup.sh` — 다시 못 얻는 것(GSM.db·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
+매주 월요일 01:40 `/srv/GSM/scripts/weekly_backup.sh`(원본 `deploy/scripts/`) — 다시 못 얻는 것(GSM.db·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
 와 NAS 에, 캐시·원본은 거울로. 그 뒤 `fetch_kopri`. 무엇이 어디에 있고 어떻게 되살리나는 [docs/백업.md](docs/백업.md)
 (koprifossillab 001). 2026-09-30 에 paleoadmin 의 crontab 에 붙였다(`deploy/host/crontab.GSM`) — 첫 차례는 10-05(월).
 결과는 DB 옆 `backup_status.json` 에도 적혀 **`/GSM/healthz/` 가 읽는다** — 멈췄거나 여드레 넘게 없으면 `degraded`
-(koprifossillab 002). cron 은 paleoadmin 의 저장소 폴더에서 스크립트를 부르므로, 그 폴더를 스크립트가 없는 브랜치에 두지 않는다.
+(koprifossillab 002).
+
+### cron
+
+**cron 은 저장소를 부르지 않는다** — `/srv/GSM/scripts/` 의 사본을 부른다. 컨테이너가 뜰 때 이미지의 `deploy/scripts/`
+와 앱 코드 사본(`app/`)을 거기 깔고(`install.sh`), 파이썬 일은 `run.sh <관리 명령>` 이 전용 venv(`scripts/venv`)로 돌린다.
+venv 는 requirements 가 바뀌면 스스로 다시 만든다. 지금 도는 것은 주간 백업과 아라온호 위치(매시 :50, `fetch_araon` →
+`db/kopri/araon.jsonl`, koprifossillab 004). 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
+`deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에 `scripts` 마운트가 들어가야
+컨테이너가 깐다 — 들어가기 전까지는 2026-10-01 에 손으로 깐 사본이 돈다.
 
 ### 판을 올릴 때
 

@@ -180,3 +180,4 @@
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
 | koprifossillab P02 | 2026-10-01 | [바람을 온 지구 화면에서 흐르게 (계획)](20261001_koprifossillab_P02_wind.md) |
 | koprifossillab 004 | 2026-10-01 | [아라온호 위치를 매시간 쌓는다](20261001_koprifossillab_004_araon_track.md) |
+| koprifossillab 005 | 2026-10-01 | [cron 은 /srv/GSM/scripts 의 사본을 전용 venv 로 돈다](20261001_koprifossillab_005_srv_scripts.md) |
