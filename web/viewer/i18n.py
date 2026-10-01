@@ -921,6 +921,10 @@ EN = {
     "상주 기지": "Year-round station",
     "하계 기지": "Seasonal station",
     "그 밖 시설": "Other facility",
+    # 아라온호 항적 (koprifossillab 006)
+    "아라온호 마지막 자리": "Araon, latest position",
+    "아라온호 항적": "Araon track",
+    "쇄빙연구선 아라온호": "Icebreaker RV Araon",
 
     # ── 소개 (wetherilli 113) ──
     "대돌여지도 소개": "About Great Stone Map",
@@ -1670,6 +1674,17 @@ PROP_EN = {
     "운영": "Operation",
     "처음 연 해": "Opened",
     "월동 인원": "Winter population",
+    # 아라온호 (koprifossillab 006)
+    "배": "Vessel",
+    "시각 (UTC)": "Time (UTC)",
+    "속력 (kn)": "Speed (kn)",
+    "침로 (°)": "Course (°)",
+    "선수방위 (°)": "Heading (°)",
+    "기온 (°C)": "Air temperature (°C)",
+    "습도 (%)": "Humidity (%)",
+    "첫 기록": "First fix",
+    "마지막 기록": "Latest fix",
+    "자리 수": "Fixes",
     "여름 최대 인원": "Peak population",
     "고도": "Altitude",
     "다른 이름": "Other names",
@@ -1994,6 +2009,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
@@ -2208,6 +2224,8 @@ LAYER_EN = {
     "kopri:rock_svalbard": "Rock samples (KOPRI)",
     "kopri:rock_greenland": "Rock samples (KOPRI)",
     "kopri:meteorites": "Meteorite finds (KoreaMet)",
+    "kopri:araon_antarctica": "Araon track",
+    "kopri:araon_arctic_ocean": "Araon track",
     "kopri:kpdc_sediment": "Marine sediments & cores",
     "kopri:kpdc_solid": "Solid Earth",
     "kopri:kpdc_paleo": "Paleoclimate",

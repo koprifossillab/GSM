@@ -7,7 +7,8 @@
  "_레이어군차례": 20,
  "레이어군순서": [
   "KPDC 자료",
-  "KPDC 기본도"
+  "KPDC 기본도",
+  "쇄빙연구선 아라온호"
  ],
  "레이어": [
   {
@@ -118,6 +119,18 @@
     90
    ],
    "확인한날": "2026-09-30"
+  },
+  {
+   "name": "kopri:araon_arctic_ocean",
+   "title": "아라온호 항적",
+   "group": "쇄빙연구선 아라온호",
+   "abstract": "RV Araon track, hourly fixes from KOPRI live position page",
+   "bbox": [
+    -180.0,
+    50.0,
+    180.0,
+    90.0
+   ]
   }
  ]
 }
