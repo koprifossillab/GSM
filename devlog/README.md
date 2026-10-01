@@ -195,3 +195,4 @@
 | koprifossillab 015 | 2026-10-01 | [해류 2 단계 — 달마다 한 장, 1992–2019](20261001_koprifossillab_015_ocean_monthly.md) |
 | koprifossillab 016 | 2026-10-01 | [바람과 해류를 같이 켜도 갈리게 — 색 계열과 선의 결](20261001_koprifossillab_016_flow_colors.md) |
 | koprifossillab 017 | 2026-10-01 | [아라온호 항적 — 기간을 고르고, 오래된 것일수록 옅게](20261001_koprifossillab_017_araon_period.md) |
+| koprifossillab 018 | 2026-10-01 | [바람·해류의 빠르기 범례](20261001_koprifossillab_018_flow_legend.md) |

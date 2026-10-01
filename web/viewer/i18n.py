@@ -116,6 +116,11 @@ EN = {
     "{t} · ECCO2 3 일 평균 · 표층 5 m": "{t} · ECCO2 3-day mean · surface (5 m)",
     "해류 자료가 아직 없다": "No ocean currents yet",
     "해류의 달": "Month (ocean currents)",
+    # 바람·해류의 빠르기 범례 (koprifossillab 018)
+    "입자 색은 바람의 빠르기 — {level}": "Particle colour is wind speed — {level}",
+    "입자 색은 해류의 빠르기 — 표층 5 m": "Particle colour is current speed — surface (5 m)",
+    "{a}–{b} m/s": "{a}–{b} m/s",
+    "{a} m/s 넘게": "over {a} m/s",
     # 아라온호 항적 기간 (koprifossillab 017)
     "항적 기간": "Track period",
     "1개월": "1 month",

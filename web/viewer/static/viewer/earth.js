@@ -91,7 +91,7 @@
     // 바람은 오늘의 레이어다. 지금(GFS, 기본)과 지난(ERA5 2005-06 ~ 2007-12), 지상 10 m(기본)·250 hPa 를 카드에서 고른다.
     // 타일이 아니라 입자로 그린다(`syncWind`) (koprifossillab P02)
     { group: "움직이는 지구", flux: true, layers: [
-      { name: "wind", title: "바람", wind: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
+      { name: "wind", title: "바람", wind: true, legend: "wind", src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
       // 구름량 — 바람과 같은 시각 축(지금/지난·날짜·재생)을 쓴다. 영상 한 장으로 덮는다(`applyCloud`) (koprifossillab 011)
       { name: "cloud", title: "구름", cloud: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
       // 위성 구름 — NOAA GMGSI 정지궤도 적외선 합성, 한 시간마다. 가장 새 장 하나를 덮는다(`syncSat`) (koprifossillab 012)
@@ -109,7 +109,7 @@
   // 해류 — ECCO2 표층(3 일 평균)을 서버가 구워 두었을 때만. 바람처럼 입자로 흘린다(`syncOcean`) (koprifossillab 014)
   if (THEN.ocean) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
-      { name: "ocean", title: "해류", ocean: true, src: "ECCO2 cube92 (NASA JPL·MIT) · Menemenlis et al. 2008" });
+      { name: "ocean", title: "해류", ocean: true, legend: "ocean", src: "ECCO2 cube92 (NASA JPL·MIT) · Menemenlis et al. 2008" });
   }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
@@ -1778,6 +1778,7 @@
         WIND.level = ev.target.value;
         save("gsm.earth.wind.level", WIND.level);
         syncWind();
+        syncLegend();
       });
     }
     box.querySelector(".wind-day").addEventListener("change", function (ev) {
@@ -2162,7 +2163,23 @@
   dock.open = saved("gsm.earth.legend", window.matchMedia("(max-width: 760px)").matches ? "closed" : "open") !== "closed";
   dock.addEventListener("toggle", function () { save("gsm.earth.legend", dock.open ? "open" : "closed"); });
   function ma(v) { return v == null ? "" : (+v).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+  /** 입자 색 여덟 칸과 그 빠르기 — 칸 i 는 빠르기/기준의 세 배가 i 인 것이다(`windFrame`·`oceanFrame` 의 셈과 같다) (koprifossillab 018) */
+  function flowLegend(colors, ref, note) {
+    var digits = ref < 2 ? 2 : 0;
+    function v(x) { return (+x).toLocaleString(undefined, { maximumFractionDigits: digits }); }
+    return '<li class="empty">' + esc(note) + "</li>" + colors.map(function (color, i) {
+      var a = ref * i / 3, b = ref * (i + 1) / 3;
+      var text = i === colors.length - 1 ? T("{a} m/s 넘게", { a: v(a) }) : T("{a}–{b} m/s", { a: v(a), b: v(b) });
+      return '<li><span class="chip" style="background:' + esc(color) + '"></span>' + esc(text) + "</li>";
+    }).join("");
+  }
   function legendHtml(kind) {
+    // 바람·해류는 받지 않고 그때그때 — 바람의 기준 빠르기는 높이마다 다르다
+    if (kind === "wind") {
+      return Promise.resolve(flowLegend(WIND_COLORS, WIND_REF[WIND.level],
+        T("입자 색은 바람의 빠르기 — {level}", { level: T(WIND.level === "10m" ? "지상 10 m" : "250 hPa (제트기류)") })));
+    }
+    if (kind === "ocean") return Promise.resolve(flowLegend(OCEAN_COLORS, OCEAN_REF, T("입자 색은 해류의 빠르기 — 표층 5 m")));
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
     if (kind === "crust") {
       legends[kind] = '<li class="empty">' + esc(T("2° 칸의 모형이다 — 관측이 아니다")) + "</li>" +
@@ -2188,6 +2205,9 @@
     var layers = active.filter(function (e) { return LAYER[e.name].legend && visibleNow(e.name); })
                        .map(function (e) { return LAYER[e.name]; })
                        .filter(function (l) { return !kinds[l.legend] && (kinds[l.legend] = true); });
+    // 바람·해류의 빠르기는 짧고 입자는 늘 위에 그려진다 — 범례도 맨 위에 (koprifossillab 018)
+    var FLOW = { wind: 0, ocean: 1 };
+    layers.sort(function (a, b) { return (a.legend in FLOW ? FLOW[a.legend] : 9) - (b.legend in FLOW ? FLOW[b.legend] : 9); });
     dock.hidden = !layers.length;
     if (!layers.length) return;
     var mine = ++legendAsked;
