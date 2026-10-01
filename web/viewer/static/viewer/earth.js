@@ -93,10 +93,17 @@
     ] },
   ];
   var THEN = JSON.parse(($("then-data") || {}).textContent || "{}");
+  // 아라온호 항적 — 극지연구소 위치 판에서 매시간 쌓은 것. 쌓은 것이 있고 연구실 안에서 열 때만 (koprifossillab 006)
+  //   track  타일이 아니라 화면이 GeoJSON 을 그린다(`syncTrack`). 오늘의 것이다
+  if (THEN.araon) {
+    CATALOG.push({ group: "쇄빙연구선 아라온호", layers: [
+      { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" },
+    ] });
+  }
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -475,6 +482,75 @@
       }));
       oLabels.setOpacity(alpha);
     }).catch(function () { labelsAsked = false; });
+  }
+
+  // ══ 아라온호 항적 (koprifossillab 006) ═══════════════════════════════
+  //
+  // 서버가 지역 탭과 같은 GeoJSON(`points/?layer=kopri:araon`)을 준다 — 항적(MultiLineString, 날짜변경선·긴 공백에서
+  // 끊어 둔 것)과 마지막 자리 하나. 구에는 Cesium 의 선·점으로, 평면에는 벡터 레이어로. 누르면 점묶음처럼 팝업이 뜬다
+  var TRACK_SET = { name: T("아라온호 항적"), color: "#ffb000" };
+  var LAST_COLOR = "#e4002b";
+  var cTrack = null, oTrack = null, trackAsked = false;
+  function syncTrack() {
+    var e = entryOf("araon"), on = !!e && visibleNow("araon");
+    if (cTrack) cTrack.show = on;
+    if (oTrack) { oTrack.setVisible(on); if (e) oTrack.setOpacity(e.opacity); }
+    if (!on || trackAsked) return;
+    trackAsked = true;
+    fetch(BASE + "points/?layer=kopri:araon&lang=" + LANG).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (d) {
+      var labels = d.labels || {};
+      (d.features || []).forEach(function (f) {
+        // 팝업은 열 이름 그대로 적는다 — 서버의 이름표(`labels`)로 바꿔 둔다
+        var raw = f.properties || {}, props = {};
+        Object.keys(labels).forEach(function (k) { if (raw[k] != null && raw[k] !== "") props[labels[k]] = raw[k]; });
+        if (raw.code === "last") props["이름표"] = "ARAON";
+        props._code = raw.code;
+        f.properties = props;
+      });
+      cTrack = new Cesium.CustomDataSource("araon");
+      (d.features || []).forEach(function (f) {
+        var g = f.geometry, props = f.properties;
+        function add(opts) { var x = cTrack.entities.add(opts); x.gsmProps = props; x.gsmSet = TRACK_SET; }
+        if (g.type === "MultiLineString") {
+          g.coordinates.forEach(function (line) {
+            var flatArr = [];
+            line.forEach(function (c) { flatArr.push(c[0], c[1]); });
+            add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, ELL), width: 3, clampToGround: true,
+                              material: new Cesium.PolylineOutlineMaterialProperty({
+                                color: Cesium.Color.fromCssColorString(TRACK_SET.color),
+                                outlineColor: Cesium.Color.BLACK.withAlpha(0.6), outlineWidth: 1 }) } });
+          });
+        } else if (g.type === "Point") {
+          add({ position: Cesium.Cartesian3.fromDegrees(g.coordinates[0], g.coordinates[1], 0, ELL),
+                point: { pixelSize: 11, color: Cesium.Color.fromCssColorString(LAST_COLOR), outlineColor: Cesium.Color.WHITE,
+                         outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                         disableDepthTestDistance: 3000000 },
+                label: { text: "ARAON", font: "600 12px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+                         outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                         pixelOffset: new Cesium.Cartesian2(0, -16), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                         disableDepthTestDistance: 3000000 } });
+        }
+      });
+      viewer.dataSources.add(cTrack);
+      var edge = new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,0.55)", width: 4.5 }) });
+      var line = new ol.style.Style({ stroke: new ol.style.Stroke({ color: TRACK_SET.color, width: 2.5 }) });
+      var dot = new ol.style.Style({
+        image: new ol.style.Circle({ radius: 6, fill: new ol.style.Fill({ color: LAST_COLOR }),
+                                     stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }),
+        text: new ol.style.Text({ text: "ARAON", offsetY: -16, font: "600 12px system-ui, sans-serif",
+                                  fill: new ol.style.Fill({ color: "#fff" }), stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) });
+      oTrack = new ol.layer.Vector({
+        source: new ol.source.Vector({ features: new ol.format.GeoJSON().readFeatures(d,
+                                         { dataProjection: LL, featureProjection: proj }) }),
+        style: function (f) { return f.getGeometry().getType() === "Point" ? dot : [edge, line]; },
+      });
+      oTrack.set("gsmSet", TRACK_SET);
+      oPoints.getLayers().push(oTrack);
+      syncTrack();
+    }).catch(function () { trackAsked = false; });
   }
 
   // ══ 지구 속 — OPT1 의 섭입한 판·하부 더미·판 경계 (wetherilli 106) ══════
@@ -939,6 +1015,7 @@
     // 점묶음은 늘 지질 위다
     oPoints.setZIndex(100);
     syncLabels();
+    syncTrack();
     syncMantle();
     syncLegend();
   }
@@ -992,7 +1069,7 @@
       range.addEventListener("input", function () {
         e.opacity = range.value / 100;
         if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
-        else { syncLabels(); syncMantle(true); }
+        else { syncLabels(); syncTrack(); syncMantle(true); }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);

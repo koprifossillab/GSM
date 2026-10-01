@@ -1129,6 +1129,8 @@ def earth_view(request):
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
+                                   # 아라온호 항적 (koprifossillab 006) — 쌓은 것이 있고 연구실 안에서 열 때만
+                                   "araon": kopri.araon_available() and not _lab_only("kopri:araon"),
                                    # 맨틀 — 시점마다 레이어의 점 수(받은 바이트를 점과 이음으로 가르는 데 쓴다)
                                    "mantle": {f["frame"]: {k: v["points"] for k, v in f["layers"].items()}
                                               for f in (mantle.catalogue() or {}).get("frames", [])}}),
@@ -2650,7 +2652,10 @@ def _kopri_layer(name, lang):
         log.warning("극지연구소 자료를 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("극지연구소 자료를 읽지 못했다"), lang)}, status=500)
     response = HttpResponse(content, content_type="application/geo+json")
-    if settings.TILE_CACHE_SECONDS > 0:
+    if kopri.file_of(name) == "araon":
+        # 아라온호 항적은 매시간 자란다 (koprifossillab 006)
+        response["Cache-Control"] = f"public, max-age={kopri.ARAON_MAX_AGE}"
+    elif settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
 

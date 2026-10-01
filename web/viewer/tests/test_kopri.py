@@ -318,3 +318,56 @@ class AraonTests(SimpleTestCase):
             self.assertFalse(kopri.append_araon(dict(row, lat=0)))
             self.assertTrue(kopri.append_araon(dict(row, time="2026-10-01T05:00Z")))
             self.assertEqual([r["time"] for r in kopri.araon_track()], ["2026-10-01T04:00Z", "2026-10-01T05:00Z"])
+
+
+class AraonTrackTests(SimpleTestCase):
+    """아라온호 항적을 화면에 내는 것 (koprifossillab 006)."""
+
+    def row(self, time, lat, lon, **extra):
+        return dict({"time": time, "lat": lat, "lon": lon}, **extra)
+
+    def test_dateline_split(self):
+        rows = [self.row("2026-08-01T00:00Z", 70.0, 179.0), self.row("2026-08-01T01:00Z", 71.0, -179.0)]
+        track, last = kopri.araon_features(rows)
+        self.assertEqual(track["geometry"]["coordinates"],
+                         [[[179.0, 70.0], [180.0, 70.5]], [[-180.0, 70.5], [-179.0, 71.0]]])
+        self.assertEqual(last["geometry"]["coordinates"], [-179.0, 71.0])
+
+    def test_long_gap_split(self):
+        rows = [self.row("2026-08-01T00:00Z", 0.0, 0.0), self.row("2026-08-01T01:00Z", 0.0, 1.0),
+                self.row("2026-08-02T01:00Z", 0.0, 5.0), self.row("2026-08-02T02:00Z", 0.0, 6.0)]
+        track, _ = kopri.araon_features(rows)
+        self.assertEqual(len(track["geometry"]["coordinates"]), 2)
+        self.assertEqual(track["properties"]["fixes"], 4)
+
+    def test_single_fix_is_point_only(self):
+        features = kopri.araon_features([self.row("2026-10-01T04:00Z", 35.76, 130.03, sog=12.6)])
+        self.assertEqual([f["properties"]["code"] for f in features], ["last"])
+        self.assertEqual(features[0]["properties"]["sog"], 12.6)
+
+    def test_file_body(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(KOPRI_DIR=tmp):
+            with self.assertRaises(FileNotFoundError):
+                kopri.file_body("kopri:araon_antarctica")
+            kopri.append_araon(self.row("2026-10-01T04:00Z", -74.6, 164.2))
+            kopri.append_araon(self.row("2026-10-01T05:00Z", -74.7, 164.3))
+            body = json.loads(kopri.file_body("kopri:araon_arctic_ocean"))
+        self.assertEqual(body["style"], "class")
+        self.assertEqual([r["code"] for r in body["legend"]], ["last", "track"])
+        self.assertEqual(body["labels"]["sog"], "속력 (kn)")
+
+
+class AraonViewTests(TestCase):
+    def test_points_short_cache(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(KOPRI_DIR=tmp, PUBLIC=False):
+            kopri.append_araon({"time": "2026-10-01T04:00Z", "lat": -74.6, "lon": 164.2})
+            r = self.client.get("/GSM/points/", {"layer": "kopri:araon"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["Cache-Control"], f"public, max-age={kopri.ARAON_MAX_AGE}")
+
+    def test_public_closes(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(KOPRI_DIR=tmp, PUBLIC=True):
+            kopri.append_araon({"time": "2026-10-01T04:00Z", "lat": -74.6, "lon": 164.2})
+            self.assertEqual(self.client.get("/GSM/points/", {"layer": "kopri:araon"}).status_code, 404)
+            page = self.client.get("/GSM/earth/").content.decode()
+        self.assertIn('"araon": false', page)

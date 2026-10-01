@@ -181,3 +181,4 @@
 | koprifossillab P02 | 2026-10-01 | [바람을 온 지구 화면에서 흐르게 (계획)](20261001_koprifossillab_P02_wind.md) |
 | koprifossillab 004 | 2026-10-01 | [아라온호 위치를 매시간 쌓는다](20261001_koprifossillab_004_araon_track.md) |
 | koprifossillab 005 | 2026-10-01 | [cron 은 /srv/GSM/scripts 의 사본을 전용 venv 로 돈다](20261001_koprifossillab_005_srv_scripts.md) |
+| koprifossillab 006 | 2026-10-01 | [아라온호 항적을 지도에 — 온 지구와 극지 탭](20261001_koprifossillab_006_araon_layer.md) |

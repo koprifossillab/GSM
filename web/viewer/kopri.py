@@ -272,6 +272,11 @@ LAYERS = {
     "kopri:rock_greenland": {"from": "rock", "box": (-75, 59, -10, 84)},
     "kopri:meteorites": {"from": "kpdc", "collection": "KoreaMet", "box": (-180, -90, 180, -50)},
     "kopri:stations": {"from": "wfs", "types": ("antarctic_human_facilities", "antarctic_human_facilities_k")},
+    # 아라온호 항적 — `fetch_araon` 이 매시간 쌓은 것 (koprifossillab 006). 탭마다 이름이 하나라 둘이지만 같은 것이다.
+    # `kopri:araon` 은 온 지구 화면이 부르는 이름이다 — 카탈로그(DB)에는 없다
+    "kopri:araon": {"from": "araon"},
+    "kopri:araon_antarctica": {"from": "araon"},
+    "kopri:araon_arctic_ocean": {"from": "araon"},
 }
 
 #: KPDC 자료는 주제(GCMD 과학 키워드)마다 한 레이어다 — 레이어 패널에서 켜고 끄는 것이 곧 고르기다.
@@ -343,6 +348,8 @@ LABELS = {
              "paleo": "고기후 시기", "gear": "장비", "page": "KPDC 자료 페이지", "doi": "DOI"},
     "met": {"title": "운석", "id": "자료 번호", "period": "찾은 날", "where": "지역",
             "page": "KPDC 자료 페이지", "db": "운석 기록 (KoreaMet)"},
+    "araon": {"name": "배", "time": "시각 (UTC)", "sog": "속력 (kn)", "cog": "침로 (°)", "hdg": "선수방위 (°)",
+              "temp": "기온 (°C)", "humi": "습도 (%)", "from": "첫 기록", "to": "마지막 기록", "fixes": "자리 수"},
     "wfs": {"name": "기지", "nation": "나라", "type": "갈래", "status": "운영", "opened": "처음 연 해",
             "winter": "월동 인원", "peak": "여름 최대 인원", "alt": "고도", "other": "다른 이름", "notes": "비고"},
 }
@@ -536,6 +543,8 @@ def legend_for(name: str, features: list) -> list:
         table = [(c, label, color, "dot") for c, _, label, color in ROCK_CLASSES]
     elif spec["from"] == "wfs":
         table = list(STATION_CLASSES)
+    elif spec["from"] == "araon":
+        table = list(ARAON_CLASSES)
     elif spec.get("collection") == "KoreaMet":
         table = [("met", "운석 발견 지점", "#4d4d4d", "diamond")]
     else:
@@ -560,6 +569,10 @@ def _pack(name: str, features: list, **extra) -> bytes:
 def file_body(name: str, lang: str = "ko") -> bytes:
     """모아 둔 파일에서 레이어 하나. 파일이 없으면 FileNotFoundError."""
     spec = LAYERS[name]
+    if spec["from"] == "araon":
+        if not araon_available():
+            raise FileNotFoundError(ARAON_FILE)
+        return _pack(name, araon_features(araon_track()))
     if not available(spec["from"]):
         raise FileNotFoundError(spec["from"])
     data = load(spec["from"])
@@ -795,3 +808,73 @@ def append_araon(row: dict) -> bool:
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
     return True
+
+
+# ── 아라온호 항적 — 화면에 내는 것 (koprifossillab 006) ───────────────
+#
+# 쌓은 자리를 잇는 선과 마지막 자리 하나. 지역 탭(남극·북극해)은 `style: class` 의 점 레이어로, 온 지구 화면은
+# 같은 GeoJSON 을 점묶음처럼 그린다. 선은 두 곳에서 끊는다 —
+# - **날짜변경선** — 베링해·척치해에서 179°E → 179°W 로 넘는다. 이으면 지구를 반 바퀴 가로지른다. ±180° 에
+#   자리를 끼워 넣어 두 조각으로 나눈다
+# - **오래 빈 사이** — 보고가 `ARAON_GAP` 넘게 끊기면(위성 통신이 끊긴 극지·정비) 그 사이를 곧게 잇지 않는다.
+#   곧은 선이 땅을 가로질러 거기를 지난 것처럼 보이게 된다
+
+ARAON_CLASSES = (
+    ("last", "아라온호 마지막 자리", "#e4002b", "star"),
+    ("track", "아라온호 항적", "#ffb000", "line"),
+)
+ARAON_GAP = timedelta(hours=12)
+#: 브라우저가 들고 있을 초 — 매시간 한 자리가 붙으므로 하루(다른 점 레이어)는 길다
+ARAON_MAX_AGE = 600
+
+
+def _when(row: dict) -> datetime:
+    return datetime.fromisoformat(row["time"].replace("Z", "+00:00"))
+
+
+def _araon_lines(rows: list) -> list:
+    lines, line = [], []
+    for prev, row in zip([None] + rows[:-1], rows):
+        here = [row["lon"], row["lat"]]
+        if prev is None:
+            line = [here]
+            continue
+        if _when(row) - _when(prev) > ARAON_GAP:
+            lines.append(line)
+            line = [here]
+            continue
+        x0, x1 = prev["lon"], row["lon"]
+        if abs(x1 - x0) > 180:                  # 날짜변경선을 넘었다 — 경도를 이어 붙여 ±180 의 위도를 낸다
+            east = 180.0 if x0 > 0 else -180.0
+            x1u = x1 + 360 if x0 > 0 else x1 - 360
+            t = (east - x0) / (x1u - x0)
+            y = round(prev["lat"] + t * (row["lat"] - prev["lat"]), DIGITS)
+            line.append([east, y])
+            lines.append(line)
+            line = [[-east, y]]
+        line.append(here)
+    if line:
+        lines.append(line)
+    return [l for l in lines if len(l) >= 2]
+
+
+def araon_available() -> bool:
+    return (data_dir() / ARAON_FILE).exists()
+
+
+def araon_features(rows: list) -> list:
+    if not rows:
+        return []
+    out = []
+    lines = _araon_lines(rows)
+    if lines:
+        out.append({"type": "Feature", "id": "araon-track",
+                    "geometry": {"type": "MultiLineString", "coordinates": lines},
+                    "properties": {"code": "track", "name": "ARAON", "from": rows[0]["time"],
+                                   "to": rows[-1]["time"], "fixes": len(rows)}})
+    last = rows[-1]
+    props = {"code": "last", "name": "ARAON"}
+    props.update({k: last[k] for k in ("time", "sog", "cog", "hdg", "temp", "humi") if k in last})
+    out.append({"type": "Feature", "id": "araon-last", "geometry": {"type": "Point", "coordinates": [last["lon"], last["lat"]]},
+                "properties": props})
+    return out

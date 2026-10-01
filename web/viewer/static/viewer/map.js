@@ -3078,7 +3078,11 @@
     (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
     var color = spec.color || "#888888";
     var style;
-    if (type === "Polygon" || type === "MultiPolygon" || type === "LineString") {
+    if (spec.shape === "line") {
+      // 항적(아라온호, koprifossillab 006) — 범례가 선이라 적은 갈래는 굵게, 테두리를 둘러 바다 위에서 보이게
+      style = [new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0,0.55)", width: 4.5 }) }),
+               new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 2.5 }) })];
+    } else if (type === "Polygon" || type === "MultiPolygon" || type === "LineString" || type === "MultiLineString") {
       var rgb = ol.color.asArray(color);
       style = new ol.style.Style({
         fill: new ol.style.Fill({ color: [rgb[0], rgb[1], rgb[2], 0.08] }),
@@ -3115,6 +3119,11 @@
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.6) + '"' +
           (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
+      } else if (row.style === "class" && r.shape === "line") {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
+          esc(r.color || "#888") + '" stroke-width="2.5"/></svg>';
       } else if (row.style === "class") {
         sw = document.createElement("span");
         sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond" }[r.shape] || "dot");
