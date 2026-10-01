@@ -193,3 +193,4 @@
 | koprifossillab 013 | 2026-10-01 | [매시 받기를 한 줄로 — 그리고 `/healthz/` 가 지켜본다](20261001_koprifossillab_013_hourly.md) |
 | koprifossillab 014 | 2026-10-01 | [해류 1 단계 — ECCO2 표층 한 날을 온 지구에 흘린다](20261001_koprifossillab_014_ocean_current.md) |
 | koprifossillab 015 | 2026-10-01 | [해류 2 단계 — 달마다 한 장, 1992–2019](20261001_koprifossillab_015_ocean_monthly.md) |
+| koprifossillab 016 | 2026-10-01 | [바람과 해류를 같이 켜도 갈리게 — 색 계열과 선의 결](20261001_koprifossillab_016_flow_colors.md) |
