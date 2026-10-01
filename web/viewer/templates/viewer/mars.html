@@ -253,19 +253,19 @@
       </button>
       <button type="button" class="tool" id="tool-home" title="{% t "경도 0°·위도 0° 로 — 본초 자오선(에어리-0 크레이터) 둘레" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="stroke" cx="12" cy="12" r="8"/><circle class="fill" cx="12" cy="12" r="2"/></svg>
-        {% t "처음" %}
+        <span>{% t "처음" %}</span>
       </button>
       <button type="button" class="tool if-globe" id="tool-top" title="{% t "기울기와 방위를 풀고 곧장 내려다본다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 4v16M12 4l-3.5 3.5M12 4l3.5 3.5"/><path class="stroke" d="M5 20h14"/></svg>
-        {% t "북쪽 위" %}
+        <span>{% t "북쪽 위" %}</span>
       </button>
       <button type="button" class="tool if-globe" id="tool-compass" title="{% t "방위 — 바늘이 화성의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="stroke" cx="12" cy="12" r="8.5"/><g id="compass-needle"><path class="fill" d="M12 4.5 14.2 12h-4.4Z"/><path class="stroke" d="M9.8 12 12 19.5 14.2 12"/></g></svg>
-        {% t "방위" %}
+        <span>{% t "방위" %}</span>
       </button>
       <button type="button" class="tool if-globe" id="tool-axis" aria-pressed="true" title="{% t "화성의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다" %}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="stroke" cx="12" cy="12" r="6.5"/><path class="stroke dash" d="M12 2v20"/><circle class="fill" cx="12" cy="3" r="1.6"/></svg>
-        {% t "자전축" %}
+        <span>{% t "자전축" %}</span>
       </button>
     </div>
     <output id="tool-out" class="tool-out" hidden></output>

@@ -1366,8 +1366,9 @@
       // 지도 칸의 폭이 바뀌었으니 다시 잰다
       setTimeout(function () { map.updateSize(); if (typeof map2 !== "undefined" && map2) map2.updateSize(); renderEdges(); }, 0);
     }
-    var saved = false;
-    try { saved = localStorage.getItem(PANEL_KEY) === "1"; } catch (e) { /* 사생활 모드 */ }
+    // 휴대폰은 접힌 채로 연다 — 편 채로 두었을 때만 편다 (wetherilli 128)
+    var saved = window.matchMedia("(max-width: 760px)").matches;
+    try { var kept = localStorage.getItem(PANEL_KEY); if (kept) saved = kept === "1"; } catch (e) { /* 사생활 모드 */ }
     if (saved) apply(true, false);
     handle.addEventListener("click", function () {
       apply(!document.body.classList.contains("panel-folded"), true);
@@ -3804,6 +3805,9 @@
     var w = size[0], h = size[1];
     var bar = document.getElementById("coordbar").offsetHeight || 0;
     var bottom = h - bar;
+    // 첫 그림이 그려지기 전에는 화면 자리를 좌표로 못 옮긴다(null) — 휴대폰에서는 크기가
+    // 먼저 정해져 그 틈에 불렸다 (wetherilli 128)
+    if (!map.getCoordinateFromPixel([0, 0])) return;
     function at(px, py) { return toLL(map.getCoordinateFromPixel([px, py])); }
     function lat(v) { return useDms ? dd2dms(v, true) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "N" : "S"); }
     function lon(v) { return useDms ? dd2dms(v, false) : Math.abs(v).toFixed(4) + "°" + (v >= 0 ? "E" : "W"); }

@@ -704,4 +704,16 @@
   }
 
   document.getElementById("export3d").addEventListener("click", exportPng);
+
+  /** 판 접기 — 휴대폰에서는 판이 지형을 다 덮으므로 접힌 채로 연다 (wetherilli 128). */
+  (function () {
+    var panel = document.getElementById("panel3d"), btn = document.getElementById("fold3d");
+    function apply(folded) {
+      panel.classList.toggle("folded", folded);
+      btn.title = folded ? T("패널을 편다") : T("패널을 접는다");
+      btn.setAttribute("aria-expanded", folded ? "false" : "true");
+    }
+    apply(window.matchMedia("(max-width: 760px)").matches);
+    btn.addEventListener("click", function () { apply(!panel.classList.contains("folded")); });
+  })();
 })();

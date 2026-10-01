@@ -1326,7 +1326,8 @@
   var swatches = {};
   var legends = {};                // 갈래 → 그린 HTML (한 번 받는다)
   var dock = $("legend-dock");
-  dock.open = saved("gsm.mars.legend", "open") !== "closed";
+  // 휴대폰에서는 범례가 구를 덮어 접은 채로 연다 (wetherilli 128)
+  dock.open = saved("gsm.mars.legend", window.matchMedia("(max-width: 760px)").matches ? "closed" : "open") !== "closed";
   dock.addEventListener("toggle", function () { save("gsm.mars.legend", dock.open ? "open" : "closed"); });
   // 화성의 지질시대 — 젊은 것부터. 서버가 한국어판이면 한국어로, 영어판이면 영어로 준다(`trek.MARS_PERIODS_KO`).
   // 둘에 걸친 단위("Amazonian and Hesperian")는 젊은 쪽 상자에 든다
@@ -2640,8 +2641,9 @@
         viewer.scene.requestRender();
       }, 0);
     }
-    var folded = false;
-    try { folded = localStorage.getItem(KEY) === "1"; } catch (e) { /* 사생활 모드 */ }
+    // 휴대폰은 접힌 채로 연다 — 편 채로 두었을 때만 편다 (wetherilli 128)
+    var phone = window.matchMedia("(max-width: 760px)").matches, folded = phone;
+    try { var kept = localStorage.getItem(KEY); if (kept) folded = kept === "1"; } catch (e) { /* 사생활 모드 */ }
     if (folded) apply(true, false);
     handle.addEventListener("click", function () {
       apply(!document.body.classList.contains("panel-folded"), true);
