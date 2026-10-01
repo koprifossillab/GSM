@@ -335,6 +335,13 @@ li.empty { padding: 8px 2px; font-size: 12.5px; color: var(--ink-faint); }
   color: var(--ink-soft);
 }
 .sub-head .hint { margin-left: auto; }
+/* 켠 지질 레이어 모두 끄기 (wetherilli 131) — 줄 오른쪽 끝 */
+.sub-head .layers-off {
+  flex: 0 0 auto; height: 22px; padding: 0 9px; font: inherit; font-size: 11px; font-weight: 500;
+  color: var(--ink-soft); background: transparent; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+}
+.sub-head .layers-off:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); }
+.sub-head .layers-off:disabled { opacity: .4; cursor: default; }
 
 /* 세는 표 — 금 */
 .count {
@@ -594,6 +601,41 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 }
 #personal-list li:last-child { border-bottom: 0; }
 #personal-list .ps-count.stale { color: var(--bad); }
+
+/* 개인 레이어 아이콘·꾸밈 고르개·용량 경고 (wetherilli 131) */
+#personal-list .ps-symbol {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+}
+#personal-list .ps-symbol:hover, #personal-list .ps-symbol:focus-visible { background: var(--gold-wash); border-color: var(--gold-edge); }
+.personal-warn { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; padding: 7px 10px; font-size: 12px;
+  color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 6px; }
+.personal-warn.bad { color: var(--bad); border-color: var(--bad); }
+.personal-warn[hidden] { display: none; }
+.personal-warn a { color: inherit; font-weight: 600; }
+
+.style-picker {
+  position: fixed; z-index: 60; width: 248px; padding: 12px;
+  color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+  font-size: 12.5px;
+}
+.style-picker .sp-sec + .sp-sec { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.style-picker .sp-title { margin-bottom: 7px; font-weight: 600; color: var(--ink-soft); }
+.style-picker .sp-colors { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.style-picker .sp-color { width: 26px; height: 26px; padding: 0; border: 2px solid rgba(0, 0, 0, .35); border-radius: 50%; cursor: pointer; }
+.style-picker .sp-color.on { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.style-picker .sp-custom { width: 26px; height: 26px; padding: 0; border: 1px dashed var(--line); border-radius: 50%; background: none; cursor: pointer; }
+.style-picker .sp-shapes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
+.style-picker .sp-shape { display: flex; align-items: center; justify-content: center; height: 34px; padding: 0;
+  background: var(--panel-tint); border: 1px solid var(--line-soft); border-radius: 6px; cursor: pointer; }
+.style-picker .sp-shape.on { border-color: var(--gold); background: var(--gold-wash); }
+.style-picker .sp-slider { display: grid; grid-template-columns: 52px 1fr 44px; align-items: center; gap: 8px; margin: 4px 0; }
+.style-picker .sp-slider input { width: 100%; accent-color: var(--gold); }
+.style-picker .sp-val { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); text-align: right; }
+.style-picker .sp-dash { display: inline-flex; margin-top: 6px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.style-picker .sp-dash button { height: 26px; padding: 0 12px; font: inherit; font-size: 12px; color: var(--ink-soft); background: transparent; border: 0; cursor: pointer; }
+.style-picker .sp-dash button.on { color: var(--on-hi); background: var(--hi); font-weight: 600; }
+.style-picker .sp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
 #personal-list .swatch { border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .45); }
 .personal-manage { margin-top: 8px; justify-content: center; text-decoration: none; }
 

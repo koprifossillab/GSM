@@ -93,7 +93,8 @@
       </label>
 
       <h3 class="sub-head">{% t "켠 지질 레이어" %} <span class="count" id="count-layers">0</span>
-        <span class="hint">{% t "위가 앞이다" %}</span></h3>
+        <span class="hint">{% t "위가 앞이다" %}</span>
+        <button type="button" class="layers-off" id="layers-off" title="{% t "켠 지질 레이어를 모두 끈다" %}" disabled>{% t "모두 끄기" %}</button></h3>
       <ul id="active-list"><li class="empty">{% t "아직 켠 레이어가 없다" %}</li></ul>
 
       <div class="compare" id="compare">
@@ -119,6 +120,7 @@
         <span class="hint">{% t "이 브라우저에만" %}</span></h2>
       <div class="box-body">
         <ul id="personal-list"></ul>
+        <p id="personal-warn" class="personal-warn" hidden></p>
         <a class="btn quiet wide personal-manage" href="{{ base }}manage/">{% t "반입·관리" %}</a>
       </div>
     </div>

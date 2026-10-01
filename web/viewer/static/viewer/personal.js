@@ -20,7 +20,12 @@
   var RESERVED = ["id", "lon", "lat", "geometry"];
   var LON_ALIASES = ["lon", "lng", "long", "longitude", "경도", "x"];
   var LAT_ALIASES = ["lat", "latitude", "위도", "y"];
-  var DEFAULT_COLOR = "#e4572e";
+  var DEFAULT_COLOR = "#e15759";
+  //: 새 레이어의 색 — 머리에 색이 없으면 여기서 고른다(wetherilli 131). 위성·지질도 위에서 서로 갈리는 열둘
+  var PALETTE = ["#e15759", "#f28e2b", "#edc948", "#59a14f", "#76b7b2", "#4e79a7",
+                 "#b07aa1", "#ff9da7", "#9c755f", "#17becf", "#bcbd22", "#ffffff"];
+  //: 점의 모양
+  var SHAPES = ["circle", "square", "diamond", "triangle", "star", "hexagon"];
 
   // 옮기개는 부르는 쪽이 건다(`setTranslator`). 없으면 원문 그대로 자리표만 채운다
   var tr = function (text, vars) {
@@ -544,7 +549,8 @@
       id: "pl-" + now.getTime().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
       name: parsed.name || (file && file.name ? file.name.replace(/\.[^.]+$/, "") : T("이름 없는 레이어")),
       kind: parsed.kind,
-      color: /^#[0-9a-f]{6}$/i.test(parsed.meta.color || "") ? parsed.meta.color : DEFAULT_COLOR,
+      color: /^#[0-9a-f]{6}$/i.test(parsed.meta.color || "") ? parsed.meta.color
+        : PALETTE[Math.floor(Math.random() * (PALETTE.length - 1))],
       label: parsed.meta.label || "",
       visible: true,
       meta: parsed.meta,
@@ -559,7 +565,85 @@
 
   /** 대략의 크기 — 저장한 JSON 의 글자 수. */
   function sizeOf(rec) {
-    try { return JSON.stringify(rec).length; } catch (e) { return 0; }
+    var text;
+    try { text = JSON.stringify(rec); } catch (e) { return 0; }
+    try { return new Blob([text]).size; } catch (e) { return text.length; }   // UTF-8 바이트
+  }
+
+  // ── 용량 (wetherilli 131) ──────────────────────────────────────
+  //
+  // 브라우저 저장소는 한도가 있고(브라우저·디스크마다 다르다), 차면 저장이 실패하거나 브라우저가 통째로 지운다.
+  // 레이어 하나가 크면 지도가 느려진다. 그래서 재어 보고 넘으면 알린다 — 막지는 않는다(자리가 정말 없을 때만 빼고).
+
+  var LIMITS = {
+    layer: 10 * 1024 * 1024,      // 레이어 하나 — 이보다 크면 지도가 느려질 수 있다
+    total: 100 * 1024 * 1024,     // 개인 레이어 전체
+    quotaWarn: 0.8,               // 이 사이트의 저장소가 한도의 이만큼을 넘으면
+    quotaFull: 0.95,
+  };
+
+  function formatBytes(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + " MB";
+    return (n / 1024 / 1024 / 1024).toFixed(2) + " GB";
+  }
+
+  function estimate() {
+    if (!root.navigator || !navigator.storage || !navigator.storage.estimate) return Promise.resolve({});
+    return navigator.storage.estimate().catch(function () { return {}; });
+  }
+
+  /** 기록들을 잰다 → { layers: [{id, name, bytes, big}], total, usage, quota, warnings: [{level: warn|bad, text}] } */
+  function measure(recs) {
+    var layers = (recs || []).map(function (r) {
+      var b = sizeOf(r);
+      return { id: r.id, name: r.name, bytes: b, big: b > LIMITS.layer };
+    });
+    var total = layers.reduce(function (n, l) { return n + l.bytes; }, 0);
+    return estimate().then(function (e) {
+      var out = { layers: layers, total: total, usage: e.usage || 0, quota: e.quota || 0, warnings: [] };
+      layers.filter(function (l) { return l.big; }).forEach(function (l) {
+        out.warnings.push({ level: "warn", text: T("'{name}' 이 {size} 다 — 지도가 느려질 수 있다", { name: l.name, size: formatBytes(l.bytes) }) });
+      });
+      if (total > LIMITS.total) {
+        out.warnings.push({ level: "warn", text: T("개인 레이어가 모두 {size} 다 — 쓰지 않는 것은 지우는 편이 낫다", { size: formatBytes(total) }) });
+      }
+      if (out.quota) {
+        var ratio = out.usage / out.quota;
+        if (ratio >= LIMITS.quotaFull) {
+          out.warnings.push({ level: "bad", text: T("이 브라우저의 저장소가 거의 찼다 ({used} / {quota}) — 새로 저장하지 못하거나 브라우저가 지울 수 있다",
+            { used: formatBytes(out.usage), quota: formatBytes(out.quota) }) });
+        } else if (ratio >= LIMITS.quotaWarn) {
+          out.warnings.push({ level: "warn", text: T("이 브라우저의 저장소를 {pct}% 썼다 ({used} / {quota})",
+            { pct: Math.round(ratio * 100), used: formatBytes(out.usage), quota: formatBytes(out.quota) }) });
+        }
+      }
+      return out;
+    });
+  }
+
+  /** 저장하기 전에 — 이 기록(들)이 얼마나 크고, 자리가 있는지. → { bytes, warnings, room: false 면 자리가 없다 } */
+  function checkBeforeSave(newRecs) {
+    var bytes = newRecs.reduce(function (n, r) { return n + sizeOf(r); }, 0);
+    return estimate().then(function (e) {
+      var out = { bytes: bytes, warnings: [], room: true };
+      newRecs.forEach(function (r) {
+        var b = sizeOf(r);
+        if (b > LIMITS.layer) out.warnings.push({ level: "warn", text: T("'{name}' 이 {size} 다 — 지도가 느려질 수 있다", { name: r.name, size: formatBytes(b) }) });
+      });
+      if (e.quota) {
+        var after = (e.usage || 0) + bytes;
+        if (after > e.quota) {
+          out.room = false;
+          out.warnings.push({ level: "bad", text: T("자리가 모자라다 — {need} 가 더 들어야 하는데 남은 것은 {left} 다",
+            { need: formatBytes(bytes), left: formatBytes(Math.max(0, e.quota - (e.usage || 0))) }) });
+        } else if (after / e.quota >= LIMITS.quotaWarn) {
+          out.warnings.push({ level: "warn", text: T("저장하면 이 브라우저의 저장소를 {pct}% 쓴다", { pct: Math.round(after / e.quota * 100) }) });
+        }
+      }
+      return out;
+    });
   }
 
   // ── 연결 레이어 (wetherilli P09·122) ─────────────────────────────
@@ -733,6 +817,8 @@
     FORMAT: FORMAT,
     VERSION: VERSION,
     DEFAULT_COLOR: DEFAULT_COLOR,
+    PALETTE: PALETTE,
+    SHAPES: SHAPES,
     RESERVED: RESERVED,
     ParseError: ParseError,
     setTranslator: setTranslator,
@@ -746,6 +832,10 @@
     toCSV: toCSV,
     record: record,
     sizeOf: sizeOf,
+    LIMITS: LIMITS,
+    formatBytes: formatBytes,
+    measure: measure,
+    checkBeforeSave: checkBeforeSave,
     list: list,
     get: get,
     put: put,
