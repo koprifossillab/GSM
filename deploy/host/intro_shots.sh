@@ -42,6 +42,11 @@ from PIL import Image
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 for png in sorted(src.glob("*/*.png")):
     out = dest / png.parent.name / (png.stem + ".webp")
-    Image.open(png).convert("RGB").save(out, "WEBP", quality=78, method=6)
+    img = Image.open(png).convert("RGB")
+    img.save(out, "WEBP", quality=78, method=6)
     print(f"  {out.relative_to(dest)}  {out.stat().st_size // 1024} KB")
+    # 작은 판 — 첫 장면에 수십 장이 쏟아질 때와 갈래 단추에 쓴다 (wetherilli 115)
+    thumb = dest / png.parent.name / "thumb" / (png.stem + ".webp")
+    thumb.parent.mkdir(parents=True, exist_ok=True)
+    img.resize((480, round(480 * img.height / img.width))).save(thumb, "WEBP", quality=70, method=6)
 EOF

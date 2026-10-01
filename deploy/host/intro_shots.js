@@ -21,7 +21,7 @@ const layers = (...names) => JSON.stringify(names.map(n => ({ name: n, opacity: 
 function region(key, v, ls, extra = {}) {
   const sfx = key === 'korea' ? '' : '.' + key;
   const store = {
-    'gsm.regions': JSON.stringify(['japan', 'antarctica', 'greenland', 'svalbard']),
+    'gsm.regions': JSON.stringify(['japan', 'eastasia', 'antarctica', 'greenland', 'svalbard', 'jan_mayen']),
     'gsm.region': key,
     ['gsm.view' + sfx]: v,
     ['gsm.layers' + sfx]: ls,
@@ -52,6 +52,28 @@ const SHOTS = {
     layers('kopri:rock_greenland', 'grl_g500_lithostr_search'), { basemap: 'arcticdem', wait: 15000 }),
   svalbard: region('svalbard', view(15.5, 78.6, 6.6, 'EPSG:3413'),
     layers('kopri:rock_svalbard', 'npolar:svalbard_units', 'npolar:svalbard_faults'), { basemap: 'npi_sat' }),
+  // 남극 더 — 드로닝모드랜드(NPI 1:25만), 빙저 지형(IBCSO) 위의 기지·운석 발견 지점 (wetherilli 115)
+  antarctica_dml: region('antarctica', view(6, -72.2, 5.2, 'EPSG:3031'),
+    layers('npolar:dml_structures', 'npolar:dml_units'), { basemap: 'rema' }),
+  antarctica_ibcso: region('antarctica', view(0, -90, 1.6, 'EPSG:3031'),
+    layers('kopri:stations', 'kopri:meteorites'), { basemap: 'ibcso_bed' }),
+  // 그린란드 더 — 하천 퇴적물 지화학(남·서), 정부 포털의 연대측정 지점
+  greenland_geochem: region('greenland', view(-47, 64, 4.6, 'EPSG:3413'),
+    layers('geochemistry_greenland_ss_sw'), { basemap: 'arcticdem', wait: 15000 }),
+  greenland_portal: region('greenland', view(-40, 72, 3.4, 'EPSG:3413'),
+    layers('grportal:geochron', 'grl_g500_lithostr_search'), { basemap: 'arcticdem', wait: 15000 }),
+  // 스발바르 더 — 종이 지질도(음영), 다산기지가 있는 뉘올레순의 빙하 전면 변화, 그리고 얀마옌
+  svalbard_paper: region('svalbard', view(15.6, 78.2, 8.6, 'EPSG:3413'),
+    layers('npolar:svalbard_paper'), { basemap: 'npi_sat' }),
+  svalbard_glacier: region('svalbard', view(12.2, 78.92, 9.6, 'EPSG:3413'),
+    layers('npolar:svalbard_glacier_fronts'), { basemap: 'npi_sat' }),
+  jan_mayen: region('jan_mayen', view(-8.4, 71.0, 9.4, 'EPSG:3413'),
+    layers('janmayen:vents', 'janmayen:lines', 'janmayen:units'), { basemap: 'arcticdem' }),
+  // 한국 더 — KIGAM 지화학도(구리)·해저지질도(표층퇴적물), 그리고 한국·일본을 한 화면에(동아시아)
+  korea_geochem: region('korea', view(127.8, 36.2, 7.4, 'EPSG:3857'), layers('L_geochemMP_CU'), { basemap: 'vworld_white' }),
+  korea_marine: region('korea', view(127.0, 35.2, 7.2, 'EPSG:3857'), layers('M_geology_deposits_type'), { basemap: 'vworld' }),
+  eastasia: region('eastasia', view(129.9, 34.6, 7.6, 'EPSG:3857'),
+    layers('gsj:geology', 'L_250K_Geology_Map'), { basemap: 'vworld' }),
   // 계측 — 점을 찍고 거리를 재면 높이 그래프가 뜬다
   measure: region('korea', view(128.45, 38.12, 12.2, 'EPSG:3857'), layers('L_50K_Geology_Map'), {
     basemap: 'vworld',
@@ -80,6 +102,7 @@ const SHOTS = {
   // 3D·달·화성·온 지구 — 주소로 연다. WebGL 이 소프트웨어로 돌아 오래 기다린다
   korea3d_wide: { url: ROOT + '3d/?lat=37.9&lon=128.3&z=10.6&region=korea&layer=L_250K_Geology_Map', wait: 20000 },
   korea3d: { url: ROOT + '3d/?lat=38.119&lon=128.465&z=13.2&region=korea&layer=L_50K_Geology_Map', wait: 20000 },
+  svalbard3d: { url: ROOT + '3d/?lat=78.92&lon=12.3&z=10.4&region=svalbard&layer=npolar:svalbard_units', wait: 20000 },
   moon: { url: ROOT + 'moon/', wait: 25000 },
   mars: { url: ROOT + 'mars/', wait: 25000 },
   earth: { url: ROOT + 'earth/', wait: 25000 },
