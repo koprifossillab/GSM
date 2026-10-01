@@ -94,6 +94,8 @@
       { name: "wind", title: "바람", wind: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
       // 구름량 — 바람과 같은 시각 축(지금/지난·날짜·재생)을 쓴다. 영상 한 장으로 덮는다(`applyCloud`) (koprifossillab 011)
       { name: "cloud", title: "구름", cloud: true, src: "NOAA GFS · ERA5 (Copernicus, CC BY 4.0)" },
+      // 위성 구름 — NOAA GMGSI 정지궤도 적외선 합성, 한 시간마다. 가장 새 장 하나를 덮는다(`syncSat`) (koprifossillab 012)
+      { name: "satcloud", title: "위성 구름", sat: true, src: "NOAA/NESDIS GMGSI · public domain" },
     ] },
     { group: "그때의 지구", layers: [
       { name: "coast", title: "옛 해안선", grid: "ll", then: true,
@@ -111,7 +113,7 @@
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
-  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind && !LAYER[n].cloud; });   // 타일로 그리는 것
+  var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].labels && !LAYER[n].mantle && !LAYER[n].track && !LAYER[n].wind && !LAYER[n].cloud && !LAYER[n].sat; });   // 타일로 그리는 것
   var GEO_MAX = 16;            // 서버의 `macrostrat.MAX_ZOOM`
   function geoUrl(name) {
     if (name === "plates") return paleoUrl("edge", 0);
@@ -1311,6 +1313,51 @@
     }, "image/png");
   }
 
+  // ── 위성 구름 (koprifossillab 012) ──
+  //
+  // 서버가 GMGSI 의 가장 새 장을 흰색·투명도로 다 칠해 둔다(3600×1800, 위도 ±72.7° 너머는 비었다). 섞지 않는다 — 관측이라
+  // 지금/지난 고르개를 따르지 않고 늘 가장 새 장이다. 10 분마다 새 장이 섰는지 본다
+  var cSat = null, oSat = new ol.layer.Image({ zIndex: 61, visible: false }), satUrl = "";
+  flat.addLayer(oSat);
+  function satShown() { return isOn("satcloud") && visibleNow("satcloud"); }
+  function satEntry() {
+    var list = (WIND.index && WIND.index.gmgsi && WIND.index.gmgsi.times) || [];
+    return list.length ? list[list.length - 1] : null;
+  }
+  function satText() {
+    var e = satEntry();
+    return e ? T("{t} UTC · 위성 적외선 (한 시간마다)", { t: windStampText(e.t) }) : T("위성 구름 자료가 아직 없다");
+  }
+  function dropSat() {
+    if (cSat) { viewer.imageryLayers.remove(cSat, true); cSat = null; }
+    oSat.setVisible(false);
+    satUrl = "";
+  }
+  function syncSat(reload) {
+    if (!satShown()) { dropSat(); return; }
+    (WIND.index && !reload ? Promise.resolve(WIND.index) : windIndex()).then(function () {
+      var e = satEntry(), opacity = entryOf("satcloud").opacity;
+      document.querySelectorAll(".sat-when").forEach(function (p) { p.textContent = satText(); });
+      if (!e) { dropSat(); return; }
+      var url = BASE + "earth/wind/gmgsi/" + e.t + "/sat.png";
+      if (url !== satUrl) {
+        satUrl = url;
+        var old = cSat;
+        cSat = Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(url, {
+          rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90), credit: "NOAA/NESDIS GMGSI" }));
+        viewer.imageryLayers.add(cSat);
+        cSat.readyEvent.addEventListener(function () { if (old) viewer.imageryLayers.remove(old, true); });
+        oSat.setSource(new ol.source.ImageStatic({ url: url, imageExtent: [-180, -90, 180, 90], projection: LL,
+                                                 interpolate: true }));
+      }
+      cSat.alpha = opacity;
+      viewer.imageryLayers.raiseToTop(cSat);
+      oSat.setOpacity(opacity);
+      oSat.setVisible(true);
+    }).catch(function () { dropSat(); });
+  }
+  setInterval(function () { if (satShown()) syncSat(true); }, 10 * 60 * 1000);
+
   /** 켜고 끄고, 출처·높이·종류·날이 바뀌면 다시 받는다. `reload` 면 목록부터 다시 */
   function syncWind(reload) {
     var e = entryOf("wind"), won = windShown(), con = cloudShown();
@@ -1485,12 +1532,13 @@
     syncTrack();
     syncMantle();
     syncWind();
+    syncSat();
     syncLegend();
   }
   function addLayer(name) {
     if (isOn(name)) return;
     // 구름은 조금 비치게 — 흰 구름 위에서는 바람 입자가 묻힌다 (koprifossillab 011)
-    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : name === "crust" ? 0.7 : name === "cloud" ? 0.75 : 1 });
+    active.unshift({ name: name, opacity: name === "geology" ? 0.6 : name === "crust" ? 0.7 : name === "cloud" || name === "satcloud" ? 0.75 : 1 });
     saveLayers(); applyStack(); renderActive(); renderCatalog();
     showAge();   // 캡션은 켠 레이어를 따른다(맨틀·빙상·옛 해안선) — 연대를 바꿀 때만 다시 쓰면 켜도 안 뜬다
   }
@@ -1540,7 +1588,8 @@
         e.opacity = range.value / 100;
         if (cGeo[e.name]) { cGeo[e.name].alpha = globeAlpha(e); oGeo[e.name].setOpacity(e.opacity); }
         else { syncLabels(); syncTrack(); syncMantle(true); if (e.name === "wind") windCanvas.style.opacity = e.opacity;
-               if (e.name === "cloud") applyCloud(); }
+               if (e.name === "cloud") applyCloud();
+               if (e.name === "satcloud") syncSat(); }
         num.textContent = range.value + "%";
       });
       range.addEventListener("change", saveLayers);
@@ -1549,7 +1598,15 @@
       src.className = "active-src";
       src.textContent = LAYER[e.name].src || "";
       if (e.name === "wind" || e.name === "cloud") li.append(head, windControls(e.name), foot, src);
-      else li.append(head, foot, src);
+      else if (e.name === "satcloud") {
+        // 위성 구름 — 고를 것이 없다. 가장 새 장의 시각과, 비는 곳·속기 쉬운 곳을 적는다
+        var when = document.createElement("p"), note = document.createElement("p");
+        when.className = "wind-when sat-when";
+        when.textContent = satText();
+        note.className = "wind-when";
+        note.textContent = T("위도 72° 너머는 비어 있다. 추운 땅이 구름처럼 보일 수 있다.");
+        li.append(head, when, note, foot, src);
+      } else li.append(head, foot, src);
       host.appendChild(li);
     });
     renderWind();

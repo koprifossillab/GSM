@@ -189,3 +189,4 @@
 | koprifossillab P03 | 2026-10-01 | [구름 — 모델 구름량을 바람과 같은 시각으로, 다음에 위성 적외선 (계획)](20261001_koprifossillab_P03_cloud.md) |
 | koprifossillab 010 | 2026-10-01 | [온 지구 — "움직이는 지구" 레이어군](20261001_koprifossillab_010_earth_in_flux.md) |
 | koprifossillab 011 | 2026-10-01 | [구름 1 단계 — 모델 구름량을 바람과 같은 시각으로](20261001_koprifossillab_011_cloud.md) |
+| koprifossillab 012 | 2026-10-01 | [구름 2 단계 — 위성이 찍은 지금의 구름 (NOAA GMGSI)](20261001_koprifossillab_012_sat_cloud.md) |
