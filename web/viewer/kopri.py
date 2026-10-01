@@ -349,7 +349,8 @@ LABELS = {
     "met": {"title": "운석", "id": "자료 번호", "period": "찾은 날", "where": "지역",
             "page": "KPDC 자료 페이지", "db": "운석 기록 (KoreaMet)"},
     "araon": {"name": "배", "time": "시각 (UTC)", "sog": "속력 (kn)", "cog": "침로 (°)", "hdg": "선수방위 (°)",
-              "temp": "기온 (°C)", "humi": "습도 (%)", "from": "첫 기록", "to": "마지막 기록", "fixes": "자리 수"},
+              "temp": "기온 (°C)", "humi": "습도 (%)", "from": "첫 기록", "to": "마지막 기록", "fixes": "자리 수",
+              "day": "날짜 (하루 창, UTC)", "harvested": "받은 때"},
     "wfs": {"name": "기지", "nation": "나라", "type": "갈래", "status": "운영", "opened": "처음 연 해",
             "winter": "월동 인원", "peak": "여름 최대 인원", "alt": "고도", "other": "다른 이름", "notes": "비고"},
 }
@@ -572,7 +573,7 @@ def file_body(name: str, lang: str = "ko") -> bytes:
     if spec["from"] == "araon":
         if not araon_available():
             raise FileNotFoundError(ARAON_FILE)
-        return _pack(name, araon_features(araon_track()))
+        return _pack(name, araon_features(araon_track(), araon_past()))
     if not available(spec["from"]):
         raise FileNotFoundError(spec["from"])
     data = load(spec["from"])
@@ -772,11 +773,11 @@ def _araon_time(date: str, clock: str, now: datetime) -> str:
     raise KopriError(f"아라온호 시각을 읽지 못했다 ({date} {clock})")
 
 
-def fetch_araon() -> dict:
+def _araon_page(nday: int, nhour: int) -> str:
     session = requests.Session()
     session.mount("https://live.kopri.re.kr/", _LiveAdapter())
     try:
-        r = session.get(ARAON_URL, params={"nday": 3, "nhour": 1}, timeout=max(settings.UPSTREAM_TIMEOUT, 60),
+        r = session.get(ARAON_URL, params={"nday": nday, "nhour": nhour}, timeout=max(settings.UPSTREAM_TIMEOUT, 60),
                         verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
     except requests.RequestException as exc:
         usage.record("kopri", ok=False)
@@ -785,7 +786,98 @@ def fetch_araon() -> dict:
     usage.record("kopri", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
     if r.status_code != 200:
         raise KopriError(f"아라온호 위치가 받지 않았다 (status={r.status_code})")
-    return parse_araon(r.text)
+    return r.text
+
+
+def fetch_araon() -> dict:
+    return parse_araon(_araon_page(3, 1))
+
+
+# ── 지난 항적 — 날짜는 하루 단위 (koprifossillab 009) ─────────────────
+#
+# 위치 판은 지난 날들(`nday`, 365 까지)의 항적을 `nhour` 간격으로 준다 — 하지만 **자리마다 시각이 없다.** 365 일을
+# 한 시간 간격으로 물으면 8 760 이 아니라 4 869 자리가 왔다(2026-10-01) — 빈 시간·빈 날이 많아 순서로 시각을 짐작할
+# 수 없다. 그런데 판은 메뉴에 없는 `nday`(1, 2, 3 …)도 받는다. `nday` 를 1 부터 늘려 가며 자리 수를 세면, 새것부터
+# 적힌 목록에서 **N 일 전 하루에 든 자리가 몇 번째부터 몇 번째까지인지** 나온다. 그래서 자리마다 "며칠 전"(`ago`)을
+# 붙인다 — 그날 안의 시각은 모른다. 매시간 쌓는 기록(`araon.jsonl`)과는 섞지 않는다.
+#
+# 판이 하루마다 가장 오래된 날을 지우므로 한 번 떠 두는 것이다(`fetch_araon --past`). 365 번을 천천히 부른다.
+# 받는 사이에 새 자리가 붙으면 목록의 앞이 한두 자리 밀린다 — 그만큼 비켜 맞춘다. 다시 뜨면 덮지 않고 날짜를
+# 붙인 파일로 남긴다.
+
+ARAON_PAST_FILE = "araon_past.json"
+ARAON_PAST_DAYS = 365
+_LATLNGS = re.compile(r"var\s+latlngs\s*=\s*(\[.*?\]);", re.S)
+
+
+def _latlngs(page: str) -> list:
+    """판의 `latlngs` 그대로 — [[위도, 경도], …] 새것부터."""
+    m = _LATLNGS.search(page)
+    if not m:
+        raise KopriError("아라온호 항적(latlngs)이 없다")
+    try:
+        return json.loads(m.group(1))
+    except ValueError as exc:
+        raise KopriError("아라온호 항적을 읽지 못했다") from exc
+
+
+def _lonlat(pair) -> list:
+    lat, lon = pair
+    return [round(lon - 360 if lon > 180 else lon, DIGITS), round(lat, DIGITS)]
+
+
+def _counted(base: list, page: list) -> int:
+    """`nday` 를 줄여 받은 목록이 `base` 의 앞 몇 자리인가. 그 사이 새 자리가 붙었으면 그만큼 비켜 맞춘다."""
+    if not page:
+        return 0
+    for shift in range(3):
+        if page[shift:shift + 1] == base[:1]:
+            n = len(page) - shift
+            if page[shift:] == base[:n]:
+                return n
+            break
+    raise KopriError("아라온호 항적이 받는 사이에 바뀌었다 — 다시 떠야 한다")
+
+
+def fetch_araon_past(nday: int = ARAON_PAST_DAYS, pause: float = 2.0, say=None) -> dict:
+    harvested = datetime.now(timezone.utc)
+    page = _araon_page(nday, 1)
+    base = _latlngs(page)
+    latest = parse_araon(page)
+    counts = []                                 # counts[n-1] — `nday=n` 에 든 자리 수 (새것부터 센)
+    for n in range(1, nday + 1):
+        time.sleep(pause)
+        counts.append(_counted(base, _latlngs(_araon_page(n, 1))))
+        if say and n % 30 == 0:
+            say(f"  {n} 일 — {counts[-1]} 자리")
+    points = []
+    for i, pair in enumerate(base):             # i 번째(새것부터) 자리는 `nday` 가 처음 그것을 품는 날
+        ago = next((n for n, c in enumerate(counts, 1) if c > i), None)
+        points.append(_lonlat(pair) + [ago])
+    points.reverse()                            # 오래된 것부터
+    return {"harvested": harvested.isoformat(timespec="minutes").replace("+00:00", "Z"),
+            "source": ARAON_URL, "nday": nday, "nhour": 1, "latest": latest, "counts": counts,
+            "points": points}
+
+
+def araon_past() -> dict:
+    path = data_dir() / ARAON_PAST_FILE
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+
+
+def save_araon_past(data: dict) -> Path:
+    """처음이면 `araon_past.json`, 이미 있으면 날짜를 붙여 곁에 둔다 — 먼저 뜬 것이 더 오래 전까지 간다."""
+    path = data_dir() / ARAON_PAST_FILE
+    if path.exists():
+        path = data_dir() / f"araon_past_{data['harvested'][:10].replace('-', '')}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    tmp.replace(path)
+    return path
 
 
 def araon_track() -> list:
@@ -822,7 +914,11 @@ def append_araon(row: dict) -> bool:
 ARAON_CLASSES = (
     ("last", "아라온호 마지막 자리", "#e4002b", "star"),
     ("track", "아라온호 항적", "#ffb000", "line"),
+    ("past", "지난 항적 (날짜는 하루 단위)", "#ffb000", "dash"),
 )
+#: 지난 항적은 이웃한 두 자리가 이보다 멀면 끊는다 — 그날 안의 빈 시간이 얼마인지 몰라, 한 시간에 갈 수 있는 거리
+#: (15 kn ≈ 28 km)의 몇 배를 넘으면 그 사이를 지나지 않은 것으로 본다. 하루가 통째로 빠져도 끊는다
+ARAON_PAST_GAP_KM = 200
 ARAON_GAP = timedelta(hours=12)
 #: 브라우저가 들고 있을 초 — 매시간 한 자리가 붙으므로 하루(다른 점 레이어)는 길다
 ARAON_MAX_AGE = 600
@@ -832,23 +928,29 @@ def _when(row: dict) -> datetime:
     return datetime.fromisoformat(row["time"].replace("Z", "+00:00"))
 
 
-def _araon_lines(rows: list) -> list:
+def _km(a, b) -> float:
+    (x0, y0), (x1, y1) = a, b
+    p0, p1 = math.radians(y0), math.radians(y1)
+    h = math.sin((p1 - p0) / 2) ** 2 + math.cos(p0) * math.cos(p1) * math.sin(math.radians(x1 - x0) / 2) ** 2
+    return 2 * 6371.0 * math.asin(min(1.0, math.sqrt(h)))
+
+
+def _split_lines(points: list, broken) -> list:
+    """[[경도, 위도], …] → 선 조각들. `broken(i)` 가 참이면 i-1 과 i 사이를 잇지 않는다. 날짜변경선에서는 ±180 에
+    자리를 끼워 넣어 끊는다 — 이으면 지구를 반 바퀴 가로지른다."""
     lines, line = [], []
-    for prev, row in zip([None] + rows[:-1], rows):
-        here = [row["lon"], row["lat"]]
-        if prev is None:
+    for i, here in enumerate(points):
+        if i == 0 or broken(i):
+            if line:
+                lines.append(line)
             line = [here]
             continue
-        if _when(row) - _when(prev) > ARAON_GAP:
-            lines.append(line)
-            line = [here]
-            continue
-        x0, x1 = prev["lon"], row["lon"]
-        if abs(x1 - x0) > 180:                  # 날짜변경선을 넘었다 — 경도를 이어 붙여 ±180 의 위도를 낸다
+        (x0, y0), (x1, y1) = points[i - 1], here
+        if abs(x1 - x0) > 180:                  # 경도를 이어 붙여 ±180 의 위도를 낸다
             east = 180.0 if x0 > 0 else -180.0
             x1u = x1 + 360 if x0 > 0 else x1 - 360
             t = (east - x0) / (x1u - x0)
-            y = round(prev["lat"] + t * (row["lat"] - prev["lat"]), DIGITS)
+            y = round(y0 + t * (y1 - y0), DIGITS)
             line.append([east, y])
             lines.append(line)
             line = [[-east, y]]
@@ -858,14 +960,50 @@ def _araon_lines(rows: list) -> list:
     return [l for l in lines if len(l) >= 2]
 
 
+def _araon_lines(rows: list) -> list:
+    return _split_lines([[r["lon"], r["lat"]] for r in rows],
+                        lambda i: _when(rows[i]) - _when(rows[i - 1]) > ARAON_GAP)
+
+
+def _araon_past_days(past: dict) -> list:
+    """지난 항적 → 하루마다 (며칠 전, 선 조각들, 자리 수). 앞날과 이어지면 앞날의 마지막 자리에서 시작한다."""
+    points = [p for p in past.get("points") or [] if len(p) > 2 and p[2]]
+    out, i = [], 0
+    while i < len(points):
+        ago = points[i][2]
+        j = i
+        while j < len(points) and points[j][2] == ago:
+            j += 1
+        day = [p[:2] for p in points[i:j]]
+        if i and points[i - 1][2] == ago + 1:   # 바로 앞날 — 이어 그린다
+            day.insert(0, points[i - 1][:2])
+        lines = _split_lines(day, lambda k: _km(day[k - 1], day[k]) > ARAON_PAST_GAP_KM)
+        if lines:
+            out.append((ago, lines, j - i))
+        i = j
+    return out
+
+
+def _day_window(harvested: str, ago: int) -> str:
+    """N 일 전 하루 — 받은 때에서 거꾸로 센 24 시간 창. 판이 그렇게 자른다."""
+    end = datetime.fromisoformat(harvested.replace("Z", "+00:00")) - timedelta(days=ago - 1)
+    fmt = lambda t: t.strftime("%Y-%m-%d %H:%MZ")
+    return f"{fmt(end - timedelta(days=1))} ~ {fmt(end)}"
+
+
 def araon_available() -> bool:
-    return (data_dir() / ARAON_FILE).exists()
+    return (data_dir() / ARAON_FILE).exists() or (data_dir() / ARAON_PAST_FILE).exists()
 
 
-def araon_features(rows: list) -> list:
-    if not rows:
-        return []
+def araon_features(rows: list, past: dict = None) -> list:
     out = []
+    for ago, lines, fixes in _araon_past_days(past or {}):
+        out.append({"type": "Feature", "id": f"araon-past-{ago}",
+                    "geometry": {"type": "MultiLineString", "coordinates": lines},
+                    "properties": {"code": "past", "name": "ARAON", "day": _day_window(past["harvested"], ago),
+                                   "fixes": fixes, "harvested": past.get("harvested")}})
+    if not rows:
+        return out
     lines = _araon_lines(rows)
     if lines:
         out.append({"type": "Feature", "id": "araon-track",
