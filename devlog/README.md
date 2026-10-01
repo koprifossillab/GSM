@@ -171,6 +171,7 @@
 | wetherilli 127 | 2026-10-01 | [소개 — "…에서 만들었습니다", 위로 올린 "그래서"](20261001_wetherilli_127_intro_credit_wording.md) |
 | wetherilli 128 | 2026-10-01 | [휴대폰 화면 — 접히는 패널, 아이콘 한 줄, 접힌 범례](20261001_wetherilli_128_mobile_layout.md) |
 | wetherilli 129 | 2026-10-01 | [연결 레이어 — API 의 목차 주소를 넣어도 자료 주소를 찾아간다](20261001_wetherilli_129_linked_endpoints.md) |
+| wetherilli 130 | 2026-10-01 | [관리 화면 — 반입 탭에 양식 예시를 펼쳐 보인다 (CSV·JSON·API)](20261001_wetherilli_130_format_examples.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |

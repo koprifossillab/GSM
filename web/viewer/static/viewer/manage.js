@@ -343,7 +343,10 @@
     $("mg-link-box").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // ── 예시 ────────────────────────────────────────────────────────
+  // ── 양식 예시 (wetherilli 130) ──────────────────────────────────
+  //
+  // 반입 탭에 펼쳐 보인다. 글은 **내려받기·반입과 같은 코드**(`P.toCSV`·`P.toGeoJSON`)로 만든다 — 손으로 적은 예시는
+  // 읽개가 바뀌면 어긋난다. "이 예시로 읽어 본다" 는 그 글을 반입처럼 읽혀 미리 보기에 띄운다.
 
   var SAMPLE = {
     name: T("예시 — 내 시료 위치"),
@@ -359,6 +362,9 @@
       { id: "S-01", geometry: { type: "Point", coordinates: [127.0276, 37.4979] }, properties: { name: "S-01", rock: T("화강암"), age_ma: 172.4 } },
       { id: "S-02", geometry: { type: "Point", coordinates: [128.5912, 35.8714] }, properties: { name: "S-02", rock: T("편마암"), age_ma: null } },
       { id: "S-03", geometry: null, properties: { name: "S-03", rock: T("사암"), age_ma: null } },
+    ] : kind === "line" ? [
+      { id: "T-1", geometry: { type: "LineString", coordinates: [[128.10, 36.65], [128.12, 36.66], [128.15, 36.66]] },
+        properties: { name: T("노두 단면 1"), rock: T("석회암"), age_ma: 509 } },
     ] : [
       { id: "A", geometry: { type: "Polygon", coordinates: [[[126.9, 37.5], [127.1, 37.5], [127.1, 37.6], [126.9, 37.6], [126.9, 37.5]]] },
         properties: { name: "A", rock: T("화강암"), age_ma: 172.4 } },
@@ -370,13 +376,113 @@
       features: feats.map(function (f) { return { type: "Feature", id: f.id, geometry: f.geometry, properties: f.properties }; }),
     };
   }
-  document.querySelectorAll("[data-sample]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var bits = b.dataset.sample.split("-");
-      var layer = sampleLayer(bits[0]);
-      if (bits[1] === "csv") download("gsm-sample-" + bits[0] + ".csv", P.toCSV(layer), "text/csv;charset=utf-8");
-      else download("gsm-sample-" + bits[0] + ".json", JSON.stringify(P.toGeoJSON(layer), null, 1), "application/json");
+
+  /** JSON 을 사람이 읽기 좋게 — 머리는 펼치고, 열 설명·피처는 한 줄에 하나. */
+  function prettyJSON(doc) {
+    var head = doc.gsm, cols = head.columns;
+    var h = {};
+    Object.keys(head).forEach(function (k) { if (k !== "columns") h[k] = head[k]; });
+    var lines = ['{', '  "type": "FeatureCollection",', '  "gsm": {'];
+    Object.keys(h).forEach(function (k) { lines.push("    " + JSON.stringify(k) + ": " + JSON.stringify(h[k]) + ","); });
+    lines.push('    "columns": [');
+    cols.forEach(function (c, i) { lines.push("      " + JSON.stringify(c) + (i < cols.length - 1 ? "," : "")); });
+    lines.push("    ]", "  },", '  "features": [');
+    doc.features.forEach(function (f, i) { lines.push("    " + JSON.stringify(f) + (i < doc.features.length - 1 ? "," : "")); });
+    lines.push("  ]", "}");
+    return lines.join("\n") + "\n";
+  }
+
+  var exKind = "point", exFormat = "csv";
+  /** 본문 — CSV 거나 JSON. API 탭도 본문은 JSON 이다 */
+  function exampleBody() {
+    var layer = sampleLayer(exKind);
+    return exFormat === "csv" ? P.toCSV(layer).replace(/^\uFEFF/, "").replace(/\r\n/g, "\n") : prettyJSON(P.toGeoJSON(layer));
+  }
+  /** API 탭 — 상대 사이트가 받을 요청과 돌려줄 응답 한 쌍. 본문은 JSON 예시 그대로다 */
+  function exampleApi() {
+    return [
+      "# " + T("요청 — 우리가 보낸다. 인증키는 연결할 때 고른 꼴 하나로 싣는다"),
+      "GET /api/v1/samples/ HTTP/1.1",
+      "Host: api.example.org",
+      "Accept: application/geo+json, application/json, text/csv",
+      "X-API-Key: <" + T("인증키") + ">        # " + T("머리 — 이름은 상대가 정한다"),
+      "#   Authorization: Bearer <" + T("인증키") + ">   # Bearer",
+      "#   GET /api/v1/samples/?apikey=<" + T("인증키") + ">   # " + T("주소 뒤"),
+      "",
+      "# " + T("응답 — 상대가 돌려준다. 본문은 양식 그대로(JSON 또는 CSV)"),
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/geo+json",
+      "Access-Control-Allow-Origin: *                # " + T("열어 주면 브라우저가 곧장 받는다(권함)"),
+      "Access-Control-Allow-Headers: X-API-Key",
+      "",
+      "",
+    ].join("\n") + exampleBody();
+  }
+  function exampleText() { return exFormat === "api" ? exampleApi() : exampleBody(); }
+
+  var NOTES = {
+    csv: [
+      T("맨 위 <code>#열쇠: 값</code> 줄이 머리다 — <code>name</code>(레이어 이름)·<code>source</code>(출처)·<code>label</code>(이름표로 쓸 열)·<code>color</code> 따위. 없어도 읽는다"),
+      T("<code>#column: 열 | 화면 이름 | 형식 | 설명</code> — 형식은 <code>string</code>·<code>integer</code>·<code>number</code>"),
+      T("그다음 줄이 열 이름이다. 점은 <code>lon</code>·<code>lat</code>(WGS84 십진도), 선·면은 <code>geometry</code> 칸에 WKT"),
+      T("빈 칸은 값이 없는 것이다. 좌표가 빈 행도 버리지 않는다 — 지도에만 안 뜬다"),
+      T("UTF-8 로 저장한다. 한국어 엑셀의 EUC-KR 도 읽는다"),
+    ],
+    api: [
+      T("<code>GET</code> 한 번에 이 양식의 JSON(또는 CSV)을 통째로 준다. 200 이 아니면 받지 못한 것으로 본다 — 401·403 이면 인증키를 보라고 알린다"),
+      T("인증키는 넷 가운데 하나 — 없음, <code>Authorization: Bearer</code>, 머리(이름은 상대가 정한다), 주소 뒤 <code>?이름=키</code>"),
+      T("CORS 를 열어 주면(<code>Access-Control-Allow-Origin</code>, 머리로 키를 받으면 <code>Access-Control-Allow-Headers</code> 에 그 이름) 보는 사람의 브라우저가 곧장 받는다. 열지 않으면 우리 서버가 대신 받는다"),
+      T("IP 로 막는 API 는 우리 서버(극지연구소)의 IP 를 열어 준다 — 그때는 늘 우리 서버가 받는다"),
+      T("20 MB · 20 초 안에 끝나야 한다. 넘겨주기는 세 번까지, 다른 호스트로 넘기면 키를 싣지 않는다"),
+      T("목차(<code>endpoints</code> 의 <code>url</code>)를 주는 주소를 넣어도 같은 호스트의 자료 주소를 찾아간다. 피처 하나(<code>Feature</code>)도 받는다"),
+    ],
+    json: [
+      T("GeoJSON <code>FeatureCollection</code> 에 <code>gsm</code> 머리를 더한 것이다. QGIS 따위는 <code>gsm</code> 을 모르고 넘긴다"),
+      T("<code>gsm.columns</code> 는 열마다 <code>key</code>·<code>label</code>·<code>type</code>·<code>note</code>"),
+      T("좌표는 <code>[경도, 위도]</code> 차례다. <code>geometry</code> 가 <code>null</code> 이면 좌표를 모르는 행이다"),
+      T("<code>id</code> 는 원본의 번호다 — 있으면 내려받을 때 그대로 나간다"),
+    ],
+  };
+
+  function renderExample() {
+    document.querySelectorAll("#mg-ex-kind button").forEach(function (b) { b.classList.toggle("on", b.dataset.kind === exKind); });
+    document.querySelectorAll("#mg-ex-format button").forEach(function (b) { b.classList.toggle("on", b.dataset.format === exFormat); });
+    $("mg-ex-text").textContent = exampleText();
+    $("mg-ex-notes").innerHTML = NOTES[exFormat].map(function (t) { return "<li>" + t + "</li>"; }).join("");
+  }
+  document.querySelectorAll("#mg-ex-kind button").forEach(function (b) {
+    b.addEventListener("click", function () { exKind = b.dataset.kind; renderExample(); });
+  });
+  document.querySelectorAll("#mg-ex-format button").forEach(function (b) {
+    b.addEventListener("click", function () { exFormat = b.dataset.format; renderExample(); });
+  });
+  $("mg-ex-copy").addEventListener("click", function () {
+    var btn = this, text = exampleText();
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () {
+      btn.textContent = T("복사했다");
+      setTimeout(function () { btn.textContent = T("복사"); }, 900);
+    }, function () {
+      var range = document.createRange();
+      range.selectNodeContents($("mg-ex-text"));
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
     });
+  });
+  $("mg-ex-download").addEventListener("click", function () {
+    var layer = sampleLayer(exKind);
+    if (exFormat === "csv") download("gsm-sample-" + exKind + ".csv", P.toCSV(layer), "text/csv;charset=utf-8");
+    else download("gsm-sample-" + exKind + ".json", exampleBody(), "application/json");      // API 탭은 응답 본문
+  });
+  $("mg-ex-try").addEventListener("click", function () {
+    var csv = exFormat === "csv";
+    var name = "gsm-sample-" + exKind + "." + (csv ? "csv" : "json");
+    readFile(new File([exampleBody()], name, { type: csv ? "text/csv" : "application/json" }));
+    $("mg-preview").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  renderExample();
+  $("mg-link-example").addEventListener("click", function () {
+    exFormat = "api";
+    renderExample();
+    $("mg-example-box").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   // ── 저장 자료 관리 ──────────────────────────────────────────────

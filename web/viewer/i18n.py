@@ -1172,18 +1172,54 @@ EN = {
     "넘겨주기가 너무 많다": "Too many redirects",
     "API 의 목차라 자료 주소를 찾아 이었다 — {url}": "That was the API index — linked to the data address found there: {url}",
     "API 의 목차다 — 자료 주소를 찾지 못했다 ({urls})": "That is the API index — no data address worked ({urls})",
+    # 양식 예시 (wetherilli 130)
+    "양식은 <b>개인 레이어 양식 v1</b> 이다 — GeoJSON 에 <code>gsm</code> 머리를 더한 JSON, 또는 맨 위 <code>#</code> 줄에 머리를 적은 CSV. 점·선·면은 좌표 값의 꼴이 정한다 — <code>lon</code>·<code>lat</code> 이나 Point 면 점, LineString 이면 선, Polygon 이면 면. 섞여 오면 모양마다 레이어로 나눈다. 아래 예시를 본다.":
+        "The format is <b>personal layer format v1</b> — GeoJSON with a <code>gsm</code> header, or CSV with the header on leading <code>#</code> lines. The coordinate form decides point, line or polygon — <code>lon</code>/<code>lat</code> or Point is a point, LineString a line, Polygon a polygon. Mixed input is split into one layer per geometry. See the examples below.",
+    "양식 예시": "Format examples",
+    "이대로 적어 저장하면 반입된다": "Write it like this and it imports",
+    "내려받기": "Download",
+    "이 예시로 읽어 본다": "Read this example",
+    "API 양식 예시": "API format example",
+    "노두 단면 1": "Outcrop section 1",
+    "석회암": "limestone",
+    "맨 위 <code>#열쇠: 값</code> 줄이 머리다 — <code>name</code>(레이어 이름)·<code>source</code>(출처)·<code>label</code>(이름표로 쓸 열)·<code>color</code> 따위. 없어도 읽는다":
+        "Leading <code>#key: value</code> lines are the header — <code>name</code> (layer name), <code>source</code>, <code>label</code> (column used for labels), <code>color</code> and so on. Optional",
+    "<code>#column: 열 | 화면 이름 | 형식 | 설명</code> — 형식은 <code>string</code>·<code>integer</code>·<code>number</code>":
+        "<code>#column: key | display name | type | note</code> — type is <code>string</code>, <code>integer</code> or <code>number</code>",
+    "그다음 줄이 열 이름이다. 점은 <code>lon</code>·<code>lat</code>(WGS84 십진도), 선·면은 <code>geometry</code> 칸에 WKT":
+        "The next line holds the column names. Points use <code>lon</code>/<code>lat</code> (WGS84 decimal degrees), lines and polygons a WKT <code>geometry</code> column",
+    "빈 칸은 값이 없는 것이다. 좌표가 빈 행도 버리지 않는다 — 지도에만 안 뜬다":
+        "An empty cell means no value. Rows without coordinates are kept — they just are not drawn",
+    "UTF-8 로 저장한다. 한국어 엑셀의 EUC-KR 도 읽는다": "Save as UTF-8. EUC-KR from Korean Excel is read too",
+    "GeoJSON <code>FeatureCollection</code> 에 <code>gsm</code> 머리를 더한 것이다. QGIS 따위는 <code>gsm</code> 을 모르고 넘긴다":
+        "A GeoJSON <code>FeatureCollection</code> with a <code>gsm</code> header. Tools such as QGIS simply ignore <code>gsm</code>",
+    "<code>gsm.columns</code> 는 열마다 <code>key</code>·<code>label</code>·<code>type</code>·<code>note</code>":
+        "<code>gsm.columns</code> lists <code>key</code>, <code>label</code>, <code>type</code> and <code>note</code> for each column",
+    "좌표는 <code>[경도, 위도]</code> 차례다. <code>geometry</code> 가 <code>null</code> 이면 좌표를 모르는 행이다":
+        "Coordinates are <code>[longitude, latitude]</code>. A <code>null</code> <code>geometry</code> marks a row without coordinates",
+    "<code>id</code> 는 원본의 번호다 — 있으면 내려받을 때 그대로 나간다": "<code>id</code> is the source record number — kept on download",
+    "요청 — 우리가 보낸다. 인증키는 연결할 때 고른 꼴 하나로 싣는다": "Request — we send it. The key goes in the one form chosen when linking",
+    "머리 — 이름은 상대가 정한다": "header — the other site names it",
+    "주소 뒤": "query string",
+    "응답 — 상대가 돌려준다. 본문은 양식 그대로(JSON 또는 CSV)": "Response — the other site returns it. The body is the format as is (JSON or CSV)",
+    "열어 주면 브라우저가 곧장 받는다(권함)": "lets the browser fetch directly (recommended)",
+    "<code>GET</code> 한 번에 이 양식의 JSON(또는 CSV)을 통째로 준다. 200 이 아니면 받지 못한 것으로 본다 — 401·403 이면 인증키를 보라고 알린다":
+        "One <code>GET</code> returns the whole layer in this format (JSON or CSV). Anything but 200 counts as a failure — 401/403 prompt a key check",
+    "인증키는 넷 가운데 하나 — 없음, <code>Authorization: Bearer</code>, 머리(이름은 상대가 정한다), 주소 뒤 <code>?이름=키</code>":
+        "The key goes one of four ways — none, <code>Authorization: Bearer</code>, a header (named by the other site), or <code>?name=key</code> in the query",
+    "CORS 를 열어 주면(<code>Access-Control-Allow-Origin</code>, 머리로 키를 받으면 <code>Access-Control-Allow-Headers</code> 에 그 이름) 보는 사람의 브라우저가 곧장 받는다. 열지 않으면 우리 서버가 대신 받는다":
+        "With CORS open (<code>Access-Control-Allow-Origin</code>, plus the header name in <code>Access-Control-Allow-Headers</code> if the key goes in a header) the viewer's browser fetches directly. Otherwise our server fetches on its behalf",
+    "IP 로 막는 API 는 우리 서버(극지연구소)의 IP 를 열어 준다 — 그때는 늘 우리 서버가 받는다":
+        "For IP-restricted APIs, allow our server's IP (KOPRI) — our server then always does the fetching",
+    "20 MB · 20 초 안에 끝나야 한다. 넘겨주기는 세 번까지, 다른 호스트로 넘기면 키를 싣지 않는다":
+        "Must finish within 20 MB and 20 seconds. Up to three redirects; the key is not sent to another host",
+    "목차(<code>endpoints</code> 의 <code>url</code>)를 주는 주소를 넣어도 같은 호스트의 자료 주소를 찾아간다. 피처 하나(<code>Feature</code>)도 받는다":
+        "An index address (<code>url</code> entries under <code>endpoints</code>) works too — the data address on the same host is followed. A single <code>Feature</code> is accepted",
     "너무 오래 걸린다 — {s} 초 안에 받는다": "Taking too long — must finish within {s} seconds",
     "같은 자리에 {n}건 더 있다 — 관리 화면에서 내려받아 본다":
         "{n} more at this spot — download from the manage page to see them",
     "좌표 없음 {n}": "{n} without coordinates",
     "JSON·CSV 파일을 끌어 놓거나 눌러서 고른다": "Drop a JSON or CSV file here, or click to choose",
-    "양식은 <b>개인 레이어 양식 v1</b> 이다 — GeoJSON 에 <code>gsm</code> 머리를 더한 JSON, 또는 맨 위 <code>#</code> 줄에 머리를 적은 CSV. 점이냐 면이냐는 좌표 값의 꼴이 정한다 — <code>lon</code>·<code>lat</code> 이나 Point 면 점, WKT <code>POLYGON</code> 이나 Polygon 이면 면.":
-        "The format is <b>personal layer format v1</b> — GeoJSON with a <code>gsm</code> header, or CSV with the header on leading <code>#</code> lines. The coordinate form decides point or polygon — <code>lon</code>/<code>lat</code> or Point is a point layer, WKT <code>POLYGON</code> or Polygon is a polygon layer.",
-    "예시 내려받기": "Download a sample",
-    "점 · JSON": "Point · JSON",
-    "점 · CSV": "Point · CSV",
-    "면 · JSON": "Polygon · JSON",
-    "면 · CSV": "Polygon · CSV",
     "읽은 것": "What was read",
     "이름": "Name",
     "색": "Color",

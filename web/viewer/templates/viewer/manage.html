@@ -43,16 +43,33 @@
           <span>{% t "JSON·CSV 파일을 끌어 놓거나 눌러서 고른다" %}</span>
         </label>
         <p class="hint mg-format">
-          {% t "양식은 <b>개인 레이어 양식 v1</b> 이다 — GeoJSON 에 <code>gsm</code> 머리를 더한 JSON, 또는 맨 위 <code>#</code> 줄에 머리를 적은 CSV. 점이냐 면이냐는 좌표 값의 꼴이 정한다 — <code>lon</code>·<code>lat</code> 이나 Point 면 점, WKT <code>POLYGON</code> 이나 Polygon 이면 면." %}
+          {% t "양식은 <b>개인 레이어 양식 v1</b> 이다 — GeoJSON 에 <code>gsm</code> 머리를 더한 JSON, 또는 맨 위 <code>#</code> 줄에 머리를 적은 CSV. 점·선·면은 좌표 값의 꼴이 정한다 — <code>lon</code>·<code>lat</code> 이나 Point 면 점, LineString 이면 선, Polygon 이면 면. 섞여 오면 모양마다 레이어로 나눈다. 아래 예시를 본다." %}
         </p>
-        <div class="mg-samples">
-          <span class="hint">{% t "예시 내려받기" %}</span>
-          <button type="button" class="btn quiet" data-sample="point-json">{% t "점 · JSON" %}</button>
-          <button type="button" class="btn quiet" data-sample="point-csv">{% t "점 · CSV" %}</button>
-          <button type="button" class="btn quiet" data-sample="polygon-json">{% t "면 · JSON" %}</button>
-          <button type="button" class="btn quiet" data-sample="polygon-csv">{% t "면 · CSV" %}</button>
-        </div>
         <p id="mg-read-msg" class="msg"></p>
+      </div>
+    </div>
+
+    <div class="box" id="mg-example-box">
+      <h2 class="box-head">{% t "양식 예시" %} <span class="hint">{% t "이대로 적어 저장하면 반입된다" %}</span></h2>
+      <div class="box-body">
+        <div class="mg-example-bar">
+          <div class="seg" id="mg-ex-kind">
+            <button type="button" data-kind="point" class="on">{% t "점" %}</button>
+            <button type="button" data-kind="line">{% t "선" %}</button>
+            <button type="button" data-kind="polygon">{% t "면" %}</button>
+          </div>
+          <div class="seg" id="mg-ex-format">
+            <button type="button" data-format="csv" class="on">CSV</button>
+            <button type="button" data-format="json">JSON</button>
+            <button type="button" data-format="api">API</button>
+          </div>
+          <span class="mg-right"></span>
+          <button type="button" class="btn quiet" id="mg-ex-copy">{% t "복사" %}</button>
+          <button type="button" class="btn quiet" id="mg-ex-download">{% t "내려받기" %}</button>
+          <button type="button" class="btn quiet" id="mg-ex-try">{% t "이 예시로 읽어 본다" %}</button>
+        </div>
+        <pre class="mg-example" id="mg-ex-text"></pre>
+        <ul class="mg-example-notes" id="mg-ex-notes"></ul>
       </div>
     </div>
 
@@ -77,6 +94,7 @@
         </div>
         <div class="mg-acts">
           <button type="button" class="btn" id="mg-link-try">{% t "받아 본다" %}</button>
+          <button type="button" class="btn quiet" id="mg-link-example">{% t "API 양식 예시" %}</button>
           <span class="hint" id="mg-link-editing"></span>
         </div>
         <p id="mg-link-msg" class="msg"></p>
