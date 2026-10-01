@@ -41,6 +41,12 @@ print("  상태", d["status"], "· 판", d.get("version"), "· DB", d.get("db"))
 b = d.get("backup") or {}
 if b:
     print("  백업", b.get("result"), b.get("at"), "(%s 일 전)" % b.get("age_days"))
+h = d.get("hourly") or {}
+if h.get("jobs"):
+    print("  매시", " · ".join("%s %s" % (k, v.get("result")) for k, v in sorted(h["jobs"].items())),
+          "(%s 시간 전)" % h.get("age_hours"))
+for k, v in sorted((h.get("fresh") or {}).items()):
+    print("  받은 것", k, v.get("t"), "(%s 시간 전)" % v.get("age_hours"))
 for n in d.get("notes", []):
     print("  !", n)
 sys.exit(1 if d["status"] == "unhealthy" else 0)

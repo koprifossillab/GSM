@@ -14,19 +14,9 @@
 # 결과는 /data/GSM/logs/last_backup.json. 로그: /data/GSM/logs/weekly_backup.log
 40 1 * * 1 /srv/GSM/scripts/weekly_backup.sh >> /data/GSM/logs/weekly_backup.log 2>&1
 
-# 아라온호 위치 (koprifossillab 004) — 매시 :50 에 극지연구소의 아라온호 위치 판에서 마지막 자리를 받아
-# /srv/GSM/db/kopri/araon.jsonl 에 한 줄 보탠다. 새 자리가 없으면 보태지 않는다. 극지연구소 쪽은 지난 자리를 지우므로
-# 이 파일이 우리 쪽 기록이다 — 주간 백업이 kopri 를 통째로 뜬다. 한 시간에 한 쪽이라 상류에 짐이 되지 않는다.
-# 다른 매시 일(:20·:25·:35)과 비껴 뒀다. timeout 이 넉넉한 것은 판이 오른 뒤 첫 차례에 venv 를 새로 만들기 때문이다.
-# 로그: /data/GSM/logs/araon.log
-50 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_araon >> /data/GSM/logs/araon.log 2>&1
 
-# 지금의 바람 (koprifossillab P02·008) — 매시 :35 에 GFS 의 가장 새 판(분석과 +12 시간까지의 예보)을 받아 /srv/GSM/db/wind/gfs/ 에
-# 굽는다. 빠진 장만 받고, 다 있으면 아무것도 하지 않는다(판은 하루 네 번, 그 시각에서 네 시간 남짓 뒤에 올라온다). 48 시간만 둔다. numpy·ecCodes 는
-# 전용 venv 에 requirements-wind.txt 로 깔린다(install.sh 의 REQS) — 운영 이미지에는 없다. 로그: /data/GSM/logs/wind.log
-35 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_gfs_wind >> /data/GSM/logs/wind.log 2>&1
-
-# 위성 구름 (koprifossillab 012) — 매시 :45 에 NOAA GMGSI(정지궤도 적외선 합성)의 가장 새 장을 받아 /srv/GSM/db/wind/gmgsi/ 에
-# 굽는다. 장은 정시에서 30 분 남짓 뒤에 올라온다. 새 장이 없으면 아무것도 하지 않는다. 스물네 장만 둔다. h5py 는 전용 venv 에
-# requirements-wind.txt 로 깔린다. 로그: /data/GSM/logs/gmgsi.log
-45 * * * * timeout 900 /srv/GSM/scripts/run.sh fetch_gmgsi >> /data/GSM/logs/gmgsi.log 2>&1
+# 매시 받기 (koprifossillab 013) — 매시 :40 에 hourly.sh 가 차례로 부른다: 지금의 바람·구름(fetch_gfs_wind, koprifossillab 003·008·011),
+# 위성 구름(fetch_gmgsi, 012), 아라온호 위치(fetch_araon, 004). 일은 저마다 run.sh 로 따로 부를 수 있다. 한 일이 멈춰도 다음 일은
+# 돈다. :40 인 것은 GMGSI 의 장이 정시에서 30 분 남짓 뒤에 올라오기 때문이다 — 다른 매시 일(:20·:25)과도 비껴 있다.
+# 일마다의 결과는 /srv/GSM/db/hourly_status.json(`/GSM/healthz/` 가 읽는다), 로그는 /data/GSM/logs/hourly.log
+40 * * * * timeout 3000 /srv/GSM/scripts/hourly.sh

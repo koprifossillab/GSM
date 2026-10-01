@@ -7,7 +7,7 @@
 
 ## 작업 방식 (2026-09-30 부터)
 
-**브랜치** `main` = `0.37.0` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
+**브랜치** `main` = `0.37.1` · 병합을 기다리는 브랜치는 없다. 다음 코드 작업은 각자 자기 계정에서
 `feature/<기능 이름>` 브랜치를 `main` 에서 만들고, 끝나면 PR 을 만든다. 병합은 사람이 정하고, 판은 그 PR 안에서
 올린다. 문서만 고치는 것은 `main` 에 바로. devlog 는 글쓴이마다 번호를 센다 — CLAUDE.md "커밋과 PR"·"devlog",
 [devlog/README.md](devlog/README.md). WegenersDream 과 같은 규약이다.
@@ -185,9 +185,13 @@ kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 �
 
 **cron 은 저장소를 부르지 않는다** — `/srv/GSM/scripts/` 의 사본을 부른다. 컨테이너가 뜰 때 이미지의 `deploy/scripts/`
 와 앱 코드 사본(`app/`)을 거기 깔고(`install.sh`), 파이썬 일은 `run.sh <관리 명령>` 이 전용 venv(`scripts/venv`)로 돌린다.
-venv 는 requirements 가 바뀌면 스스로 다시 만든다. 지금 도는 것은 주간 백업과 아라온호 위치(매시 :50, `fetch_araon` →
-`db/kopri/araon.jsonl`, koprifossillab 004), 위성 구름(매시 :45, `fetch_gmgsi` → `db/wind/gmgsi/`, 스물네 장만, koprifossillab 012), 지금의 바람(매시 :35, `fetch_gfs_wind` → `db/wind/gfs/`, 판마다 분석과 +12 시간까지의 예보, 48 시간만 둔다, koprifossillab 003·008).
-지난 바람(`db/wind/era5/`, 944 날·1.2 GB 남짓)은 2026-10-01 저녁에 굽기 시작했다(세 시간 남짓, 로그 `/data/GSM/logs/era5_build.log`) — 다 구우면 다시 구울 일은 기간을 늘릴 때뿐이다. 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
+venv 는 requirements 가 바뀌면 스스로 다시 만든다. cron 은 **두 줄**이다 — 주간 백업(월 01:40)과 **매시 받기**(매시 :40,
+`hourly.sh`, koprifossillab 013). `hourly.sh` 가 차례로 부르는 일: 지금의 바람·구름(`fetch_gfs_wind` → `db/wind/gfs/`, 판마다 분석과
++12 시간까지의 예보, 48 시간만), 위성 구름(`fetch_gmgsi` → `db/wind/gmgsi/`, 스물네 장만), 아라온호 위치(`fetch_araon` →
+`db/kopri/araon.jsonl`). 일마다의 결과는 `db/hourly_status.json` 에 남고 **`/GSM/healthz/` 가 읽는다** — 기록이 2 시간 넘게 멈추거나,
+한 일이 실패하거나, GFS 판이 12 시간·위성 장이 3 시간을 넘으면 `degraded`. 로그는 `/data/GSM/logs/hourly.log`.
+지난 바람·구름(`db/wind/era5/`, 944 날)은 2026-10-01 저녁에 굽기 시작했다(바람 `/data/GSM/logs/era5_build.log`, 이어서 구름
+`era5_clouds.log`) — 다 구우면 다시 구울 일은 기간을 늘릴 때뿐이다. 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
 `deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에는 `scripts` 마운트를
 2026-10-01 에 더했다 — 2026-10-01 에 v0.34.0 으로 다시 떠, 지금 도는 것은 이미지가 깐 사본이다.
 
