@@ -1,0 +1,455 @@
+/* 대돌여지도 — 관리 화면 (wetherilli P08·118).
+ *
+ * 지금은 두 가지다. 기능이 늘면 탭을 더한다.
+ *   - 개인 레이어 반입 — 양식(docs/개인레이어_양식.md)에 맞춘 JSON·CSV 를 읽어 보여 주고, 저장하면
+ *     이 브라우저의 IndexedDB 에 둔다(`personal.js`). 서버로 보내지 않는다
+ *   - 저장 자료 관리 — 개인 레이어와 이 브라우저의 설정(localStorage `gsm.*`)을 보고 지운다
+ *
+ * 지도(map.js)는 같은 저장소를 읽는다. 여기서 바꾸면 열린 지도 창이 따라온다(BroadcastChannel).
+ */
+(function () {
+  "use strict";
+
+  var P = window.GSMPersonal;
+  var LANG = document.documentElement.lang === "en" ? "en" : "ko";
+  var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+
+  function T(text, vars) {
+    var out = (LANG === "en" && I18N[text]) || text;
+    if (vars) out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
+    return out;
+  }
+  P.setTranslator(T);
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function msg(id, text, kind) {
+    var m = $(id);
+    m.textContent = text || "";
+    m.className = "msg" + (kind ? " " + kind : "");
+  }
+  function bytes(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    return (n / 1024 / 1024).toFixed(1) + " MB";
+  }
+  /** ISO 시각 -> 이 브라우저의 시각 "YYYY-MM-DD HH:MM". 저장은 UTC 로 한다. */
+  function localTime(iso) {
+    var d = new Date(iso || "");
+    if (isNaN(d)) return "";
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " + two(d.getHours()) + ":" + two(d.getMinutes());
+  }
+  function kindText(kind) { return kind === "polygon" ? T("면") : T("점"); }
+
+  function download(name, text, type) {
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+  function fileStem(name) {
+    return String(name || "layer").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 80);
+  }
+
+  // ── 모양 — 지도에서 고른 테마·글꼴을 따른다 ──────────────────────
+
+  [["data-theme", "gsm.theme", "brown"], ["data-font", "gsm.font", "sans"], ["data-size", "gsm.size", "m"]]
+    .forEach(function (spec) {
+      var v = null;
+      try { v = localStorage.getItem(spec[1]); } catch (e) { /* 사생활 모드 */ }
+      document.documentElement.setAttribute(spec[0], v || spec[2]);
+    });
+
+  // ── 탭 ──────────────────────────────────────────────────────────
+
+  var TAB_KEY = "gsm.manage.tab";
+  function showTab(name) {
+    document.querySelectorAll(".mg-tab").forEach(function (b) { b.classList.toggle("on", b.dataset.tab === name); });
+    document.querySelectorAll(".mg-body").forEach(function (s) { s.classList.toggle("on", s.id === "tab-" + name); });
+    try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* 사생활 모드 */ }
+    if (name === "stored") renderStored();
+  }
+  document.querySelectorAll(".mg-tab").forEach(function (b) {
+    b.addEventListener("click", function () { showTab(b.dataset.tab); });
+  });
+
+  // ── 반입 ────────────────────────────────────────────────────────
+
+  var pending = null;    // 읽었으나 아직 저장하지 않은 것 { parsed, file }
+
+  function readFile(file) {
+    msg("mg-read-msg", T("읽는 중…"));
+    $("mg-preview").hidden = true;
+    pending = null;
+    file.arrayBuffer().then(function (buf) {
+      var d = P.decode(buf);
+      var parsed = P.parse(d.text, file.name);
+      parsed.encoding = d.encoding;
+      pending = { parsed: parsed, file: file };
+      msg("mg-read-msg", "");
+      preview();
+    }).catch(function (e) {
+      msg("mg-read-msg", T("읽지 못했다 — {why}", { why: e.message || e }), "bad");
+    });
+  }
+
+  $("mg-file").addEventListener("change", function () {
+    if (this.files[0]) readFile(this.files[0]);
+    this.value = "";
+  });
+  var drop = $("mg-drop");
+  ["dragenter", "dragover"].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function (t) {
+    drop.addEventListener(t, function () { drop.classList.remove("over"); });
+  });
+  drop.addEventListener("drop", function (e) {
+    e.preventDefault();
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) readFile(f);
+  });
+
+  function preview() {
+    var p = pending.parsed, file = pending.file;
+    $("mg-preview").hidden = false;
+    $("mg-file-name").textContent = file.name + " · " + bytes(file.size) + " · " + p.format.toUpperCase() +
+      (p.format === "csv" ? " · " + p.encoding.toUpperCase() : "");
+    $("mg-name").value = p.name || file.name.replace(/\.[^.]+$/, "");
+    $("mg-color").value = /^#[0-9a-f]{6}$/i.test(p.meta.color || "") ? p.meta.color : P.DEFAULT_COLOR;
+
+    var label = $("mg-label");
+    label.innerHTML = "";
+    label.appendChild(new Option(T("없음"), ""));
+    p.columns.forEach(function (c) { label.appendChild(new Option(c.label === c.key ? c.key : c.label + " (" + c.key + ")", c.key)); });
+    label.value = p.meta.label || "";
+
+    var stats = $("mg-stats");
+    stats.innerHTML = "";
+    var rows = [
+      [T("종류"), T("{kind} 레이어", { kind: kindText(p.kind) })],
+      [T("행"), String(p.count)],
+      [T("지도에 뜨는 것"), String(p.drawn)],
+      [T("좌표가 없는 것"), p.undrawn ? T("{n}행 — 속성은 남긴다", { n: p.undrawn }) : "0"],
+    ];
+    if (p.meta.source) rows.push([T("출처"), p.meta.source]);
+    if (p.meta.license) rows.push([T("이용 조건"), p.meta.license]);
+    if (p.meta.description) rows.push([T("설명"), p.meta.description]);
+    rows.forEach(function (r) {
+      stats.appendChild(el("dt", "", r[0]));
+      stats.appendChild(el("dd", "", r[1]));
+    });
+
+    var notes = $("mg-notes");
+    notes.innerHTML = "";
+    if (p.warnings.length) notes.appendChild(noteList(T("경고"), p.warnings, "warn-list"));
+    if (p.problems.length) notes.appendChild(noteList(T("읽지 못한 것 {n}건", { n: p.problems.length }), p.problems, "bad-list"));
+
+    $("mg-col-count").textContent = p.columns.length;
+    var ct = $("mg-columns");
+    ct.innerHTML = "<thead><tr><th>key</th><th>" + esc(T("이름")) + "</th><th>" + esc(T("형식")) + "</th><th>" +
+      esc(T("설명")) + "</th></tr></thead>";
+    var body = el("tbody");
+    p.columns.forEach(function (c) {
+      var tr = el("tr");
+      [c.key, c.label, c.type, c.note].forEach(function (v, i) { tr.appendChild(el("td", i === 0 || i === 2 ? "mono" : "", v || "")); });
+      body.appendChild(tr);
+    });
+    ct.appendChild(body);
+
+    var rt = $("mg-rows");
+    var shown = p.columns.slice(0, 12);
+    var head = "<thead><tr><th>" + esc(T("좌표")) + "</th>" + shown.map(function (c) { return "<th>" + esc(c.label) + "</th>"; }).join("") + "</tr></thead>";
+    rt.innerHTML = head;
+    var rb = el("tbody");
+    p.features.slice(0, 8).forEach(function (f) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "mono", geomText(f.geometry)));
+      shown.forEach(function (c) { var v = f.properties[c.key]; tr.appendChild(el("td", "", v === null || v === undefined ? "" : String(v))); });
+      rb.appendChild(tr);
+    });
+    rt.appendChild(rb);
+    msg("mg-save-msg", "");
+  }
+
+  function geomText(g) {
+    if (!g) return "—";
+    if (g.type === "Point") return g.coordinates[1].toFixed(5) + ", " + g.coordinates[0].toFixed(5);
+    return g.type;
+  }
+
+  function noteList(title, items, cls) {
+    var box = el("div", "mg-note " + cls);
+    box.appendChild(el("b", "", title));
+    var ul = el("ul");
+    items.slice(0, 30).forEach(function (t) { ul.appendChild(el("li", "", t)); });
+    if (items.length > 30) ul.appendChild(el("li", "more", T("…외 {n}건", { n: items.length - 30 })));
+    box.appendChild(ul);
+    return box;
+  }
+
+  $("mg-save").addEventListener("click", function () {
+    if (!pending) return;
+    var rec = P.record(pending.parsed, pending.file);
+    rec.name = $("mg-name").value.trim() || rec.name;
+    rec.color = $("mg-color").value;
+    rec.label = $("mg-label").value;
+    $("mg-save").disabled = true;
+    P.put(rec).then(function () {
+      $("mg-save").disabled = false;
+      msg("mg-save-msg", T("'{name}' 을 저장했다. 지도의 개인 레이어에 뜬다.", { name: rec.name }), "good");
+      pending = null;
+      requestPersist(false);
+    }).catch(function (e) {
+      $("mg-save").disabled = false;
+      msg("mg-save-msg", T("저장하지 못했다 — {why}", { why: e && e.message ? e.message : e }), "bad");
+    });
+  });
+  $("mg-discard").addEventListener("click", function () {
+    pending = null;
+    $("mg-preview").hidden = true;
+  });
+
+  // ── 예시 ────────────────────────────────────────────────────────
+
+  var SAMPLE = {
+    name: T("예시 — 내 시료 위치"),
+    source: T("손으로 적은 예시"),
+    columns: [
+      { key: "name", label: T("시료 번호"), type: "string" },
+      { key: "rock", label: T("암석"), type: "string" },
+      { key: "age_ma", label: T("연대 (Ma)"), type: "number", note: T("U-Pb 저어콘") },
+    ],
+  };
+  function sampleLayer(kind) {
+    var feats = kind === "point" ? [
+      { id: "S-01", geometry: { type: "Point", coordinates: [127.0276, 37.4979] }, properties: { name: "S-01", rock: T("화강암"), age_ma: 172.4 } },
+      { id: "S-02", geometry: { type: "Point", coordinates: [128.5912, 35.8714] }, properties: { name: "S-02", rock: T("편마암"), age_ma: null } },
+      { id: "S-03", geometry: null, properties: { name: "S-03", rock: T("사암"), age_ma: null } },
+    ] : [
+      { id: "A", geometry: { type: "Polygon", coordinates: [[[126.9, 37.5], [127.1, 37.5], [127.1, 37.6], [126.9, 37.6], [126.9, 37.5]]] },
+        properties: { name: "A", rock: T("화강암"), age_ma: 172.4 } },
+    ];
+    return {
+      name: SAMPLE.name, kind: kind, color: P.DEFAULT_COLOR,
+      meta: { name: SAMPLE.name, source: SAMPLE.source, label: "name", created: new Date().toISOString().slice(0, 10) },
+      columns: SAMPLE.columns,
+      features: feats.map(function (f) { return { type: "Feature", id: f.id, geometry: f.geometry, properties: f.properties }; }),
+    };
+  }
+  document.querySelectorAll("[data-sample]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var bits = b.dataset.sample.split("-");
+      var layer = sampleLayer(bits[0]);
+      if (bits[1] === "csv") download("gsm-sample-" + bits[0] + ".csv", P.toCSV(layer), "text/csv;charset=utf-8");
+      else download("gsm-sample-" + bits[0] + ".json", JSON.stringify(P.toGeoJSON(layer), null, 1), "application/json");
+    });
+  });
+
+  // ── 저장 자료 관리 ──────────────────────────────────────────────
+
+  function renderStored() {
+    P.list().then(function (layers) {
+      $("mg-count").textContent = layers.length;
+      var table = $("mg-layers");
+      table.innerHTML = "";
+      if (!layers.length) {
+        table.innerHTML = '<tbody><tr><td class="empty">' + esc(T("저장한 개인 레이어가 없다")) + "</td></tr></tbody>";
+      } else {
+        table.innerHTML = "<thead><tr><th></th><th>" + [T("이름"), T("종류"), T("행"), T("원본 파일"), T("반입한 날"), T("크기"), ""]
+          .map(esc).join("</th><th>") + "</th></tr></thead>";
+        var body = el("tbody");
+        layers.forEach(function (rec) { body.appendChild(layerRow(rec)); });
+        table.appendChild(body);
+      }
+      renderUsage();
+    }).catch(function (e) {
+      msg("mg-stored-msg", (e && e.message) || String(e), "bad");
+    });
+    renderPrefs();
+  }
+
+  function layerRow(rec) {
+    var tr = el("tr");
+
+    var vis = el("input");
+    vis.type = "checkbox";
+    vis.checked = rec.visible !== false;
+    vis.title = T("지도에 보인다");
+    vis.addEventListener("change", function () { rec.visible = vis.checked; P.put(rec); });
+    var c0 = el("td"); c0.appendChild(vis); tr.appendChild(c0);
+
+    var nameCell = el("td", "mg-name-cell");
+    var color = el("input");
+    color.type = "color";
+    color.value = rec.color || P.DEFAULT_COLOR;
+    color.title = T("색");
+    color.addEventListener("change", function () { rec.color = color.value; P.put(rec); });
+    var name = el("input");
+    name.type = "text";
+    name.value = rec.name;
+    name.title = T("이름을 고친다");
+    name.addEventListener("change", function () {
+      rec.name = name.value.trim() || rec.name;
+      name.value = rec.name;
+      P.put(rec);
+    });
+    nameCell.appendChild(color);
+    nameCell.appendChild(name);
+    tr.appendChild(nameCell);
+
+    tr.appendChild(el("td", "", kindText(rec.kind)));
+    tr.appendChild(el("td", "mono", rec.drawn === rec.count ? String(rec.count) : T("{n} (좌표 {m})", { n: rec.count, m: rec.drawn })));
+    tr.appendChild(el("td", "", rec.file ? rec.file.name : ""));
+    tr.appendChild(el("td", "mono", localTime(rec.imported)));
+    tr.appendChild(el("td", "mono", bytes(P.sizeOf(rec))));
+
+    var acts = el("td", "mg-row-acts");
+    var json = el("button", "btn quiet", "JSON");
+    json.type = "button";
+    json.title = T("양식 그대로 내려받는다");
+    json.addEventListener("click", function () {
+      download(fileStem(rec.name) + ".json", JSON.stringify(P.toGeoJSON(rec), null, 1), "application/json");
+    });
+    var csv = el("button", "btn quiet", "CSV");
+    csv.type = "button";
+    csv.title = T("양식 그대로 내려받는다");
+    csv.addEventListener("click", function () {
+      download(fileStem(rec.name) + ".csv", P.toCSV(rec), "text/csv;charset=utf-8");
+    });
+    var del = el("button", "btn quiet danger", "×");
+    del.type = "button";
+    del.title = T("지운다");
+    del.addEventListener("click", function () {
+      if (!confirm(T("'{name}' 을 이 브라우저에서 지운다. 되살릴 수 없다.", { name: rec.name }))) return;
+      P.remove(rec.id).then(renderStored);
+    });
+    [json, csv, del].forEach(function (b) { acts.appendChild(b); });
+    tr.appendChild(acts);
+    return tr;
+  }
+
+  function renderUsage() {
+    var est = navigator.storage && navigator.storage.estimate;
+    if (!est) { $("mg-usage").textContent = ""; return; }
+    navigator.storage.estimate().then(function (e) {
+      $("mg-usage").textContent = T("이 사이트가 쓰는 저장소 {used} / 한도 {quota}", { used: bytes(e.usage || 0), quota: bytes(e.quota || 0) });
+    });
+    if (navigator.storage.persisted) {
+      navigator.storage.persisted().then(function (yes) {
+        $("mg-persist-state").textContent = yes ? T("지우지 않게 해 두었다") : T("공간이 모자라면 브라우저가 지울 수 있다");
+        $("mg-persist").hidden = yes;
+      });
+    }
+  }
+
+  function requestPersist(loud) {
+    if (!navigator.storage || !navigator.storage.persist) {
+      if (loud) msg("mg-stored-msg", T("이 브라우저는 청할 수 없다"), "bad");
+      return;
+    }
+    navigator.storage.persist().then(function (ok) {
+      if (loud) msg("mg-stored-msg", ok ? T("지우지 않게 해 두었다") : T("브라우저가 받아 주지 않았다 — 즐겨찾기에 넣거나 자주 들어오면 받아 준다"), ok ? "good" : "bad");
+      renderUsage();
+    });
+  }
+  $("mg-persist").addEventListener("click", function () { requestPersist(true); });
+
+  $("mg-clear").addEventListener("click", function () {
+    if (!confirm(T("개인 레이어를 모두 이 브라우저에서 지운다. 되살릴 수 없다."))) return;
+    P.clear().then(renderStored);
+  });
+
+  // ── 이 브라우저의 설정 (localStorage gsm.*) ─────────────────────
+
+  var PREF_NAMES = [
+    [/^gsm\.(theme|font|size|labs)$/, T("모양 고르기")],
+    [/^gsm\.regions?$/, T("지역 탭")],
+    [/^gsm\.layers/, T("켠 레이어")],
+    [/^gsm\.view/, T("보던 자리")],
+    [/^gsm\.basemap/, T("배경지도")],
+    [/^gsm\.crs$/, T("좌표계")],
+    [/^gsm\.pointsets\.off$/, T("끈 점묶음")],
+    [/^gsm\.panelFolded$/, T("패널 접기")],
+    [/^gsm\.attitudes$/, T("자세 기호")],
+    [/^gsm\.manage\./, T("관리 화면")],
+    [/^gsm\.3d\./, T("3D")],
+    [/^gsm\.earth\./, T("온 지구")],
+    [/^gsm\.moon\./, T("달")],
+    [/^gsm\.mars\./, T("화성")],
+  ];
+  function prefName(key) {
+    for (var i = 0; i < PREF_NAMES.length; i++) if (PREF_NAMES[i][0].test(key)) return PREF_NAMES[i][1];
+    return "";
+  }
+  function prefKeys() {
+    var keys = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (/^gsm\./.test(k)) keys.push(k);
+      }
+    } catch (e) { /* 사생활 모드 */ }
+    return keys.sort();
+  }
+
+  function renderPrefs() {
+    var table = $("mg-prefs");
+    var keys = prefKeys();
+    table.innerHTML = "";
+    if (!keys.length) {
+      table.innerHTML = '<tbody><tr><td class="empty">' + esc(T("남긴 설정이 없다")) + "</td></tr></tbody>";
+      return;
+    }
+    table.innerHTML = "<thead><tr><th>" + [T("무엇"), T("열쇠"), T("값"), ""].map(esc).join("</th><th>") + "</th></tr></thead>";
+    var body = el("tbody");
+    keys.forEach(function (k) {
+      var v = "";
+      try { v = localStorage.getItem(k) || ""; } catch (e) { /* 사생활 모드 */ }
+      var tr = el("tr");
+      tr.appendChild(el("td", "", prefName(k)));
+      tr.appendChild(el("td", "mono", k));
+      var val = el("td", "mono mg-val", v.length > 80 ? v.slice(0, 80) + "…" : v);
+      val.title = v;
+      tr.appendChild(val);
+      var td = el("td", "mg-row-acts");
+      var del = el("button", "btn quiet danger", "×");
+      del.type = "button";
+      del.title = T("지운다");
+      del.addEventListener("click", function () {
+        try { localStorage.removeItem(k); } catch (e) { /* 사생활 모드 */ }
+        renderPrefs();
+      });
+      td.appendChild(del);
+      tr.appendChild(td);
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+  }
+
+  $("mg-prefs-clear").addEventListener("click", function () {
+    if (!confirm(T("이 브라우저에 남긴 대돌여지도 설정을 모두 지운다. 지도는 처음 모습으로 뜬다."))) return;
+    prefKeys().forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* 사생활 모드 */ } });
+    renderPrefs();
+  });
+
+  P.onChange(function () { if ($("tab-stored").classList.contains("on")) renderStored(); });
+
+  var first = "import";
+  try { first = localStorage.getItem(TAB_KEY) || "import"; } catch (e) { /* 사생활 모드 */ }
+  showTab(/^(import|stored)$/.test(first) ? first : "import");
+})();

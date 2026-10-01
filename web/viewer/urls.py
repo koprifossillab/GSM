@@ -8,6 +8,7 @@ app_name = "viewer"
 urlpatterns = [
     path("", views.intro_view, name="intro"),
     path("map/", views.map_view, name="map"),
+    path("manage/", views.manage_view, name="manage"),
     path("healthz/", views.healthz, name="healthz"),
     path("3d/", views.map3d_view, name="map3d"),
     path("moon/", views.moon_view, name="moon"),

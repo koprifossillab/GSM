@@ -250,7 +250,7 @@
   var SHEET_LON = 15 / 60;
   var SHEET_LAT = 10 / 60;
 
-  var map, popupOverlay, pointLayerGroup;
+  var map, popupOverlay, pointLayerGroup, personalGroup;
   var tempSource, tempLayer, measureSource, measureLayer, foundSource, foundLayer;
   var rangeSource, rangeLayer, rangeSeq = 0;
   var mode = "info", drawInteraction = null, tempSeq = 0, lastMeasure = "";
@@ -1161,6 +1161,7 @@
 
   function initMap() {
     pointLayerGroup = new ol.layer.Group({ layers: [] });
+    personalGroup = new ol.layer.Group({ layers: [] });
 
     // 재는 것과 찍은 점. **어느 것도 저장하지 않는다** — 새로 고치면 사라진다.
     // 점묶음(`PointSet`)과 다른 자리다. 저쪽은 올린 자료라 남고, 이쪽은
@@ -1178,7 +1179,7 @@
 
     map = new ol.Map({
       target: "map",
-      layers: [pointLayerGroup, rangeLayer, measureLayer, tempLayer, foundLayer],
+      layers: [pointLayerGroup, personalGroup, rangeLayer, measureLayer, tempLayer, foundLayer],
       view: makeView(regionProj()),
       // 축척 막대는 제 자리(왼쪽 아래)에 두면 좌표 막대가 덮는다.
       // 그래서 좌표 막대 바로 위의 칸에 붙인다.
@@ -1324,6 +1325,7 @@
     pointLayerGroup.getLayers().clear();
     pointLayers = {};
     renderPointSets();
+    drawPersonal();
     // 나란히 보기의 오른쪽 지도는 같은 보기를 나눠 쓴다
     if (map2) map2.setView(map.getView());
     showProjection(true);
@@ -1397,6 +1399,7 @@
       map.getLayers().insertAt(baseCount + index, entry.layer);
     });
     pointLayerGroup.setZIndex(500);
+    personalGroup.setZIndex(520);
     rangeLayer.setZIndex(550);
     measureLayer.setZIndex(600);
     tempLayer.setZIndex(700);
@@ -3446,6 +3449,7 @@
 
     var parts = [];
     var pointSeen = {};     // 점 레이어마다 몇 개를 올렸나 (pointPart)
+    var personalSeen = {};  // 개인 레이어마다 몇 개를 올렸나 (personalPart)
 
     // 내 점이 먼저다 — 눌러서 맞힌 것이 분명하기 때문이다
     map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
@@ -3484,6 +3488,11 @@
         });
         return;
       }
+      if (feature.get("_개인")) {
+        var own = personalPart(feature, personalSeen);
+        if (own) parts.push(own);
+        return;
+      }
       parts.push({ title: feature.get("_점묶음") || T("내 자료"), props: plain(feature.getProperties()) });
     }, {
       hitTolerance: 5,
@@ -3491,6 +3500,13 @@
       layerFilter: function (layer) {
         return layer !== foundLayer && layer !== measureLayer && layer !== rangeLayer;
       },
+    });
+
+    Object.keys(personalSeen).forEach(function (id) {
+      var over = personalSeen[id].n - PERSONAL_POPUP_MAX;
+      if (over > 0) {
+        parts.push({ title: personalSeen[id].name, props: { "…": T("같은 자리에 {n}건 더 있다 — 관리 화면에서 내려받아 본다", { n: over }) } });
+      }
     });
 
     // 벡터 레이어는 위에서 이미 읽었다 — 서버에 속성을 다시 묻지 않는다
@@ -3803,6 +3819,154 @@
     document.getElementById("edge-w").textContent = both ? pair(left) : lon(left[0]);
     document.getElementById("edge-e").textContent = both ? pair(right) : lon(right[0]);
   }
+
+  // ── 개인 레이어 (wetherilli P08·118) ─────────────────────────────
+  //
+  // 관리 화면(`manage/`)에서 반입해 **이 브라우저의 IndexedDB 에 둔 것**이다(`personal.js`).
+  // 서버로 가지 않는다 — 점묶음(`PointSet`)과 다른 자리다. 켜고 끄기·색·이름도 그 기록에 적어
+  // 관리 화면과 이 창이 같은 것을 본다. 저쪽에서 바꾸면 여기로 알림이 온다(BroadcastChannel).
+
+  var Personal = window.GSMPersonal;
+  var personal = [];             // 저장소의 기록
+  var personalLayers = {};       // 기록 id -> ol 레이어
+  //: 한 자리에서 레이어마다 팝업에 올리는 수. 지역 대표점에 수백 건이 겹치기도 한다(nkfcluster)
+  var PERSONAL_POPUP_MAX = 8;
+
+  function loadPersonal() {
+    if (!Personal) return;
+    Personal.setTranslator(T);
+    Personal.list().then(function (rows) {
+      personal = rows;
+      drawPersonal();
+    }).catch(function () {
+      personal = [];
+      drawPersonal();
+    });
+  }
+
+  /** 기록마다 ol 레이어를 새로 만든다. 투영이 바뀔 때도 이것을 부른다 — 위경도에서 다시 옮긴다. */
+  function drawPersonal() {
+    if (!personalGroup) return;
+    personalGroup.getLayers().clear();
+    personalLayers = {};
+    var format = new ol.format.GeoJSON({ featureProjection: viewProj() });
+    personal.forEach(function (rec) {
+      var labels = {};
+      (rec.columns || []).forEach(function (c) { labels[c.key] = c.label || c.key; });
+      var features = [];
+      rec.features.forEach(function (f, i) {
+        if (!f.geometry) return;
+        var feature;
+        try { feature = format.readFeature({ type: "Feature", geometry: f.geometry, properties: {} }); } catch (e) { return; }
+        // 속성은 한 덩이로 붙인다 — 원본 열 이름이 ol 의 것(geometry 따위)과 부딪히지 않게
+        feature.setProperties({ _개인: rec.id, _props: f.properties, _fid: f.id === undefined ? i + 1 : f.id });
+        if (rec.label && f.properties[rec.label] !== null && f.properties[rec.label] !== undefined) {
+          feature.set("이름표", f.properties[rec.label]);
+        }
+        features.push(feature);
+      });
+      var layer = new ol.layer.Vector({
+        source: new ol.source.Vector({ features: features }),
+        style: personalStyle(rec.color || Personal.DEFAULT_COLOR),
+        declutter: true,
+        visible: rec.visible !== false,
+      });
+      layer.set("gsmPersonal", { id: rec.id, name: rec.name, labels: labels });
+      personalLayers[rec.id] = layer;
+      personalGroup.getLayers().push(layer);
+    });
+    renderPersonal();
+  }
+
+  /** 개인 레이어의 모양 — 점묶음(`pointStyle`)과 같은 색을 쓰되 음영을 달리한다.
+   *  점은 네모에 어두운 테와 흐린 그림자, 면은 빗금 대신 더 짙은 바탕과 끊긴 테. */
+  function personalStyle(color) {
+    // 겹침 거르기(declutter)는 이름표에만 건다 — 기호까지 거르면 한 점의 그림자와 네모가 서로를 지운다
+    var shadow = new ol.style.Circle({ radius: 9, fill: new ol.style.Fill({ color: "rgba(0, 0, 0, 0.28)" }),
+                                       displacement: [1.5, -1.5], declutterMode: "none" });
+    var dot = new ol.style.RegularShape({
+      points: 4, radius: 6.5, angle: Math.PI / 4, declutterMode: "none",
+      fill: new ol.style.Fill({ color: color }),
+      stroke: new ol.style.Stroke({ color: "rgba(20, 12, 4, 0.85)", width: 1.6 }),
+    });
+    var line = new ol.style.Stroke({ color: color, width: 2.2, lineDash: [6, 4] });
+    var edge = new ol.style.Stroke({ color: "rgba(20, 12, 4, 0.55)", width: 4.5 });
+    var area = new ol.style.Fill({ color: hexAlpha(color, 0.32) });
+    var base = pointStyle(color);
+    return function (feature, resolution) {
+      var text = base(feature, resolution).getText();
+      if (feature.getGeometry().getType().indexOf("Point") >= 0) {
+        return [new ol.style.Style({ image: shadow }), new ol.style.Style({ image: dot, text: text })];
+      }
+      return [new ol.style.Style({ stroke: edge }), new ol.style.Style({ stroke: line, fill: area, text: text })];
+    };
+  }
+
+  /** 팝업 한 덩이. 열 이름은 반입한 양식의 label 로 적는다. */
+  function personalPart(feature, seen) {
+    var id = feature.get("_개인");
+    var layer = personalLayers[id];
+    var info = layer && layer.get("gsmPersonal");
+    if (!info) return null;
+    seen[id] = seen[id] || { n: 0, name: info.name };
+    seen[id].n += 1;
+    if (seen[id].n > PERSONAL_POPUP_MAX) return null;
+    var props = {};
+    var src = feature.get("_props") || {};
+    Object.keys(src).forEach(function (key) {
+      var value = src[key];
+      if (value === null || value === undefined || value === "") return;
+      if (/^https?:\/\//i.test(String(value))) value = { text: "", links: [{ url: String(value), label: T("열기") }] };
+      props[info.labels[key] || key] = value;
+    });
+    return { title: info.name, props: props };
+  }
+
+  function renderPersonal() {
+    var host = document.getElementById("personal-list");
+    if (!host) return;
+    setCount("count-personal", personal.length);
+    host.innerHTML = "";
+    if (!personal.length) {
+      host.innerHTML = '<li class="empty">' + T("관리 화면에서 JSON·CSV 를 반입한다 — 이 브라우저에만 남는다") + "</li>";
+      return;
+    }
+    personal.forEach(function (rec) {
+      var li = document.createElement("li");
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = rec.visible !== false;
+      box.addEventListener("change", function () {
+        rec.visible = box.checked;
+        if (personalLayers[rec.id]) personalLayers[rec.id].setVisible(rec.visible);
+        Personal.put(rec);
+      });
+      var swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = rec.color || Personal.DEFAULT_COLOR;
+      var name = document.createElement("span");
+      name.className = "ps-name";
+      name.textContent = rec.name;
+      var count = document.createElement("span");
+      count.className = "ps-count";
+      count.textContent = (rec.kind === "polygon" ? T("면 {n}", { n: rec.drawn }) : T("{n}점", { n: rec.drawn })) +
+        (rec.count > rec.drawn ? " · " + T("좌표 없음 {n}", { n: rec.count - rec.drawn }) : "");
+      var zoom = iconButton("⊙", T("이 자료로 범위를 맞춘다"), false, function () {
+        var source = personalLayers[rec.id] && personalLayers[rec.id].getSource();
+        var extent = source && source.getExtent();
+        if (extent && isFinite(extent[0])) {
+          map.getView().fit(extent, { padding: [40, 40, 60, 40], maxZoom: 14, duration: 300 });
+        }
+      });
+      var label = document.createElement("span");
+      label.className = "ps-text";
+      label.append(name, count);
+      li.append(box, swatch, label, zoom);
+      host.appendChild(li);
+    });
+  }
+
+  if (Personal) Personal.onChange(loadPersonal);
 
   // ── 점묶음 ──────────────────────────────────────────────────────
 
@@ -5004,6 +5168,7 @@
   renderCatalog();
   renderActive();
   renderPointSets();
+  loadPersonal();
   wireTools();
   wireSettings();
   wireTabs();
