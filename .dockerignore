@@ -59,6 +59,8 @@ ibcso/
 kopri/
 # 화성 크레이터 목록을 구운 것 (devlog 067) — 운영은 /srv/GSM/db/mars/
 mars/
+# 수성 지질도를 구운 것 (wetherilli 144) — 운영은 /srv/GSM/db/mercury/
+mercury/
 # 자료 파일만 — `geo3al.*` 로 쓰면 코드(`web/viewer/geo3al.py`)까지 빠져 컨테이너가 못 뜬다
 **/geo3al.shp
 **/geo3al.shx

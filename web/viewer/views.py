@@ -28,7 +28,7 @@ from gsmweb.version import VERSION
 
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
-               marscraters, marsmap, zhurong)
+               marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import emodnet, gtk, linked, ngu
 from .i18n import msg
@@ -1211,6 +1211,63 @@ def mercury_dem(request, z, x, y):
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
     return response
+
+
+@require_GET
+def mercury_tile(request, layer, z, x, y):
+    """수성 지질도 타일 — `mercury/tiles/<units|lines>/<z>/<x>/<y>.png` (wetherilli 144). 우리가 굽는다.
+    극 평면은 화면이 경위도 타일을 옮겨 그린다 — 극 타일을 따로 굽지 않는다."""
+    z, x, y = int(z), int(x), int(y)
+    if not mercurymap.knows(layer) or not trek.valid_tile(z, x, y, mercurymap.MAX_ZOOM):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not mercurymap.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MERCURY_GEOLOGY), store=False)
+    key = tilecache.key_text("mercurymap", f"{mercurymap.RENDERER}/{layer}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = mercurymap.render_tile(layer, z, x, y)
+    except (mercurymap.MercuryMapError, sqlite3.Error, OSError) as exc:
+        log.warning("수성 지질도 타일을 굽지 못했다 (%s/%s/%s/%s): %s", layer, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MERCURY_GEOLOGY), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def mercury_info(request):
+    """`?lon=-31.5&lat=-11.3` — 누른 자리의 지질 단위. 값(기호·무리·설명)은 원도의 것이라 옮기지 않는다."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
+    if not mercurymap.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("수성 지질도 파일이 서버에 없다"), lang)})
+    try:
+        hit = mercurymap.identify(lon, lat)
+    except (mercurymap.MercuryMapError, sqlite3.Error) as exc:
+        log.warning("수성 지질도 속성을 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("속성을 받지 못했다"), lang), "rows": []}, status=500)
+    if not hit:
+        return JsonResponse({"rows": [], "note": i18n.t(msg("마리너 10 이 찍지 못해 지질도가 없는 곳이다"), lang)})
+    grade = ""
+    if hit["crater_class"]:
+        grade = i18n.t(msg("c{n} — c1 가장 닳음, c5 가장 또렷함", n=hit["crater_class"]), lang)
+    source = f"{hit['map']} ({hit['quad']}) · {hit['by']} {hit['year']}" if hit["map"] else hit["quad"]
+    rows = [("단위", hit["unit"]), ("무리", hit["group"]), ("크레이터 등급", grade),
+            ("설명", hit["description"]), ("원도", source), ("축척", "1:5,000,000"),
+            ("지은이", mercurymap.CITATION)]
+    return JsonResponse({"unit": hit["unit"], "color": hit["color"], "rows": [
+        [i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
+
+
+@require_GET
+def mercury_legend(request):
+    """수성 지질 단위(갈래로 묶은 것)와 구조선 갈래."""
+    return JsonResponse(mercurymap.legend(i18n.lang_of(request)))
 
 
 @require_GET

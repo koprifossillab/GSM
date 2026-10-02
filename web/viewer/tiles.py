@@ -36,6 +36,8 @@ NO_MOON = "GSM: no lunar original maps file"
 NO_MARS_CRATERS = "GSM: no Mars crater file"
 #: 화성 옛 지질도를 아직 굽지 않았다 — marsmap.py (068)
 NO_MARS_ORIGINALS = "GSM: no Mars original maps file"
+#: 수성 지질도를 아직 굽지 않았다 — mercurymap.py (wetherilli 144)
+NO_MERCURY_GEOLOGY = "GSM: no Mercury geologic map file"
 
 
 def notice_tile(width: int, height: int, message: str) -> bytes:

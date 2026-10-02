@@ -55,3 +55,5 @@ geo3al.dbf
 /kopri/
 # 화성 크레이터 목록을 구운 것 — 기본 자리 <DB 옆>/mars/. 51 MB, 원본은 NAS 에 있다 (devlog 067)
 /mars/
+# 수성 지질도를 구운 것 — 기본 자리 <DB 옆>/mercury/. 5 MB, 원본은 NAS 의 sources/mercury/ (wetherilli 144)
+/mercury/

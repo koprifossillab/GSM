@@ -291,8 +291,6 @@ EN = {
         "Tilt (0° straight down) and heading (0° Mercury's north) seen from the point at screen centre",
     "표고 채우기 — MESSENGER 표고에서 점마다 높이를 읽는다 (반지름 2 439.4 km 구)":
         "Fill elevation — read each point's height from MESSENGER elevation (2,439.4 km sphere)",
-    "수성 지질도(USGS 1:500만 도폭, 1984–1990)는 준비 중이다 — Trek 의 그림이 비어 있어 원본을 우리가 굽는다.":
-        "The Mercury geologic map (USGS 1:5M quadrangles, 1984–1990) is on its way — Trek's tiles are empty, so we are rendering the originals ourselves.",
     "화성에 얹은 내 것": "Yours on Mars",
     # 화성 크레이터 (067)
     "크레이터 (Robbins 2012)": "Craters (Robbins 2012)",
@@ -470,6 +468,11 @@ EN = {
     "표고 채우기 — MOLA–HRSC 표고에서 점마다 높이를 읽는다 (화성 기준면)":
         "Fill elevation — read each point's height from MOLA–HRSC elevation (Mars areoid)",
     "화성 지질 (USGS 1:2000만, 2014)": "Mars geology (USGS 1:20M, 2014)",
+    "수성 지질 (USGS 1:500만 도폭, 1980–1990)": "Mercury geology (USGS 1:5M quadrangles, 1980–1990)",
+    "구조선 — 급사면·능선·단층·분지 고리": "Structures — scarps, ridges, faults, basin rings",
+    "c{n} — c1 가장 닳음, c5 가장 또렷함": "c{n} — c1 most degraded, c5 freshest",
+    "마리너 10 이 찍지 못해 지질도가 없는 곳이다": "No geologic map here — Mariner 10 did not image this area",
+    "수성 지질도 파일이 서버에 없다": "The Mercury geologic map file is not on the server",
     "착륙선·로버 지점": "Lander and rover sites",
     "로버 주행 경로": "Rover traverses",
     "{name} 주행 경로": "{name} traverse",
@@ -1720,6 +1723,7 @@ PROP_EN = {
     "단위": "Unit",
     "원도": "Source map",
     "무리": "Group",
+    "크레이터 등급": "Crater class",
     "지표 특징": "Surface feature",
     "문헌": "Reference",
     "GEUS 상세": "GEUS details",
