@@ -196,6 +196,7 @@
 | wetherilli 154 | 2026-10-02 | [그때의 자리 — GPlates 와 견준 회귀 시험, 캡션 한 줄](20261002_wetherilli_154_paleo_gws_check.md) |
 | wetherilli 152 | 2026-10-02 | [주소만 적힌 CSV 를 점묶음으로 — 화면이 50 줄씩 나눠 VWorld 에 묻는다](20261002_wetherilli_152_address_csv.md) |
 | wetherilli 149 | 2026-10-02 | [공개용 저장소 GSM-open — 소스 링크를 개발 저장소에서 떼어 둔다](20261002_wetherilli_149_open_source_repo.md) |
+| wetherilli 158 | 2026-10-02 | [캐시의 빈 곳 — 3D 편 것을 담고, 속성 JSON 에 헤더, prewarm 이 KOPRI·Trek 을](20261002_wetherilli_158_cache_more.md) |
 | wetherilli 157 | 2026-10-02 | [그린란드 — 다이아몬드 탐사 자료의 시추공·지시광물·석류석·탐사 구역](20261002_wetherilli_157_greenland_diamonds.md) |
 | wetherilli 156 | 2026-10-02 | [VWorld 측정망 점을 벡터로, AWS 음영·경사와 국토지리원 주제 타일을 배경으로](20261002_wetherilli_156_vworld_points_basemaps.md) |
 | wetherilli 155 | 2026-10-02 | [일본의 찾기 칸 — 국토지리원 주소·지명 검색을 브라우저가 곧장](20261002_wetherilli_155_japan_search.md) |
