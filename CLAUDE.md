@@ -79,7 +79,7 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 그 라이선스 전문을 `docs/licenses/` 에 두고 README "라이선스와 자료의 출처" 에 한 줄 적는다 — AGPL 과
 어울리지 않는 것(비상업 조건이 붙은 코드 따위)은 옮기지 않는다. 고친 판을 밖에 열 때는 쓰는 사람이
 소스로 갈 길이 있어야 한다(AGPL 13조). **그 길은 공개용 저장소 `koprifossillab/GSM-open` 이다**(2026-10-02, wetherilli 149) —
-판마다 그 태그의 소스를 한 커밋으로 민다(`deploy/publish_open.sh <태그>`). 소개 화면의 "소스" 링크(`settings.SOURCE_URL`)가
+판마다 그 태그의 소스를 한 커밋으로 민다(`deploy/publish_open.sh <태그>`, `.claude`·`.github` 은 뺀다). 소개 화면의 "소스" 링크(`settings.SOURCE_URL`)가
 거기를 가리킨다. 개발 저장소(`koprifossillab/GSM`)는 나중에 비공개로 돌릴 수 있게 링크에서 떼어 두었다
 
 ## 인증키
