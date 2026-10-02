@@ -49,6 +49,11 @@ body[data-theme="moon"] {
   --ink: #ededed; --soft: #b5b5b8; --faint: #7a7a7f;
   --accent: #f2f2f2; --accent-2: #bdbdbd; --on-accent: #0a0a0b;
 }
+body[data-theme="mercury"] {
+  --bg: #120f0d; --raise: #1f262e; --line: #2c3640;
+  --ink: #e8ecf0; --soft: #aeb8c2; --faint: #75818c;
+  --accent: #e3c38a; --accent-2: #b8935a; --on-accent: #14181d;
+}
 body[data-theme="mars"] {
   --bg: #120805; --raise: #2a170e; --line: #4a2a1a;
   --ink: #f7e6dc; --soft: #d7b4a1; --faint: #9a7462;
@@ -253,6 +258,7 @@ html[lang="en"] .title h1 { font-size: clamp(46px, 5.4vw, 82px); }
 .chips.regions li.polar { color: #bfe9ff; border-color: rgba(125, 205, 245, .7); background: rgba(70, 150, 200, .16); }
 .chips.regions li.moon { border-color: #bdbdbd; }
 .chips.regions li.mars { border-color: #c1552a; }
+.chips.regions li.mercury { border-color: #b8935a; }
 .tour {
   display: inline-flex; gap: 8px; align-items: center; margin-top: 22px;
   padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 600;
@@ -365,7 +371,7 @@ html[lang="en"] .title h1 { font-size: clamp(46px, 5.4vw, 82px); }
 .cats-earth { display: grid; grid-template-columns: 5fr 2fr; gap: 0 22px; }
 .cats-earth .cat.earth .doors { grid-template-columns: repeat(5, 1fr); }
 .cats-earth .cat.polar .doors { grid-template-columns: repeat(2, 1fr); }
-.cats-space { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+.cats-space { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 22px; }
 .doors { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
 .door {
   display: grid; text-decoration: none; border-radius: 14px; overflow: hidden;
@@ -383,6 +389,8 @@ html[lang="en"] .title h1 { font-size: clamp(46px, 5.4vw, 82px); }
 .cat.moon .door b { color: #e8e8e8; }
 .cat.mars .door { border-color: #5a2f1c; }
 .cat.mars .door b { color: #f6a36a; }
+.cat.mercury .door { border-color: #3a3328; }
+.cat.mercury .door b { color: #e3c38a; }
 .credit { margin-top: 56px; font-size: 12.5px; color: var(--faint); max-width: 900px; }
 .credit p { margin: 0 0 8px; }
 

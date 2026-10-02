@@ -161,7 +161,7 @@
     try { gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: true }); } catch (e) { /* 없음 */ }
     this.gl = gl;
     var self = this;
-    var names = ["earth", "moon", "mars"];
+    var names = ["earth", "moon", "mars", "mercury"];
     var left = names.length;
     this.imgs = {};
     names.forEach(function (name) {
@@ -267,6 +267,7 @@
           { body: "earth", x: w * .58, y: h * .26 - lift, r: r, spin: now / 90, tilt: .41, dim: 1 },
           { body: "moon", x: w * .14, y: h * .14 - lift * 1.4, r: r * .2, spin: now / 140, tilt: .1, dim: 1 },
           { body: "mars", x: w * .12, y: h * .42 - lift * .6, r: r * .12, spin: now / 70, tilt: .44, dim: .95 },
+          { body: "mercury", x: w * .9, y: h * .07 - lift * 1.2, r: r * .07, spin: now / 160, tilt: 0, dim: .95 },
         ];
       }
       var R = Math.min(h * .41, w * .28);
@@ -274,19 +275,25 @@
         { body: "earth", x: w * .73, y: h * .54 - lift, r: R, spin: now / 90, tilt: .41, dim: 1 },
         { body: "moon", x: w * .9, y: h * .2 - lift * 1.4, r: R * .2, spin: now / 140, tilt: .1, dim: 1 },
         { body: "mars", x: w * .46, y: h * .86 - lift * .6, r: R * .13, spin: now / 70, tilt: .44, dim: .95 },
+        { body: "mercury", x: w * .58, y: h * .12 - lift * 1.2, r: R * .08, spin: now / 160, tilt: 0, dim: .95 },
       ];
     },
     space: function (w, h, p, now) {
-      // 지구가 물러남 · 달이 다가옴 · 화성이 다가옴 — 멈출 자리(⅙·½·⅚)에 닿기 전에 끝나게
-      var a = ease((p - .05) / .3), b = ease((p - .22) / .24), c = ease((p - .56) / .24);
+      // 지구가 물러남 · 달이 다가옴 · 화성이 다가옴 · 수성이 다가옴 — 멈출 자리(⅛·⅜·⅝·⅞)에 닿기 전에 끝나게
+      // (wetherilli 146 — 수성이 넷째 단계로 들어왔다)
+      var a = ease((p - .03) / .22), b = ease((p - .16) / .18), c = ease((p - .42) / .18), d = ease((p - .67) / .18);
       var R = Math.min(h * .4, w * .28);
       return [
         { body: "earth", x: mix(w * .7, w * .1, a), y: mix(h * .5, h * .86, a), r: mix(R, R * .14, a),
           spin: now / 90, tilt: .41, dim: mix(1, .85, a) },
         { body: "moon", x: mix(mix(w * .86, w * .68, b), w * .2, c), y: mix(mix(h * .22, h * .46, b), h * .18, c),
           r: mix(mix(R * .12, R * 1.05, b), R * .2, c), spin: now / 120, tilt: .1, dim: 1 },
-        { body: "mars", x: mix(mix(w * .93, w * .88, b), w * .68, c), y: mix(mix(h * .7, h * .78, b), h * .46, c),
-          r: mix(mix(R * .07, R * .16, b), R * 1.05, c), spin: now / 60, tilt: .44, dim: 1 },
+        { body: "mars", x: mix(mix(mix(w * .93, w * .88, b), w * .68, c), w * .36, d),
+          y: mix(mix(mix(h * .7, h * .78, b), h * .46, c), h * .14, d),
+          r: mix(mix(mix(R * .07, R * .16, b), R * 1.05, c), R * .16, d), spin: now / 60, tilt: .44, dim: 1 },
+        // 수성은 자전이 느리다(공전 두 번에 세 바퀴) — 천천히 돈다
+        { body: "mercury", x: mix(mix(w * .97, w * .9, c), w * .68, d), y: mix(mix(h * .12, h * .2, c), h * .46, d),
+          r: mix(mix(R * .04, R * .1, c), R * 1.05, d), spin: now / 160, tilt: 0, dim: 1 },
       ];
     },
   };

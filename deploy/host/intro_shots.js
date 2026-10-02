@@ -105,6 +105,9 @@ const SHOTS = {
   svalbard3d: { url: ROOT + '3d/?lat=78.92&lon=12.3&z=10.4&region=svalbard&layer=npolar:svalbard_units', wait: 20000 },
   moon: { url: ROOT + 'moon/', wait: 25000 },
   mars: { url: ROOT + 'mars/', wait: 25000 },
+  // 수성 — 지질도(마리너 10 이 찍은 서쪽 반구)가 보이게 서경 100° 쪽에서 연다 (wetherilli 146)
+  mercury: { url: ROOT + 'mercury/', wait: 25000,
+             store: { 'gsm.mercury.view': JSON.stringify({ lon: -100, lat: 5, h: 7200000, heading: 0, pitch: -1.5708 }) } },
   earth: { url: ROOT + 'earth/', wait: 25000 },
 };
 

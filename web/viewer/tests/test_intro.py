@@ -33,14 +33,14 @@ class IntroTests(TestCase):
 
     def test_지도의_갈래는_뿌리_밑이다(self):
         html = self.get("viewer:map")
-        for target in ("earth/", "moon/", "mars/", "3d/"):
+        for target in ("earth/", "moon/", "mars/", "mercury/", "3d/"):
             self.assertIn(f'href="/GSM/{target}"', html)
         self.assertNotIn('href="/GSM/map/earth/"', html)
         # 숨은 차림에서 소개로 돌아간다
         self.assertIn('class="intro-link" href="/GSM/"', html)
 
     def test_달_화성_온지구에서_지구는_지도로(self):
-        for name in ("viewer:moon", "viewer:mars", "viewer:earth"):
+        for name in ("viewer:moon", "viewer:mars", "viewer:mercury", "viewer:earth"):
             html = self.get(name)
             self.assertIn('href="/GSM/map/"', html, name)
 
@@ -68,7 +68,7 @@ class IntroTests(TestCase):
         for lang in ("ko", "en"):
             for name in thumbs:
                 self.assertTrue((SHOTS / lang / "thumb" / name).is_file(), f"{lang}/thumb/{name}")
-        for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "kopri-ci-ko.svg", "kopri-ci-en.svg"):
+        for name in ("globe-earth.webp", "globe-moon.webp", "globe-mars.webp", "globe-mercury.webp", "kopri-ci-ko.svg", "kopri-ci-en.svg"):
             self.assertTrue((SHOTS / name).is_file(), name)
 
     def test_극지_아이콘과_대기_화면(self):

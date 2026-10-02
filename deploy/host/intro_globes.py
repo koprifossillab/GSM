@@ -1,6 +1,6 @@
-"""소개 화면의 둥근 지구·달·화성에 감을 그림(정거원통, 2:1)을 굽는다 (wetherilli 115).
+"""소개 화면의 둥근 지구·달·화성·수성에 감을 그림(정거원통, 2:1)을 굽는다 (wetherilli 115).
 
-    ~/venv/GSM/bin/python deploy/host/intro_globes.py [뿌리 주소] [earth|moon|mars …]     기본 http://localhost/GSM/, 셋 다
+    ~/venv/GSM/bin/python deploy/host/intro_globes.py [뿌리 주소] [earth|moon|mars|mercury …]     기본 http://localhost/GSM/, 넷 다
 
 달(LRO WAC)·화성(Viking) 영상 위에 우리 서버의 지질도를 비치게 얹는다 — 구가 천체처럼 보이면서 지질도의 색이
 드러나게. 지구는 Blue Marble 영상만이다(아래 `earth` 의 까닭). 결과는 `web/viewer/static/viewer/intro/globe-<몸>.webp` 한 장씩이다.
@@ -76,10 +76,17 @@ def mars():
     save(blend(base, stitch(ROOT + "mars/tiles/units/{z}/{x}/{y}.png", 2, 8, 4), .5), "mars")
 
 
+def mercury():
+    # 수성 — MESSENGER 모자이크 위에 USGS 1:500만 지질도(wetherilli 144). 지질도는 마리너 10 이 찍은 반쪽 남짓뿐이다
+    base = stitch("https://trek.nasa.gov/tiles/Mercury/EQ/Mercury_MESSENGER_mosaic_global_250m_2013/1.0.0/default/"
+                  "default028mm/{z}/{y}/{x}.png", 2, 8, 4)
+    save(blend(base, stitch(ROOT + "mercury/tiles/units/{z}/{x}/{y}.png", 2, 8, 4), .5), "mercury")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     only = sys.argv[2:]
-    for job in (earth, moon, mars):
+    for job in (earth, moon, mars, mercury):
         if only and job.__name__ not in only:
             continue
         print(job.__name__)

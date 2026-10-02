@@ -61,10 +61,11 @@
          data-go="map/?region=korea" data-go-label="{% t "한국 지도" %}">
   <div class="stage">
     <canvas class="stars" aria-hidden="true"></canvas>
-    <canvas class="globes" data-scene="title" role="img" aria-label="{% t "둥근 지구와 달, 화성" %}"
+    <canvas class="globes" data-scene="title" role="img" aria-label="{% t "둥근 지구와 달, 화성, 수성" %}"
             data-earth="{% static 'viewer/intro/globe-earth.webp' %}"
             data-moon="{% static 'viewer/intro/globe-moon.webp' %}"
-            data-mars="{% static 'viewer/intro/globe-mars.webp' %}"></canvas>
+            data-mars="{% static 'viewer/intro/globe-mars.webp' %}"
+            data-mercury="{% static 'viewer/intro/globe-mercury.webp' %}"></canvas>
     <div class="title-text">
       <p class="kicker"><img class="kicker-icon" src="{% static 'viewer/emblem-polar.png' %}" alt="" width="22" height="22">{% t "극지연구소 고생물진화연구실" %}</p>
       <h1>{% t "대돌여지도" %}<span>{% if lang == "en" %}대돌여지도{% else %}GREAT STONE MAP{% endif %}</span></h1>
@@ -72,7 +73,7 @@
       <ul class="chips regions" aria-label="{% t "다루는 곳" %}">
         <li>{% t "한국" %}</li><li>{% t "일본" %}</li><li>{% t "동아시아" %}</li>
         <li class="polar">{% t "남극" %}</li><li class="polar">{% t "그린란드" %}</li><li class="polar">{% t "스발바르" %}</li><li class="polar">{% t "얀마옌" %}</li><li class="polar">{% t "북극해" %}</li>
-        <li>{% t "온 지구" %}</li><li class="moon">{% t "달" %}</li><li class="mars">{% t "화성" %}</li>
+        <li>{% t "온 지구" %}</li><li class="moon">{% t "달" %}</li><li class="mars">{% t "화성" %}</li><li class="mercury">{% t "수성" %}</li>
       </ul>
       <ul class="chips feats" aria-label="{% t "할 수 있는 것" %}">
         <li>{% t "지질도 겹쳐 보기" %}</li><li>{% t "눌러 속성 읽기" %}</li><li>{% t "극 평사도법" %}</li>
@@ -88,7 +89,7 @@
          data-go="map/?region=korea" data-go-label="{% t "한국 지도" %}">
   <div class="stage">
     <div class="papers" aria-hidden="true" data-flood="{% static shots|add:'thumb/' %}"
-         data-names="src_kigam src_gsj antarctica svalbard greenland antarctica_close antarctica_dml antarctica_ibcso greenland_geochem greenland_portal svalbard_paper svalbard_glacier jan_mayen korea3d korea3d_wide svalbard3d measure exported korea_geochem korea_marine src_vworld eastasia moon mars earth">
+         data-names="src_kigam src_gsj antarctica svalbard greenland antarctica_close antarctica_dml antarctica_ibcso greenland_geochem greenland_portal svalbard_paper svalbard_glacier jan_mayen korea3d korea3d_wide svalbard3d measure exported korea_geochem korea_marine src_vworld eastasia moon mars mercury earth">
       <figure class="paper lead" style="--x:-34vw;--y:-14vh;--r:-9deg;--t:.03">
         <img src="{% static shots|add:'src_kigam.webp' %}" alt="" style="object-position:62% 40%">
         <figcaption>{% t "도폭은 PDF 한 장씩 — 경계를 넘으면 다른 파일을 엽니다" %}</figcaption>
@@ -310,15 +311,16 @@
   </div>
 </section>
 
-{# ── 우주 — 지구가 물러나고 달·화성이 다가온다 ── #}
-<section class="scene space" id="space" data-steps="3" data-theme="space"
+{# ── 우주 — 지구가 물러나고 달·화성·수성이 다가온다 ── #}
+<section class="scene space" id="space" data-steps="4" data-theme="space"
          data-go="moon/" data-go-label="{% t "달" %}">
   <div class="stage">
     <canvas class="stars" aria-hidden="true"></canvas>
-    <canvas class="globes" data-scene="space" role="img" aria-label="{% t "둥근 지구와 달, 화성" %}"
+    <canvas class="globes" data-scene="space" role="img" aria-label="{% t "둥근 지구와 달, 화성, 수성" %}"
             data-earth="{% static 'viewer/intro/globe-earth.webp' %}"
             data-moon="{% static 'viewer/intro/globe-moon.webp' %}"
-            data-mars="{% static 'viewer/intro/globe-mars.webp' %}"></canvas>
+            data-mars="{% static 'viewer/intro/globe-mars.webp' %}"
+            data-mercury="{% static 'viewer/intro/globe-mercury.webp' %}"></canvas>
     <div class="copy">
       <div class="step-text title" data-step="0">
         <p class="kicker">{% t "그리고" %}</p>
@@ -338,10 +340,18 @@
         <p>{% t "USGS 화성 지질도와 MOLA–HRSC 지형, <b>크레이터 38만 개</b>." %}</p>
         <p class="src">{% t "지질도 USGS · 지형·영상 NASA Trek" %}</p>
       </div>
+      <div class="step-text body" data-step="3" data-theme="mercury" data-go="mercury/" data-go-label="{% t "수성" %}">
+        <img class="body-icon" src="{% static 'viewer/emblem-mercury.png' %}" alt="" width="72" height="72">
+        <p class="kicker">{% t "수성" %}</p>
+        <h2>{% t "해에 가장 가까운 행성의 지질도." %}</h2>
+        <p>{% t "마리너 10 시절의 USGS 1:500만 지질도 아홉 장을 MESSENGER 영상 위에. <b>엽상 급사면</b>과 칼로리스 분지의 고리까지." %}</p>
+        <p class="src">{% t "지질도 USGS · 영상·지형 MESSENGER(NASA Trek)" %}</p>
+      </div>
     </div>
     <figure class="frame inset">
       <img data-step="1" loading="lazy" src="{% static shots|add:'moon.webp' %}" alt="{% t "달 화면 — 둥근 달 위의 USGS 지질도" %}">
       <img data-step="2" loading="lazy" src="{% static shots|add:'mars.webp' %}" alt="{% t "화성 화면 — 둥근 화성 위의 USGS 지질도" %}">
+      <img data-step="3" loading="lazy" src="{% static shots|add:'mercury.webp' %}" alt="{% t "수성 화면 — 둥근 수성 위의 USGS 지질도" %}">
     </figure>
   </div>
 </section>
@@ -408,6 +418,13 @@
       <a class="door wide" href="{{ base }}mars/">
         <img loading="lazy" src="{% static shots|add:'thumb/mars.webp' %}" alt="">
         <b>{% t "화성" %}</b><span>{% t "USGS 화성 지질도 · MOLA–HRSC 지형 · 크레이터 38만 개" %}</span>
+      </a>
+    </div>
+    <div class="cat mercury">
+      <h3><img src="{% static 'viewer/emblem-mercury.png' %}" alt="" width="40" height="40">{% t "수성" %}</h3>
+      <a class="door wide" href="{{ base }}mercury/">
+        <img loading="lazy" src="{% static shots|add:'thumb/mercury.webp' %}" alt="">
+        <b>{% t "수성" %}</b><span>{% t "USGS 1:500만 지질도 · MESSENGER 영상·지형" %}</span>
       </a>
     </div>
   </div>
