@@ -30,7 +30,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import emodnet, linked
+from . import emodnet, gtk, linked, ngu
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1873,6 +1873,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "emodnet":
         # EMODnet 해저 지질(wetherilli 135) — GeoServer 가 3413 도 그려 준다. 북극해·스발바르 탭이 그대로 받는다
         return {"attribution": emodnet.ATTRIBUTION, "projection": "EPSG:3413"}
+    if layer.upstream == "ngu":
+        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
+        return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+    if layer.upstream == "gtk":
+        # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
+        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -1932,7 +1938,7 @@ def catalog_json(request):
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
-                   gsmma.GsmmaError, emodnet.EmodnetError)
+                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -1963,14 +1969,16 @@ class _Door:
                # 대만 지질도(wetherilli 136) — 그림은 4326 WMS, 속성은 지질운 GeoJSON. 문은 gsmma.py 다
                "gsmma": gsmma.DOOR,
                # EMODnet 해저 지질(wetherilli 135) — 북극해. NPI 처럼 3413 으로 곧장 받는다
-               "emodnet": emodnet}
+               "emodnet": emodnet,
+               # 노르웨이·핀란드 기반암(wetherilli 140)
+               "ngu": ngu, "gtk": gtk}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2509,9 +2517,15 @@ def feature_info(request):
             props = gsmma.friendly(props, lang)      # Name → 지층명 …, 시대를 중국어에서 옮긴다
         elif door.name == "emodnet":
             props = emodnet.friendly(props, lang)    # 마흔 남짓한 열에서 추린다. 시대를 옮긴다
+        elif door.name == "ngu":
+            props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
+        elif door.name == "gtk":
+            props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
+        if not props:                                # 추리고 나니 남은 것이 없다(NGU 의 그리지 않은 칸)
+            continue
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)
