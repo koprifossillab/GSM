@@ -45,6 +45,31 @@ def baked_spec(baked: pathlib.Path) -> dict:
     return {"geomap": geomap, "points": points, "ibcso": bool(parts.get("ibcso"))}
 
 
+def place_index(baked: pathlib.Path, out: pathlib.Path) -> dict:
+    """구운 지명 덩이(`points/<상류>/<이름>.json`)에서 찾기 칸이 뒤질 가벼운 색인을 짓는다 (wetherilli 166).
+
+    서버의 `placenames/` 가 하던 일이다 — 색인은 서버와 같은 `arcpoints.name_index` 로 짓고, 맞추기(`match_index`)는 화면이
+    한다(`map.js` 의 `staticNames`). 한 줄은 `[이름들, 곁말, 위도, 경도, 앞세움]` — 접은 이름은 화면이 다시 접는다.
+    돌려주는 것은 지역 → 색인 주소들(`views.PLACE_SOURCES` 의 차례)."""
+    from viewer import arcpoints, views
+
+    written = {}
+    for name, (names, side, prefer) in views.PLACE_FIELDS.items():
+        upstream, _, rest = name.partition(":")
+        src = baked / "points" / upstream / f"{rest}.json"
+        if not src.is_file():
+            continue
+        features = json.loads(src.read_text(encoding="utf-8")).get("features") or []
+        rows = [[list(shown), sub, round(lat, 5), round(lon, 5), first]
+                for _, shown, sub, lat, lon, first in arcpoints.name_index(features, names, side, prefer)]
+        rel = f"placenames/{upstream}/{rest}.json"
+        (out / rel).parent.mkdir(parents=True, exist_ok=True)
+        (out / rel).write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        written[name] = rel
+    return {region: [written[n] for n in names if n in written]
+            for region, names in views.PLACE_SOURCES.items() if any(n in written for n in names)}
+
+
 def main():
     parser = argparse.ArgumentParser(description="연구소 밖 정적 판을 굽는다")
     parser.add_argument("out", help="출력 폴더 — 있으면 비운다")
@@ -84,6 +109,8 @@ def main():
         spec["regions"] += [r for r in BAKED_REGIONS if r not in spec["regions"]]
         spec["upstreams"] += [up for part, up in BAKED_UPSTREAMS.items()
                               if spec["baked"].get(part) and up not in spec["upstreams"]]
+        # 극지의 지명 찾기 — 구운 지명에서 색인을 지어 화면이 뒤진다 (wetherilli 166)
+        spec["baked"]["placenames"] = place_index(pathlib.Path(args.baked), out)
     with override_settings(STATIC_SITE=spec, DEBUG=False, ALLOWED_HOSTS=["*"], KIGAM_KEY="",
                            STATIC_ROOT=str(out / "static")):
         call_command("collectstatic", verbosity=0, interactive=False)

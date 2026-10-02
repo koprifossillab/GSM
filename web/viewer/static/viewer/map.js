@@ -6001,9 +6001,11 @@
   function searchNames(q) {
     var box = document.getElementById("search-results");
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
-    // 묶음 지역(북극)은 품은 지역들의 지명을 함께 뒤진다 — 서버가 지명이 없는 지역은 건너뛴다
-    fetch(BASE + "placenames/?q=" + encodeURIComponent(q) + "&region=" + encodeURIComponent(regionKeys().join(",")))
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    // 묶음 지역(북극)은 품은 지역들의 지명을 함께 뒤진다 — 서버가 지명이 없는 지역은 건너뛴다.
+    // 정적 판은 구운 색인을 화면이 뒤진다 (wetherilli 166)
+    (STATIC ? staticNames(q).then(function (rows) { return { ok: true, d: { results: rows } }; })
+      : fetch(BASE + "placenames/?q=" + encodeURIComponent(q) + "&region=" + encodeURIComponent(regionKeys().join(",")))
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }))
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "");
         renderResults(res.d.results || [], "", T(PLACE_SOURCES[region] || "지명 검색"));
@@ -6011,6 +6013,58 @@
       .catch(function (err) {
         box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
       });
+  }
+
+  // ── 정적 판의 지명 찾기 (wetherilli 166) ──
+  // 서버의 `placenames/`(`arcpoints.match_index`)를 옮겼다. 색인은 `static_site.py` 가 구운 지명에서 지어 둔다 —
+  // 한 줄은 [이름들, 곁말, 위도, 경도, 앞세움]. 지역마다 처음 찾을 때 한 번 받는다(그린란드 3 만 3 천 건)
+
+  /** 찾기를 위해 접는다 — `arcpoints.fold` 와 같다 */
+  function foldName(text) {
+    return String(text || "").toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "a").replace(/ĸ/g, "q")
+      .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  }
+  var placeIndexes = {};
+  function placeIndex(url) {
+    if (!placeIndexes[url]) {
+      placeIndexes[url] = fetch(BASE + url)
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(T("찾지 못했다"))); })
+        .then(function (rows) {
+          rows.forEach(function (row) { row.folded = row[0].map(foldName); });
+          return rows;
+        });
+      placeIndexes[url].catch(function () { delete placeIndexes[url]; });
+    }
+    return placeIndexes[url];
+  }
+  function staticNames(query) {
+    var urls = [];
+    regionKeys().forEach(function (key) {
+      (staticBaked("placenames")[key] || []).forEach(function (u) { if (urls.indexOf(u) < 0) urls.push(u); });
+    });
+    var q = foldName(query);
+    if (!urls.length || !q) return Promise.resolve([]);
+    return Promise.all(urls.map(placeIndex)).then(function (lists) {
+      var ranked = [];
+      [].concat.apply([], lists).forEach(function (row) {
+        var best = null;
+        row.folded.forEach(function (name, i) {
+          if (name.indexOf(q) < 0) return;
+          var rank = name === q ? 0 : name.indexOf(q) === 0 ? 1 : 2;
+          if (!best || rank < best[0]) best = [rank, i];
+        });
+        if (best) ranked.push({ rank: best[0], first: row[4], len: row[0][best[1]].length, i: best[1], row: row });
+      });
+      // 같은 이름 → 앞이 같은 것 → 들어 있는 것, 같으면 앞세울 것(도시·마을), 짧은 이름, 이름 차례
+      ranked.sort(function (a, b) {
+        return a.rank - b.rank || a.first - b.first || a.len - b.len || (a.row[0][0] < b.row[0][0] ? -1 : a.row[0][0] > b.row[0][0] ? 1 : 0);
+      });
+      return ranked.slice(0, 20).map(function (r) {
+        var shown = r.row[0];
+        return { kind: "name", title: r.i === 0 ? shown[0] : shown[0] + " (" + shown[r.i] + ")", sub: r.row[1],
+                 lat: r.row[2], lon: r.row[3] };
+      });
+    });
   }
 
   /** 일본 — 국토지리원의 주소·지명 찾기(지리원 지도가 쓰는 것)를 브라우저가 곧장 부른다 (wetherilli 155).
