@@ -5369,7 +5369,7 @@
       // 점이 적으면 올릴 때 이미 채웠다. 원본의 `주소` 열은 건드리지 않고 "(VWorld)" 칸으로 따로 싣는다
       var place = null;
       if (vworldKey && ps.korean) {
-        place = iconButton("📍", T("둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명을 읽는다 ({n}/{m}점 채움)",
+        place = iconButton("📍", T("둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명·보호구역·지목·소유구분을 읽는다 ({n}/{m}점 채움)",
                                    { n: ps.placed || 0, m: ps.korean }), false, function () {
           place.disabled = true;
           post(BASE + "pointsets/" + ps.id + "/places/").then(function (r) {
