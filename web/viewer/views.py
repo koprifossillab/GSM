@@ -277,6 +277,8 @@ def intro_view(request):
         "base": request.path,
         "shots": f"viewer/intro/{lang}/",
         "version": VERSION,
+        # AGPL 13조의 소스 길 — 공개용 저장소(GSM-open)의 판마다 사본 (wetherilli 149)
+        "source_url": settings.SOURCE_URL,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
 

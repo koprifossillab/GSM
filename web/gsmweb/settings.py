@@ -131,6 +131,9 @@ NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
 GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
 #: CCOP 동·동남아시아 200만 지질도 — GSJ 의 새 호스트 MapServer WMS (`gsj.py` 의 CCOP, wetherilli 108)
 CCOP_WMS_URL = env("GSM_CCOP_WMS_URL", "https://ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms")
+#: 소개 화면의 "소스" 링크 — AGPL 13조. 판마다 소스 사본을 미는 공개용 저장소다(`deploy/publish_open.sh`, wetherilli 149).
+#: 개발 저장소(koprifossillab/GSM)는 나중에 비공개로 돌릴 수 있게 링크를 거기서 떼어 둔다
+SOURCE_URL = env("GSM_SOURCE_URL", "https://github.com/koprifossillab/GSM-open")
 #: 대만 — 경제부 지질조사·광업관리중심(GSMMA). 그림은 MapGuide WMS(4326 만), 속성은 지질운 API (wetherilli 136)
 GSMMA_WMS_URL = env("GSM_GSMMA_WMS_URL", "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi")
 GSMMA_API_URL = env("GSM_GSMMA_API_URL", "https://www.geologycloud.tw/api/v1/zh-tw")
