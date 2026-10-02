@@ -183,6 +183,7 @@
 | wetherilli 140 | 2026-10-02 | [노르웨이·핀란드 — NGU·GTK 기반암 지질도를 새 지역 탭과 북극 묶음에](20261002_wetherilli_140_fennoscandia_geology.md) |
 | wetherilli 141 | 2026-10-02 | [대만 둘째 판 — 환경지질·민감구역·시추·온천, 국토측회중심 배경, 3D](20261002_wetherilli_141_taiwan_second.md) |
 | wetherilli 142 | 2026-10-02 | [대만 범례 — 지층 면과 그림을 맞대어 견본을 뜬다](20261002_wetherilli_142_taiwan_legend.md) |
+| wetherilli 143 | 2026-10-02 | [영국·프랑스·유럽 — BGS·BRGM 지질도와 EGDI 범유럽 1:100만, 탭 둘과 묶음 하나](20261002_wetherilli_143_europe_geology.md) |
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
