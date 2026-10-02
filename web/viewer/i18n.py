@@ -1044,6 +1044,15 @@ EN = {
         "Geospatial Information Authority of Japan. For comparing terrain with geology",
     # 대만 — 국토측회중심 배경 (map.js, wetherilli 141)
     "범위가 넓다 — 더 들어오면 범례가 뜬다": "The extent is too wide — zoom in to see the legend",
+    # 정적 판 — 각자 넣는 KIGAM 키 (map.js, wetherilli P11·162)
+    "KIGAM 인증키를 넣었다 — 이 브라우저에만 있다": "KIGAM API key set — kept only in this browser",
+    "키 지우기": "Clear key",
+    "<b>한국 지질도는 각자의 KIGAM 인증키로 본다.</b> 지오빅데이터 오픈플랫폼에서 받은 키를 넣는다 — 이 브라우저에만 남고 KIGAM 에만 간다.":
+        "<b>Korean geological maps use your own KIGAM API key.</b> Enter the key issued by the Geo Big Data Open Platform — it stays in this browser and goes only to KIGAM.",
+    "인증키": "API key",
+    "이 PC 에 기억하지 않기": "Don't remember on this computer",
+    "넣기": "Save",
+    "키 받기": "Get a key",
     "대만 회색 지도 (국토측회중심)": "Taiwan grey map (NLSC)",
     "대만 내정부 국토측회중심. 지질도 밑에 깔기 좋다": "National Land Surveying and Mapping Center, Taiwan. Good under a geological map",
     "대만 전자지도 (국토측회중심)": "Taiwan e-Map (NLSC)",

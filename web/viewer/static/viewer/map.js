@@ -32,6 +32,39 @@
   var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
 
+  // ── 정적 판 (wetherilli P11·162) ─────────────────────────────────
+  //
+  // 연구소 밖의 GitHub Pages 판은 서버가 없다. 서버가 그린 약속(`static-config` — 실을 지역·상류)이 있으면
+  // 그 판이다. **KIGAM 키는 보는 사람이 각자 넣는다** — 이 브라우저(localStorage)에만 30 일 두고, "이 PC 에
+  // 기억하지 않기" 면 탭 동안만(sessionStorage). 키는 KIGAM 에만 간다 — 우리 키는 이 판에 없다
+  var STATIC = JSON.parse((document.getElementById("static-config") || {}).textContent || "null");
+  var KEY_DAYS = 30;
+
+  function readKey(name) {
+    var slot = "gsm.key." + name;
+    try {
+      var held = JSON.parse(sessionStorage.getItem(slot) || "null");
+      if (held && held.key) return held.key;
+      held = JSON.parse(localStorage.getItem(slot) || "null");
+      if (!held || !held.key) return "";
+      if (Date.now() - (held.at || 0) > KEY_DAYS * 864e5) { localStorage.removeItem(slot); return ""; }
+      held.at = Date.now();                       // 쓸 때마다 30 일을 새로 센다
+      localStorage.setItem(slot, JSON.stringify(held));
+      return held.key;
+    } catch (e) { return staticKeys[name] || ""; }   // 사생활 모드 — 탭 동안만
+  }
+  var staticKeys = {};
+
+  function writeKey(name, key, remember) {
+    var slot = "gsm.key." + name;
+    staticKeys[name] = key;
+    try {
+      localStorage.removeItem(slot);
+      sessionStorage.removeItem(slot);
+      if (key) (remember ? localStorage : sessionStorage).setItem(slot, JSON.stringify({ key: key, at: Date.now() }));
+    } catch (e) { /* 저장소가 막혔다 — 탭 동안만 */ }
+  }
+
   // ── 지역 ─────────────────────────────────────────────────────────
   //
   // 한국·그린란드·남극. **지역마다 레이어 목록·켠 레이어·보던 자리·색이 따로다**
@@ -194,6 +227,18 @@
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age" },
   };
+  if (STATIC) {
+    // 정적 판이 싣지 않은 지역은 탭에서 뺀다. 묶음은 품은 지역 가운데 실린 것만 남기고, 하나도 없으면 뺀다
+    Object.keys(REGIONS).forEach(function (key) {
+      var spec = REGIONS[key];
+      if (spec.includes) {
+        spec.includes = spec.includes.filter(function (k) { return STATIC.regions.indexOf(k) >= 0; });
+        if (!spec.includes.length) delete REGIONS[key];
+      } else if (STATIC.regions.indexOf(key) < 0) {
+        delete REGIONS[key];
+      }
+    });
+  }
   var region = "korea";
 
   //: 남극 GeoMAP 타일의 격자. **우리 서버(`geomap/`)가 이 격자로 굽는다** —
@@ -233,11 +278,12 @@
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
   //  파일이 없는 자리에 띄운 서버가 그렇다.
-  REGIONS.antarctica.pending = !catalog.some(function (g) {
+  if (REGIONS.antarctica) REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
   ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe"].forEach(function (key) {
+    if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -600,7 +646,44 @@
 
   function layerKind(name) {
     var row = byName[name];
-    return LAYER_KINDS[(row && row.upstream) || "kigam"] || LAYER_KINDS.kigam;
+    var up = (row && row.upstream) || "kigam";
+    if (STATIC) {
+      if (up === "kigam") return STATIC_KIGAM;
+      var kinds = window.GSM_STATIC_KINDS || {};
+      if (kinds[up]) return kinds[up];
+    }
+    return LAYER_KINDS[up] || LAYER_KINDS.kigam;
+  }
+
+  // ── 정적 판의 KIGAM (wetherilli P11·162) ──
+  // 문서화된 `/openapi/wms` 를 각자 키로 브라우저가 곧장 부른다. 타일은 `<img>` 라 CORS 가 없어도 받힌다
+  // (KIGAM 은 CORS 를 열지 않았다 — docs/정적_밖_경로.md §2). 그래서 `crossOrigin` 을 두지 않고, 속성은
+  // 묻지 않는다(`/openapi/wms` 는 GetFeatureInfo 를 막았고 GeoServer 길은 CORS 가 없다). 키가 없으면 타일을 묻지 않는다
+  var KIGAM_OPENAPI = "https://data.kigam.re.kr/openapi/wms";
+  var STATIC_KIGAM = {
+    source: function (name) {
+      return new ol.source.TileWMS({
+        url: KIGAM_OPENAPI,
+        params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true, key: readKey("kigam") },
+        transition: 0,
+        projection: "EPSG:3857",
+        tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
+        tileLoadFunction: function (tile, src) {
+          if (!readKey("kigam")) { tile.setState(4); return; }     // 4 = 빈 타일 — 키가 없으면 묻지 않는다
+          tile.getImage().src = src;
+        },
+      });
+    },
+    info: null,
+  };
+
+  /** 정적 판에서 KIGAM 레이어들의 키를 바꾼다 — 키를 넣거나 지우면 켠 레이어를 다시 그린다. */
+  function refreshKigamKey() {
+    active.forEach(function (entry) {
+      var row = byName[entry.name];
+      if (!row || (row.upstream || "kigam") !== "kigam" || !entry.layer.getSource().updateParams) return;
+      entry.layer.getSource().updateParams({ key: readKey("kigam") });
+    });
   }
 
   function layerSource(name) {
@@ -2153,7 +2236,10 @@
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
-        img.src = BASE + "legend/?layer=" + encodeURIComponent(entry.name);
+        img.src = STATIC && (byName[entry.name] || {}).upstream === "kigam"
+          ? KIGAM_OPENAPI + "?" + new URLSearchParams({ service: "WMS", version: "1.0.0", request: "GetLegendGraphic",
+                                                        format: "image/png", layer: entry.name, key: readKey("kigam") })
+          : BASE + "legend/?layer=" + encodeURIComponent(entry.name);
         img.addEventListener("error", function () {
           img.replaceWith(note(T("범례를 받지 못했다")));
         });
@@ -4159,8 +4245,8 @@
       var url = info && info(entry.layer.getSource(), evt.coordinate, view);
       if (!url) { pending -= 1; return; }
 
-      fetch(url)
-        .then(function (r) { return r.json(); })
+      // 정적 판의 상류(`GSM_STATIC_KINDS`)는 주소가 아니라 받은 것을 준다 — 그쪽 꼴로 이미 손질해서
+      (url.then ? url : fetch(url).then(function (r) { return r.json(); }))
         .catch(function () { return { features: [] }; })
         .then(function (data) {
           results[index] = (data.features || []).map(function (f) {
@@ -5796,6 +5882,13 @@
       renderEdges();
     });
 
+    /** 정적 판의 좌표 읽기 — "위도, 경도" 십진도만. 도분초·평면 좌표는 서버(`coords.py`)가 읽는다 */
+    function parseDecimal(q) {
+      var m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+      var lat = m && +m[1], lon = m && +m[2];
+      return m && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? Promise.resolve({ lat: lat, lon: lon }) : Promise.reject();
+    }
+
     var input = document.getElementById("goto-input");
     document.getElementById("goto-form").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -5805,8 +5898,8 @@
       var picked = document.querySelector("#search-results li.on");
       if (picked) { picked.click(); return; }
       // **좌표가 먼저다.** 좌표로 읽히면 곧장 가고, 아니면 주소·장소로 찾는다
-      fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q) + "&crs=" + encodeURIComponent(crsCode()))
-        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      (STATIC ? parseDecimal(q) : fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q) + "&crs=" + encodeURIComponent(crsCode()))
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); }))
         .then(function (d) {
           if (d.candidates) { renderOrders(d.candidates); return; }
           closeResults();
@@ -6221,6 +6314,53 @@
     });
   }
 
+  /** 정적 판의 키 칸 (wetherilli P11·162) — 한국 탭 위 알림 줄. 키가 있으면 "넣었다 · 지우기", 없으면 넣는 칸.
+   *  키는 이 브라우저에만 남는다(30 일, "이 PC 에 기억하지 않기" 면 탭 동안만). */
+  function wireStaticKey() {
+    var box = document.getElementById("static-key");
+    if (!STATIC || !box) return;
+    box.innerHTML = "";
+    var key = readKey("kigam");
+    if (key) {
+      var text = document.createElement("span");
+      text.textContent = T("KIGAM 인증키를 넣었다 — 이 브라우저에만 있다");
+      var clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "btn quiet";
+      clear.textContent = T("키 지우기");
+      clear.addEventListener("click", function () { writeKey("kigam", "", false); refreshKigamKey(); wireStaticKey(); });
+      box.append(text, clear);
+      return;
+    }
+    var lead = document.createElement("span");
+    lead.innerHTML = T("<b>한국 지질도는 각자의 KIGAM 인증키로 본다.</b> 지오빅데이터 오픈플랫폼에서 받은 키를 넣는다 — 이 브라우저에만 남고 KIGAM 에만 간다.");
+    var input = document.createElement("input");
+    input.type = "password";
+    input.autocomplete = "off";
+    input.placeholder = T("인증키");
+    var forget = document.createElement("label");
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    forget.append(check, document.createTextNode(T("이 PC 에 기억하지 않기")));
+    var save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn";
+    save.textContent = T("넣기");
+    save.addEventListener("click", function () {
+      var value = input.value.trim();
+      if (!value) return;
+      writeKey("kigam", value, !check.checked);
+      refreshKigamKey();
+      wireStaticKey();
+    });
+    var get = document.createElement("a");
+    get.href = "https://data.kigam.re.kr/";
+    get.target = "_blank";
+    get.rel = "noopener noreferrer";
+    get.textContent = T("키 받기");
+    box.append(lead, input, forget, save, get);
+  }
+
   function cssEscape(text) {
     return String(text).replace(/["\\]/g, "\\$&");
   }
@@ -6245,6 +6385,7 @@
   wireUpload();
   wirePopup();
   wireEmblemMenu();
+  wireStaticKey();
 
   renderRegions();
   applyRegion();
