@@ -30,7 +30,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import bgs, brgm, egdi, emodnet, gtk, linked, ngu
+from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1997,6 +1997,18 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": brgm.ATTRIBUTION, "projection": "EPSG:3857",
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
                 **({"queryable": False} if brgm.upstream_name(layer.name) in brgm.SCANS else {})}
+    if layer.upstream in ("bgr", "igme", "gsi"):
+        # 독일·스페인·아일랜드(wetherilli 147) — 판마다 받는 투영과 그리는 줌이 다르다
+        door = {"bgr": bgr, "igme": igme, "gsi": gsi}[layer.upstream]
+        try:
+            sheet = door.split(layer.name)[0]
+        except RuntimeError:
+            return {}
+        first, last = door.ZOOMS.get(sheet, (None, None))
+        return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "gsni":
+        return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
@@ -2064,7 +2076,8 @@ def catalog_json(request):
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
-                   bgs.BgsError, brgm.BrgmError, egdi.EgdiError)
+                   bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2099,14 +2112,16 @@ class _Door:
                # 노르웨이·핀란드 기반암(wetherilli 140)
                "ngu": ngu, "gtk": gtk,
                # 영국·프랑스·범유럽(wetherilli 143)
-               "bgs": bgs, "brgm": brgm, "egdi": egdi}
+               "bgs": bgs, "brgm": brgm, "egdi": egdi,
+               # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
+               "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2688,6 +2703,10 @@ def feature_info(request):
             props = bgs.friendly(props, lang)        # LEX_D → 지층명 …, 시대를 옮긴다
         elif door.name == "brgm":
             props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
+        elif door.name == "gsni":
+            props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
+        elif door.name in ("bgr", "igme", "gsi"):
+            props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
