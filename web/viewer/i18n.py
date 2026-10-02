@@ -545,6 +545,10 @@ EN = {
     "대만": "Taiwan",
     # 북극해 — 스발바르·그린란드 밖의 북극 (devlog 076)
     "북극해": "Arctic Ocean",
+    # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
+    "노르웨이·핀란드": "Norway & Finland",
+    "노르웨이 지질조사소": "Geological Survey of Norway",
+    "핀란드 지질조사소": "Geological Survey of Finland",
     "추가 지역": "Add region",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
@@ -1793,6 +1797,23 @@ PROP_EN = {
     "가운데": "Centre",
     "지은이": "Authors",
     "지형구": "Province",
+    # 노르웨이 NGU·핀란드 GTK 기반암 (wetherilli 140)
+    "암석 단위": "Rock unit",
+    "암석 단위 (영문)": "Rock unit (English)",
+    "딸린 암석": "Subordinate rock",
+    "딸린 암석 2": "Subordinate rock 2",
+    "형성 연대": "Age of formation",
+    "변성상": "Metamorphic facies",
+    "변성 연대": "Age of metamorphism",
+    "지구조 구분": "Tectonic division",
+    "지구조 단위": "Tectonic unit",
+    "원 이름": "Original name",
+    "층": "Formation",
+    "층군": "Group",
+    "초암석군": "Supersuite",
+    "암체": "Lithodeme",
+    "지구조 구역": "Tectonic province",
+    "생성 환경": "Environment",
     # EMODnet 해저 지질 (wetherilli 135)
     "해저 퇴적물 (Folk 7)": "Seabed substrate (Folk 7)",
     "해저 퇴적물 (Folk 16)": "Seabed substrate (Folk 16)",
@@ -2262,9 +2283,19 @@ GROUP_EN = {
     "KPDC 기본도": "KPDC base map",
     "지형 (PGC)": "Terrain (PGC)",
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
+    "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
+    "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
 }
 
 LAYER_EN = {
+    # 노르웨이·핀란드 기반암 (wetherilli 140)
+    "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
+    "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
+    "ngu:Berggrunn_lokal_bergartsenheter_fullzoom": "Rock units (1:50k)",
+    "ngu:Berggrunn_regional_linjer_fullzoom": "Rock boundaries & structural lines (1:250k)",
+    "gtk:kalliopera_1m_kivilajiseurueet": "Rock suites (1:1M)",
+    "gtk:Litologiset_yksiköt_200k25132": "Lithological units (1:200k)",
+    "gtk:kalliopera_1m_siirrosrakenteet": "Faults (1:1M)",
     # EMODnet 해저 지질 (wetherilli 135)
     "emodnet:cp_wp4_pre_quaternary_geology_lithology": "Pre-Quaternary geology — lithology",
     "emodnet:cp_wp4_pre_quaternary_geology_age": "Pre-Quaternary geology — age",

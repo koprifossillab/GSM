@@ -136,6 +136,9 @@ GSMMA_WMS_URL = env("GSM_GSMMA_WMS_URL", "https://geomap.gsmma.gov.tw/mapguide/m
 GSMMA_API_URL = env("GSM_GSMMA_API_URL", "https://www.geologycloud.tw/api/v1/zh-tw")
 #: EMODnet Geology — 유럽 바다의 해저 퇴적물·해저 지질 GeoServer WMS (`viewer/emodnet.py`, wetherilli 135). 열쇠가 없다
 EMODNET_WMS_URL = env("GSM_EMODNET_WMS_URL", "https://drive.emodnet-geology.eu/geoserver/ows")
+#: 노르웨이·핀란드 기반암 지질도 — NGU MapServer·GTK ArcGIS WMS (`viewer/ngu.py`·`viewer/gtk.py`, wetherilli 140). 열쇠가 없다
+NGU_WMS_URL = env("GSM_NGU_WMS_URL", "https://geo.ngu.no/mapserver/BerggrunnWMS3")
+GTK_WMS_URL = env("GSM_GTK_WMS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Kalliopera_WMS/MapServer/WMSServer")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -341,6 +344,9 @@ CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
 GSMMA_CATALOG_SEED = REPO_DIR / "data" / "gsmma_layers.json"
 #: 북극해 — EMODnet 해저 지질 (wetherilli 135)
 EMODNET_CATALOG_SEED = REPO_DIR / "data" / "emodnet_layers.json"
+#: 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
+NGU_CATALOG_SEED = REPO_DIR / "data" / "ngu_layers.json"
+GTK_CATALOG_SEED = REPO_DIR / "data" / "gtk_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

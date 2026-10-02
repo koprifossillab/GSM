@@ -98,8 +98,17 @@
                     basemap: "gibs_bm_n", example: "71.5, -156.8",
                     base: [],
                     first: "kopri:kpdc_ocean_arctic_ocean" },
+    // ── 노르웨이·핀란드 (wetherilli 140) ──
+    // NGU(노르웨이)·GTK(핀란드)의 기반암 지질도를 중계한다. 스발바르와 같은 3413 이라 북극 묶음에 든다.
+    // GTK 는 3413 을 그대로 받고, NGU 는 3413 을 그려 주지 않아 북극 람베르트(3575)로 받아 옮겨 그린다
+    fennoscandia: { title: "노르웨이·핀란드", proj: "EPSG:3413", center: [18.0, 65.0], zoom: 4, vworld: false,
+                    home: [1525000, -2371000, 3522000, -455000],
+                    basemap: "eox_terrain", example: "69.649, 18.956 · Tromsø",
+                    base: ["ngu:Berggrunn_nasjonal_bergartsenheter", "ngu:Berggrunn_regional_hovedbergarter",
+                           "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132"],
+                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet"] },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
-              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean"],
+              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia"],
               home: [-612000, -3344000, 1380000, -212000],
               basemap: "eox_s2", places: "78.223, 15.647 · Longyearbyen",
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
@@ -168,11 +177,15 @@
     // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
     // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // 북극 람베르트 등적 유럽판 — NGU 지질도가 3413 을 그려 주지 않아 이것으로 받는다 (wetherilli 140).
+    // 범위는 적도까지(극에서 약 9 000 km) — 타일 격자가 이 범위로 선다
+    proj4.defs("EPSG:3575", "+proj=laea +lat_0=90 +lon_0=10 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
     // 중부원점(GRS80) — phyloserver 의 한반도 지질도가 카카오맵 격자로 잘려 있다 (devlog 026)
     proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     // UTM-K(GRS80) — 한반도 지질도 음영판을 이 격자로 잘라 둔다 (devlog 027)
     proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
+    ol.proj.get("EPSG:3575").setExtent([-9009964.76, -9009964.76, 9009964.76, 9009964.76]);
   }
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
@@ -181,7 +194,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "japan", "china", "taiwan"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -513,6 +526,9 @@
     gsmma: { source: taiwanSource, info: wmsInfoUrl },
     // EMODnet 해저 지질(wetherilli 135) — NPI 처럼 3413 으로 곧장 받는다
     emodnet: { source: npolarSource, info: wmsInfoUrl },
+    // 노르웨이 NGU(3575)·핀란드 GTK(3413) 기반암(wetherilli 140) — 카탈로그 행의 투영으로 받는다
+    ngu: { source: npolarSource, info: wmsInfoUrl },
+    gtk: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -806,19 +822,19 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china", "taiwan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china", "taiwan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   // 같은 ImageServer 의 다른 그리는 법 둘 (wetherilli 092). 여러 방향 음영은 한 방향 음영이 그늘에 묻는
@@ -826,19 +842,19 @@
   BASEMAPS.arcticdem_multi = {
     title: T("ArcticDEM 음영 (여러 방향)"),
     note: T("Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Multidirectional"); },
   };
   BASEMAPS.arcticdem_tinted = {
     title: T("ArcticDEM 높이 색 음영"),
     note: T("Polar Geospatial Center. 높이를 색으로 칠한 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Elevation Tinted"); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -1694,7 +1710,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
@@ -1702,6 +1718,7 @@
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
+    ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };
