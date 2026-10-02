@@ -66,6 +66,13 @@ jobs:
           GSM_SECRET_KEY: ci-only-not-a-secret
           GSM_BROWSER_TESTS: '1'   # 브라우저가 없으면 건너뛰지 말고 깨진다
 
+      # 연구소 밖 정적 판 — 작은 판을 굽고 `/GSM-open/` 꼴로 띄워 본다 (wetherilli 168)
+      - name: manage.py test viewer.tests.test_static_site
+        run: python web/manage.py test viewer.tests.test_static_site --verbosity 2
+        env:
+          GSM_SECRET_KEY: ci-only-not-a-secret
+          GSM_BROWSER_TESTS: '1'
+
   build:
     name: 이미지 굽기
     needs: test        # 시험을 통과한 것만 이미지가 된다
