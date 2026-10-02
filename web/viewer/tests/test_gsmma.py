@@ -1,6 +1,7 @@
 """대만 GSMMA 지질도 (wetherilli 136). 상류를 부르지 않는다 — 지질운의 꼴은 2026-10-02 에 받은 그대로다."""
 import io
 import json
+import math
 import tempfile
 from unittest import mock
 
@@ -121,3 +122,74 @@ class Views(TestCase):
                                            "crs": "EPSG:4326", "width": 10, "height": 10, "i": 5, "j": 5})
         self.assertEqual(data, {"features": []})
         get.assert_not_called()
+
+
+class Second(TestCase):
+    """둘째 판 (wetherilli 141) — 점 속성, 3857 로 펴기, 3D."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-gsmma2-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+        call_command("seed_catalog", stdout=io.StringIO())
+
+    def _answer(self, data):
+        answer = mock.Mock(status_code=200, content=b"", url="…", headers={"content-type": "application/json"})
+        answer.json.return_value = data
+        return answer
+
+    def test_점은_픽셀만큼_넓게_묻고_가까운_것부터(self):
+        springs = {"features": [
+            {"geometry": {"type": "Point", "coordinates": [121.60, 25.10]},
+             "properties": {"SpaName": "먼 곳", "Temperature": 40}},
+            {"geometry": {"type": "Point", "coordinates": [121.5001, 25.0001]},
+             "properties": {"SpaName": "四磺子坪", "SpaPH": 1.93, "Temperature": 59.5, "Type": "酸性硫酸鹽泉"}}]}
+        with mock.patch.object(gsmma.requests, "get", return_value=self._answer(springs)) as get, \
+             mock.patch.object(gsmma.usage, "record"), mock.patch.object(gsmma.usage, "paused", return_value=0):
+            data = gsmma.get_feature_info({"query_layers": "gsmma:hot_springs", "crs": "EPSG:4326", "version": "1.3.0",
+                                           "bbox": "24.9,121.4,25.1,121.6", "width": 200, "height": 200,
+                                           "i": 100, "j": 100})
+        box = [float(v) for v in get.call_args.kwargs["params"]["bbox"].split(",")]
+        self.assertAlmostEqual(box[2] - box[0], 0.016, places=6)            # 한 픽셀 0.001° × 8 × 2
+        self.assertEqual(data["features"][0]["properties"]["SpaName"], "四磺子坪")
+        self.assertEqual(gsmma.friendly(data["features"][0]["properties"])["수온 (°C)"], "59.5")
+
+    def test_사면_방향의_칸_글자를_뗀다(self):
+        slope = {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[121, 25], [122, 25], [122, 26],
+                                                                                 [121, 25]]]},
+                               "properties": {"MAP_NAME": "貓空", "SLOPE_DIR": "B東南", "Identifier": "누군가"}}]}
+        with mock.patch.object(gsmma.requests, "get", return_value=self._answer(slope)), \
+             mock.patch.object(gsmma.usage, "record"), mock.patch.object(gsmma.usage, "paused", return_value=0):
+            data = gsmma.get_feature_info({"query_layers": "gsmma:dip_slope", "crs": "EPSG:4326", "version": "1.3.0",
+                                           "bbox": "25.2,121.6,25.4,121.8", "width": 10, "height": 10,
+                                           "i": 5, "j": 5})
+        self.assertEqual(data["features"][0]["properties"], {"MAP_NAME": "貓空", "SLOPE_DIR": "東南"})
+
+    def test_3857_은_4326_으로_받아_줄만_다시_고른다(self):
+        from PIL import Image
+        # 받는 그림: 위에서 아래로 줄마다 빨강 값이 0..255 — 어느 줄을 골랐는지 읽힌다
+        src = Image.new("RGBA", (4, 256))
+        for row in range(256):
+            for x in range(4):
+                src.putpixel((x, row), (row, 0, 0, 255))
+        buf = io.BytesIO()
+        src.save(buf, "PNG")
+        answer = mock.Mock(status_code=200, content=buf.getvalue(), url="…", headers={"content-type": "image/png"})
+        y0, y1 = 0.0, 6378137.0 * math.log(math.tan(math.pi / 4 + math.radians(60) / 2))     # 적도 ~ 북위 60°
+        with mock.patch.object(gsmma.requests, "get", return_value=answer) as get, \
+             mock.patch.object(gsmma.usage, "record"), mock.patch.object(gsmma.usage, "paused", return_value=0):
+            png, ctype = gsmma.get_map({"layers": "gsmma:geology_1m", "crs": "EPSG:3857", "width": "4",
+                                        "height": "128", "bbox": f"0,{y0},100000,{y1}"})
+        sent = get.call_args.kwargs["params"]
+        self.assertEqual((sent["crs"], sent["height"]), ("EPSG:4326", 256))
+        self.assertEqual([round(float(v), 6) for v in sent["bbox"].split(",")][:3], [0.0, 0.0, 60.0])
+        out = Image.open(io.BytesIO(png))
+        top, middle, bottom = out.getpixel((0, 0))[0], out.getpixel((0, 64))[0], out.getpixel((0, 127))[0]
+        # 메르카토르의 가운데 줄은 위도 60° 의 절반(30°)보다 북쪽(약 36.7°)이다 — 받은 그림의 위쪽 40% 언저리
+        self.assertEqual(top, 0)
+        self.assertGreaterEqual(bottom, 254)          # 맨 아랫줄의 가운데는 적도보다 조금 북쪽이다
+        self.assertTrue(90 < middle < 115, middle)
+
+    def test_3D_목록에_대만이_든다(self):
+        r = self.client.get(reverse("viewer:map3d"))
+        self.assertContains(r, "gsmma:geology_50k")

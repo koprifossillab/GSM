@@ -936,6 +936,16 @@ EN = {
     "일본 음영기복 (국토지리원)": "Japan hillshade (GSI)",
     "일본 국토지리원. 지형을 지질도와 견줄 때":
         "Geospatial Information Authority of Japan. For comparing terrain with geology",
+    # 대만 — 국토측회중심 배경 (map.js, wetherilli 141)
+    "대만 회색 지도 (국토측회중심)": "Taiwan grey map (NLSC)",
+    "대만 내정부 국토측회중심. 지질도 밑에 깔기 좋다": "National Land Surveying and Mapping Center, Taiwan. Good under a geological map",
+    "대만 전자지도 (국토측회중심)": "Taiwan e-Map (NLSC)",
+    "대만 내정부 국토측회중심": "National Land Surveying and Mapping Center, Taiwan",
+    "대만 정사영상 (국토측회중심)": "Taiwan orthophotos (NLSC)",
+    "대만 내정부 국토측회중심. 대만 밖은 비어 있다": "National Land Surveying and Mapping Center, Taiwan. Empty outside Taiwan",
+    "대만 음영기복 (국토측회중심)": "Taiwan hillshade (NLSC)",
+    "대만 내정부 국토측회중심. 지형을 지질도와 견줄 때":
+        "National Land Surveying and Mapping Center, Taiwan. For comparing terrain with geology",
     "줌 {n} 부터 그려진다": "Drawn from zoom {n}",
     "선·기호의 범례는 GSJ 가 따로 주지 않는다": "GSJ gives no separate legend for lines and symbols",
     "원본 뷰어에서 본다 — GSJ": "See it in the original viewer — GSJ",
@@ -1455,6 +1465,10 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 대만 — 지질운의 온천·시추·순향사면 (gsmma.py, wetherilli 141)
+    "온천명": "Hot spring", "수질": "Water type", "수온 (°C)": "Water temperature (°C)", "pH": "pH",
+    "조사 사업": "Survey project", "공번": "Borehole no.", "심도 (m)": "Depth (m)",
+    "사면 방향": "Slope direction", "시·현": "City / county",
     # 달 — 누른 자리의 값 (wetherilli 103)
     "감람석": "Olivine",
     "단사휘석": "Clinopyroxene",
@@ -2242,6 +2256,9 @@ GROUP_EN = {
     # 대만 (wetherilli 136)
     "대만 지질도 (GSMMA)": "Taiwan geology (GSMMA)",
     "대만 구조 (GSMMA)": "Taiwan structure (GSMMA)",
+    "대만 환경지질 (GSMMA)": "Taiwan environmental geology (GSMMA)",
+    "대만 지질 민감구역 (GSMMA)": "Taiwan geologically sensitive areas (GSMMA)",
+    "대만 시추·온천 (GSMMA)": "Taiwan boreholes & hot springs (GSMMA)",
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
@@ -2312,6 +2329,20 @@ LAYER_EN = {
     "gsmma:active_faults": "Active faults (2021)",
     "gsmma:attitude_50k": "1:50k bedding attitude",
     "gsmma:tectonic_500k": "1:500k tectonic map (1978)",
+    "gsmma:fossils_50k": "1:50k fossil localities",
+    "gsmma:landslide_inventory": "Landslide inventory (2006–2013)",
+    "gsmma:dip_slope": "Dip slopes (2013)",
+    "gsmma:dip_slope_class": "Dip-slope rock sliding classes",
+    "gsmma:rock_slide": "Rock-slide susceptibility (2013)",
+    "gsmma:debris_slide": "Debris-slide susceptibility (2013)",
+    "gsmma:liquefaction": "Soil liquefaction potential (2021)",
+    "gsmma:sensitive_fault": "Active-fault sensitive areas",
+    "gsmma:sensitive_landslide": "Landslide sensitive areas",
+    "gsmma:sensitive_groundwater": "Groundwater recharge sensitive areas",
+    "gsmma:sensitive_landscape": "Geoheritage sensitive areas",
+    "gsmma:hot_springs": "Hot springs (2014)",
+    "gsmma:boreholes": "Engineering geology boreholes",
+    "gsmma:hydro_wells": "Hydrogeological wells",
     "ibcso:tid": "Bathymetry data source (TID)",
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",

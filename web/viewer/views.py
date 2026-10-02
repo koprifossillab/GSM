@@ -353,8 +353,9 @@ def map3d_view(request):
     # 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
+    # 대만(GSMMA)은 상류가 4326 만 받아 문이 4326 으로 받아 3857 로 편다(`gsmma.mercator_map`, wetherilli 141)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
-                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop")
+                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop", "gsmma")
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS))])
               for g in _catalog(lang)]
