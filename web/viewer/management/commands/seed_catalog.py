@@ -68,6 +68,10 @@ class Command(BaseCommand):
                 # 노르웨이·핀란드 — NGU·GTK 기반암 지질도. 북극 묶음에도 든다 (wetherilli 140)
                 (settings.NGU_CATALOG_SEED, "노르웨이 (NGU)", "fennoscandia", "ngu"),
                 (settings.GTK_CATALOG_SEED, "핀란드 (GTK)", "fennoscandia", "gtk"),
+                # 영국·프랑스 — BGS·BRGM, 그리고 넓게 볼 때 까는 EGDI 1:100만(영국에 두고 프랑스가 빌린다) (wetherilli 143)
+                (settings.EGDI_CATALOG_SEED, "유럽 (EGDI)", "uk", "egdi"),
+                (settings.BGS_CATALOG_SEED, "영국 (BGS)", "uk", "bgs"),
+                (settings.BRGM_CATALOG_SEED, "프랑스 (BRGM)", "france", "brgm"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)

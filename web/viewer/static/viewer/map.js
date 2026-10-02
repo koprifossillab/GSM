@@ -150,6 +150,27 @@
                        "geo3al:age"],
                 // 넓게 보는 탭이라 한국은 100만, 일본은 20만(가장 넓은 판)을 켠다
                 first: ["L_1M_Geology_Map", "gsj:geology"] },
+    // ── 영국·프랑스·유럽 (wetherilli 143) ──
+    // 영국은 BGS 1:5만(줌 13 부터만 그린다), 프랑스는 BRGM 스캔·암상도를 중계한다. 넓게 볼 때는 EGDI 범유럽 1:100만이
+    // 밑을 채운다 — 영국 지역에 두고 프랑스가 빌린다(`borrow`). **유럽은 묶음이다** — 둘을 한 화면에 모은다(DB 에는 없다)
+    uk: { title: "영국", proj: "EPSG:3857", center: [-2.5, 54.5], zoom: 6, vworld: false,
+          home: [-968000, 6420000, 223000, 8850000],
+          basemap: "eox_terrain", example: "53.80, -1.55 · Leeds",
+          base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "bgs:BGS.50k.Superficial.deposits"],
+          first: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock"] },
+    france: { title: "프랑스", proj: "EPSG:3857", center: [2.5, 46.5], zoom: 6, vworld: false,
+              home: [-590000, 5060000, 1080000, 6650000],
+              basemap: "eox_terrain", example: "48.857, 2.352 · Paris",
+              base: ["brgm:SCAN_F_GEOL1M", "brgm:SCAN_F_GEOL250", "brgm:SCAN_H_GEOL50", "brgm:LITHO_1M_SIMPLIFIEE"],
+              first: "brgm:SCAN_F_GEOL1M",
+              // 범유럽 1:100만(EGDI)은 영국 지역에 들어 있다 — 그 상류의 레이어군만 빌린다
+              borrow: { uk: ["egdi"] } },
+    europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
+              includes: ["uk", "france"],
+              home: [-1000000, 5000000, 1100000, 8900000],
+              basemap: "eox_terrain",
+              base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
+              first: "egdi:GeologicUnitView_Age" },
   };
   var region = "korea";
 
@@ -194,7 +215,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "europe"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -302,8 +323,19 @@
   /** 묶음 지역(북극)에서는 레이어 이름 앞에 지역을 적는다 — 그린란드에도 스발바르에도
    *  "지질 단위" 가 있다. 제 지역 탭에서는 이름만. */
   function regionPrefix(name) {
-    var where = regionOfLayer[name];
-    return REGIONS[region].includes && where && REGIONS[where] ? T(REGIONS[where].title) + " · " : "";
+    return wherePrefix(regionOfLayer[name], byName[name] && byName[name].upstream);
+  }
+
+  /** 묶음 탭에서 레이어(군) 앞에 붙일 지역. 묶음의 다른 지역이 빌려 쓰는 상류(`borrow`)면 붙이지 않는다 —
+   *  유럽의 EGDI 는 영국 지역에 두었을 뿐 프랑스도 쓰는 판이다 (wetherilli 143) */
+  function wherePrefix(where, upstream) {
+    var keys = REGIONS[region].includes;
+    if (!keys || !where || !REGIONS[where]) return "";
+    var shared = keys.some(function (k) {
+      var from = k !== where && (REGIONS[k].borrow || {})[where];
+      return !!from && from.indexOf(upstream) >= 0;
+    });
+    return shared ? "" : T(REGIONS[where].title) + " · ";
   }
 
   function layerTitle(name) {
@@ -529,6 +561,10 @@
     // 노르웨이 NGU(3575)·핀란드 GTK(3413) 기반암(wetherilli 140) — 카탈로그 행의 투영으로 받는다
     ngu: { source: npolarSource, info: wmsInfoUrl },
     gtk: { source: npolarSource, info: wmsInfoUrl },
+    // 영국 BGS·프랑스 BRGM·범유럽 EGDI(wetherilli 143) — 3857 이지만 출처를 카탈로그 행에서 받으려고 같은 틀을 쓴다
+    bgs: { source: npolarSource, info: wmsInfoUrl },
+    brgm: { source: npolarSource, info: wmsInfoUrl },
+    egdi: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -563,6 +599,8 @@
     // 가까이서만 그려 주는 레이어(일본의 경계·단층·기호, 줌 10·11 부터)는 그보다
     // 멀면 숨긴다 — 빈 타일을 묻지 않는다. 반 단계를 빼야 그 줌의 타일이 뜨는 자리부터 보인다
     if (row && row.minZoom) tile.setMinZoom(row.minZoom - 0.5);
+    // 넓게 볼 때만 그려 주는 레이어(프랑스의 1:100만·1:25만 스캔)는 그보다 가까우면 숨긴다 (wetherilli 143)
+    if (row && row.lastZoom) tile.setMaxZoom(row.lastZoom + 0.5);
     // 묶음 탭(동아시아)에서는 레이어의 범위 밖 타일을 묻지 않는다 — 일본을 볼 때
     // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
@@ -822,13 +860,13 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -1751,7 +1789,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
@@ -1760,6 +1798,7 @@
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
+    bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };
@@ -1878,7 +1917,7 @@
       if (!layers.length) return;
       restCount += layers.length;
       // 북극 탭에서는 레이어군 앞에 지역을 적는다 — 그린란드의 "지질도" 가 어디 것인지
-      var where = REGIONS[region].includes && REGIONS[group.region] ? T(REGIONS[group.region].title) + " · " : "";
+      var where = wherePrefix(group.region, layers[0] && layers[0].upstream);
       rest.push({ name: where + group.name, layers: layers });
     });
     if (restCount) {
