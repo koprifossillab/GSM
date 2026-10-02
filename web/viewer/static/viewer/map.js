@@ -3216,6 +3216,11 @@
    *  레이어별 항목 주소는 범례 칸에 둔다(`pointLegend`). */
   function pointAttribution(row) {
     if (row.attribution) return row.attribution;       // 얀마옌(NPI) — 서버가 적어 준다
+    // 다이아몬드 탐사 자료(DED)는 CC BY 4.0 이 적혀 있다 (wetherilli 157)
+    if (row.license) {
+      return '<a href="' + esc(row.portal || "") + '" target="_blank" rel="noopener">' +
+        esc(T("그린란드 정부 광물자원 포털")) + "</a> · " + esc(row.license);
+    }
     return '<a href="' + esc(row.portal || "") + '" target="_blank" rel="noopener">' +
       esc(T("그린란드 정부 광물자원 포털")) + "</a> · GEUS · " + esc(T("이용 조건 표시 없음"));
   }
@@ -3779,6 +3784,7 @@
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
         : row.upstream === "kopri" ? T("원본 자료 — 극지연구소 KPDC")
         // 그린란드 포털의 면·갈래 레이어(wetherilli 089) — 이용 조건이 적혀 있지 않다(019)
+        : row.upstream === "grportal" && row.license ? T("포털의 원본 항목 — CC BY 4.0, Hutchison (2020)")
         : row.upstream === "grportal" ? T("포털의 원본 항목 — 이용 조건 표시 없음")
         : T("원본 자료 — Norsk Polarinstitutt, CC BY 4.0");
       box.appendChild(a);

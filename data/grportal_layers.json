@@ -54,6 +54,48 @@
    "bbox": [-54.0, 60.86, -21.39, 73.33]
   },
   {
+   "name": "grportal:diamond_drillholes",
+   "title": "다이아몬드 탐사 시추공",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED)의 시추공 202 — 킴벌라이트를 만났는지, 이상대, 시추 길이, 암상",
+   "bbox": [-52.48, 65.08, -49.67, 69.64]
+  },
+  {
+   "name": "grportal:diamond_indicators",
+   "title": "지시광물 농도 (낟알/kg)",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED) — 시료 1 kg 의 지시광물 낟알 수 1 048 곳",
+   "bbox": [-61.47, 61.37, -25.36, 82.56]
+  },
+  {
+   "name": "grportal:diamond_per_kg",
+   "title": "다이아몬드 농도 (개/kg)",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED) — 시료 1 kg 에서 나온 다이아몬드 수 178 곳",
+   "bbox": [-53.99, 63.21, -49.57, 71.88]
+  },
+  {
+   "name": "grportal:garnet_classes",
+   "title": "석류석 분류 (G10·G9)",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED) — 석류석 낟알의 화학 갈래(G1–G12)를 시료마다 센 것 2 468 곳. G10 은 다이아몬드 지시",
+   "bbox": [-53.44, 60.95, -45.34, 69.89]
+  },
+  {
+   "name": "grportal:diamond_explored",
+   "title": "다이아몬드 탐사 — 탐사된 곳",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED) — 시료를 거둔 둘레의 면",
+   "bbox": [-71.76, 60.17, -19.35, 82.73]
+  },
+  {
+   "name": "grportal:diamond_unexplored",
+   "title": "다이아몬드 탐사 — 탐사되지 않은 곳",
+   "group": "광물 자원 (정부 포털)",
+   "abstract": "다이아몬드 탐사 자료(DED) — 다이아몬드를 품을 수 있으나 탐사되지 않은 곳의 면",
+   "bbox": [-73.25, 59.75, -11.41, 83.68]
+  },
+  {
    "name": "grportal:unstable_slopes",
    "title": "불안정 사면",
    "group": "사면 재해 (정부 포털)",
