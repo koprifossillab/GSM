@@ -2453,6 +2453,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "국토지리원 주제도": "GSI thematic maps",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
     # 대만 (wetherilli 136)
@@ -2515,6 +2516,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 국토지리원 주제 타일 (wetherilli 172)
+    "gsitile:afm": "Active fault map (urban areas)",
+    "gsitile:vlcd": "Volcanic land condition map",
     # VWorld 수질·지하수 측정망 (wetherilli 156)
     "lt_p_weissitema": "Water quality network — rivers",
     "lt_p_weissitemb": "Water quality network — lakes & reservoirs",

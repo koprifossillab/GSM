@@ -289,7 +289,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   지역 하나가 다른 지역의 상류 하나만 **빌릴** 수도 있다(`REGIONS.<지역>.borrow`) — 스발바르가 북극해의 EMODnet 을(135),
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·ccop·gsmma·emodnet·ngu·gtk·bgs·brgm·egdi·bgr·igme·gsi·gsni·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·bgs·brgm·egdi·bgr·igme·gsi·gsni·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -313,7 +313,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
+- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경·주제도 겹침(국토지리원 지리원 타일 — 활단층도·화산토지조건도는
+  카탈로그 레이어 `gsitile` 이 지리원 주소를 그대로 화면에 준다, wetherilli 172), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
   공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
   브라우저가 곧장 부른다. 일본의 찾기 칸(국토지리원 주소·지명 검색, 지리원 지도가 쓰는 것)도 브라우저가 곧장 부른다 —
   열쇠가 없고 CORS 가 열려 있다. 지리원 지도를 위한 것이라 예고 없이 바뀔 수 있다 (wetherilli 155).
