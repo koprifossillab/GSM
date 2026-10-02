@@ -24,7 +24,10 @@
  */
 (function () {
   "use strict";
-  var T = window.GSM_STATIC_TABLES || {};
+  // 표는 지도 화면이 `<script id="static-tables">` 로 싣는다(`views.map_view`). 시험은 `window.GSM_STATIC_TABLES` 로 넣는다
+  var T = window.GSM_STATIC_TABLES || (function () {
+    try { return JSON.parse((document.getElementById("static-tables") || {}).textContent || "{}"); } catch (e) { return {}; }
+  })();
 
   // ── 거들개 ──────────────────────────────────────────────────────────
 

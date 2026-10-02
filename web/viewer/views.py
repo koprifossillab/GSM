@@ -32,6 +32,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
+from . import static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -341,6 +342,8 @@ def map_view(request):
         # 정적 판(wetherilli P11·162) — 서버가 없으니 점묶음은 비우고, 화면이 쓸 약속을 싣는다
         "pointsets": "[]" if settings.STATIC_SITE else _script_json(_pointset_list()),
         "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
+        # 정적 판의 극지 상류 표(wetherilli 161) — 문의 명세·이름 표를 떠서 `static-kinds.js` 가 읽는다. 서버 판에는 싣지 않는다
+        "static_tables": _script_json(static_tables.tables()) if settings.STATIC_SITE else "",
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -2107,7 +2110,9 @@ def _static_catalog(groups: list) -> list:
         layers = [l for l in group["layers"] if (l.get("upstream") in upstreams or l["name"] in baked)
                   and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)
                   # VWorld 의 벡터(단층 따위)는 WFS 라 CORS 가 없어 정적 판에서 받을 수 없다 (wetherilli 164)
-                  and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")]
+                  and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")
+                  # 극지연구소는 지도 서버(KPDC WMS)만 곧장 부른다 — 모아 둔 파일의 점(시료·운석·KPDC 목록)은 구운 것이 있어야 (wetherilli 161)
+                  and not (l.get("upstream") == "kopri" and l["name"] not in kopri.WMS and l["name"] not in baked)]
         if layers:
             out.append(dict(group, layers=layers))
     return out
