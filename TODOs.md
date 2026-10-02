@@ -207,7 +207,7 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
       검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
 
-- [ ] 다른 나라 지질도 — BGS·GA·BRGM·NGU·GTK WMS 는 응답한다. 북극을 노르웨이 본토·핀란드로 넓히면 NGU·GTK.
+- [ ] 다른 나라 지질도 — BGS·GA·BRGM·NGU·GTK WMS 는 응답한다. 북극을 노르웨이 본토·핀란드로 넓히면 NGU·GTK — **gsm-85 가 맡았다** (2026-10-02, wetherilli 140).
       **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
       VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 
