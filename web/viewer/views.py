@@ -2025,15 +2025,13 @@ def _point_fields(layer) -> dict:
                 "opacity": spec["opacity"]}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         spec = {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
-                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
+                # 고른 원소만 받는 레이어 — 전암 화학 (wetherilli 163)
+                **({"slice": True} if grportal.LAYERS[layer.name].get("slice") else {})}
         if grportal.license_of(layer.name):
             # 다이아몬드 탐사 자료(DED)는 항목에 CC BY 4.0 이 적혀 있다 (wetherilli 157)
             spec["license"] = grportal.license_of(layer.name)
         return spec
-        return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
-                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
-                # 고른 원소만 받는 레이어 — 전암 화학 (wetherilli 163)
-                **({"slice": True} if grportal.LAYERS[layer.name].get("slice") else {})}
     if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
