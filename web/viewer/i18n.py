@@ -575,6 +575,12 @@ EN = {
     "북극해": "Arctic Ocean",
     # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
     "노르웨이·핀란드": "Norway & Finland",
+    # 영국·프랑스·유럽 — BGS·BRGM·EGDI 지질도 (wetherilli 143)
+    "영국": "United Kingdom",
+    "프랑스": "France",
+    "유럽": "Europe",
+    "영국 지질조사소": "British Geological Survey",
+    "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
     "노르웨이 지질조사소": "Geological Survey of Norway",
     "핀란드 지질조사소": "Geological Survey of Finland",
     "추가 지역": "Add region",
@@ -1840,6 +1846,12 @@ PROP_EN = {
     "가운데": "Centre",
     "지은이": "Authors",
     "지형구": "Province",
+    # 영국 BGS (wetherilli 143)
+    "세": "Epoch",
+    "가장 오랜 시기": "Oldest age",
+    "가장 젊은 시기": "Youngest age",
+    "선 구조": "Linear feature",
+    "어휘집": "BGS Lexicon",
     # 노르웨이 NGU·핀란드 GTK 기반암 (wetherilli 140)
     "암석 단위": "Rock unit",
     "암석 단위 (영문)": "Rock unit (English)",
@@ -2331,9 +2343,22 @@ GROUP_EN = {
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
     "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
     "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
+    "영국 지질 (BGS)": "Great Britain geology (BGS)",
+    "프랑스 지질 (BRGM)": "France geology (BRGM)",
+    "유럽 지질 (EGDI 1:100만)": "Europe geology (EGDI 1:1M)",
 }
 
 LAYER_EN = {
+    # 영국·프랑스·유럽 (wetherilli 143)
+    "bgs:BGS.50k.Bedrock": "Bedrock (1:50k)",
+    "bgs:BGS.50k.Superficial.deposits": "Superficial deposits (1:50k)",
+    "bgs:BGS.50k.Linear.features": "Linear features (1:50k)",
+    "brgm:SCAN_F_GEOL1M": "Geological map 1:1M (scan)",
+    "brgm:SCAN_F_GEOL250": "Geological map 1:250k (scan)",
+    "brgm:SCAN_H_GEOL50": "Geological map 1:50k harmonised (scan)",
+    "brgm:LITHO_1M_SIMPLIFIEE": "Simplified lithology (1:1M)",
+    "egdi:GeologicUnitView_Age": "Surface geology — age",
+    "egdi:GeologicUnitView_Lithology": "Surface geology — lithology",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

@@ -30,7 +30,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import emodnet, gtk, linked, ngu
+from . import bgs, brgm, egdi, emodnet, gtk, linked, ngu
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1931,6 +1931,19 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
         return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
+    if layer.upstream == "bgs":
+        # 영국 BGS(wetherilli 143) — 1:5만은 줌 13 부터만 그린다. 그보다 멀면 화면이 묻지 않는다
+        return {"attribution": bgs.ATTRIBUTION, "projection": "EPSG:3857", "minZoom": bgs.MIN_ZOOM}
+    if layer.upstream == "brgm":
+        # 프랑스 BRGM(wetherilli 143) — 판마다 그리는 줌이 좁다. 스캔은 누를 것이 없다
+        first, last = brgm.ZOOMS.get(brgm.upstream_name(layer.name), (None, None))
+        return {"attribution": brgm.ATTRIBUTION, "projection": "EPSG:3857",
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
+                **({"queryable": False} if brgm.upstream_name(layer.name) in brgm.SCANS else {})}
+    if layer.upstream == "egdi":
+        # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
+        return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
+                **({} if egdi.QUERYABLE else {"queryable": False})}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -1993,7 +2006,8 @@ def catalog_json(request):
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
-                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError)
+                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
+                   bgs.BgsError, brgm.BrgmError, egdi.EgdiError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2026,14 +2040,16 @@ class _Door:
                # EMODnet 해저 지질(wetherilli 135) — 북극해. NPI 처럼 3413 으로 곧장 받는다
                "emodnet": emodnet,
                # 노르웨이·핀란드 기반암(wetherilli 140)
-               "ngu": ngu, "gtk": gtk}
+               "ngu": ngu, "gtk": gtk,
+               # 영국·프랑스·범유럽(wetherilli 143)
+               "bgs": bgs, "brgm": brgm, "egdi": egdi}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2611,6 +2627,10 @@ def feature_info(request):
             props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
         elif door.name == "gtk":
             props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
+        elif door.name == "bgs":
+            props = bgs.friendly(props, lang)        # LEX_D → 지층명 …, 시대를 옮긴다
+        elif door.name == "brgm":
+            props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
