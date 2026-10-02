@@ -204,9 +204,9 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
       검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
 
-- [ ] **유럽 지역 탭 — 영국 BGS·프랑스 BRGM 지질도** (사용자, 2026-10-02). **gsm-85 가 맡았다** (wetherilli 143).
-      BGS `map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer`·BRGM `geoservices.brgm.fr/geologie` 는 200
-      ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2). 탭 이름·투영·묶음(EMODnet·노르웨이·핀란드와의 관계)은 사용자에게 묻는다
+- [ ] 유럽 — 영국·프랑스 탭과 유럽 묶음이 섰다(wetherilli 143). 남은 것: 북아일랜드(GSNI)·아일랜드(GSI)·독일(BGR)·스페인(IGME) — **gsm-85 가 맡았다** (wetherilli 147)
+      지질도를 같은 묶음에. EGDI 1:100만의 속성 서버가 살아나면 `egdi.QUERYABLE` 을 켠다. BGS 1:62만 5천이 WMS 로 열리면
+      영국 탭의 넓은 줌을 그것으로
 - [ ] 다른 나라 지질도 — 호주 GA WMS 는 응답한다(노르웨이 NGU·핀란드 GTK 는 섰다, wetherilli 140). 스웨덴(SGU)이 오면
       노르웨이·핀란드 탭에 더한다.
       **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,

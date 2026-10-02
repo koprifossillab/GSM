@@ -1734,6 +1734,69 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(253, 252, 254, .95); --glass-line: #ddd5e7;
 }
 
+/* ── 영국 (wetherilli 143) — 스코틀랜드 고지의 히스: 이탄의 먹갈 바탕에 히스꽃 자주 ──
+   황야를 덮는 꽃에서 땄다. 이웃의 보라(대만·북극해)보다 붉고 벚꽃(일본)보다 짙게 갔다 */
+:root[data-region="uk"] {
+  --bg: #171216; --panel: #20181e; --panel-tint: #120e11; --raise: #2b2029;
+  --ink: #f4ecf2; --ink-soft: #cdb8c8; --ink-faint: #8c7887;
+  --line: #3a2b37; --line-soft: #2a2028;
+  --gold: #d985c8; --gold-bright: #efbde6; --gold-muted: #bb73ad;
+  --gold-wash: rgba(217, 133, 200, .13); --gold-edge: rgba(217, 133, 200, .42);
+  --hi: #d985c8; --hi-deep: #efbde6; --on-hi: #120e11; --hi-ink: #efbde6;
+  --glass: rgba(18, 14, 17, .93); --glass-line: rgba(217, 133, 200, .35);
+}
+:root[data-region="uk"][data-theme="light"] {
+  --bg: #f6f0f4; --panel: #fefcfd; --panel-tint: #f9f4f8; --raise: #ece2ea;
+  --ink: #26161f; --ink-soft: #5f4659; --ink-faint: #9a8494;
+  --line: #e2d4de; --line-soft: #ece2ea;
+  --gold: #a1388c; --gold-bright: #7a2369; --gold-muted: #9b5a8d;
+  --gold-wash: #f6e6f2; --gold-edge: #e2b6d7;
+  --hi: #4a1d40; --hi-deep: #2e1027; --on-hi: #fdf6fb; --hi-ink: #a1388c;
+  --glass: rgba(254, 252, 253, .95); --glass-line: #e2d4de;
+}
+
+/* ── 프랑스 (wetherilli 143) — 부르고뉴의 포도밭: 석회암 그늘 바탕에 포도잎 초록 ──
+   포도밭 아래가 쥐라기 석회암이라 땄다. 이끼 연두(노르웨이·핀란드)보다 푸르고 청자(동아시아)보다 짙게 갔다 */
+:root[data-region="france"] {
+  --bg: #111711; --panel: #172018; --panel-tint: #0d130d; --raise: #1f2b20;
+  --ink: #ebf3ea; --ink-soft: #b2c6b1; --ink-faint: #758a74;
+  --line: #2a3a2b; --line-soft: #1f2b20;
+  --gold: #7fcf6a; --gold-bright: #b7e8a8; --gold-muted: #6cb35a;
+  --gold-wash: rgba(127, 207, 106, .12); --gold-edge: rgba(127, 207, 106, .4);
+  --hi: #7fcf6a; --hi-deep: #b7e8a8; --on-hi: #0d130d; --hi-ink: #b7e8a8;
+  --glass: rgba(13, 19, 13, .93); --glass-line: rgba(127, 207, 106, .33);
+}
+:root[data-region="france"][data-theme="light"] {
+  --bg: #eff5ee; --panel: #fbfdfb; --panel-tint: #f4f8f3; --raise: #e1ebdf;
+  --ink: #142114; --ink-soft: #435842; --ink-faint: #7f917e;
+  --line: #d2e0d0; --line-soft: #e1ebdf;
+  --gold: #2f8a1f; --gold-bright: #1f6a13; --gold-muted: #4d8a40;
+  --gold-wash: #e3f3dd; --gold-edge: #b1dca4;
+  --hi: #1d3a17; --hi-deep: #10240c; --on-hi: #f5fbf3; --hi-ink: #2f8a1f;
+  --glass: rgba(251, 253, 251, .95); --glass-line: #d2e0d0;
+}
+
+/* ── 유럽 (wetherilli 143) — 영국·프랑스를 한 화면에. 백악 절벽: 플린트 먹회 바탕에 백악의 회백 ──
+   도버 해협 양쪽이 같은 백악이라 땄다. 품은 지역의 색(히스 자주·포도잎 초록) 어느 쪽도 아니게 색을 빼고 밝기로 가른다 */
+:root[data-region="europe"] {
+  --bg: #151514; --panel: #1d1d1b; --panel-tint: #10100f; --raise: #282826;
+  --ink: #f1efe9; --ink-soft: #c4c0b5; --ink-faint: #858176;
+  --line: #34332f; --line-soft: #262624;
+  --gold: #dcd5c2; --gold-bright: #f3efe4; --gold-muted: #b9b29f;
+  --gold-wash: rgba(220, 213, 194, .12); --gold-edge: rgba(220, 213, 194, .4);
+  --hi: #dcd5c2; --hi-deep: #f3efe4; --on-hi: #10100f; --hi-ink: #f3efe4;
+  --glass: rgba(16, 16, 15, .93); --glass-line: rgba(220, 213, 194, .33);
+}
+:root[data-region="europe"][data-theme="light"] {
+  --bg: #f3f2ee; --panel: #fdfdfb; --panel-tint: #f7f6f2; --raise: #e7e5de;
+  --ink: #1d1c18; --ink-soft: #545147; --ink-faint: #8f8b80;
+  --line: #dcd9d0; --line-soft: #e7e5de;
+  --gold: #6b6553; --gold-bright: #4a4536; --gold-muted: #7d7766;
+  --gold-wash: #efece3; --gold-edge: #d1ccbd;
+  --hi: #2f2c24; --hi-deep: #1b1a15; --on-hi: #faf9f5; --hi-ink: #6b6553;
+  --glass: rgba(253, 253, 251, .95); --glass-line: #dcd9d0;
+}
+
 /* ── 동아시아 (devlog 024) — 한국·일본을 한 화면에. 청자: 먹녹 바탕에 비색 ──
    두 나라가 함께 빚은 것에서 땄다. 품은 지역의 색(금·벚꽃 분홍) 어느 쪽도 아니다.
    남극의 청록보다 회색이 돌고 밝다 */
