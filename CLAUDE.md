@@ -275,12 +275,14 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   속성은 `point=위도,경도`(`gsj/info/`), 범례는 보는 범위의 것만 JSON 으로(`gsj/legend/`) 받는다 (024).
   **대만(GSMMA)은 4326 으로 받는다** — 상류 MapGuide 가 4326 말고는 `InvalidCRS` 다. 줌 0 이 180° 네모 두 장인 4326 격자
   (`map.js` 의 `TAIWAN_GRID`)로 받아 옮겨 그린다. WMS 가 속성·범례를 주지 않아, 누른 자리의 지층은 같은 기관의 지질운
-  GeoJSON API 에 작은 네모로 묻는다. 지질시대는 번체 중국어에서 옮긴다(`i18n.age_zh`, wetherilli 136)
+  GeoJSON API 에 작은 네모로 묻는다(점 레이어 — 온천·시추공 — 는 화면의 8 픽셀). 지질시대는 번체 중국어에서
+  옮긴다(`i18n.age_zh`, wetherilli 136). **3D 는 3857 로 묻는다** — 문이 4326 으로 받아 줄(위도)만 다시 골라 편다
+  (`gsmma.mercator_map`, wetherilli 141). 3857 의 가로는 경도에 비례해서 줄만 고르면 된다
 - 카탈로그 씨앗은 상류마다 `data/*_layers.json` 이다. KIGAM 씨앗처럼 사람이
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 모든 지역의 해저 지형 배경(GEBCO,
+- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
   공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
   브라우저가 곧장 부른다.
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
