@@ -206,7 +206,7 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
       검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
 
-- [ ] **유럽 지역 탭 — 영국 BGS·프랑스 BRGM 지질도** (사용자, 2026-10-02). 다음에 손이 비는 세션이 맡는다.
+- [ ] **유럽 지역 탭 — 영국 BGS·프랑스 BRGM 지질도** (사용자, 2026-10-02). **gsm-85 가 맡았다** (wetherilli 143).
       BGS `map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer`·BRGM `geoservices.brgm.fr/geologie` 는 200
       ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2). 탭 이름·투영·묶음(EMODnet·노르웨이·핀란드와의 관계)은 사용자에게 묻는다
 - [ ] 다른 나라 지질도 — 호주 GA WMS 는 응답한다(노르웨이 NGU·핀란드 GTK 는 섰다, wetherilli 140). 스웨덴(SGU)이 오면
