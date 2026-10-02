@@ -198,6 +198,7 @@
 | wetherilli 149 | 2026-10-02 | [공개용 저장소 GSM-open — 소스 링크를 개발 저장소에서 떼어 둔다](20261002_wetherilli_149_open_source_repo.md) |
 | wetherilli 155 | 2026-10-02 | [일본의 찾기 칸 — 국토지리원 주소·지명 검색을 브라우저가 곧장](20261002_wetherilli_155_japan_search.md) |
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
+| wetherilli P11 | 2026-10-02 | [연구소 밖 정적 판 — GitHub Pages 의 GSM-open (계획)](20261002_wetherilli_P11_static_site.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
