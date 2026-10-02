@@ -668,6 +668,13 @@
     lt_l_gimspoten: { color: "#1f5fa8", width: 1.2, dash: null, labelBy: "legend", unit: "m" },
     lt_l_gimsec: { color: "#2a7f62", width: 1.2, dash: [6, 3], labelBy: "legend", unit: "µS/cm" },
     lt_l_gimsdepth: { color: "#6a3fa0", width: 1.1, dash: [2, 3], labelBy: "legend", unit: "m" },
+    // 수질·지하수 측정망 — 점이다(wetherilli 156). 수질 다섯은 색으로 가르고, 지하수는 네모로 가른다
+    lt_p_weissitema: { point: "circle", color: "#1f6fb2", width: 1, radius: 4.5 },
+    lt_p_weissitemb: { point: "circle", color: "#1a9a9a", width: 1, radius: 4.5 },
+    lt_p_weissitemd: { point: "circle", color: "#5f8f1a", width: 1, radius: 4.5 },
+    lt_p_weissiteme: { point: "circle", color: "#8a4a1f", width: 1, radius: 4.5 },
+    lt_p_weissitemf: { point: "circle", color: "#7a3fb0", width: 1, radius: 4.5 },
+    lt_p_sgisgwchg: { point: "square", color: "#c0392b", width: 1, radius: 5 },
   };
   //: 등치선 값을 적기 시작하는 줌. 멀리서는 글자가 선을 덮는다
   var VECTOR_LABEL_ZOOM = 11;
@@ -675,7 +682,15 @@
   var vectorStyleCache = {};
 
   function vectorStyleOf(spec) {
-    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "");
+    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "") + "|" + (spec.point || "");
+    if (spec.point && !vectorStyleCache[key]) {
+      // 점 — 흰 테두리를 둘러 지질도 색 위에서도 묻히지 않게 (wetherilli 156)
+      var fill = new ol.style.Fill({ color: spec.color });
+      var rim = new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 1.5 });
+      vectorStyleCache[key] = [new ol.style.Style({ image: spec.point === "square"
+        ? new ol.style.RegularShape({ points: 4, radius: spec.radius || 5, angle: Math.PI / 4, fill: fill, stroke: rim })
+        : new ol.style.Circle({ radius: spec.radius || 4.5, fill: fill, stroke: rim }) })];
+    }
     if (!vectorStyleCache[key]) {
       vectorStyleCache[key] = [
         // 밑에 흰 테두리 — 지질도 색 위에서도 선이 묻히지 않게
@@ -774,13 +789,17 @@
       return { spec: table.classes[value], label: T("구분 {value}", { value: value }) };
     }) : table && table.unit ? [{ spec: table, label: T("등치선 ({unit}) — 줌 {n} 부터 값을 적는다",
                                                         { unit: table.unit, n: VECTOR_LABEL_ZOOM }) }]
-      : [{ spec: DEFAULT_VECTOR_STYLE, label: title }];
+      : [{ spec: table && table.point ? table : DEFAULT_VECTOR_STYLE, label: title }];
     rows.forEach(function (r) {
       var line = document.createElement("div");
       line.className = "vector-legend-row";
-      var svg = '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
-        r.spec.color + '" stroke-width="' + r.spec.width + '"' +
-        (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
+      var svg = r.spec.point
+        ? '<svg width="36" height="10" aria-hidden="true">' + (r.spec.point === "square"
+          ? '<rect x="13" y="0.5" width="9" height="9" fill="' + r.spec.color + '" stroke="#fff"/>'
+          : '<circle cx="18" cy="5" r="4.5" fill="' + r.spec.color + '" stroke="#fff"/>') + "</svg>"
+        : '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
+          r.spec.color + '" stroke-width="' + r.spec.width + '"' +
+          (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
       line.innerHTML = svg + "<span>" + esc(r.label) + "</span>";
       box.appendChild(line);
     });
@@ -1104,6 +1123,66 @@
       }),
     });
   }
+
+  // 국토지리원의 주제 타일 셋 (wetherilli 156) — 담색·음영기복과 같은 창구다. 지질도와 견줄 때 고른다
+  BASEMAPS.gsi_slope = {
+    title: T("일본 경사량도 (국토지리원)"),
+    note: T("일본 국토지리원. 기울기를 색으로 — 단층애·산사태 지형을 지질도와 견줄 때. 줌 15 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("slopemap", "png", 15); },
+  };
+  BASEMAPS.gsi_landcond = {
+    title: T("일본 토지조건도 (국토지리원)"),
+    note: T("일본 국토지리원. 산지·대지·저지·인공 지형을 가른 1:2만 5천 — 평야와 도시 둘레만 있다. 줌 16 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("lcmfc2", "png", 16); },
+  };
+  BASEMAPS.gsi_volcano = {
+    title: T("일본 화산기본도 (국토지리원)"),
+    note: T("일본 국토지리원. 활화산 둘레만 있는 정밀 지형도 — 그 밖은 빈다. 줌 17 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("vbm", "png", 17); },
+  };
+
+  // ── AWS 법선 타일로 그리는 음영·경사 (wetherilli 156) ──
+  //
+  // AWS 표고 타일의 `normal` 판은 RGB 가 땅의 법선(x 동, y 북, z 위 — 평지가 127·127·255)이다. 그것을 WebGL 셰이더로 칠한다 —
+  // 음영은 북서 45° 빛과의 내적, 경사는 법선이 기운 정도. 브라우저가 곧장 부르고(열쇠 없음, CORS `*`) 줌 15 까지다.
+  // 일본 밖(중국·대만)에는 국토지리원 음영이 없어 이것을 둔다
+  var AWS_NORMAL = 'Terrain normals: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a>';
+  function awsNormalLayer(kind) {
+    var nx = ["-", ["*", ["band", 1], 2], 1];
+    var ny = ["-", ["*", ["band", 2], 2], 1];
+    var nz = ["-", ["*", ["band", 3], 2], 1];
+    // 빛: 방위 315°·고도 45° → (−0.5, 0.5, 0.707)
+    var shade = ["clamp", ["+", ["*", nx, -0.5], ["*", ny, 0.5], ["*", nz, 0.7071]], 0, 1];
+    var steep = ["clamp", ["-", 1, nz], 0, 1];          // 0 이 평지, 1 이 낭떠러지
+    return new ol.layer.WebGLTile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png",
+        crossOrigin: "anonymous", maxZoom: 15, attributions: AWS_NORMAL, transition: 0,
+      }),
+      style: { color: kind === "slope"
+        // 1 − cos(기울기): 0.015 ≈ 10°, 0.05 ≈ 18°, 0.12 ≈ 28°, 0.25 ≈ 41°. 거친 줌은 법선이 펴져 기울기가 작게 나온다
+        ? ["interpolate", ["linear"], steep, 0, [250, 250, 245], 0.015, [245, 232, 165], 0.05, [235, 160, 75],
+           0.12, [200, 60, 40], 0.25, [100, 20, 30]]
+        : ["interpolate", ["linear"], shade, 0, [35, 35, 40], 0.5, [150, 150, 150], 0.75, [225, 225, 222],
+           1, [255, 255, 255]] },
+    });
+  }
+  BASEMAPS.aws_shade = {
+    title: T("지형 음영 (AWS)"),
+    note: T("AWS 표고 타일의 법선으로 그린 음영 — 북서에서 비춘다. 줌 15 까지"),
+    regions: ["china", "taiwan"],
+    make: function () { return awsNormalLayer("shade"); },
+  };
+  BASEMAPS.aws_slope = {
+    title: T("경사 (AWS)"),
+    note: T("AWS 표고 타일의 법선으로 칠한 기울기 — 흰 평지에서 붉은 낭떠러지까지. 줌 15 까지"),
+    regions: ["china", "taiwan"],
+    make: function () { return awsNormalLayer("slope"); },
+  };
 
   function gsiLayer(name, ext, maxZoom) {
     return new ol.layer.Tile({
