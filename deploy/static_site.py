@@ -12,6 +12,8 @@ WegenersDream 의 `deploy/static_site.py`(tupandactyl 029)와 같은 길이다.
   구운 파일이 먼저 있어야 한다. 연구실 내부용(`views.LAB_ONLY`)은 싣지 않는다
 - 주소 앞머리: 그린 HTML 의 `/GSM/` 을 `--prefix` 로 바꾼다. 화면의 주소는 `location.pathname` 에서 세므로(`map.js` 의 BASE)
   앞머리만 맞으면 된다
+- **뿌리는 소개, `map/` 은 지도, 영어판은 `en/`·`en/map/`**(wetherilli 167). 소개는 서버 화면(3D·온 지구·달·화성·수성)으로 가는 장면·문을
+  빼고 그린다(`intro.html` 의 `static_site`). 정적 파일은 한 벌이다
 - 인증키는 싣지 않는다 — KIGAM 은 보는 사람이 각자 넣는다. VWorld 키는 지금처럼 화면에 실린다(검토 §10)
 """
 import argparse
@@ -114,19 +116,24 @@ def main():
     with override_settings(STATIC_SITE=spec, DEBUG=False, ALLOWED_HOSTS=["*"], KIGAM_KEY="",
                            STATIC_ROOT=str(out / "static")):
         call_command("collectstatic", verbosity=0, interactive=False)
-        page = Client().get("/GSM/map/", HTTP_ACCEPT_LANGUAGE="ko")
-        if page.status_code != 200:
-            sys.exit(f"지도 화면을 그리지 못했다: {page.status_code}")
-        html = page.content.decode("utf-8")
-    html = html.replace("/GSM/", args.prefix)
+        # 지도와 소개를 말마다 한 번씩 그린다 (wetherilli 167) — 정적 판에는 쿠키를 읽을 서버가 없어 영어판을 `en/` 에 따로 둔다
+        pages = {}
+        for lang in ("ko", "en"):
+            client = Client()
+            client.cookies["gsm_lang"] = lang
+            for path, name in (("/GSM/map/", "map"), ("/GSM/", "intro")):
+                page = client.get(path)
+                if page.status_code != 200:
+                    sys.exit(f"{name}({lang}) 화면을 그리지 못했다: {page.status_code}")
+                pages[lang, name] = page.content.decode("utf-8")
 
-    (out / "map").mkdir()
-    (out / "map" / "index.html").write_text(html, encoding="utf-8")
-    # 뿌리는 지도로 넘긴다 — 소개 화면은 서버의 것을 많이 써서 정적 판에 두지 않는다
-    (out / "index.html").write_text(
-        '<!doctype html><meta charset="utf-8"><title>대돌여지도</title>'
-        f'<meta http-equiv="refresh" content="0; url={args.prefix}map/">'
-        f'<a href="{args.prefix}map/">대돌여지도</a>\n', encoding="utf-8")
+    for (lang, name), html in pages.items():
+        # 정적 파일은 말과 상관없이 한 벌이다. 영어판의 다른 주소(소개·지도로 가는 길)는 `en/` 밑으로
+        html = html.replace("/GSM/static/", args.prefix + "static/")
+        html = html.replace("/GSM/", args.prefix + ("en/" if lang == "en" else ""))
+        folder = (out / "en" if lang == "en" else out) / ("map" if name == "map" else "")
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "index.html").write_text(html, encoding="utf-8")
     (out / ".nojekyll").write_text("")   # 밑줄로 시작하는 파일을 Jekyll 이 버리지 않게
 
     if args.baked:

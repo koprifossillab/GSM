@@ -10,7 +10,8 @@
   "use strict";
 
   // 지도는 `map/` 에 산다 — 뿌리는 소개 화면이다 (wetherilli 113). 다른 갈래는 뿌리 밑이다
-  var BASE = location.pathname.replace(/map\/?$/, "");
+  // 정적 판의 영어판은 `en/map/` 에 산다 — 뿌리(구운 파일이 있는 곳)는 언어와 상관없이 같다 (wetherilli 167)
+  var BASE = location.pathname.replace(/\/(?:en\/)?map\/?$/, "/");
 
   // ── 말 ───────────────────────────────────────────────────────────
   //
@@ -5739,6 +5740,12 @@
       b.classList.toggle("on", b.dataset.lang === LANG);
       b.addEventListener("click", function () {
         if (b.dataset.lang === LANG) return;
+        if (STATIC) {
+          // 정적 판은 말마다 따로 구웠다 — 쿠키를 읽을 서버가 없다. 보던 자리(주소의 꼬리)는 그대로 넘긴다 (wetherilli 167)
+          try { localStorage.setItem("gsm.lang", b.dataset.lang); } catch (e) { /* 사생활 모드 */ }
+          location.href = BASE + (b.dataset.lang === "en" ? "en/" : "") + "map/" + location.search + location.hash;
+          return;
+        }
         document.cookie = "gsm_lang=" + b.dataset.lang + "; path=/; max-age=31536000; SameSite=Lax";
         location.reload();
       });
