@@ -989,9 +989,13 @@ EN = {
         "Norwegian Polar Institute · Copernicus Sentinel-2. CC BY 4.0",
     "스발바르 지형도 (NPI)": "Svalbard topographic map (NPI)",
     "노르웨이 극지연구소. CC BY 4.0": "Norwegian Polar Institute. CC BY 4.0",
-    "이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
-        "Coordinates only here — addresses and places in Korea, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
+    "이 지역에서는 좌표로 간다 — 주소·장소는 한국·일본, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
+        "Coordinates only here — addresses and places in Korea and Japan, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
     "좌표·지명으로 이동 — {example}": "Go to coordinates or a place name — {example}",
+    # 일본 찾기 칸 — 국토지리원 (wetherilli 155)
+    "좌표·주소·지명으로 이동 — {example}": "Go to coordinates, an address or a place name — {example}",
+    "주소·지명": "Address/place",
+    "주소·지명 검색: 국토지리원 (지리원 지도)": "Address & place search: GSI Japan (GSI Maps)",
     "좌표로 이동 — 위도, 경도 (예: {example})": "Go to coordinates — latitude, longitude (e.g. {example})",
     "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
     "찾은 것이 없다 — 이 지역의 지명을 넣어 본다": "Nothing found — try a place name in this region",
