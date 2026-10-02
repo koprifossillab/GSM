@@ -7,7 +7,7 @@
  * 꼴 — map.js 의 `LAYER_KINDS` 와 같은 자리에 선다(고리는 map.js 정적 모드가 둔다):
  *   window.GSM_STATIC_KINDS = {
  *     <upstream>: {
- *       source(name, row)                 → ol 소스. `image: true` 면 ol.layer.Image 에 얹는다(GEUS)
+ *       source(name, row)                 → ol 소스(타일). 레이어 이름을 `gsmName` 으로 붙여 둔다
  *       info(source, coordinate, view)    → Promise<{features: [{id, props}]}> — 서버의 /featureinfo/ 와 같은 꼴. 없으면 null
  *       legend(name, row)                 → Promise<{img: 주소} | {rows: [{label, src}]} | {link: 주소}>
  *       points(name, row)                 → Promise<FeatureCollection> — 서버의 /points/ 와 같은 꼴(labels·links·style·legend)
@@ -15,7 +15,7 @@
  *   }
  *
  * 실측과 까닭은 docs/정적_밖_경로.md §2·§4·§5.
- *   - GEUS — 정사각 타일을 403 으로 돌려보낸다("this is not a WMTS … singleTile=true"). 화면 한 장(ImageWMS)으로 받는다.
+ *   - GEUS — 정사각 그림을 403 으로 돌려보낸다("this is not a WMTS … singleTile=true"). 512×511 타일로 받는다.
  *     부르는 이를 밝히는 `whoami` 는 각자의 이메일을 그 브라우저에만(`gsm.key.geus`). 속성은 text/plain 을 풀고, 범례는 HTML 쪽이라 링크로
  *   - NPI·PGC — WMS 가 아니라 ArcGIS `export`·`exportImage`·`identify`. 서버의 `npolar.export_params`·`identify_params`·
  *     `elevation.get_map` 을 TileArcGISRest 와 손으로 지은 identify 로 옮긴다
@@ -172,16 +172,17 @@
   }
 
   /** GEUS 는 **정사각 그림을 막는다** — 403 "this is not a WMTS"(2026-10-02, `whoami` 와 상관없다: 600×600·512×512 는 403,
-   *  601×600 은 200). 화면이 정사각이면 가로를 한 픽셀 늘리고 범위도 한 픽셀만큼 넓혀 묻는다 — 그림이 1 픽셀 늘어날 뿐이다 */
-  function notSquare(image, src) {
-    var url = new URL(src, location.href), p = url.searchParams;
-    var w = Number(p.get("WIDTH")), h = Number(p.get("HEIGHT")), box = (p.get("BBOX") || "").split(",").map(Number);
-    if (w && w === h && box.length === 4) {
-      box[2] += (box[2] - box[0]) / w;
-      p.set("WIDTH", String(w + 1));
-      p.set("BBOX", box.join(","));
+   *  601×600 은 200). 그래서 타일을 512×511 로 받는다 — 해상도는 여느 3857 격자와 같고 세로만 한 줄 짧다. 화면 한 장(ImageWMS)으로
+   *  받는 길도 있지만, 타일이면 브라우저 캐시가 맞고 map.js 의 타일 레이어에 그대로 얹힌다 */
+  var geusGridMemo = null;
+  function geusGrid() {       // 처음 쓸 때 짓는다 — 이 파일은 ol 보다 먼저 읽혀도 돌아야 한다
+    if (!geusGridMemo) {
+      var half = 20037508.342789244, resolutions = [];
+      for (var z = 0; z <= 19; z++) resolutions.push(2 * half / 512 / Math.pow(2, z));
+      geusGridMemo = new ol.tilegrid.TileGrid({ extent: [-half, -half, half, half], origin: [-half, half],
+                                                resolutions: resolutions, tileSize: [512, 511] });
     }
-    image.getImage().src = url.toString();
+    return geusGridMemo;
   }
 
   function geusFriendly(props) {
@@ -294,12 +295,17 @@
     return { type: "Feature", id: fid, geometry: geometry, properties: props };
   }
 
-  /** 갈래 (`grportal.class_of`) — 값이 표의 머리말로 시작하면 그 갈래, 위에서부터 먼저 맞는 것 */
+  /** 갈래 (`grportal.class_of`) — 위에서부터 먼저 맞는 것. 머리는 셋 가운데 하나다:
+   *  `{gt0: 열}`(그 열의 값이 0 보다 크다, 석류석), 구간 `[이상, 미만]`(`numeric`, 미만이 null 이면 끝이 없다), 머리말 묶음 */
   function classOf(classes, props) {
-    var value = classes.by ? String(props[classes.by] == null ? "" : props[classes.by]) : "";
+    var raw = classes.by ? props[classes.by] : null;
+    var value = String(raw == null ? "" : raw);
     for (var i = 0; i < classes.table.length; i++) {
-      var row = classes.table[i];
-      if (row[4].some(function (head) { return value.indexOf(head) === 0; })) return row.slice(0, 4);
+      var row = classes.table[i], heads = row[4], hit;
+      if (heads && !Array.isArray(heads)) hit = (Number(props[heads.gt0]) || 0) > 0;
+      else if (classes.numeric) hit = typeof raw === "number" && raw >= heads[0] && (heads[1] == null || raw < heads[1]);
+      else hit = heads.some(function (head) { return value.indexOf(head) === 0; });
+      if (hit) return row.slice(0, 4);
     }
     return classes["else"];
   }
@@ -332,10 +338,31 @@
     return page(0, 0);
   }
 
-  /** 서버의 `/points/` 와 같은 덩이 (`arcpoints.body`·`grportal.body`) */
+  /** 서버의 `/points/` 와 같은 덩이 (`arcpoints.body`·`grportal.body`·`grportal._value_body`) */
   function pointBody(spec) {
+    // 원소마다 잘라 받는 연속값(전암 화학 3 만 점)은 통째로 받기에 무겁다 — 굽는 쪽이 싣는다
+    if (spec.slice) return Promise.reject(new Error("sliced value layer — baked only"));
     return collect(spec).then(function (features) {
       var body = { type: "FeatureCollection", labels: spec.labels, links: spec.links, style: spec.style };
+      if (spec.style === "value") {
+        // 연속값(지화학) — 이 레이어에서 값이 하나라도 있는 원소만, 측정값 수(`n`)와 검출 한계 밑의 수(`below`)를 센다
+        var counts = {};
+        features.forEach(function (f) {
+          spec.values.forEach(function (v) {
+            var x = f.properties[v[0]];
+            if (typeof x !== "number") return;
+            var c = counts[v[0]] || (counts[v[0]] = [0, 0]);
+            if (x > 0) c[0] += 1;
+            if (x < 0) c[1] += 1;
+          });
+        });
+        body.values = spec.values.filter(function (v) { return counts[v[0]] && counts[v[0]][0]; }).map(function (v) {
+          return { key: v[0], label: v[1], unit: v[2], n: counts[v[0]][0], below: counts[v[0]][1] };
+        });
+        body["default"] = spec["default"];
+        body.features = features;
+        return body;
+      }
       if (spec.classes) {
         var counts = {}, table = {};
         features.forEach(function (f) {
@@ -363,16 +390,14 @@
   function named(name, source) { source.set("gsmName", name); return source; }
 
   KINDS.geus = {
-    image: true,
     source: function (name) {
-      return named(name, new ol.source.ImageWMS({
+      return named(name, new ol.source.TileWMS({
         url: geus.url,
         // 서버 판(`geus._get`)과 같은 변수 — 1.1.1·SRS. `whoami` 는 그 사람이 넣은 이메일(없으면 비운다)
-        params: { LAYERS: name, FORMAT: "image/png", TRANSPARENT: true, VERSION: "1.1.1",
+        params: { LAYERS: name, FORMAT: "image/png", TRANSPARENT: true, VERSION: "1.1.1", TILED: true,
                   mapname: geus.mapname, whoami: stored("gsm.key.geus"), nocache: "nocache" },
-        projection: "EPSG:3857", ratio: 1, crossOrigin: "anonymous",
+        projection: "EPSG:3857", tileGrid: geusGrid(), crossOrigin: "anonymous", transition: 0,
         attributions: "© GEUS",
-        imageLoadFunction: notSquare,
       }));
     },
     info: function (source, coordinate, view) {
@@ -520,6 +545,6 @@
 
   window.GSM_STATIC_KINDS = KINDS;
   // 시험·다른 화면이 같은 손질을 쓰게 — 정적 판의 다른 파일(개인 레이어 따위)도 지질시대를 옮길 수 있다
-  window.GSM_STATIC_HELPERS = { ageKo: ageKo, parsePlain: parsePlain, compact: compact, classOf: classOf,
+  window.GSM_STATIC_HELPERS = { ageKo: ageKo, parsePlain: parsePlain, compact: compact, classOf: classOf, pointBody: pointBody,
                                 npiFriendly: npiFriendly, emodFriendly: emodFriendly, geusFriendly: geusFriendly, tidy: tidy };
 })();

@@ -23,11 +23,27 @@ def _points(spec: dict, url: str, oid: str, page: int, max_pages: int) -> dict:
     }
     if "classes" in spec:
         classes = spec["classes"]
-        out["classes"] = {"by": classes["by"],
-                          "table": [[code, label, color, shape, list(heads) if isinstance(heads, tuple) else [heads]]
+        out["classes"] = {"by": classes["by"], "numeric": bool(classes.get("numeric")),
+                          "table": [[code, label, color, shape, _heads(heads)]
                                     for code, label, color, shape, heads in classes["table"]],
                           "else": list(classes["else"])}
+    if spec["style"] == "value":
+        # 연속값(지화학, wetherilli 159) — 원소 표와 처음 고를 원소. 원소마다 잘라 받는 것(`slice`, 전암 화학 3 만 점)은 브라우저가
+        # 통째로 받기에 무거워 표시만 해 둔다 — JS 가 거절하고 굽는 쪽이 싣는다
+        out["values"] = [[key, label, unit] for key, _, label, unit in grportal._table(spec)]
+        out["default"] = grportal.DEFAULT_ELEMENT
+        out["slice"] = bool(spec.get("slice"))
     return out
+
+
+def _heads(heads):
+    """갈래 표의 머리 하나 → JSON. 머리말(글자·글자 묶음)·구간(`numeric` 의 (이상, 미만))·`{"gt0": 열}`. 함수는 JS 가 못 돌린다 —
+    들어오면 여기서 깨져 알아챈다(`class_of` 는 받지만 정적 판에는 글자로 적은 꼴만 간다)"""
+    if callable(heads):
+        raise ValueError("갈래 표에 함수가 있다 — 정적 판이 따라 하지 못한다. {'gt0': 열} 처럼 글자로 적는다")
+    if isinstance(heads, dict):
+        return heads
+    return list(heads) if isinstance(heads, tuple) else [heads]
 
 
 def _max_features() -> int:

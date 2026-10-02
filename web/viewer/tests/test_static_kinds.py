@@ -12,7 +12,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from viewer import emodnet, geus, i18n, kopri, npolar, static_tables, views
+from viewer import emodnet, geus, grportal, i18n, kopri, npolar, static_tables, views
 
 JS = Path(__file__).resolve().parents[1] / "static" / "viewer" / "static-kinds.js"
 
@@ -68,9 +68,9 @@ class Script(SimpleTestCase):
         for host in ("geodata.npolar.no", "data.geus.dk", "arcgis.com", "emodnet-geology", "kpdcgeo"):
             self.assertNotIn(host, self.code)
 
-    def test_GEUS_는_화면_한_장으로_정사각을_피해(self):
-        self.assertIn("ol.source.ImageWMS", self.js)
-        self.assertIn("imageLoadFunction: notSquare", self.js)
+    def test_GEUS_는_정사각이_아닌_타일로(self):
+        self.assertIn("tileSize: [512, 511]", self.js)
+        self.assertIn("tileGrid: geusGrid()", self.js)
         self.assertIn('stored("gsm.key.geus")', self.js)
 
     def test_저장소는_try_로(self):
@@ -94,20 +94,40 @@ class SameAsPython(SimpleTestCase):
                 "reference": "Reference: Asch 2005", "name": None},
                {"folk_7cl_txt": "4. Mixed sediment", "fault_name": "n/a", "scale": "2000000"}]
         plain = "Layer 'grl'\n  Feature 733: \n    gu_name = 'Rapakivi Suite'\n    ics_min_age_num = '1600.000000'\n    rgb = '1'\n"
+        # 갈래 — 레이어마다 줄마다 그 줄에 맞는 값 하나, 그리고 아무 데도 안 맞는 빈 것
+        classes = []
+        for name, spec in grportal.LAYERS.items():
+            c = spec.get("classes")
+            if not c:
+                continue
+            samples = [{}]
+            for row in c["table"]:
+                heads = row[4]
+                if isinstance(heads, dict):
+                    samples.append({heads["gt0"]: 2})
+                elif c.get("numeric"):
+                    samples.append({c["by"]: heads[0]})
+                else:
+                    samples.append({c["by"]: (heads[0] if isinstance(heads, tuple) else heads) + "x"})
+            classes.append([name, samples, [grportal.class_of(spec, p)[0] for p in samples]])
         expected = {"ages": [i18n.age_ko(a) for a in ages], "npi": [npolar.friendly(p, "ko") for p in npi],
                     "emo": [emodnet.friendly(p, "ko") for p in emo],
-                    "plain": [geus.friendly(f["properties"]) for f in geus.parse_plain(plain)]}
+                    "plain": [geus.friendly(f["properties"]) for f in geus.parse_plain(plain)],
+                    "classes": classes}
         harness = """
 const fs = require('fs'); const inp = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 global.window = {GSM_STATIC_TABLES: inp.tables}; global.document = {documentElement: {lang: 'ko'}};
 global.localStorage = {getItem: () => null}; global.sessionStorage = {getItem: () => null}; global.ol = {};
 eval(fs.readFileSync(process.argv[3], 'utf8')); const H = window.GSM_STATIC_HELPERS;
+const P = inp.tables.grportal.points;
 console.log(JSON.stringify({ages: inp.ages.map(H.ageKo), npi: inp.npi.map(H.npiFriendly), emo: inp.emo.map(H.emodFriendly),
-  plain: H.parsePlain(inp.plain).map(f => H.geusFriendly(f.properties))}));
+  plain: H.parsePlain(inp.plain).map(f => H.geusFriendly(f.properties)),
+  classes: inp.classes.map(([n, samples]) => [n, samples, samples.map(p => H.classOf(P[n].classes, p)[0])])}));
 """
         with tempfile.TemporaryDirectory() as tmp:
             Path(tmp, "in.json").write_text(json.dumps({"tables": static_tables.tables(), "ages": ages, "npi": npi,
-                                                        "emo": emo, "plain": plain}, ensure_ascii=False), "utf-8")
+                                                        "emo": emo, "plain": plain, "classes": classes},
+                                                       ensure_ascii=False), "utf-8")
             Path(tmp, "h.js").write_text(harness, "utf-8")
             out = subprocess.run([node, str(Path(tmp, "h.js")), str(Path(tmp, "in.json")), str(JS)],
                                  capture_output=True, text=True, timeout=60, check=True).stdout
