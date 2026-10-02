@@ -29,7 +29,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, ocean, volcanoes, wind
+from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import linked
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -1185,6 +1185,8 @@ def earth_view(request):
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
+                                   # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
+                                   "quakes": quakes.legend(lang) if quakes.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
                                    # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
@@ -1692,6 +1694,48 @@ def earth_volcano_at(request):
         out.append({"no": v["no"], "name": v["name"], "rows": rows, "link": gvp.volcano_url(v["no"]),
                     "at": [v["lon"], v["lat"]]})
     return JsonResponse({"hits": out, "credit": gvp.CREDIT})
+
+
+# ── 지진 (wetherilli 138) ───────────────────────────────────────────
+
+@require_GET
+def earth_quake_tile(request, band, z, x, y):
+    """`earth/quakes/tiles/<칸>/<z>/<x>/<y>.png` — USGS 의 지진, 규모 칸 하나(`quakes.BANDS`). 오늘의 레이어다."""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y) or band not in quakes.BANDS:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not quakes.available():
+        return _tile(tiles.blank_tile(), store=False)
+    # 다시 구운 날이 열쇠에 든다 — 새 지진이 쌓이면 새로 그린다
+    key = tilecache.key_text("usgs", f"{quakes.RENDERER}/{quakes.built()}/{band}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = quakes.render_tile(band, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_quake_at(request):
+    """`?lon=&lat=&r=&bands=quake6,quake55` — 누른 자리 둘레(`r`°)의 지진, 켠 규모 칸에서 가까운 것부터 다섯."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    bands = [b for b in (request.GET.get("bands") or "").split(",") if b in quakes.BANDS]
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for q in quakes.near(bands, lon, lat, r):
+        when = q["time"].replace("T", " ")[:16]
+        rows = [("규모", f"{q['mag']:g} {q['mag_type']}".strip()), ("일시 (UTC)", when),
+                ("깊이 (km)", f"{q['depth']:g}" if q["depth"] is not None else ""), ("곳", q["place"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+        out.append({"id": q["id"], "name": i18n.t(msg("M{mag} 지진", mag=f"{q['mag']:g}"), lang), "rows": rows,
+                    "link": usgs.event_url(q["id"]), "at": [q["lon"], q["lat"]]})
+    return JsonResponse({"hits": out, "credit": usgs.CREDIT})
 
 
 def _age_span(oldest, youngest) -> str:
