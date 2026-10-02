@@ -265,6 +265,7 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    "VWorld 가 거절했다": "VWorld refused the request",
     # 연속값 색 — 그린란드 지화학 (wetherilli 159)
     "칠할 원소": "Colour by",
     "분위수로 나눈 칸": "quantile classes",
