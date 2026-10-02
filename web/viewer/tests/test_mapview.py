@@ -196,6 +196,22 @@ class StaticSiteTests(TestCase):
         names = {l["name"] for g in groups for l in g["layers"]}
         self.assertNotIn("L_50K_Geology_Map_NoAttitude", names)          # 문서에 없는 GeoServer 를 탄다
 
+    def test_정적_판의_VWorld_는_공개_판용_키와_그림만(self):
+        """wetherilli 164 — 공개 판용 키를 싣고, WFS 벡터(단층 따위)는 CORS 가 없어 뺀다."""
+        from django.test import override_settings
+        import json as _json
+        import re as _re
+        with override_settings(STATIC_SITE={"regions": ["korea"], "upstreams": ["kigam", "vworld"]},
+                               KIGAM_KEY="비밀", VWORLD_KEY="공개판열쇠"):
+            html = self.client.get("/GSM/map/").content.decode()
+        self.assertIn('"공개판열쇠"', html)
+        self.assertNotIn("비밀", html)
+        groups = _json.loads(_re.search(r'id="catalog-data" type="application/json">(.*?)</script>', html, _re.S).group(1))
+        vworld = [l for g in groups for l in g["layers"] if l["upstream"] == "vworld"]
+        self.assertTrue(vworld)
+        self.assertFalse([l["name"] for l in vworld if l.get("kind") == "vector"])
+        self.assertNotIn("lt_l_gimsfault", {l["name"] for l in vworld})
+
     def test_구운_점_레이어는_이름으로_싣는다(self):
         # NPI·극지연구소에는 서버를 타는 지도 레이어가 섞여 있다 — 구운 점만 이름으로 (wetherilli 165)
         from django.test import override_settings
