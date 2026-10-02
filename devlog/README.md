@@ -190,6 +190,7 @@
 | wetherilli 147 | 2026-10-02 | [유럽 2단계 — 독일 BGR·스페인 IGME·아일랜드 GSI·북아일랜드 GSNI](20261002_wetherilli_147_europe_more.md) |
 | wetherilli 146 | 2026-10-02 | [수성 더 — 소개 화면에 수성, 도폭 경계는 우리가 긋는다](20261002_wetherilli_146_mercury_more.md) |
 | wetherilli 148 | 2026-10-02 | [화성·수성의 높이 그래프](20261002_wetherilli_148_planet_profiles.md) |
+| wetherilli 150 | 2026-10-02 | [달 — 남은 값과 고운 지형 (다누리 KGRS·북극 판·NAC 셋)](20261002_wetherilli_150_moon_trek_more.md) |
 | wetherilli 151 | 2026-10-02 | [브라우저 캐시 — 모든 응답에 ETag·304, 판이 든 주소만 길게](20261002_wetherilli_151_cache_headers.md) |
 | wetherilli 153 | 2026-10-02 | [온 지구 아이콘과 대기 화면](20261002_wetherilli_153_earth_emblem.md) |
 | wetherilli 154 | 2026-10-02 | [그때의 자리 — GPlates 와 견준 회귀 시험, 캡션 한 줄](20261002_wetherilli_154_paleo_gws_check.md) |

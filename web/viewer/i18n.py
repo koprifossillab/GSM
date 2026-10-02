@@ -1557,6 +1557,14 @@ PROP_EN = {
     "사방휘석": "Orthopyroxene",
     "사장석": "Plagioclase",
     "토륨": "Thorium",
+    # 다누리 KGRS·북극 판 (wetherilli 150)
+    "칼륨 상대값 (단위 미확인)": "Potassium, relative (unit unconfirmed)",
+    "우라늄 상대값 (단위 미확인)": "Uranium, relative (unit unconfirmed)",
+    "토륨 상대값 (단위 미확인)": "Thorium, relative (unit unconfirmed)",
+    "열중성자 상대값 (단위 미확인)": "Thermal neutrons, relative (unit unconfirmed)",
+    "FeO (북극)": "FeO (north pole)",
+    "얼음이 버틸 깊이 — 오늘의 자전축": "Ice stability depth — today's spin axis",
+    "얼음이 버틸 깊이 — 옛 자전축": "Ice stability depth — paleo spin axis",
     "티타늄": "Titanium",
     "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)
