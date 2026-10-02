@@ -346,8 +346,9 @@ EN = {
     "판 조각 (PALEOMAP 2016)": "Plate pieces (PALEOMAP 2016)",
     "판 조각 경계": "Plate piece outlines",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구": "The Earth then, computed with the PALEOMAP 2016 plate rotations",
-    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
+    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 다른 판 모델과는 100 Ma 에 1 000 km 안팎 다르다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
         "The Earth then, computed with the PALEOMAP 2016 plate rotations — not an observation. "
+        "Other plate models differ by around 1,000 km at 100 Ma. "
         "Today's imagery, terrain and geology appear only at the present",
     "오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다":
         "Today's Earth — within 1 Ma the plates moved a few tens of kilometres at most",
