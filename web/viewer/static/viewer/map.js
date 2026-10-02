@@ -120,7 +120,7 @@
     // 동아시아는 한국을 품으므로 VWorld 배경·주소 찾기·한국 좌표계·KIGAM 띠가 그대로 돈다
     japan: { title: "일본", proj: "EPSG:3857", center: [137.5, 37.0], zoom: 5, vworld: false,
              home: [14304555, 3503550, 16252646, 5716479],
-             basemap: "gsi_pale", example: "35.361, 138.727",
+             basemap: "gsi_pale", example: "35.361, 138.727", gsi: "35.361, 138.727 · 富士山",
              base: ["gsj:geology", "gsj:faults", "gsj:boundaries", "gsj:geology_level2"],
              first: "gsj:geology" },
     // ── 중국 (devlog 025) ──
@@ -5741,7 +5741,7 @@
   // 띄운다.** 사람이 고른다.
 
   var KIND = { district: "행정구역", road: "도로명", parcel: "지번", place: "장소", order: "좌표",
-               name: "지명" };
+               name: "지명", gsi: "주소·지명" };
 
   function closeResults() {
     var box = document.getElementById("search-results");
@@ -5755,7 +5755,8 @@
     if (!REGIONS[region].vworld) {
       // 스발바르·그린란드·남극(드로닝모드랜드)·북극은 지명을 뒤진다 (021·wetherilli 096). 나머지는 좌표로만 간다
       if (REGIONS[region].places) { searchNames(q); return; }
-      box.innerHTML = '<li class="note">' + esc(T("이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다")) + "</li>";
+      if (REGIONS[region].gsi) { searchGsi(q); return; }
+      box.innerHTML = '<li class="note">' + esc(T("이 지역에서는 좌표로 간다 — 주소·장소는 한국·일본, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다")) + "</li>";
       return;
     }
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
@@ -5788,6 +5789,28 @@
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "");
         renderResults(res.d.results || [], "", T(PLACE_SOURCES[region] || "지명 검색"));
+      })
+      .catch(function (err) {
+        box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
+      });
+  }
+
+  /** 일본 — 국토지리원의 주소·지명 찾기(지리원 지도가 쓰는 것)를 브라우저가 곧장 부른다 (wetherilli 155).
+   *  열쇠가 없고 CORS 가 열려 있어 문을 거치지 않는다. 지리원 지도를 위한 것이라 예고 없이 바뀔 수 있다고 국토지리원이
+   *  밝혔다 — 닫히면 좌표로만 간다. 사람이 칠 때만 부른다 */
+  var GSI_SEARCH = "https://msearch.gsi.go.jp/address-search/AddressSearch?q=";
+  function searchGsi(q) {
+    var box = document.getElementById("search-results");
+    box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
+    fetch(GSI_SEARCH + encodeURIComponent(q))
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(T("찾지 못했다"))); })
+      .then(function (rows) {
+        renderResults((Array.isArray(rows) ? rows : []).slice(0, 30).filter(function (f) {
+          return f && f.geometry && f.geometry.coordinates;
+        }).map(function (f) {
+          return { kind: "gsi", title: (f.properties || {}).title || "", lon: +f.geometry.coordinates[0],
+                   lat: +f.geometry.coordinates[1] };
+        }), "", T("주소·지명 검색: 국토지리원 (지리원 지도)"));
       })
       .catch(function (err) {
         box.innerHTML = '<li class="note">' + esc(err.message || T("찾지 못했다")) + "</li>";
@@ -5874,6 +5897,7 @@
     var spec = REGIONS[region];
     if (spec.vworld) return gotoPlain;
     if (spec.places) return T("좌표·지명으로 이동 — {example}", { example: spec.places });
+    if (spec.gsi) return T("좌표·주소·지명으로 이동 — {example}", { example: spec.gsi });
     var example = spec.example || (spec.center[1].toFixed(1) + ", " + spec.center[0].toFixed(1));
     return T("좌표로 이동 — 위도, 경도 (예: {example})", { example: example });
   }

@@ -78,7 +78,9 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 라이선스는 코드에만 걸리고 지도 자료는 상류마다 제 조건을 따른다(아래 "지역"). 남의 코드를 옮겨 오면
 그 라이선스 전문을 `docs/licenses/` 에 두고 README "라이선스와 자료의 출처" 에 한 줄 적는다 — AGPL 과
 어울리지 않는 것(비상업 조건이 붙은 코드 따위)은 옮기지 않는다. 고친 판을 밖에 열 때는 쓰는 사람이
-소스로 갈 길이 있어야 한다(AGPL 13조).
+소스로 갈 길이 있어야 한다(AGPL 13조). **그 길은 공개용 저장소 `koprifossillab/GSM-open` 이다**(2026-10-02, wetherilli 149) —
+판마다 그 태그의 소스를 한 커밋으로 민다(`deploy/publish_open.sh <태그>`, `.claude`·`.github` 은 뺀다). 소개 화면의 "소스" 링크(`settings.SOURCE_URL`)가
+거기를 가리킨다. 개발 저장소(`koprifossillab/GSM`)는 나중에 비공개로 돌릴 수 있게 링크에서 떼어 두었다
 
 ## 인증키
 
@@ -305,7 +307,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
 - 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
   공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
-  브라우저가 곧장 부른다.
+  브라우저가 곧장 부른다. 일본의 찾기 칸(국토지리원 주소·지명 검색, 지리원 지도가 쓰는 것)도 브라우저가 곧장 부른다 —
+  열쇠가 없고 CORS 가 열려 있다. 지리원 지도를 위한 것이라 예고 없이 바뀔 수 있다 (wetherilli 155).
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
@@ -476,7 +479,7 @@ WegenersDream 의 규약을 따른다(2026-09-30 부터).
 만든다**(`gh pr create --base main`) — CI(`시험`)를 통과해야 하고, **`main` 병합은 사람이 정한다.**
 판을 올리는 것은 그 PR 안에서 한다(`CHANGELOG.md`·`web/gsmweb/version.py`·HANDOFF). 병합하고 판이 올랐으면
 CHANGELOG 의 그 절로 GitHub 릴리스(`v<판>`)를 만든다 — 태그마다 CI 가 Docker Hub(`koprifossillab/gsm:<태그>`)에
-이미지를 올린다. 2026-09-30 전에는 `main` 에 곧장 커밋하고 한 세션이 판을 모아 붙였다.
+이미지를 올린다. 그리고 `sh deploy/publish_open.sh v<판>` 으로 그 판의 소스를 GSM-open 에 민다(위 "라이선스"). 2026-09-30 전에는 `main` 에 곧장 커밋하고 한 세션이 판을 모아 붙였다.
 
 **휴대폰 화면은 손으로 찍어 보지 않는다** — CI 의 "휴대폰 화면" job(`viewer/tests/test_mobile.py`)이 390×844 터치로
 화면마다 가로 넘침·페이지 오류·손잡이 자리를 본다(wetherilli 132). 그 job 이 통과하면 확인한 것이다. 휴대폰에서 새로
