@@ -65,6 +65,9 @@
         src: "USGS I-1199 … I-2048 · Frigeri et al. 2008" },
       { name: "lines", title: "구조선 — 급사면·능선·단층·분지 고리", legend: "lines",
         src: "USGS I-1199 … I-2048 · Frigeri et al. 2008" },
+      // 도폭 경계 — USGS WMS 의 `Mercury5M_Quads` 는 이름표 인코딩 오류로 그림을 주지 않는다(2026-10-02).
+      // 경계는 단순한 위·경선이라 화면이 긋는다 (wetherilli 146)
+      { name: "quads", title: "도폭 경계 (H-1 … H-15)", kind: "vector", legend: "quads", src: "USGS 1:5M quadrangle scheme" },
     ] },
   ];
   var LAYER = {};
@@ -393,6 +396,73 @@
     Object.defineProperty(h, "alpha", { set: onAlpha });
     return h;
   }
+  // ── 도폭 경계 (wetherilli 146) ──
+  //
+  // 수성 사각형 도폭 열다섯 — 극 66° 너머, 중위도 22–66°(경도 90° 씩), 적도 띠 ±22°(72° 씩). 도폭은 **서경**으로 나뉜다
+  // (서버의 `mercurymap.quad_of` 와 같은 경계). 원도가 있는 아홉에는 원도 번호를 붙인다
+  var QUADS = [
+    ["H-1", "Borealis", "I-1660", 0, 80], ["H-15", "Bach", "I-2015", 0, -80],
+    ["H-2", "Victoria", "I-1409", -45, 44], ["H-3", "Shakespeare", "I-1408", -135, 44],
+    ["H-4", "Raditladi", "", 135, 44], ["H-5", "Hokusai", "", 45, 44],
+    ["H-6", "Kuiper", "I-1233", -36, 0], ["H-7", "Beethoven", "I-2048", -108, 0], ["H-8", "Tolstoj", "I-1199", 180, 0],
+    ["H-9", "Eminescu", "", 108, 0], ["H-10", "Derain", "", 36, 0],
+    ["H-11", "Discovery", "I-1658", -45, -44], ["H-12", "Michelangelo", "I-1659", -135, -44],
+    ["H-13", "Neruda", "", 135, -44], ["H-14", "Debussy", "", 45, -44],
+  ];
+  var QUAD_COLOR = "#e3c38a";
+  function quadLines() {
+    function run(lon0, lat0, lon1, lat1) {           // 1° 마다 점 — 극 평면에서도 위선이 굽게
+      var n = Math.max(1, Math.ceil(Math.max(Math.abs(lon1 - lon0), Math.abs(lat1 - lat0)))), out = [];
+      for (var i = 0; i <= n; i++) out.push([lon0 + (lon1 - lon0) * i / n, lat0 + (lat1 - lat0) * i / n]);
+      return out;
+    }
+    var lines = [];
+    [22, -22, 66, -66].forEach(function (lat) { lines.push(run(-180, lat, 180, lat)); });
+    [-90, 0, 90, 180].forEach(function (lon) { lines.push(run(lon, 22, lon, 66), run(lon, -22, lon, -66)); });
+    [0, -72, -144, 144, 72].forEach(function (lon) { lines.push(run(lon, -22, lon, 22)); });
+    return lines;
+  }
+  (function quads() {
+    var ds = new Cesium.CustomDataSource("quads");
+    ds.show = false;
+    viewer.dataSources.add(ds);
+    var src = new ol.source.Vector();
+    var label = function (q) { return q[0] + " " + q[1] + (q[2] ? " · " + q[2] : ""); };
+    quadLines().forEach(function (line) {
+      var flatArr = [];
+      line.forEach(function (c) { flatArr.push(c[0], c[1]); });
+      ds.entities.add({ polyline: { positions: Cesium.Cartesian3.fromDegreesArray(flatArr, MARS), width: 1.5,
+                                    clampToGround: true, arcType: Cesium.ArcType.RHUMB,
+                                    material: Cesium.Color.fromCssColorString(QUAD_COLOR).withAlpha(0.85) } });
+      src.addFeature(new ol.Feature(new ol.geom.LineString(line.map(fromLL))));
+    });
+    QUADS.forEach(function (q) {
+      ds.entities.add({ position: Cesium.Cartesian3.fromDegrees(q[3], q[4], 0, MARS),
+                        label: { text: label(q), font: "13px system-ui, sans-serif", fillColor: Cesium.Color.WHITE,
+                                 outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+                                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                                 disableDepthTestDistance: 2000000 } });   // 반지름보다 짧게 — 뒷면 이름이 비치지 않게
+      var f = new ol.Feature(new ol.geom.Point(fromLL([q[3], q[4]])));
+      f.set("_label", label(q));
+      src.addFeature(f);
+    });
+    var layer = new ol.layer.Vector({
+      source: src, visible: false, declutter: true,
+      style: function (feature) {
+        var text = feature.get("_label");
+        if (text) {
+          return new ol.style.Style({ text: new ol.style.Text({ text: text, font: "13px system-ui, sans-serif",
+            fill: new ol.style.Fill({ color: "#fff" }), stroke: new ol.style.Stroke({ color: "#000", width: 3 }) }) });
+        }
+        return new ol.style.Style({ stroke: new ol.style.Stroke({ color: QUAD_COLOR, width: 1.5, lineDash: [6, 4] }) });
+      },
+    });
+    oExtra.getLayers().push(layer);
+    cRaise.quads = [];
+    cGeo.quads = proxy(function (v) { ds.show = v; }, function () { /* 선은 늘 또렷이 */ });
+    oGeo.quads = layer;
+  })();
   // ── NASA Trek 판 (060·wetherilli 080) — 켤 때 짓는다. 구는 영상 레이어, 평면은 `oExtra` 의 타일 ──
   // 극 평면에서는 경위도 타일을 OpenLayers 가 옮겨 그린다 — 수성에는 극지 판이 없다
   var TREK_CREDIT = "NASA Mercury Trek";
@@ -1120,6 +1190,10 @@
   dock.addEventListener("toggle", function () { save("gsm.mercury.legend", dock.open ? "open" : "closed"); });
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    if (kind === "quads") {
+      return Promise.resolve(legends[kind] = '<li><span class="chip line dash" style="border-color:' + QUAD_COLOR +
+                             '"></span>' + esc(T("도폭 경계 — 원도가 있는 아홉에 원도 번호")) + "</li>");
+    }
     // Trek 판 (060) — MapServer 판은 우리 문이 받은 범례, WMTS 판은 상류가 그려 둔 범례 그림 한 장.
     // 없는 판도 있어 받아 보고 정한다. 글자가 검어서 흰 바탕에 싣는다
     if (/^trek:/.test(kind) && LAYER[kind] && LAYER[kind].ms) {
