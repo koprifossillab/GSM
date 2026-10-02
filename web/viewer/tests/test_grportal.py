@@ -122,6 +122,34 @@ class Areas(SimpleTestCase):
                          [("kimb", 2), ("carb", 1), ("lampo", 1), ("lampr", 1), ("other", 1)])
         self.assertIn("rock", body["labels"])
 
+    def _codes(self, name, props_list):
+        rows = [{"type": "Feature", "id": i, "geometry": {"type": "Point", "coordinates": [-52, 65]}, "properties": p}
+                for i, p in enumerate(props_list)]
+        body = json.loads(grportal.body(name, json.dumps(rows).encode()))
+        return [f["properties"]["code"] for f in body["features"]]
+
+    def test_시추공_보고_없음은_만나지_못했다와_가른다(self):
+        # `Not_Reported` 도 `No` 로 시작한다 (wetherilli 157)
+        self.assertEqual(self._codes("grportal:diamond_drillholes", [{"kim": "Yes"}, {"kim": "No"}, {"kim": "Not_Reported"}]),
+                         ["yes", "no", "nr"])
+
+    def test_농도는_값의_구간으로(self):
+        self.assertEqual(self._codes("grportal:diamond_indicators",
+                                     [{"pkg": 130783.3}, {"pkg": 100}, {"pkg": 99.9}, {"pkg": 1}, {"pkg": 0.5}, {}]),
+                         ["c100", "c100", "c10", "c1", "c0", "c0"])
+        self.assertEqual(self._codes("grportal:diamond_per_kg", [{"pkg": 3.5}, {"pkg": 0.3}, {"pkg": 0.05}, {"pkg": 0}]),
+                         ["d1", "d025", "d005", "d0"])
+
+    def test_석류석은_G10D_G10_G9_차례로(self):
+        self.assertEqual(self._codes("grportal:garnet_classes",
+                                     [{"g10d": 1, "g10": 22, "g9": 67}, {"g10d": 0, "g10": 3}, {"g9": 5}, {"g11": 9}]),
+                         ["g10d", "g10", "g9", "other"])
+
+    def test_DED_는_이용_조건이_적혀_있다(self):
+        self.assertIn("CC BY 4.0", grportal.license_of("grportal:diamond_drillholes"))
+        self.assertIn("CC BY 4.0", grportal.license_of("grportal:diamond_occurrences"))
+        self.assertEqual(grportal.license_of("grportal:geochron"), "")
+
     def test_갈래가_없는_옛_레이어는_그대로_싼다(self):
         body = json.loads(grportal.body("grportal:geochron", b"[]"))
         self.assertEqual(body["style"], "age")
@@ -253,3 +281,37 @@ class Geochem(SimpleTestCase):
         for _, _, label, _ in grportal.ELEMENTS:
             if any("가" <= ch <= "힣" for ch in label):
                 self.assertIn(label, i18n.EN, label)
+
+
+class WholeRock(TestCase):
+    """전암 화학 3 만 점 (wetherilli 163) — 쉼표 소수의 원소 무게 퍼센트, 고른 원소만 잘라 준다."""
+
+    def test_퍼센트를_화면_단위로(self):
+        from viewer import arcpoints
+        self.assertEqual(arcpoints.clean("0,0044", "pct_ppm"), 44.0)          # 구리 0.0044 % = 44 ppm
+        self.assertEqual(arcpoints.clean("3e-06", "pct_ppb"), 30.0)           # 금 30 ppb
+        self.assertEqual(arcpoints.clean("22,88", "pct_wt"), 22.88)
+        self.assertIsNone(arcpoints.clean("NULL", "pct_ppm"))                 # 분석하지 않은 것
+        self.assertEqual(arcpoints.clean("-0,01", "pct_ppm"), -100.0)         # 검출 한계 밑, 한계 100 ppm
+        self.assertEqual(arcpoints.clean("0", "pct_ppm"), arcpoints.BELOW_UNKNOWN)
+        self.assertEqual(arcpoints.clean("-1", "pct_ppm"), arcpoints.BELOW_UNKNOWN)
+
+    def test_고른_원소의_점만_잘라_준다(self):
+        features = [{"type": "Feature", "id": i, "geometry": {"type": "Point", "coordinates": [-45, 61]},
+                     "properties": {"sample": str(i), "anal": "1", **props}}
+                    for i, props in enumerate(({"cu": 44.0, "u": 2.0}, {"cu": -100.0}, {"si": 22.9}))]
+        raw = json.dumps(features).encode()
+        data = json.loads(grportal.value_slice("grportal:whole_rock", raw, "cu"))
+        self.assertEqual((data["slice"], data["total"], len(data["features"])), ("cu", 3, 2))
+        self.assertEqual(data["features"][0]["properties"], {"sample": "0", "anal": "1", "cu": 44.0})
+        self.assertEqual({v["key"]: (v["n"], v["below"]) for v in data["values"]}, {"si": (1, 0), "cu": (1, 1), "u": (1, 0)})
+        # 모르는 원소면 처음 원소(구리)로
+        self.assertEqual(json.loads(grportal.value_slice("grportal:whole_rock", raw, "zz"))["slice"], "cu")
+
+    def test_화면이_받는_것(self):
+        features = [{"type": "Feature", "id": 1, "geometry": {"type": "Point", "coordinates": [-45, 61]},
+                     "properties": {"sample": "1", "u": 2.3}}]
+        with mock.patch.object(views, "point_features", return_value=json.dumps(features).encode()):
+            data = json.loads(self.client.get("/GSM/points/", {"layer": "grportal:whole_rock", "value": "u"}).content)
+        self.assertEqual(data["slice"], "u")
+        self.assertEqual(len(data["features"]), 1)
