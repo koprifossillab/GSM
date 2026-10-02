@@ -1942,7 +1942,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({} if spec["info"] else {"queryable": False})}
     if layer.upstream == "gsmma" and gsmma.knows(layer.name):
         # 대만(wetherilli 136) — 상류가 4326 만 받아 그 격자로 받는다(`map.js` 의 `taiwanSource`). 범례는 주지 않는다
-        return {"attribution": gsmma.ATTRIBUTION, "projection": "EPSG:4326", "noLegend": True,
+        # 5만·25만 지질도는 보는 범위의 범례를 그림에서 떠 온다(`gsmma/legend/`, wetherilli 142)
+        legend = ({"legend": "extent", "legendUrl": "gsmma/legend/"} if layer.name in gsmma.LEGENDS
+                  else {"noLegend": True})
+        return {"attribution": gsmma.ATTRIBUTION, "projection": "EPSG:4326", **legend,
                 **({} if gsmma.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "phyloserver" and phyloserver.knows_scan(layer.name):
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
@@ -2484,6 +2487,41 @@ def gsj_legend(request):
         else:
             tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
     shown = [gsj.legend_row(r, lang) for r in rows[:gsj.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
+@require_GET
+def gsmma_legend(request):
+    """`?layer=gsmma:geology_50k&bbox=서,남,동,북` — 대만 지질도의 보는 범위 범례 (wetherilli 142).
+
+    상류가 범례 그림을 주지 않아 문이 지층 면과 그림을 맞대어 떠 온다(`gsmma.extent_legend`). 칸마다 견본 조각이
+    든다. 범위는 소수 둘째 자리로 잘라 캐시가 맞게 한다 — 일본(`gsj_legend`)과 같다. 너무 넓으면 422 로 들어오라고 한다.
+    """
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in gsmma.LEGENDS:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    span = gsmma.LEGENDS[name]["span"]
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("gsmma-legend", f"{name}/{bbox}")
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = gsmma.extent_legend(name, bbox)
+        except gsmma.GsmmaError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("대만 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    shown = [gsmma.legend_row(r, lang) for r in rows[:gsmma.MAX_LEGEND]]
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 
