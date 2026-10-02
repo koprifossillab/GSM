@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% t "대돌여지도" %} · {% t "온 지구" %}</title>
 <meta name="theme-color" content="#08131f">
-<link rel="icon" type="image/svg+xml" href="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}">
+<link rel="icon" type="image/png" href="{% static 'viewer/emblem-earth.png' %}?v={{ stamp|default:version }}">
 {% comment %}온 지구 (wetherilli P06) — 화성 화면(mars.html)을 옮겨 왔다. 같은 틀·같은 설정(테마·글꼴·크기)으로 뜨고
 색만 바다의 남색이다(map.css 의 `data-region="earth"`). CSS 가 입혀지기 전에 달아야 깜빡이지 않는다.{% endcomment %}
 <script>
@@ -21,9 +21,9 @@
 </script>
 {% comment %}대기 화면 — 지역 탭(map.html)의 것 그대로다. 바탕색은 gif 의 바탕(#2b1d10)과 같아야 가장자리가 안 보인다{% endcomment %}
 <style>
-  #splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#2b1d10;transition:opacity .45s ease,visibility .45s}
+  #splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#06171a;transition:opacity .45s ease,visibility .45s}
   #splash img{width:min(760px,92vw);height:auto}
-  #splash p{margin:0;font:500 15px/1.4 "Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;letter-spacing:.22em;color:#c9a24b}
+  #splash p{margin:0;font:500 15px/1.4 "Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;letter-spacing:.22em;color:#5fd4c4}
   #splash.gone{opacity:0;visibility:hidden}
   #splash p.splash-ver{font-size:12px;letter-spacing:.12em;opacity:.65}
 </style>
@@ -34,7 +34,7 @@
 <body>
 
 <div id="splash" role="status" aria-live="polite">
-  <img src="{% static 'viewer/splash.gif' %}" alt="{% t "대돌여지도" %} · {% t "온 지구" %}">
+  <img src="{% static 'viewer/splash-earth.gif' %}" alt="{% t "대돌여지도" %} · {% t "온 지구" %}">
   <p>{% t "불러오는 중" %}</p>
   <p class="splash-ver">v{{ version }}</p>
 </div>
@@ -43,7 +43,7 @@
   <header class="brand">
     <button type="button" class="emblem-btn" id="emblem-btn" aria-haspopup="menu" aria-expanded="false"
             aria-controls="hidden-menu" title="{% t "대돌여지도" %}">
-      <img class="emblem" src="{% static 'viewer/emblem.svg' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
+      <img class="emblem" src="{% static 'viewer/emblem-earth.png' %}?v={{ stamp|default:version }}" alt="" width="46" height="46">
     </button>
     <nav class="hidden-menu" id="hidden-menu" role="menu" hidden>
       <a role="menuitem" href="{{ base }}map/"><span class="moon-dot earth-dot" aria-hidden="true"></span>{% t "지구" %}</a>
