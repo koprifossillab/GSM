@@ -55,6 +55,8 @@
     } catch (e) { return staticKeys[name] || ""; }   // 사생활 모드 — 탭 동안만
   }
   var staticKeys = {};
+  // 정적 판의 VWorld 는 페이지에 실린 키가 아니라 보는 사람이 넣은 키로 돈다(wetherilli 174) — 굽는 판에는 키가 없다
+  if (STATIC) vworldKey = readKey("vworld");
 
   function writeKey(name, key, remember) {
     var slot = "gsm.key." + name;
@@ -6573,51 +6575,120 @@
     });
   }
 
-  /** 정적 판의 키 칸 (wetherilli P11·162) — 한국 탭 위 알림 줄. 키가 있으면 "넣었다 · 지우기", 없으면 넣는 칸.
-   *  키는 이 브라우저에만 남는다(30 일, "이 PC 에 기억하지 않기" 면 탭 동안만). */
+  /** 정적 판의 키 (wetherilli P11·162·174) — **KIGAM·VWorld 둘 다 보는 사람이 각자 넣는다**(사용자 결정, 2026-10-02).
+   *  공개 판을 처음 열 때 둘을 받는 창을 띄우고, 한국 탭 위 알림 줄에 상태와 "키 바꾸기" 를 둔다. 키는 이 브라우저에만
+   *  남는다(30 일, "이 PC 에 기억하지 않기" 면 탭 동안만). VWorld 키는 배경·찾기가 시작할 때 읽으므로 넣으면 다시 연다 */
+  var STATIC_KEYS = [
+    { name: "kigam", label: "KIGAM 인증키", what: "한국 지질도",
+      get: "https://data.kigam.re.kr/", getLabel: "지오빅데이터 오픈플랫폼에서 받기" },
+    { name: "vworld", label: "VWorld 인증키", what: "배경지도·주소 찾기·지질 참고",
+      get: "https://www.vworld.kr/dev/v4dv_apikeyguide_s001.do", getLabel: "VWorld 에서 받기" },
+  ];
+
   function wireStaticKey() {
     var box = document.getElementById("static-key");
-    if (!STATIC || !box) return;
-    box.innerHTML = "";
-    var key = readKey("kigam");
-    if (key) {
+    if (!STATIC) return;
+    if (box) {
+      box.innerHTML = "";
+      var held = STATIC_KEYS.filter(function (k) { return readKey(k.name); });
       var text = document.createElement("span");
-      text.textContent = T("KIGAM 인증키를 넣었다 — 이 브라우저에만 있다");
-      var clear = document.createElement("button");
-      clear.type = "button";
-      clear.className = "btn quiet";
-      clear.textContent = T("키 지우기");
-      clear.addEventListener("click", function () { writeKey("kigam", "", false); refreshKigamKey(); wireStaticKey(); });
-      box.append(text, clear);
-      return;
+      text.textContent = held.length === STATIC_KEYS.length ? T("인증키 둘을 넣었다 — 이 브라우저에만 있다")
+        : held.length ? T("{name} 만 넣었다", { name: T(held[0].label) })
+        : T("인증키를 넣어야 한국 지질도와 배경지도가 보인다");
+      var open = document.createElement("button");
+      open.type = "button";
+      open.className = "btn quiet";
+      open.textContent = held.length ? T("키 바꾸기") : T("키 넣기");
+      open.addEventListener("click", openKeyDialog);
+      box.append(text, open);
     }
-    var lead = document.createElement("span");
-    lead.innerHTML = T("<b>한국 지질도는 각자의 KIGAM 인증키로 본다.</b> 지오빅데이터 오픈플랫폼에서 받은 키를 넣는다 — 이 브라우저에만 남고 KIGAM 에만 간다.");
-    var input = document.createElement("input");
-    input.type = "password";
-    input.autocomplete = "off";
-    input.placeholder = T("인증키");
+    // 처음 열 때(둘 가운데 하나라도 없으면) 묻는다. "나중에" 를 누르면 그 탭에서는 다시 묻지 않는다
+    var later = false;
+    try { later = sessionStorage.getItem("gsm.key.later") === "1"; } catch (e) { /* 사생활 모드 */ }
+    if (!later && STATIC_KEYS.some(function (k) { return !readKey(k.name); })) openKeyDialog();
+  }
+
+  function openKeyDialog() {
+    if (document.getElementById("key-dialog")) return;
+    var back = document.createElement("div");
+    back.id = "key-dialog";
+    back.className = "key-dialog";
+    var card = document.createElement("div");
+    card.className = "key-card";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+    var head = document.createElement("h2");
+    head.textContent = T("인증키 넣기");
+    var lead = document.createElement("p");
+    lead.innerHTML = T("이 판은 연구소 밖에서 서버 없이 돈다. <b>지질도와 배경지도는 각자 받은 인증키로 본다.</b> 키는 이 브라우저에만 남고 그 키를 준 곳(KIGAM·VWorld)에만 간다.");
+    card.append(head, lead);
+    var inputs = {};
+    STATIC_KEYS.forEach(function (k) {
+      var row = document.createElement("label");
+      row.className = "key-row";
+      var name = document.createElement("span");
+      name.className = "key-name";
+      name.textContent = T(k.label);
+      var hint = document.createElement("small");
+      hint.textContent = T(k.what);
+      var input = document.createElement("input");
+      input.type = "password";
+      input.autocomplete = "off";
+      input.placeholder = readKey(k.name) ? T("넣어 두었다 — 바꾸려면 새로 적는다") : T("인증키");
+      var get = document.createElement("a");
+      get.href = k.get;
+      get.target = "_blank";
+      get.rel = "noopener noreferrer";
+      get.textContent = T(k.getLabel);
+      row.append(name, hint, input, get);
+      card.appendChild(row);
+      inputs[k.name] = input;
+    });
+    var note = document.createElement("p");
+    note.className = "key-note";
+    note.textContent = T("VWorld 키를 받을 때 서비스 URL 에 이 판의 주소({url})를 적는다.", { url: location.origin });
     var forget = document.createElement("label");
+    forget.className = "key-forget";
     var check = document.createElement("input");
     check.type = "checkbox";
     forget.append(check, document.createTextNode(T("이 PC 에 기억하지 않기")));
+    var buttons = document.createElement("div");
+    buttons.className = "key-buttons";
+    var clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "btn quiet";
+    clear.textContent = T("키 지우기");
+    clear.addEventListener("click", function () {
+      STATIC_KEYS.forEach(function (k) { writeKey(k.name, "", false); });
+      location.reload();
+    });
+    var later = document.createElement("button");
+    later.type = "button";
+    later.className = "btn quiet";
+    later.textContent = T("나중에");
+    later.addEventListener("click", function () {
+      try { sessionStorage.setItem("gsm.key.later", "1"); } catch (e) { /* 사생활 모드 */ }
+      back.remove();
+    });
     var save = document.createElement("button");
     save.type = "button";
     save.className = "btn";
-    save.textContent = T("넣기");
+    save.textContent = T("저장");
     save.addEventListener("click", function () {
-      var value = input.value.trim();
-      if (!value) return;
-      writeKey("kigam", value, !check.checked);
-      refreshKigamKey();
-      wireStaticKey();
+      var changed = false;
+      STATIC_KEYS.forEach(function (k) {
+        var value = inputs[k.name].value.trim();
+        if (value) { writeKey(k.name, value, !check.checked); changed = true; }
+      });
+      if (changed) location.reload();          // 배경·찾기·타일이 처음부터 그 키로 서게
+      else back.remove();
     });
-    var get = document.createElement("a");
-    get.href = "https://data.kigam.re.kr/";
-    get.target = "_blank";
-    get.rel = "noopener noreferrer";
-    get.textContent = T("키 받기");
-    box.append(lead, input, forget, save, get);
+    buttons.append(clear, later, save);
+    card.append(note, forget, buttons);
+    back.appendChild(card);
+    document.body.appendChild(back);
+    var first = STATIC_KEYS.filter(function (k) { return !readKey(k.name); })[0] || STATIC_KEYS[0];
+    inputs[first.name].focus();
   }
 
   function cssEscape(text) {
