@@ -704,6 +704,8 @@ EN = {
     "높이를 읽지 못했다": "Could not read the elevations",
     "최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}": "low {lo} · high {hi} · ascent {up} · descent {down}",
     "LOLA 256 ppd · 달 기준구 1737.4 km 에서 잰 높이": "LOLA 256 ppd · height above the 1737.4 km lunar sphere",
+    "MOLA–HRSC 200 m · 화성 기준면(아레오이드)에서 잰 높이": "MOLA–HRSC 200 m · height above the Mars areoid",
+    "MESSENGER 665 m · 수성 기준구 2439.4 km 에서 잰 높이": "MESSENGER 665 m · height above the 2,439.4 km Mercury sphere",
     "거리 {d} · 높이 {h}": "distance {d} · elevation {h}",
     "선이 없다": "No line given",
     "지도 오른쪽 위 <b>점</b> 도구로 찍는다": "Use the <b>Point</b> tool at the top right of the map",

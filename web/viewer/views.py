@@ -526,6 +526,22 @@ def moon_profile(request):
     """`?line=경도,위도;경도,위도…&n=256` — 잰 선을 따라 고르게 찍은 점의 LOLA 표고 (wetherilli 100).
 
     `{"dist": [m…], "elev": [m 또는 null…], "lon", "lat", "source", "datum"}`. 같은 선은 캐시가 낸다."""
+    return _body_profile(request, "moon")
+
+
+@require_GET
+def mars_profile(request):
+    """화성의 높이 그래프 — MOLA–HRSC 200 m (wetherilli 148). 꼴은 `moon_profile` 과 같다."""
+    return _body_profile(request, "mars")
+
+
+@require_GET
+def mercury_profile(request):
+    """수성의 높이 그래프 — MESSENGER 665 m (wetherilli 148). 꼴은 `moon_profile` 과 같다."""
+    return _body_profile(request, "mercury")
+
+
+def _body_profile(request, body):
     lang = i18n.lang_of(request)
     vertices = []
     for part in (request.GET.get("line") or "").split(";"):
@@ -539,15 +555,17 @@ def moon_profile(request):
         return JsonResponse({"error": i18n.t(msg("선이 없다"), lang)}, status=400)
     n = int(_float(request.GET.get("n")) or 256)
     text = ";".join(f"{lon:.5f},{lat:.5f}" for lon, lat in vertices)
-    key = tilecache.key_text("trek-profile", f"{trek.ELEV_SOURCE}/{n}/{text}")
+    source = trek._profile_body(body)[2]
+    key = tilecache.key_text("trek-profile", f"{source}/{n}/{text}")
     data = _cached_json(key)
     if data is None:
         try:
-            data = trek.profile(vertices, n)
+            data = trek.profile(vertices, n, body)
         except trek.TrekError as exc:
-            log.warning("달 높이 그래프를 받지 못했다: %s", exc)
+            log.warning("%s 높이 그래프를 받지 못했다: %s", body, exc)
             return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
-        tilecache.put(key, json.dumps(data).encode("utf-8"), ".json")
+        if any(v is not None for v in data["elev"]):
+            tilecache.put(key, json.dumps(data).encode("utf-8"), ".json")
     return JsonResponse(data)
 
 

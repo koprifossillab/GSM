@@ -49,3 +49,36 @@ class Views(TestCase):
                                    {"line": "126.9,37.5;127.0,37.6", "n": 16}).json()
         self.assertEqual(data["elev"], [5.0] * 16)
         self.assertEqual(self.client.get(reverse("viewer:elevation-profile"), {"line": "126.9,37.5"}).status_code, 400)
+
+
+class PlanetProfiles(TestCase):
+    """화성·수성의 높이 그래프 (wetherilli 148) — 달(100)의 틀에 몸만 바꿨다. Trek 을 부르지 않는다."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-planet-prof-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_몸마다_반지름과_표고(self):
+        from viewer import trek
+        for body, radius, read, source in (("mars", trek.MARS_RADIUS, "mars_values", trek.MARS_ELEV_SOURCE),
+                                           ("mercury", trek.MERCURY_RADIUS, "mercury_values", trek.MERCURY_ELEV_SOURCE)):
+            with self.subTest(body=body), mock.patch.object(trek, read, side_effect=lambda pts: {k: -100.0 for k in pts}):
+                got = trek.profile([(0, 0), (1, 0)], 11, body)
+            self.assertEqual(got["source"], source)
+            self.assertEqual(got["elev"], [-100.0] * 11)
+            # 1° 는 그 몸의 반지름으로 잰 거리다
+            self.assertAlmostEqual(got["dist"][-1], radius * 3.141592653589793 / 180, delta=1)
+
+    def test_주소(self):
+        from viewer import trek
+        with mock.patch.object(trek, "mercury_values", side_effect=lambda pts: {k: 300.0 for k in pts}) as read:
+            url = reverse("viewer:mercury-profile")
+            data = self.client.get(url, {"line": "-31.5,-11.3;-30,-10", "n": 8}).json()
+            self.client.get(url, {"line": "-31.5,-11.3;-30,-10", "n": 8})
+        self.assertEqual(data["elev"], [300.0] * 8)
+        self.assertEqual(read.call_count, 1)                          # 같은 선은 캐시가 낸다
+        with mock.patch.object(trek, "mars_values", side_effect=lambda pts: {}):
+            data = self.client.get(reverse("viewer:mars-profile"), {"line": "137.4,-4.6;137.5,-4.5", "n": 4}).json()
+        self.assertEqual(data["elev"], [None] * 4)
+        self.assertEqual(self.client.get(reverse("viewer:mars-profile"), {"line": "137.4,-4.6"}).status_code, 400)
