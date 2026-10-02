@@ -527,7 +527,9 @@ class Views(WithData, TestCase):
         layer = [l for g in groups if g["region"] == "antarctica" for l in g["layers"]][0]
         self.assertEqual(layer["upstream"], "geomap")
         self.assertEqual(layer["attribution"], geomap.ATTRIBUTION)
-        self.assertEqual(layer["tiles"], f"geomap/{layer['name']}/{{z}}/{{x}}/{{y}}.png")
+        # 판이 주소에 든다 — 브라우저가 오래 들고 있어도 판이 바뀌면 새 주소다 (wetherilli 151)
+        self.assertEqual(layer["tiles"], f"geomap/{layer['name']}/{{z}}/{{x}}/{{y}}.png?v={geomap.data_version()}"
+                                         f"r{geomap.RENDERER}")
 
 
 class Missing(TestCase):

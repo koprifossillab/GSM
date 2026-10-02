@@ -143,6 +143,11 @@ GTK_WMS_URL = env("GSM_GTK_WMS_URL", "https://gtkdata.gtk.fi/arcgis/services/Raj
 BGS_WMS_URL = env("GSM_BGS_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer")
 BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
 EGDI_WMS_URL = env("GSM_EGDI_WMS_URL", "https://geoserver.geo-zs.si/egdi-surface-geology/gsmlp/wms")
+#: 독일·스페인·아일랜드 지질도 — BGR·IGME·GSI ArcGIS WMS 의 판 앞 주소, GSNI 는 BGS 서버의 것 (wetherilli 147). 열쇠가 없다
+BGR_WMS_URL = env("GSM_BGR_WMS_URL", "https://services.bgr.de/wms/geologie")
+IGME_WMS_URL = env("GSM_IGME_WMS_URL", "https://mapas.igme.es/gis/services/Cartografia_Geologica")
+GSI_WMS_URL = env("GSM_GSI_WMS_URL", "https://gsi.geodata.gov.ie/server/services/Bedrock")
+GSNI_WMS_URL = env("GSM_GSNI_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/GeoIndex_GSNI/GSNI_Geology_Landsat_WMS/MapServer/WmsServer")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -239,6 +244,9 @@ CAPABILITIES_URL = env("GSM_CAPABILITIES_URL",
                        "https://data.kigam.re.kr/mgeo/geoserver/wms")
 #: 브라우저에게 "이만큼 들고 있어라" 고 말하는 시간 (HTTP Cache-Control).
 TILE_CACHE_SECONDS = env_int("GSM_TILE_CACHE_SECONDS", 86400)
+#: 주소에 판(`?v=`)이 든 우리 타일은 이만큼 들고 있게 한다 — 판이 바뀌면 주소가 바뀌므로 길어도 된다 (wetherilli 151).
+#: 상류에서 받은 것은 위의 하루 그대로이고, 지나면 ETag 로 되묻는다(304)
+TILE_IMMUTABLE_SECONDS = env_int("GSM_TILE_IMMUTABLE_SECONDS", 365 * 86400)
 UPSTREAM_TIMEOUT = env_int("GSM_UPSTREAM_TIMEOUT", 20)
 
 #: 받아온 타일을 우리 디스크에 두는 자리. 비우면 캐시를 끈다.
@@ -362,6 +370,11 @@ GTK_CATALOG_SEED = REPO_DIR / "data" / "gtk_layers.json"
 BGS_CATALOG_SEED = REPO_DIR / "data" / "bgs_layers.json"
 BRGM_CATALOG_SEED = REPO_DIR / "data" / "brgm_layers.json"
 EGDI_CATALOG_SEED = REPO_DIR / "data" / "egdi_layers.json"
+#: 독일·스페인·아일랜드 (wetherilli 147)
+BGR_CATALOG_SEED = REPO_DIR / "data" / "bgr_layers.json"
+IGME_CATALOG_SEED = REPO_DIR / "data" / "igme_layers.json"
+GSI_CATALOG_SEED = REPO_DIR / "data" / "gsi_layers.json"
+GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)
@@ -431,6 +444,9 @@ MIDDLEWARE = [
     # nginx 에게 맡기려면 이미지 안의 파일을 호스트로 꺼내야 해서 번거롭다.
     # 까닭은 requirements-web.txt 의 주석.
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # 응답마다 ETag 를 붙이고 `If-None-Match` 가 맞으면 304 로 답한다 (wetherilli 151). 브라우저가 하루 들고 있던 타일을
+    # 되물을 때 같은 그림을 다시 보내지 않는다. `no-store`(안내 타일)에는 붙이지 않는다. 내용을 보는 것이라 맨 위 가까이 둔다
+    "django.middleware.http.ConditionalGetMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

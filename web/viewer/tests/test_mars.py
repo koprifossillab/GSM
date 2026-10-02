@@ -213,6 +213,13 @@ class MarsView(TestCase):
         self.assertIn("viewer/emblem-mars.png", html)
         self.assertIn("viewer/splash-mars.gif", html)
 
+    def test_온_지구도_제_아이콘과_대기_화면(self):
+        # 온 지구 아이콘 (wetherilli 153)
+        html = self.client.get(reverse("viewer:earth")).content.decode()
+        self.assertIn("viewer/emblem-earth.png", html)
+        self.assertIn("viewer/splash-earth.gif", html)
+        self.assertNotIn("viewer/emblem.svg", html)
+
     def test_달_화면도_제_아이콘과_대기_화면(self):
         html = self.client.get(reverse("viewer:moon")).content.decode()
         self.assertIn("viewer/emblem-moon.png", html)

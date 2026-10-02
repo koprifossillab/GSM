@@ -27,7 +27,11 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            ("fennoscandia", "노르웨이·핀란드"),
            # 영국·프랑스 — BGS·BRGM 지질도 (wetherilli 143). "유럽" 탭은 둘을 모은 묶음이라 여기 없다
            ("uk", "영국"),
-           ("france", "프랑스"))
+           ("france", "프랑스"),
+           # 독일·스페인·아일랜드 — BGR·IGME·GSI(·GSNI) 지질도 (wetherilli 147). 유럽 묶음에 든다
+           ("germany", "독일"),
+           ("spain", "스페인"),
+           ("ireland", "아일랜드"))
 
 
 class LayerGroup(models.Model):
@@ -81,7 +85,8 @@ class Layer(models.Model):
     #: peninsula → `peninsula.py` (한반도 지질도 음영판 PDF 를 잘라 둔 타일 — devlog 027),
     #: gsmma → `gsmma.py` (대만 지질도 — 4326 WMS 를 받고 속성은 지질운 GeoJSON, wetherilli 136),
     #: ngu → `ngu.py`·gtk → `gtk.py` (노르웨이·핀란드 기반암 지질도 — 3575·3413 으로 곧장, wetherilli 140),
-    #: bgs → `bgs.py`·brgm → `brgm.py`·egdi → `egdi.py` (영국·프랑스·범유럽 1:100만 지질도, wetherilli 143)
+    #: bgs → `bgs.py`·brgm → `brgm.py`·egdi → `egdi.py` (영국·프랑스·범유럽 1:100만 지질도, wetherilli 143),
+    #: bgr → `bgr.py`·igme → `igme.py`·gsi → `gsi.py`·gsni → `bgs.py` 의 GSNI (독일·스페인·아일랜드, wetherilli 147)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

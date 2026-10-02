@@ -1776,6 +1776,69 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(251, 253, 251, .95); --glass-line: #d2e0d0;
 }
 
+/* ── 독일 (wetherilli 147) — 라인 점판암: 먹청 바탕에 점판암 지붕의 청회 ──
+   라인 편암 산지의 슬레이트 지붕에서 땄다. 북극(흰 얼음)보다 어둡고 채도를 낮춰, 그린란드 빙하 청과도 가른다 */
+:root[data-region="germany"] {
+  --bg: #121519; --panel: #191d22; --panel-tint: #0e1114; --raise: #23282f;
+  --ink: #eaeef3; --ink-soft: #b6c0cc; --ink-faint: #78838f;
+  --line: #2d343c; --line-soft: #21262c;
+  --gold: #9db0c4; --gold-bright: #cbd7e3; --gold-muted: #8597aa;
+  --gold-wash: rgba(157, 176, 196, .12); --gold-edge: rgba(157, 176, 196, .4);
+  --hi: #9db0c4; --hi-deep: #cbd7e3; --on-hi: #0e1114; --hi-ink: #cbd7e3;
+  --glass: rgba(14, 17, 20, .93); --glass-line: rgba(157, 176, 196, .33);
+}
+:root[data-region="germany"][data-theme="light"] {
+  --bg: #f0f2f5; --panel: #fcfdfe; --panel-tint: #f5f7f9; --raise: #e3e7ec;
+  --ink: #161b21; --ink-soft: #46505c; --ink-faint: #848d98;
+  --line: #d4dae1; --line-soft: #e3e7ec;
+  --gold: #4b6178; --gold-bright: #334659; --gold-muted: #5e7186;
+  --gold-wash: #e7ecf2; --gold-edge: #bfcad6;
+  --hi: #22303e; --hi-deep: #141d26; --on-hi: #f6f8fb; --hi-ink: #4b6178;
+  --glass: rgba(252, 253, 254, .95); --glass-line: #d4dae1;
+}
+
+/* ── 스페인 (wetherilli 147) — 리오하의 포도주: 붉은 흙 그늘 바탕에 짙은 장밋빛 ──
+   벚꽃(일본)보다 짙고 스발바르의 국기 빨강보다 장미 쪽으로 갔다 */
+:root[data-region="spain"] {
+  --bg: #1a1214; --panel: #23181b; --panel-tint: #140d0f; --raise: #2f2024;
+  --ink: #f6ecee; --ink-soft: #d1b8bd; --ink-faint: #917a7f;
+  --line: #3d2a2f; --line-soft: #2c1f22;
+  --gold: #d96383; --gold-bright: #f0a6b9; --gold-muted: #bd5873;
+  --gold-wash: rgba(217, 99, 131, .13); --gold-edge: rgba(217, 99, 131, .42);
+  --hi: #d96383; --hi-deep: #f0a6b9; --on-hi: #140d0f; --hi-ink: #f0a6b9;
+  --glass: rgba(20, 13, 15, .93); --glass-line: rgba(217, 99, 131, .35);
+}
+:root[data-region="spain"][data-theme="light"] {
+  --bg: #f7f0f2; --panel: #fefcfc; --panel-tint: #faf5f6; --raise: #eee2e5;
+  --ink: #2a1519; --ink-soft: #634750; --ink-faint: #9e858b;
+  --line: #e5d4d8; --line-soft: #eee2e5;
+  --gold: #a8304f; --gold-bright: #82203b; --gold-muted: #9e5668;
+  --gold-wash: #f8e5ea; --gold-edge: #e7b3c1;
+  --hi: #4d1726; --hi-deep: #300c17; --on-hi: #fdf5f7; --hi-ink: #a8304f;
+  --glass: rgba(254, 252, 252, .95); --glass-line: #e5d4d8;
+}
+
+/* ── 아일랜드 (wetherilli 147) — 코네마라 대리석: 이탄 먹녹 바탕에 사문석 초록 ──
+   서쪽 해안의 녹색 대리석에서 땄다. 포도잎(프랑스)보다 푸르고 청자(동아시아)보다 짙고 맑게, 남극 박하빛보다 어둡게 갔다 */
+:root[data-region="ireland"] {
+  --bg: #0f1613; --panel: #151f1b; --panel-tint: #0b120f; --raise: #1d2a25;
+  --ink: #e8f3ee; --ink-soft: #acc6ba; --ink-faint: #6f8a7e;
+  --line: #263932; --line-soft: #1c2a25;
+  --gold: #45c48c; --gold-bright: #93e2bf; --gold-muted: #3fa878;
+  --gold-wash: rgba(69, 196, 140, .12); --gold-edge: rgba(69, 196, 140, .4);
+  --hi: #45c48c; --hi-deep: #93e2bf; --on-hi: #0b120f; --hi-ink: #93e2bf;
+  --glass: rgba(11, 18, 15, .93); --glass-line: rgba(69, 196, 140, .33);
+}
+:root[data-region="ireland"][data-theme="light"] {
+  --bg: #edf5f1; --panel: #fafdfb; --panel-tint: #f2f8f5; --raise: #dfebe5;
+  --ink: #12211a; --ink-soft: #3f5a4d; --ink-faint: #7c9286;
+  --line: #cfe0d7; --line-soft: #dfebe5;
+  --gold: #1d8a5a; --gold-bright: #136841; --gold-muted: #3f8a68;
+  --gold-wash: #dcf2e7; --gold-edge: #a6dcc2;
+  --hi: #123a28; --hi-deep: #0a2418; --on-hi: #f3fbf7; --hi-ink: #1d8a5a;
+  --glass: rgba(250, 253, 251, .95); --glass-line: #cfe0d7;
+}
+
 /* ── 유럽 (wetherilli 143) — 영국·프랑스를 한 화면에. 백악 절벽: 플린트 먹회 바탕에 백악의 회백 ──
    도버 해협 양쪽이 같은 백악이라 땄다. 품은 지역의 색(히스 자주·포도잎 초록) 어느 쪽도 아니게 색을 빼고 밝기로 가른다 */
 :root[data-region="europe"] {

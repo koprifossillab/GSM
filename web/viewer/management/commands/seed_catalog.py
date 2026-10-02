@@ -72,6 +72,11 @@ class Command(BaseCommand):
                 (settings.EGDI_CATALOG_SEED, "유럽 (EGDI)", "uk", "egdi"),
                 (settings.BGS_CATALOG_SEED, "영국 (BGS)", "uk", "bgs"),
                 (settings.BRGM_CATALOG_SEED, "프랑스 (BRGM)", "france", "brgm"),
+                # 독일·스페인·아일랜드 — BGR·IGME·GSI, 북아일랜드 GSNI 는 아일랜드 탭에 (wetherilli 147)
+                (settings.BGR_CATALOG_SEED, "독일 (BGR)", "germany", "bgr"),
+                (settings.IGME_CATALOG_SEED, "스페인 (IGME)", "spain", "igme"),
+                (settings.GSI_CATALOG_SEED, "아일랜드 (GSI)", "ireland", "gsi"),
+                (settings.GSNI_CATALOG_SEED, "북아일랜드 (GSNI)", "ireland", "gsni"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)
