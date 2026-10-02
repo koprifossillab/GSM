@@ -265,6 +265,7 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    "VWorld 가 거절했다": "VWorld refused the request",
     # 수성 화면 (wetherilli P10)
     "수성": "Mercury",
     "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",

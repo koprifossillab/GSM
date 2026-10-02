@@ -649,6 +649,7 @@
     var up = (row && row.upstream) || "kigam";
     if (STATIC) {
       if (up === "kigam") return STATIC_KIGAM;
+      if (up === "vworld") return STATIC_VWORLD;
       var kinds = window.GSM_STATIC_KINDS || {};
       if (kinds[up]) return kinds[up];
     }
@@ -676,6 +677,111 @@
     },
     info: null,
   };
+
+  // ── 정적 판의 VWorld (wetherilli 164) ──
+  //
+  // 검토(docs/정적_밖_경로.md §10)의 권고대로 **공개 판용 키 하나**로 보는 것만 — 그 키는 굽는 사람이 넘긴 것이고
+  // 화면에 실린다(`vworldKey`). VWorld 는 배경 WMTS 만 CORS 를 열었다. WMS 그림은 `<img>` 라 받히고(그래서 `crossOrigin`
+  // 을 두지 않는다 — 그림으로 내려받기에서는 빠진다), 속성(GetFeatureInfo)·WFS 는 CORS 가 없어 쓰지 않는다. 찾기·좌표→주소는
+  // JSONP 로 곧장 — 서버의 `vworld.search`·`reverse` 를 옮겼다
+  var VWORLD_API = "https://api.vworld.kr/req/";
+  var STATIC_VWORLD = {
+    source: function (name) {
+      return new ol.source.TileWMS({
+        url: VWORLD_API + "wms",
+        // 레이어명은 소문자라야 돈다(020). 1.3.0 의 EPSG:3857 은 축 차례가 그대로다
+        params: { LAYERS: name.toLowerCase(), STYLES: "", VERSION: "1.3.0", FORMAT: "image/png", TRANSPARENT: true,
+                  TILED: true, key: vworldKey, domain: location.origin },
+        transition: 0,
+        projection: "EPSG:3857",
+        tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
+        tileLoadFunction: function (tile, src) {
+          if (!vworldKey) { tile.setState(4); return; }
+          tile.getImage().src = src;
+        },
+      });
+    },
+    info: null,
+  };
+  function vworldLegendUrl(name) {
+    return VWORLD_API + "image?" + new URLSearchParams({ service: "image", request: "GetLegendGraphic", format: "png",
+      type: "ALL", layer: name.toLowerCase(), style: name.toLowerCase(), key: vworldKey, domain: location.origin });
+  }
+
+  /** JSONP 한 번 — `<script>` 로 부르고 콜백으로 받는다. 8 초 넘으면 실패. VWorld 가 준 스크립트가 우리 화면에서 돈다는 것을
+   *  받아들였다(검토 §3) — 콜백은 이름이 매번 다르고 받은 뒤 지운다 */
+  var jsonpSeq = 0;
+  function jsonp(url, params) {
+    return new Promise(function (resolve, reject) {
+      var name = "__gsmJsonp" + (++jsonpSeq) + "_" + Date.now();
+      var script = document.createElement("script");
+      var timer = setTimeout(function () { done(); reject(new Error("timeout")); }, 8000);
+      function done() { clearTimeout(timer); delete window[name]; script.remove(); }
+      window[name] = function (data) { done(); resolve(data); };
+      script.onerror = function () { done(); reject(new Error("network")); };
+      script.src = url + "?" + new URLSearchParams(Object.assign({}, params, { callback: name }));
+      document.head.appendChild(script);
+    });
+  }
+  function vworldJsonp(path, params) {
+    return jsonp(VWORLD_API + path, Object.assign({ key: vworldKey, domain: location.origin, format: "json",
+                                                   crs: "EPSG:4326" }, params))
+      .then(function (data) {
+        var body = (data || {}).response || {};
+        if (body.status === "NOT_FOUND") return {};
+        if (body.status !== "OK") throw new Error(T("VWorld 가 거절했다"));
+        return body.result || {};
+      });
+  }
+  //: 찾기 한 번에 묻는 갈래 — 서버의 `vworld.KINDS` 와 같다(읍면동·시군구·도로명·지번·장소)
+  var VWORLD_KINDS = [
+    ["district", { type: "district", category: "L4" }, 3], ["district", { type: "district", category: "L2" }, 2],
+    ["road", { type: "address", category: "road" }, 4], ["parcel", { type: "address", category: "parcel" }, 4],
+    ["place", { type: "place" }, 6],
+  ];
+  /** 서버의 `vworld.search` 를 옮겼다 — 갈래 다섯을 한꺼번에, 이름이 같으면 하나로, 넣은 말로 끝나는 행정구역이 맨 앞 */
+  function staticVworldSearch(q) {
+    return Promise.all(VWORLD_KINDS.map(function (k) {
+      return vworldJsonp("search", Object.assign({ service: "search", request: "search", version: "2.0", size: k[2],
+                                                   page: 1, query: q }, k[1]))
+        .then(function (result) {
+          return (result.items || []).map(function (item) {
+            var p = item.point || {}, addr = item.address || {}, title, sub;
+            if (k[0] === "place") { title = item.title || ""; sub = addr.road || addr.parcel || ""; }
+            else if (k[0] === "district") { title = item.title || ""; sub = ""; }
+            else { title = addr[k[0]] || item.title || ""; sub = addr[k[0] === "road" ? "parcel" : "road"] || ""; }
+            return { kind: k[0], title: title, sub: sub, lat: +p.y, lon: +p.x };
+          }).filter(function (r) { return r.title && isFinite(r.lat) && isFinite(r.lon); });
+        }, function (err) { return { failed: err }; });
+    })).then(function (all) {
+      var failed = all.filter(function (x) { return x.failed; });
+      if (failed.length === all.length) throw failed[0].failed;
+      var seen = {}, out = [];
+      all.forEach(function (rows) {
+        if (rows.failed) return;
+        rows.forEach(function (r) { if (!seen[r.title]) { seen[r.title] = true; out.push(r); } });
+      });
+      out.sort(function (a, b) {
+        var fa = a.kind === "district" && a.title.slice(-q.length) === q ? 0 : 1;
+        var fb = b.kind === "district" && b.title.slice(-q.length) === q ? 0 : 1;
+        return fa - fb;
+      });
+      return out;
+    });
+  }
+  /** 서버의 `vworld.reverse` 를 옮겼다 — 좌표 → `{road, parcel}` */
+  function staticVworldWhereis(lat, lon) {
+    return vworldJsonp("address", { service: "address", request: "getAddress", version: "2.0", type: "both",
+                                    point: lon + "," + lat })
+      .then(function (result) {
+        var out = { road: "", parcel: "" };
+        (Array.isArray(result) ? result : []).forEach(function (row) {
+          var kind = String(row.type || "").toLowerCase();
+          if (kind in out && !out[kind]) out[kind] = row.text || "";
+        });
+        return out;
+      });
+  }
 
   /** 정적 판에서 KIGAM 레이어들의 키를 바꾼다 — 키를 넣거나 지우면 켠 레이어를 다시 그린다. */
   function refreshKigamKey() {
@@ -1379,7 +1485,8 @@
   }
 
   function probeVworld() {
-    if (vworldProbed || vworldRelay) return;
+    // 정적 판에는 돌아갈 서버(`vworld/`)가 없다 — 끊기면 끊긴 대로 둔다 (wetherilli 164)
+    if (vworldProbed || vworldRelay || STATIC) return;
     vworldProbed = true;
     var ctl = new AbortController();
     var timer = setTimeout(function () { ctl.abort(); }, 8000);
@@ -2152,7 +2259,8 @@
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
-        img.src = STATIC && (byName[entry.name] || {}).upstream === "kigam"
+        img.src = STATIC && (byName[entry.name] || {}).upstream === "vworld" ? vworldLegendUrl(entry.name)
+          : STATIC && (byName[entry.name] || {}).upstream === "kigam"
           ? KIGAM_OPENAPI + "?" + new URLSearchParams({ service: "WMS", version: "1.0.0", request: "GetLegendGraphic",
                                                         format: "image/png", layer: entry.name, key: readKey("kigam") })
           : BASE + "legend/?layer=" + encodeURIComponent(entry.name);
@@ -5688,8 +5796,10 @@
       return;
     }
     box.innerHTML = '<li class="note">' + esc(T("찾는 중…")) + "</li>";
-    fetch(BASE + "search/?q=" + encodeURIComponent(q))
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    // 정적 판은 서버(`search/`)가 없어 VWorld 를 JSONP 로 곧장 부른다 (wetherilli 164)
+    (STATIC ? staticVworldSearch(q).then(function (results) { return { ok: true, d: { results: results } }; })
+      : fetch(BASE + "search/?q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }))
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "");
         renderResults(res.d.results || []);
@@ -5863,8 +5973,9 @@
   function addressFor(lon, lat) {
     var key = lat.toFixed(5) + "," + lon.toFixed(5);
     if (!addressMemo[key]) {
-      addressMemo[key] = fetch(BASE + "whereis/?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5))
-        .then(function (r) { return r.ok ? r.json() : {}; })
+      addressMemo[key] = (STATIC ? staticVworldWhereis(+lat.toFixed(5), +lon.toFixed(5))
+        : fetch(BASE + "whereis/?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5))
+          .then(function (r) { return r.ok ? r.json() : {}; }))
         .catch(function () { return {}; });
     }
     return addressMemo[key];

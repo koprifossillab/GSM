@@ -2056,7 +2056,9 @@ def _static_catalog(groups: list) -> list:
         if group.get("region") not in regions:
             continue
         layers = [l for l in group["layers"] if l.get("upstream") in upstreams
-                  and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)]
+                  and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)
+                  # VWorld 의 벡터(단층 따위)는 WFS 라 CORS 가 없어 정적 판에서 받을 수 없다 (wetherilli 164)
+                  and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")]
         if layers:
             out.append(dict(group, layers=layers))
     return out
