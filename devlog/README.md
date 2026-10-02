@@ -193,6 +193,7 @@
 | wetherilli 151 | 2026-10-02 | [브라우저 캐시 — 모든 응답에 ETag·304, 판이 든 주소만 길게](20261002_wetherilli_151_cache_headers.md) |
 | wetherilli 153 | 2026-10-02 | [온 지구 아이콘과 대기 화면](20261002_wetherilli_153_earth_emblem.md) |
 | wetherilli 154 | 2026-10-02 | [그때의 자리 — GPlates 와 견준 회귀 시험, 캡션 한 줄](20261002_wetherilli_154_paleo_gws_check.md) |
+| wetherilli 156 | 2026-10-02 | [VWorld 측정망 점을 벡터로, AWS 음영·경사와 국토지리원 주제 타일을 배경으로](20261002_wetherilli_156_vworld_points_basemaps.md) |
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
