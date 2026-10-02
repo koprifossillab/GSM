@@ -206,6 +206,10 @@
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
 | wetherilli P11 | 2026-10-02 | [연구소 밖 정적 판 — GitHub Pages 의 GSM-open (계획)](20261002_wetherilli_P11_static_site.md) |
 | wetherilli 162 | 2026-10-02 | [연구소 밖 정적 판의 뼈대 — 한국 지질도를 각자 키로](20261002_wetherilli_162_static_site_skeleton.md) |
+| wetherilli 164 | 2026-10-02 | [정적 판의 VWorld — 공개 판용 키 하나로 배경·찾기·좌표→주소·레이어 그림](20261002_wetherilli_164_static_vworld.md) |
+| wetherilli 165 | 2026-10-02 | [정적 판에 구운 것 잇기 — 남극·얀마옌·극지의 점이 서버 없이](20261002_wetherilli_165_static_wire.md) |
+| wetherilli 166 | 2026-10-02 | [정적 판의 극지 지명 찾기 — 구운 지명에서 색인을, 화면이 뒤진다](20261002_wetherilli_166_static_placenames.md) |
+| wetherilli 168 | 2026-10-02 | [정적 판의 시험 — 작은 판을 굽고 `/GSM-open/` 꼴로 띄운다](20261002_wetherilli_168_static_tests.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
