@@ -84,7 +84,10 @@
                 home: [890000, -739000, 1380000, -212000],
                 basemap: "npi_sat", places: "78.223, 15.647 · Longyearbyen",
                 base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
-                first: "npolar:svalbard_units" },
+                first: "npolar:svalbard_units",
+                // 북극해의 해저 지질(EMODnet)을 빌려 보인다 — 스발바르를 둘러싼 바다다. 묶음(`includes`)으로 만들면
+                // KPDC 의 북극해 자료까지 따라와서, 상류 하나만 빌린다 (wetherilli 135)
+                borrow: { arctic_ocean: ["emodnet"] } },
     // ── 북극해 (devlog 076) ──
     // 스발바르·그린란드 탭 밖의 북극 — 지금은 KPDC 자료(아라온의 축치해·베링해 항해, 캐나다
     // 케임브리지베이, 시베리아·스칸디나비아 관측소)뿐이다. 3413 은 경도 -45° 가 아래라 베링 해협이
@@ -217,8 +220,14 @@
   /** 지금 지역의 레이어군. 묶음 지역이면 `includes` 차례로 모은다. */
   function regionCatalog() {
     var keys = regionKeys();
-    return catalog.filter(function (g) { return keys.indexOf(g.region || "korea") >= 0; })
-      .sort(function (a, b) { return keys.indexOf(a.region || "korea") - keys.indexOf(b.region || "korea"); });
+    var borrow = REGIONS[region].borrow || {};
+    // 빌려 온 레이어군(`borrow`)은 제 지역의 것 뒤에 선다
+    var rank = function (g) { var i = keys.indexOf(g.region || "korea"); return i >= 0 ? i : keys.length; };
+    return catalog.filter(function (g) {
+      if (keys.indexOf(g.region || "korea") >= 0) return true;
+      var from = borrow[g.region];
+      return !!from && g.layers.some(function (l) { return from.indexOf(l.upstream) >= 0; });
+    }).sort(function (a, b) { return rank(a) - rank(b); });
   }
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
@@ -468,6 +477,8 @@
     gsj: { source: gsjSource, info: gsjInfoUrl },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
+    // EMODnet 해저 지질(wetherilli 135) — NPI 처럼 3413 으로 곧장 받는다
+    emodnet: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -899,6 +910,42 @@
     regions: ["japan"],
     make: function () { return gsiLayer("hillshademap", "png", 16); },
   };
+
+  // ── 해저 지형 — GEBCO (wetherilli 135) ──
+  //
+  // 온 바다의 수심과 땅의 높이를 한 장에 칠한 음영(15″ 격자, 약 450 m). 공공 도메인이고 출처만 밝힌다.
+  // 극지 배경처럼 **브라우저가 곧장 부른다** — 열쇠가 없고 CORS 가 열려 있다. 지역마다 두므로 `regions` 가 없다.
+  // 상류가 3857·4326 만 그려 주어, 극 평사도법 탭은 4326 을 받아 OpenLayers 가 옮겨 그린다(3857 은 극에서 끊긴다).
+  // 한 장에 2 초 남짓 걸리고 격자가 450 m 라, 줌 9 보다 가까우면 더 묻지 않고 늘려 그린다
+  var GEBCO = 'GEBCO Compilation Group (2026) <a href="https://www.gebco.net/data-products/gridded-bathymetry-data" target="_blank" rel="noopener">GEBCO 2026 Grid</a>';
+  BASEMAPS.gebco = {
+    title: T("GEBCO 해저 지형"),
+    note: T("GEBCO 2026 (약 450 m). 바다의 수심과 땅의 높이를 음영으로. 공공 도메인. 항해에 쓰지 않는다"),
+    make: function () { return gebcoLayer("GEBCO_LATEST"); },
+  };
+  BASEMAPS.gebco_subice = {
+    title: T("GEBCO 해저·얼음 밑 지형"),
+    note: T("GEBCO 2026 (약 450 m). 빙상을 걷어 낸 얼음 밑 기반암과 해저. 공공 도메인"),
+    regions: ["greenland", "antarctica"],
+    make: function () { return gebcoLayer("GEBCO_LATEST_SUB_ICE_TOPO"); },
+  };
+
+  function gebcoLayer(name) {
+    var code = regionProj() === "EPSG:3857" ? "EPSG:3857" : "EPSG:4326";
+    return new ol.layer.Tile({
+      opacity: 0.9,
+      source: new ol.source.TileWMS({
+        url: "https://wms.gebco.net/mapserv",
+        // 1.1.1 이면 4326 도 경도가 먼저다
+        params: { LAYERS: name, VERSION: "1.1.1", FORMAT: "image/png", TILED: true },
+        projection: code,
+        tileGrid: ol.tilegrid.createXYZ({ extent: ol.proj.get(code).getExtent(), maxZoom: 9, tileSize: 512 }),
+        crossOrigin: "anonymous",
+        transition: 0,
+        attributions: GEBCO,
+      }),
+    });
+  }
 
   function gsiLayer(name, ext, maxZoom) {
     return new ol.layer.Tile({
@@ -1613,12 +1660,13 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", emodnet: "EMOD", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    emodnet: "EMODnet Geology",
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };

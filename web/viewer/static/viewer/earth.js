@@ -46,6 +46,9 @@
     bm: { name: "BlueMarble_ShadedRelief_Bathymetry", credit: "Blue Marble shaded relief & bathymetry · NASA EOSDIS GIBS" },
     bmng: { name: "BlueMarble_NextGeneration", credit: "Blue Marble Next Generation · NASA EOSDIS GIBS" },
     relief: { name: "BlueMarble_ShadedRelief", credit: "Blue Marble shaded relief · NASA EOSDIS GIBS" },
+    // GEBCO 해저 지형(공공 도메인, wetherilli 135) — GIBS 가 아니라 GEBCO 의 WMS 다. 4326 뿐이라 극 평면은 Blue Marble 로 갈음한다
+    gebco: { name: "GEBCO_LATEST", wms: "https://wms.gebco.net/mapserv", format: "image/png", max: 8,
+             credit: "GEBCO Compilation Group (2026) GEBCO 2026 Grid" },
   };
   // 지질 레이어 목록 — 달·화성과 같은 꼴이다. 이름은 서버 `earth/tiles/<이름>` 의 것
   //   info    누르면 읽는 갈래 (`earth/info/`)   legend  범례 칸의 갈래   src  카드 밑의 출처
@@ -206,9 +209,10 @@
   // 몸은 Cesium 의 기본(WGS84)이다. 달·화성처럼 구를 따로 짓지 않는다 — 지구의 자료가 다 WGS84 다
   var ELL = Cesium.Ellipsoid.WGS84;
   function cesiumBase(key) {
+    var b = BASES[key];
     return new Cesium.ImageryLayer(new Cesium.WebMapServiceImageryProvider({
-      url: GIBS_WMS, layers: BASES[key].name, parameters: { format: "image/jpeg", transparent: false },
-      tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: 8, credit: BASES[key].credit,
+      url: b.wms || GIBS_WMS, layers: b.name, parameters: { format: b.format || "image/jpeg", transparent: false },
+      tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: b.max || 8, credit: b.credit,
     }));
   }
 
@@ -413,6 +417,13 @@
   // CORS 로 받아야 한다(GIBS 는 `*`)
   function baseSource(key) {
     var polar = proj !== EQC, e = polar ? (proj === NPS ? "3413" : "3031") : "4326";
+    if (BASES[key].wms && polar) key = "bm";       // 극 평면을 그려 주지 않는 WMS(GEBCO) — 옮겨 그리지 못해 Blue Marble 로
+    if (BASES[key].wms) {
+      return new ol.source.TileWMS({
+        url: BASES[key].wms, params: { LAYERS: BASES[key].name, VERSION: "1.1.1", FORMAT: BASES[key].format, TILED: true },
+        projection: proj, tileGrid: gibsGrid(), crossOrigin: "anonymous", attributions: BASES[key].credit, wrapX: true,
+      });
+    }
     return new ol.source.XYZ({
       url: GIBS_WMTS.replace("{e}", e).replace("{name}", BASES[key].name),
       projection: proj, tileGrid: polar ? gibsPolarGrid() : gibsGrid(), crossOrigin: "anonymous",
