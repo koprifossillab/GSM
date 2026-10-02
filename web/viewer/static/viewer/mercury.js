@@ -7,8 +7,8 @@
  *   극 평사도법(IAU_2015:19930·19935)인데 Mercury Trek 에 극지 판 타일이 없어 경위도 타일을 OpenLayers 가 옮겨 그린다
  * - 영상 배경(MESSENGER MDIS 모자이크·강조색·표고 색 음영)과 Trek 판은 브라우저가 Mercury Trek 을 곧장 부르고,
  *   표고·지명은 서버의 문(`trek.py` 의 `mercury_*`)을 거친다
- * - **지질도는 아직 없다.** Trek 의 5M 도폭은 타일이 404 다 — 원본 셰이프파일을 굽는 것이 다음 단계다(P10 §2).
- *   지질 레이어 목록(`CATALOG`)은 그때 채운다. 틀(`GEO_NAMES`·`geoUrl`·범례)은 화성의 것 그대로 둔다
+ * - 지질도는 USGS 1:500만 도폭 아홉의 합본(Frigeri 외 2008)을 서버가 굽는다(`mercurymap.py`, wetherilli 144) —
+ *   Trek 의 5M 도폭은 타일이 404 다(137). 시대 열이 없어 범례는 갈래로 묶는다
  *
  * 화성에만 있는 것(착륙지·로버 경로·HiRISE 사진·크레이터·옛 지질도·극지 판)은 뺐다. 이름(`moon-*` 클래스 따위)은
  * 달·화성의 것 그대로다 — 세 화면을 나란히 고치기 쉽게.
@@ -57,8 +57,16 @@
   };
   // 지질 레이어 목록 — 달·화성과 같은 꼴이다. 이름은 서버 `mercury/tiles/<이름>` 의 것
   //   info    누르면 읽는 갈래 (`mercury/info/`)   legend  범례 칸의 갈래   src  카드 밑의 출처
-  // **아직 비었다** — 5M 도폭 아홉을 우리가 구우면 여기 선다 (P10 §2)
-  var CATALOG = [];
+  // USGS 1:500만 도폭 아홉의 합본(Frigeri 외 2008)을 서버가 굽는다 (`mercurymap.py`, wetherilli 144). 마리너 10 이 찍은
+  // 반쪽 남짓만 덮는다. 극 평면에서는 경위도 타일을 옮겨 그린다
+  var CATALOG = [
+    { group: "수성 지질 (USGS 1:500만 도폭, 1980–1990)", layers: [
+      { name: "units", title: "지질 단위", info: "units", legend: "units",
+        src: "USGS I-1199 … I-2048 · Frigeri et al. 2008" },
+      { name: "lines", title: "구조선 — 급사면·능선·단층·분지 고리", legend: "lines",
+        src: "USGS I-1199 … I-2048 · Frigeri et al. 2008" },
+    ] },
+  ];
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   // NASA Trek 판 (달의 060·화성의 wetherilli 080 을 옮겼다) — 서버가 씨앗(`data/mercury_trek_layers.json`)에서 추린 것을
@@ -78,9 +86,10 @@
   var ALL_NAMES = Object.keys(LAYER);
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
-  var GEO_MAX = 11;
+  var GEO_MAX = 10;            // 서버의 `mercurymap.MAX_ZOOM`
   function geoUrl(name) { return BASE + "mercury/tiles/" + name + "/{z}/{x}/{y}.png"; }
-  function creditOf(name) { return undefined; }
+  var GEO_CREDIT = "USGS Atlas of Mercury 1:5M geologic series (1980–1990), digital merge Frigeri et al. 2008";
+  function creditOf(name) { return GEO_CREDIT; }
 
   // ── 켠 것 — 구와 평면이 함께 쓴다. 이 브라우저에 기억한다 ──
   var look = {
@@ -89,7 +98,7 @@
     exag: +saved("gsm.mercury.exag", "20"),
   };
   if (!BASES[look.base] || look.base === "shade") look.base = "mdis";
-  // 켠 지질 레이어 — 맨 앞이 위다. `[{name, opacity}]`. 처음에는 아무것도 켜지 않는다 — 지질도가 아직 없다
+  // 켠 지질 레이어 — 맨 앞이 위다. `[{name, opacity}]`. 처음이면 지질 단위를 반쯤 비치게, 구조선을 그 위에
   var active = (function () {
     try {
       var list = JSON.parse(saved("gsm.mercury.layers", "null"));
@@ -98,7 +107,7 @@
                    .map(function (e) { return { name: e.name, opacity: isFinite(e.opacity) ? +e.opacity : 1 }; });
       }
     } catch (e) { /* 깨진 값 */ }
-    return [];
+    return [{ name: "lines", opacity: 1 }, { name: "units", opacity: 0.6 }];
   })();
   function entryOf(name) { return active.filter(function (e) { return e.name === name; })[0]; }
   function isOn(name) { return !!entryOf(name); }
@@ -849,9 +858,7 @@
   }
   function renderCatalog() {
     var host = $("layer-catalog");
-    // 지질도가 아직 없다는 것을 숨기지 않는다 — 5M 도폭을 구우면 이 줄은 저절로 사라진다 (P10 §2)
-    host.innerHTML = CATALOG.length ? "" : '<p class="hint">' +
-      esc(T("수성 지질도(USGS 1:500만 도폭, 1984–1990)는 준비 중이다 — Trek 의 그림이 비어 있어 원본을 우리가 굽는다.")) + "</p>";
+    host.innerHTML = "";
     CATALOG.forEach(function (g) {
       var details = document.createElement("details");
       details.className = "group";
@@ -1014,8 +1021,7 @@
            '</span><span class="k">' + esc(T("수성 경도")) + '</span><span class="v">' + lon +
            '</span><span class="copy">' + esc(T("복사")) + "</span></button>";
   }
-  // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달(통합·원도)에서 온 틀이다. 수성은 아직 없다 —
-  // 지질도를 구우면(P10 §2) `mercury/info/` 가 선다
+  // 켠 레이어 가운데 읽을 수 있는 것을 위에서부터 다 묻는다 — 달(통합·원도)에서 온 틀이다. 수성은 하나다
   function askUnit(ll, pixel) {
     markAt(ll);
     var head = coordHead(ll);
@@ -1105,20 +1111,13 @@
 
   // ══ 범례 — 오른쪽 아래, 펼쳐 둔다 ═══════════════════════════════
   //
-  // 켠 레이어마다 칸 하나 — 지금은 Trek 판의 범례 그림뿐이다. 켠 차례(위가 앞)대로
+  // 켠 레이어마다 칸 하나 — 지질 단위는 갈래별, 구조선은 갈래, Trek 판은 범례 그림. 켠 차례(위가 앞)대로
   var swatches = {};
   var legends = {};                // 갈래 → 그린 HTML (한 번 받는다)
   var dock = $("legend-dock");
   // 휴대폰에서는 범례가 구를 덮어 접은 채로 연다 (wetherilli 128)
   dock.open = saved("gsm.mercury.legend", window.matchMedia("(max-width: 760px)").matches ? "closed" : "open") !== "closed";
   dock.addEventListener("toggle", function () { save("gsm.mercury.legend", dock.open ? "open" : "closed"); });
-  // 수성의 지질시대 — 젊은 것부터(P10 §4). 지질도를 구우면 범례가 이 차례로 묶는다
-  var AGE_ORDER = [["카이퍼기", "Kuiperian"], ["만수르기", "Mansurian"], ["칼로리스기", "Calorian"],
-                   ["톨스토이기", "Tolstojan"], ["선톨스토이기", "pre-Tolstojan"]];
-  function ageRank(age) {
-    for (var i = 0; i < AGE_ORDER.length; i++) if (AGE_ORDER[i].indexOf(age) >= 0) return i;
-    return AGE_ORDER.length;
-  }
   function legendHtml(kind) {
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
     // Trek 판 (060) — MapServer 판은 우리 문이 받은 범례, WMTS 판은 상류가 그려 둔 범례 그림 한 장.
@@ -1145,25 +1144,25 @@
     return fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       var html = "";
       if (kind === "units") {
-        // 상류의 범례 차례는 이름의 가나다(알파벳)라 시대가 섞여 있다.
-        // 시대마다 상자 하나로 모으고, 상자는 층서표처럼 젊은 것이 위다(`AGE_ORDER`). 표에 없는 시대는
-        // 처음 나온 차례대로 그 밑에 선다 (044)
-        var ages = [], byAge = {};
-        (data.items || []).forEach(function (item) {
-          if (item.unit) swatches[item.unit] = item.image;
-          var age = item.age || "";
-          if (!byAge[age]) { byAge[age] = []; ages.push(age); }
-          byAge[age].push(item);
+        // 갈래(평원·분지·크레이터·기타)마다 상자 하나 — 서버가 그 차례로 준다. 시대 열이 없어 시대로 묶지 않는다
+        var groups = [], byGroup = {};
+        (data.units || []).forEach(function (u) {
+          if (!byGroup[u.group]) { byGroup[u.group] = []; groups.push(u.group); }
+          byGroup[u.group].push(u);
         });
-        ages.sort(function (a, b) { return ageRank(a) - ageRank(b); });   // sort 는 안정이라 같은 순위는 나온 차례
-        ages.forEach(function (age) {
-          html += '<li class="age-box"><div class="age-head">' + esc(age || T("시대 모름")) +
-                  '<span class="age-n">' + byAge[age].length + "</span></div><ul>";
-          byAge[age].forEach(function (item) {
-            html += '<li><img src="' + esc(item.image) + '" alt="">' + esc(item.label) +
-                    (item.unit ? " (" + esc(item.unit) + ")" : "") + "</li>";
+        groups.forEach(function (g) {
+          html += '<li class="age-box"><div class="age-head">' + esc(g) + '<span class="age-n">' + byGroup[g].length +
+                  "</span></div><ul>";
+          byGroup[g].forEach(function (u) {
+            html += '<li><span class="chip" style="background:' + esc(u.color) + '"></span>' + esc(u.label) +
+                    " (" + esc(u.unit) + ")</li>";
           });
           html += "</ul></li>";
+        });
+      } else if (kind === "lines") {
+        (data.lines || []).forEach(function (c) {
+          html += '<li><span class="chip line' + (c.dash ? " dash" : "") + '" style="border-color:' + esc(c.color) +
+                  '"></span>' + esc(c.label) + "</li>";
         });
       }
       legends[kind] = html;
