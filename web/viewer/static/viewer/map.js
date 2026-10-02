@@ -443,8 +443,9 @@
     var row = byName[name] || {};
     var resolutions = [];
     var width = GEOMAP_GRID.extent[2] - GEOMAP_GRID.extent[0];
-    // 잘라 둔 것(IBCSO 자료 출처, 071)은 줌 6 까지다 — 그 위는 OpenLayers 가 늘린다
-    var top = row.maxZoom || GEOMAP_GRID.maxZoom;
+    // 잘라 둔 것(IBCSO 자료 출처, 071)은 줌 6 까지다 — 그 위는 OpenLayers 가 늘린다.
+    // 정적 판은 구운 줌까지만 있다(`bake_static`) — 그 너머도 늘린다 (wetherilli 165)
+    var top = (STATIC && staticBaked("geomap")[name]) || row.maxZoom || GEOMAP_GRID.maxZoom;
     for (var z = 0; z <= top; z++) {
       resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
     }
@@ -649,10 +650,18 @@
     var up = (row && row.upstream) || "kigam";
     if (STATIC) {
       if (up === "kigam") return STATIC_KIGAM;
+      // 구운 타일(GeoMAP·IBCSO 자료 출처)은 그림만 — 속성은 서버가 gpkg·격자에서 읽던 것이라 묻지 않는다 (wetherilli 165)
+      if (up === "geomap" || up === "ibcso") return { source: geomapSource, info: null };
       var kinds = window.GSM_STATIC_KINDS || {};
       if (kinds[up]) return kinds[up];
     }
     return LAYER_KINDS[up] || LAYER_KINDS.kigam;
+  }
+
+  /** 정적 판에 구워 실은 것(`bake_static`, wetherilli 160·165) — `static_site.py` 가 manifest 에서 옮겨 적는다.
+   *  `geomap`: 레이어 → 마지막 줌, `points`: 레이어 → 영어판이 따로 있나 */
+  function staticBaked(part) {
+    return (STATIC && STATIC.baked && STATIC.baked[part]) || {};
   }
 
   // ── 정적 판의 KIGAM (wetherilli P11·162) ──
@@ -2239,6 +2248,8 @@
         img.src = STATIC && (byName[entry.name] || {}).upstream === "kigam"
           ? KIGAM_OPENAPI + "?" + new URLSearchParams({ service: "WMS", version: "1.0.0", request: "GetLegendGraphic",
                                                         format: "image/png", layer: entry.name, key: readKey("kigam") })
+          // 정적 판의 GeoMAP 범례는 구워 둔 그림 (wetherilli 165)
+          : STATIC && (byName[entry.name] || {}).upstream === "geomap" ? BASE + "legend/geomap/" + entry.name + ".png"
           : BASE + "legend/?layer=" + encodeURIComponent(entry.name);
         img.addEventListener("error", function () {
           img.replaceWith(note(T("범례를 받지 못했다")));
@@ -3108,14 +3119,22 @@
   //  여럿 딸린 자리가 많아 하나로는 모자라고, 다 올리면 팝업이 읽히지 않는다.
   var POINT_POPUP_MAX = 6;
 
+  /** 점 레이어 한 덩이의 주소. 정적 판은 구워 둔 파일 `points/<상류>/<이름>.json` — 물음(`?layer=`)을 파일로 둘 수
+   *  없어서다. 얀마옌·극지연구소처럼 언어마다 답이 다른 것은 영어판 `.en.json` 이 따로 있다 (wetherilli 160·165) */
+  function pointsUrl(name) {
+    if (!STATIC) return BASE + "points/?layer=" + encodeURIComponent(name) + "&lang=" + LANG;
+    var en = LANG === "en" && staticBaked("points")[name];
+    return BASE + "points/" + name.replace(":", "/") + (en ? ".en" : "") + ".json";
+  }
+
   function pointLayerFor(row) {
     var layer;
     var source = new ol.source.Vector({
       attributions: pointAttribution(row),
       loader: function (extent, resolution, projection, success, failure) {
-        // 잘라 주는 레이어(전암 화학, wetherilli 163)는 고른 원소의 점만 받는다
-        var slice = row.slice ? "&value=" + encodeURIComponent(storedValue()) : "";
-        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG + slice)
+        // 잘라 주는 레이어(전암 화학, wetherilli 163)는 고른 원소의 점만 받는다. 정적 판은 구운 덩이 하나라 자르지 않는다
+        var slice = row.slice && !STATIC ? "&value=" + encodeURIComponent(storedValue()) : "";
+        fetch(pointsUrl(row.name) + slice)
           .then(function (r) {
             if (r.ok) return r.json();
             // 서버가 까닭을 적어 보낸다 — "자료가 서버에 없다" 따위. 패널에 띄운다
@@ -4271,6 +4290,7 @@
 
   /** IBCSO 수심·표고 (070). 실패하면 빈 것 — 팝업의 다른 줄을 막지 않는다. */
   function depthFor(lon, lat) {
+    if (STATIC) return Promise.resolve({});        // 원본 격자가 수백 MB 라 정적 판에 싣지 않았다 (wetherilli 165)
     return fetch(BASE + "ibcso/depth/?" + new URLSearchParams({ lat: lat.toFixed(6), lon: lon.toFixed(6) }))
       .then(function (r) { return r.ok ? r.json() : {}; })
       .catch(function () { return {}; });

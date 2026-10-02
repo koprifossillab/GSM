@@ -2057,11 +2057,14 @@ def _static_catalog(groups: list) -> list:
     문서에 없는 GeoServer 를 타므로 뺀다. 무엇을 싣는지는 `settings.STATIC_SITE` 가 정한다(`deploy/static_site.py`)."""
     spec = settings.STATIC_SITE or {}
     regions, upstreams = set(spec.get("regions") or ()), set(spec.get("upstreams") or ())
+    # 구워 실은 점 레이어(`bake_static`)는 이름으로 싣는다 — 같은 상류(NPI·극지연구소)에 서버를 타는 지도 레이어가 섞여 있어
+    # 상류 하나를 통째로 켤 수 없다 (wetherilli 165)
+    baked = set((spec.get("baked") or {}).get("points") or ())
     out = []
     for group in groups:
         if group.get("region") not in regions:
             continue
-        layers = [l for l in group["layers"] if l.get("upstream") in upstreams
+        layers = [l for l in group["layers"] if (l.get("upstream") in upstreams or l["name"] in baked)
                   and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)]
         if layers:
             out.append(dict(group, layers=layers))
