@@ -458,11 +458,11 @@ def _slerp(a: tuple, b: tuple, t: float) -> tuple:
     return tuple(wa * x + wb * y for x, y in zip(a, b))
 
 
-def profile_points(vertices: list, n: int) -> list:
+def profile_points(vertices: list, n: int, radius: float = RADIUS) -> list:
     """꼭짓점 `[(경도, 위도), …]` → 대원을 따라 고르게 `n` 점 `[(경도, 위도, 처음부터의 거리 m), …]`.
-    꼭짓점 자리에는 꼭 한 점을 둔다 — 꺾인 곳의 높이가 빠지지 않게."""
+    꼭짓점 자리에는 꼭 한 점을 둔다 — 꺾인 곳의 높이가 빠지지 않게. 거리는 `radius` 의 구에서 잰다."""
     units = [_unit(lon, lat) for lon, lat in vertices]
-    seg = [RADIUS * math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b)))))
+    seg = [radius * math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b)))))
            for a, b in zip(units, units[1:])]
     total = sum(seg)
     if total <= 0:
@@ -481,15 +481,26 @@ def profile_points(vertices: list, n: int) -> list:
     return out
 
 
-def profile(vertices: list, n: int = 256) -> dict:
-    """`{"dist": [m…], "elev": [m 또는 None…], "lon": […], "lat": […], "source", "datum"}`. 못 읽은 점은 None."""
+#: 몸 → (반지름, 표고 읽기, 출처, 높이 기준). 화성·수성은 화면의 구와 같은 반지름으로 거리를 잰다 (wetherilli 148)
+def _profile_body(body: str) -> tuple:
+    if body == "mars":
+        return MARS_RADIUS, mars_values, MARS_ELEV_SOURCE, MARS_ELEV_DATUM
+    if body == "mercury":
+        return MERCURY_RADIUS, mercury_values, MERCURY_ELEV_SOURCE, MERCURY_ELEV_DATUM
+    return RADIUS, lola_values, ELEV_SOURCE, ELEV_DATUM
+
+
+def profile(vertices: list, n: int = 256, body: str = "moon") -> dict:
+    """`{"dist": [m…], "elev": [m 또는 None…], "lon": […], "lat": […], "source", "datum"}`. 못 읽은 점은 None.
+    화성·수성도 같은 틀이다 — 지질 띠는 상류를 많이 불러 넣지 않았다 (wetherilli 148)."""
+    radius, read, source, datum = _profile_body(body)
     n = max(2, min(int(n), PROFILE_MAX_POINTS))
-    pts = profile_points(vertices, n)
-    values = lola_values({i: (lat, lon) for i, (lon, lat, _) in enumerate(pts)})
+    pts = profile_points(vertices, n, radius)
+    values = read({i: (lat, lon) for i, (lon, lat, _) in enumerate(pts)})
     return {"dist": [round(d, 1) for _, _, d in pts],
             "elev": [round(values[i], 1) if i in values else None for i in range(len(pts))],
             "lon": [round(lon, 6) for lon, _, _ in pts], "lat": [round(lat, 6) for _, lat, _ in pts],
-            "source": ELEV_SOURCE, "datum": ELEV_DATUM}
+            "source": source, "datum": datum}
 
 
 # ── 누른 자리의 값 (wetherilli 103) ──────────────────────────────────
