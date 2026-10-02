@@ -29,7 +29,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -1315,6 +1315,8 @@ def earth_view(request):
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
                                    # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
                                    "quakes": quakes.legend(lang) if quakes.available() else [],
+                                   # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
+                                   "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
                                    # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
@@ -1864,6 +1866,67 @@ def earth_quake_at(request):
         out.append({"id": q["id"], "name": i18n.t(msg("M{mag} 지진", mag=f"{q['mag']:g}"), lang), "rows": rows,
                     "link": usgs.event_url(q["id"]), "at": [q["lon"], q["lat"]]})
     return JsonResponse({"hits": out, "credit": usgs.CREDIT})
+
+
+# ── 제4기 고생태 산지 (wetherilli 139) ───────────────────────────────
+
+@require_GET
+def earth_neotoma_tile(request, band, ka, z, x, y):
+    """`earth/neotoma/tiles/<칸>/<ka>/<z>/<x>/<y>.png` — Neotoma 의 산지, 자료형 칸 하나(`paleoeco.BANDS`). 0 은 모든 산지,
+    1 Ma 안쪽은 그 연대를 품은 자료가 있는 산지만. 1 Ma 부터는 화면이 끈다."""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not paleo.valid_tile(z, x, y) or band not in paleoeco.BANDS or ka >= 1000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not paleoeco.available():
+        return _tile(tiles.blank_tile(), store=False)
+    key = tilecache.key_text("neotoma", f"{paleoeco.RENDERER}/{paleoeco.built()}/{band}/{ka}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = paleoeco.render_tile(band, ka / 1000.0, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_neotoma_at(request):
+    """`?lon=&lat=&age=&r=&bands=neo_pollen,…` — 누른 자리 둘레(`r`°)의 산지, 켠 칸에서 가까운 것부터 다섯.
+    산지마다 그 연대·칸의 자료를 자료형과 연대 범위로 적는다."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    age = max(0.0, min(0.999, _float(request.GET.get("age")) or 0.0))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    bands = [b for b in (request.GET.get("bands") or "").split(",") if b in paleoeco.BANDS]
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+
+    def label(k):
+        return i18n.PROP_EN.get(k, k) if lang == "en" else k
+    out = []
+    for site, datasets in paleoeco.near(bands, age, lon, lat, r):
+        rows = [[label(k), str(v)] for k, v in (("산지", site["name"]), ("설명", site["desc"]),
+                                                ("표고 (m)", f"{site['alt']:g}" if site["alt"] is not None else "")) if v]
+        # 자료마다 한 줄 — 자료형(속성 값이라 옮기지 않는다)과 연대 범위·구성 DB
+        shown = datasets[:8]
+        for d in shown:
+            rows.append([d["type"], " · ".join(v for v in (paleoeco.span_text(d["old"], d["young"]), d["db"]) if v)])
+        if len(datasets) > len(shown):
+            rows.append(["…", i18n.t(msg("자료 {n} 건 더", n=len(datasets) - len(shown)), lang)])
+        pis = []
+        for d in datasets:
+            for name in (d["pi"] or "").split("; "):
+                if name and name not in pis:
+                    pis.append(name)
+        if pis:
+            rows.append([label("연구자"), "; ".join(pis[:6])])
+        doi = next((d["doi"] for d in datasets if d["doi"]), "")
+        if doi:
+            rows.append([label("DOI"), doi])
+        out.append({"site": site["site"], "name": site["name"], "rows": rows, "link": neotoma.site_url(site["site"]),
+                    "at": [site["lon"], site["lat"]]})
+    return JsonResponse({"hits": out, "credit": neotoma.CREDIT})
 
 
 def _age_span(oldest, youngest) -> str:

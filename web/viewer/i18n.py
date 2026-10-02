@@ -399,6 +399,17 @@ EN = {
     "M{mag} 지진": "M{mag} earthquake",
     "지진 {n} 곳 가운데 가까운 것부터": "Nearest of {n} earthquakes",
     "USGS 에서 보기": "Open at USGS",
+    # 제4기 고생태 산지 (wetherilli 139)
+    "고생태 산지 (Neotoma)": "Paleoecology sites (Neotoma)",
+    "꽃가루": "Pollen",
+    "척추동물": "Vertebrate fauna",
+    "식물 큰화석": "Plant macrofossils",
+    "규조·작은 생물": "Diatoms & small organisms",
+    "그 밖 (숯·지화학·연대 측정 …)": "Other (charcoal, geochemistry, dating …)",
+    "자료 {n} 건 더": "{n} more datasets",
+    "점의 색은 자료형 — 옛 연대에는 그 연대를 품은 산지만": "Dot colour is the dataset type — at past ages, only sites spanning that age",
+    "산지 {n} 곳 가운데 가까운 것부터 (Neotoma)": "Nearest of {n} sites (Neotoma)",
+    "Neotoma 에서 보기": "Open in Neotoma Explorer",
     # 지각 두께 (wetherilli 101)
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
@@ -1552,6 +1563,8 @@ PROP_EN = {
     "일시 (UTC)": "Time (UTC)",
     "깊이 (km)": "Depth (km)",
     "곳": "Place",
+    # 제4기 고생태 산지 (wetherilli 139)
+    "연구자": "Investigators",
     "지질시대": "Geologic age",
     "시대": "Age",
     "도폭": "Map sheet",
