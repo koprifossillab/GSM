@@ -361,6 +361,18 @@ EN = {
     "분화 기록이 없다": "No recorded eruption",
     "기원전 {n} 년": "{n} BCE",
     "{n} 년": "{n} CE",
+    # 지진 (wetherilli 138)
+    "지진 (USGS)": "Earthquakes (USGS)",
+    "M6 이상": "M6 and above",
+    "M5.5–6": "M5.5–6",
+    "M5–5.5": "M5–5.5",
+    "얕은 지진 (0–70 km)": "Shallow (0–70 km)",
+    "중간 깊이 (70–300 km)": "Intermediate (70–300 km)",
+    "깊은 지진 (300 km 넘게)": "Deep (over 300 km)",
+    "원의 크기는 규모, 색은 진원 깊이": "Circle size is magnitude, colour is focal depth",
+    "M{mag} 지진": "M{mag} earthquake",
+    "지진 {n} 곳 가운데 가까운 것부터": "Nearest of {n} earthquakes",
+    "USGS 에서 보기": "Open at USGS",
     # 지각 두께 (wetherilli 101)
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
@@ -530,6 +542,7 @@ EN = {
     "동아시아": "East Asia",
     # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025)
     "중국": "China",
+    "대만": "Taiwan",
     # 북극해 — 스발바르·그린란드 밖의 북극 (devlog 076)
     "북극해": "Arctic Ocean",
     "추가 지역": "Add region",
@@ -1254,6 +1267,7 @@ EN = {
     "브이월드(국토교통부)": "VWorld (Ministry of Land, Infrastructure and Transport)",
     "연구실 자료": "Lab data",
     "일본 지질조사종합센터": "Geological Survey of Japan",
+    "대만 지질조사·광업관리중심": "Geological Survey and Mining Management Agency (Taiwan)",
     # 꾸밈·용량·모두 끄기 (wetherilli 131)
     "꾸밈": "Style",
     "색·모양을 바꾼다": "Change colour and shape",
@@ -1459,6 +1473,11 @@ PROP_EN = {
     "주 암석": "Major rock type",
     "근거": "Evidence",
     "지질 개요": "Geological summary",
+    # 지진 (wetherilli 138)
+    "규모": "Magnitude",
+    "일시 (UTC)": "Time (UTC)",
+    "깊이 (km)": "Depth (km)",
+    "곳": "Place",
     "지질시대": "Geologic age",
     "시대": "Age",
     "도폭": "Map sheet",
@@ -2038,6 +2057,108 @@ def age_ko_stacked(value: str) -> str:
     return "".join(out)
 
 
+# ── 지질시대 — 중국어(번체) → 한국어·영어 ──
+#
+# 대만 지질운(wetherilli 136)은 시대를 번체 중국어로 준다 — `中新世晚期`·`上新世－更新世`·`早期至中期始新世`·
+# `晚古生代至中生代（？）`. 낱말을 영어로 옮겨 조각을 세운 뒤 한국어는 `AGE_WORDS_KO` 로 적는다. 꾸밈말은 낱말
+# 뒤(`中新世晚期`)에도 앞(`晚更新世`·`早期至中期始新世`)에도 온다. 규칙은 같다 — 모르는 글자가 남으면 원문이다.
+
+AGE_ZH = {"全新世": "Holocene", "更新世": "Pleistocene", "上新世": "Pliocene", "中新世": "Miocene",
+          "漸新世": "Oligocene", "始新世": "Eocene", "古新世": "Paleocene",
+          "第四紀": "Quaternary", "第三紀": "Tertiary",
+          "白堊紀": "Cretaceous", "侏羅紀": "Jurassic", "三疊紀": "Triassic", "二疊紀": "Permian",
+          "石炭紀": "Carboniferous", "泥盆紀": "Devonian",
+          "新生代": "Cenozoic", "中生代": "Mesozoic", "古生代": "Paleozoic"}
+#: 통째로 받는 낱말 — 한국어·영어
+AGE_ZH_WHOLE = {"現代": ("현세", "Recent"), "時代不詳": ("시대 미상", "Age unknown"),
+                "先第三紀": ("선제3기", "Pre-Tertiary")}
+AGE_ZH_MODS = {"早中期": ("early", "middle"), "中晚期": ("middle", "late"),
+               "早期": ("early",), "中期": ("middle",), "晚期": ("late",),
+               "早": ("early",), "中": ("middle",), "晚": ("late",)}
+_AGE_ZH_TOKEN = re.compile("|".join(map(re.escape, sorted(
+    [*AGE_ZH, *AGE_ZH_WHOLE, *AGE_ZH_MODS, "或更早", "或", "至", "－", "─", "-", "—", "～", "~",
+     "（？）", "(？)", "（?）", "(?)", "？", "?"], key=len, reverse=True))))
+
+
+def _age_zh_segments(text: str):
+    """중국어 시대 값 → (조각들, 잇는 말들). 조각은 {"mods", "noun", "doubt", "whole"}. 못 읽으면 None."""
+    if _AGE_ZH_TOKEN.sub("", text).strip():
+        return None
+    segments, joiners = [], []
+    seg = {"mods": [], "noun": None, "doubt": False, "whole": None}
+    for token in _AGE_ZH_TOKEN.findall(text):
+        if token in AGE_ZH or token in AGE_ZH_WHOLE:
+            if seg["noun"] or seg["whole"]:
+                return None                                  # 낱말 둘이 잇는 말 없이 붙었다
+            seg["noun" if token in AGE_ZH else "whole"] = token
+        elif token in AGE_ZH_MODS:
+            seg["mods"].extend(AGE_ZH_MODS[token])
+        elif token.strip("（()）") in ("？", "?"):
+            seg["doubt"] = True
+        else:
+            segments.append(seg)
+            joiners.append({"或更早": "earlier", "或": "or"}.get(token, "-"))
+            seg = {"mods": [], "noun": None, "doubt": False, "whole": None}
+    segments.append(seg)
+    if joiners and joiners[-1] == "earlier":                 # `始新世或更早` — 끝의 빈 조각은 말로 쓴다
+        segments.pop()
+    # 꾸밈말만 있는 조각은 뒤 조각의 낱말을 빌린다 — `早期至中期始新世` → 에오세 전기~에오세 중기
+    for index in range(len(segments) - 2, -1, -1):
+        if not segments[index]["noun"] and not segments[index]["whole"] and segments[index]["mods"]:
+            segments[index]["noun"] = segments[index + 1]["noun"]
+    # 끝 조각이 꾸밈말뿐이면 앞 조각의 낱말을 빌린다 — `中新世早期至中期` → 마이오세 전기~중기
+    for index in range(1, len(segments)):
+        if not segments[index]["noun"] and not segments[index]["whole"] and segments[index]["mods"]:
+            segments[index]["noun"] = segments[index - 1]["noun"]
+    if any(not (s["noun"] or s["whole"]) for s in segments):
+        return None
+    return segments, joiners
+
+
+def age_zh(value: str, lang: str = "ko") -> str:
+    """번체 중국어 지질시대 값 하나를 한국어(또는 영어)로. 못 옮기면 원문을 그대로 돌려준다.
+
+        中新世晚期                 → 마이오세 후기          (Late Miocene)
+        上新世－更新世             → 플라이오세~플라이스토세
+        早期至中期始新世           → 에오세 전기~중기
+        晚古生代至中生代（？）     → 고생대 후기~중생대(?)
+        始新世或更早               → 에오세 또는 그 이전
+    """
+    text = str(value or "").strip()
+    if not text:
+        return value
+    parsed = _age_zh_segments(text)
+    if parsed is None:
+        return value
+    segments, joiners = parsed
+    out, last_noun = [], None
+    for index, seg in enumerate(segments):
+        if seg["whole"]:
+            word = AGE_ZH_WHOLE[seg["whole"]][0 if lang == "ko" else 1]
+            last_noun = None
+        elif lang == "ko":
+            noun = AGE_WORDS_KO[AGE_ZH[seg["noun"]].lower()]
+            mods = "·".join(AGE_MODIFIERS_KO[m] for m in seg["mods"])
+            # 앞 조각과 낱말이 같으면 낱말을 되풀이하지 않는다 — `에오세 전기~중기`
+            word = mods if (mods and noun == last_noun) else " ".join(filter(None, [noun, mods]))
+            last_noun = noun
+        else:
+            mods = "–".join(m.capitalize() for m in seg["mods"])
+            word = " ".join(filter(None, [mods, AGE_ZH[seg["noun"]]]))
+        if seg["doubt"]:
+            word += "(?)" if lang == "ko" else " (?)"
+        out.append(word)
+        if index < len(joiners):
+            joiner = joiners[index]
+            if joiner == "earlier":
+                out.append(" 또는 그 이전" if lang == "ko" else " or earlier")
+            elif joiner == "or":
+                out.append(" 또는 " if lang == "ko" else " or ")
+            else:
+                out.append("~" if lang == "ko" else " – ")
+    return "".join(out)
+
+
 #: 값을 지질시대로 읽는 속성 이름.
 AGE_PROPS =("지질시대", "시대", "퇴적물시기")
 
@@ -2097,6 +2218,9 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
+    # 대만 (wetherilli 136)
+    "대만 지질도 (GSMMA)": "Taiwan geology (GSMMA)",
+    "대만 구조 (GSMMA)": "Taiwan structure (GSMMA)",
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
@@ -2147,6 +2271,16 @@ LAYER_EN = {
     "emodnet:bgr:pre_quaternary_faults": "Pre-Quaternary faults",
     "emodnet:cp_wp3_seabed_substrate_folk_7": "Seabed substrate (Folk 7)",
     "EASIA_CCOP_2M_Combined_BLT_SLT_BA": "CCOP 1:2M geology (bedrock, superficial, age)",
+    # 대만 (wetherilli 136)
+    "gsmma:geology_50k": "1:50k geological map",
+    "gsmma:geology_250k": "1:250k geological map (1974)",
+    "gsmma:geology_500k": "1:500k geological map (2000)",
+    "gsmma:geology_1m": "1:1M geological map (1986)",
+    "gsmma:labels_50k": "1:50k formation names",
+    "gsmma:sheets_50k": "1:50k map sheets",
+    "gsmma:active_faults": "Active faults (2021)",
+    "gsmma:attitude_50k": "1:50k bedding attitude",
+    "gsmma:tectonic_500k": "1:500k tectonic map (1978)",
     "ibcso:tid": "Bathymetry data source (TID)",
     "L_1M_Geology_Map": "1:1M geology",
     "L_250K_Geology_Map": "1:250K geology",

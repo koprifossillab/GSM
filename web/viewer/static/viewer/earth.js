@@ -122,6 +122,17 @@
           src: "Global Volcanism Program, Smithsonian Institution" },
       ] });
   }
+  // 지진 — USGS 의 M5 이상, 1900 년부터. 규모의 칸 셋을 따로 켠다. 오늘의 레이어다 (wetherilli 138)
+  //   quake  타일 주소의 칸(`earth/quakes/tiles/<칸>/…`)이자 누를 때 묻는 칸
+  if (THEN.quakes && THEN.quakes.length) {
+    var QUAKE_SRC = "U.S. Geological Survey ComCat · public domain";
+    CATALOG.splice(CATALOG.findIndex(function (g) { return g.layers[0].name === "fossils"; }) + 1, 0,
+      { group: "지진 (USGS)", layers: [
+        { name: "quake6", title: "M6 이상", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+        { name: "quake55", title: "M5.5–6", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+        { name: "quake5", title: "M5–5.5", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+      ] });
+  }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
@@ -139,6 +150,7 @@
     if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png";
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
     if (name === "volcanoes") return BASE + "earth/volcanoes/tiles/{z}/{x}/{y}.png";
+    if (LAYER[name].quake) return BASE + "earth/quakes/tiles/" + name + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
   var GEO_CREDIT = "Macrostrat (CC BY 4.0) · Peters, Husson & Czaplewski 2018, G-cubed";
@@ -147,11 +159,12 @@
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
   var GVP_CREDIT = "Global Volcanism Program, Smithsonian Institution · Volcanoes of the World";
+  var QUAKE_CREDIT = "U.S. Geological Survey · ANSS ComCat";
   var NE_CREDIT = "Natural Earth 10 m (public domain)";
   var ICE_CREDIT = "NADI-1 (Dalton et al. 2023, CC BY 4.0) · DATED-1 (Hughes et al. 2016, CC BY 3.0)";
   var MANTLE_CREDIT = "Müller et al. (2022) OPT1, Solid Earth (CC BY 4.0)";
   function creditOf(name) {
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, crust: CRUST_CREDIT,
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT,
              names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
@@ -2202,6 +2215,13 @@
     }
     if (kind === "ocean") return Promise.resolve(flowLegend(OCEAN_COLORS, OCEAN_REF, T("입자 색은 해류의 빠르기 — 표층 5 m")));
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    if (kind === "quake") {
+      legends[kind] = '<li class="empty">' + esc(T("원의 크기는 규모, 색은 진원 깊이")) + "</li>" +
+        THEN.quakes.map(function (row) {
+          return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+        }).join("");
+      return Promise.resolve(legends[kind]);
+    }
     if (kind === "volcano") {
       legends[kind] = '<li class="empty">' + esc(T("세모의 색은 마지막 분화")) + "</li>" +
         THEN.volcanoes.map(function (row) {
@@ -2242,10 +2262,10 @@
     Promise.all(layers.map(function (l) { return legendHtml(l.legend); })).then(function (parts) {
       if (mine !== legendAsked) return;
       $("legend-list").innerHTML = parts.map(function (html, i) {
-        var head = parts.length > 1 ? '<li class="layer">' + esc(T(layers[i].title)) + "</li>" : "";
+        var head = parts.length > 1 ? '<li class="layer">' + esc(T(layers[i].legendTitle || layers[i].title)) + "</li>" : "";
         return head + html;
       }).join("");
-      $("legend-sub").textContent = layers.length === 1 ? T(layers[0].title) : "";
+      $("legend-sub").textContent = layers.length === 1 ? T(layers[0].legendTitle || layers[0].title) : "";
     });
   }
 
@@ -2727,12 +2747,39 @@
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (mineV !== asked) return;
-          if (d.hits && d.hits.length) showVolcanoes(d.hits, pixel); else askFossil(ll, pixel, perPx);
+          if (d.hits && d.hits.length) showVolcanoes(d.hits, pixel); else askQuake(ll, pixel, perPx);
         })
-        .catch(function () { if (mineV === asked) askFossil(ll, pixel, perPx); });
+        .catch(function () { if (mineV === asked) askQuake(ll, pixel, perPx); });
       return;
     }
-    askFossil(ll, pixel, perPx);
+    askQuake(ll, pixel, perPx);
+  }
+  // 지진 — 켠 규모 칸에서만 찾는다. 없으면 화석 산지 (wetherilli 138)
+  function askQuake(ll, pixel, perPx) {
+    var bands = active.filter(function (e) { return LAYER[e.name].quake && visibleNow(e.name); })
+                      .map(function (e) { return e.name; });
+    if (!bands.length) { askFossil(ll, pixel, perPx); return; }
+    var mine = ++asked;
+    fetch(BASE + "earth/quakes/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
+          "&r=" + Math.max(0.002, perPx * 7).toFixed(4) + "&bands=" + bands.join(","))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (mine !== asked) return;
+        if (d.hits && d.hits.length) showQuakes(d.hits, pixel); else askFossil(ll, pixel, perPx);
+      })
+      .catch(function () { if (mine === asked) askFossil(ll, pixel, perPx); });
+  }
+  function showQuakes(hits, pixel) {
+    markAt(hits[0].at);
+    var html = coordHead(hits[0].at);
+    if (hits.length > 1) html += '<p class="none">' + esc(T("지진 {n} 곳 가운데 가까운 것부터", { n: hits.length })) + "</p>";
+    html += hits.map(function (h) {
+      return "<h3>" + esc(h.name) + "</h3><table>" + h.rows.map(function (row) {
+        return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+      }).join("") + '</table><p><a class="ett-link" target="_blank" rel="noopener" href="' + esc(h.link) + '">' +
+        esc(T("USGS 에서 보기")) + "</a></p>";
+    }).join("");
+    showPopup(html, pixel);
   }
   function showVolcanoes(hits, pixel) {
     markAt(hits[0].at);
