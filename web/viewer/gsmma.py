@@ -13,6 +13,7 @@
   지도 서버에는 따로 붙은 문구가 없다. GetCapabilities 는 `Fees=none`, `AccessConstraints=none`
 - 값(지층명·암상)은 중국어 그대로 둔다. 지질시대만 옮긴다(`i18n.age_zh`)
 """
+import io
 import logging
 import math
 from types import SimpleNamespace
@@ -50,6 +51,25 @@ LAYERS = {
                                     "500K_Tectonic_map_fold_1978",
                                     "500K_Tectonic_map_extinct_or_dormant_volcano_1978"]},
     "gsmma:sheets_50k": {"wms": ["50K_Geomap_index_frame", "50K_Geomap_index_name"]},
+    # ── 둘째 판 (wetherilli 141) ──
+    "gsmma:fossils_50k": {"wms": ["50K_Geomap_fossil"]},
+    # 5만 붕괴·붕적지(`50K_Geomap_landslide`)는 어느 축척·자리에서도 빈 그림이라 두지 않는다(2026-10-02)
+    # 환경지질 — 산사태 목록·순향사면·잠재 붕괴, 토양 액상화
+    "gsmma:landslide_inventory": {"wms": ["Geomap_Envi_Landslide_list_2006-2013"]},
+    "gsmma:dip_slope": {"wms": ["Geomap_Envi_DipSlope_2013"], "info": "DipSlope"},
+    "gsmma:dip_slope_class": {"wms": ["Geomap_Envi_DipSlopeClass_2013"]},
+    "gsmma:rock_slide": {"wms": ["Geomap_Envi_RockSlide_2013"]},
+    "gsmma:debris_slide": {"wms": ["Geomap_Envi_DebrisSlide_2013"]},
+    "gsmma:liquefaction": {"wms": ["Geomap_Envi_Soil_liquefatcion_2021"]},
+    # 지질 민감구역 — "조사·연구·분석·계획에만, 법령 업무에는 쓰지 않는다"(기관의 단서)
+    "gsmma:sensitive_fault": {"wms": ["Sensitive_area_fault"]},
+    "gsmma:sensitive_landslide": {"wms": ["Sensitive_area_landslide"]},
+    "gsmma:sensitive_groundwater": {"wms": ["Sensitive_area_groundwater"]},
+    "gsmma:sensitive_landscape": {"wms": ["Sensitive_area_landscape"]},
+    # 점 — 지질운이 점을 속성째 준다
+    "gsmma:hot_springs": {"wms": ["Spring_2014"], "info": "HotSpring", "point": True},
+    "gsmma:boreholes": {"wms": ["Engineering_drilling"], "info": "Drill", "point": True},
+    "gsmma:hydro_wells": {"wms": ["Hydrogeological_well"]},
 }
 
 
@@ -87,16 +107,56 @@ def _get(url: str, params: dict, label: str):
     return r
 
 
-def get_map(params: dict):
-    """`GetMap`. (바이트, content-type). 화면이 4326 으로 묻는 것을 그대로 넘기고 레이어 이름만 바꾼다."""
-    q = dict(params, service="WMS", request="GetMap")
-    q["layers"] = _upstream_layers(q.get("layers"))
-    q["styles"] = ""
+MERCATOR = ("EPSG:3857", "EPSG:900913", "EPSG:102100")
+R = 6378137.0
+
+
+def _fetch(q: dict):
     r = _get(settings.GSMMA_WMS_URL, q, "지질도 서버")
     ctype = r.headers.get("content-type", "")
     if r.status_code != 200 or not ctype.startswith("image/"):
         raise GsmmaError(f"그림이 아닌 것이 왔다 (status={r.status_code}, type={ctype})")
     return r.content, ctype
+
+
+def get_map(params: dict):
+    """`GetMap`. (바이트, content-type). 화면(2D)은 4326 으로 묻는다 — 그대로 넘기고 레이어 이름만 바꾼다.
+    3D 는 3857 로 묻는다 — 상류가 3857 을 받지 않아 `mercator_map` 이 4326 으로 받아 편다."""
+    q = dict(params, service="WMS", request="GetMap", styles="")
+    q["layers"] = _upstream_layers(q.get("layers"))
+    srs = (q.get("crs") or q.get("srs") or "").upper()
+    if srs in MERCATOR:
+        return mercator_map(q)
+    return _fetch(q)
+
+
+def _lat(y: float) -> float:
+    return math.degrees(2 * math.atan(math.exp(y / R)) - math.pi / 2)
+
+
+def mercator_map(q: dict):
+    """3857 의 범위를 4326 으로 받아 3857 로 편다. 3857 의 가로는 경도에 비례하므로 **줄(위도)만 다시 고르면
+    된다** — 한 줄씩 그 위도의 줄을 옮겨 붙인다. 받는 그림은 세로를 두 배로 받아 고르는 칸을 촘촘히 한다."""
+    from PIL import Image
+
+    x0, y0, x1, y1 = [float(v) for v in str(q.get("bbox", "")).split(",")]
+    width, height = int(float(q.get("width", 256))), int(float(q.get("height", 256)))
+    west, east = math.degrees(x0 / R), math.degrees(x1 / R)
+    south, north = _lat(y0), _lat(y1)
+    rows = height * 2
+    src = dict(q, crs="EPSG:4326", version="1.3.0", width=width, height=rows, format="image/png",
+               transparent="true", bbox=f"{south:.9f},{west:.9f},{north:.9f},{east:.9f}")
+    src.pop("srs", None)
+    content, _ = _fetch(src)
+    image = Image.open(io.BytesIO(content)).convert("RGBA")
+    out = Image.new("RGBA", (width, height))
+    for j in range(height):
+        lat = _lat(y1 - (j + 0.5) * (y1 - y0) / height)
+        row = min(rows - 1, max(0, int((north - lat) / (north - south) * rows)))
+        out.paste(image.crop((0, row, width, row + 1)), (0, j))
+    buf = io.BytesIO()
+    out.save(buf, "PNG", optimize=False)
+    return buf.getvalue(), "image/png"
 
 
 def get_legend(layer: str):
@@ -142,8 +202,31 @@ def contains(geometry: dict, lon: float, lat: float) -> bool:
     return False
 
 
-#: 지질운의 지층 속성 → 팝업에 보일 이름. 도식 번호(`Code`)는 사람에게 뜻이 없어 버린다
-FRIENDLY = {"Name": "지층명", "Abbrev": "기호", "Time": "지질시대", "Note": "암상"}
+#: 지질운의 속성 → 팝업에 보일 이름. 여기 없는 열(지층의 도식 번호 `Code`, 순향사면을 판독한 사람)은 버린다
+FRIENDLY = {"Name": "지층명", "Abbrev": "기호", "Time": "지질시대", "Note": "암상",
+            # 온천(HotSpring)
+            "SpaName": "온천명", "Type": "수질", "Temperature": "수온 (°C)", "SpaPH": "pH",
+            # 공학 지질 시추(Drill)
+            "Project_Name": "조사 사업", "Hole_Point_No": "공번", "Depth": "심도 (m)",
+            # 순향사면(DipSlope)
+            "MAP_NAME": "도폭", "SLOPE_DIR": "사면 방향", "COUN_NAME": "시·현"}
+
+
+def pixel_degrees(params: dict) -> float:
+    """`GetFeatureInfo` 범위에서 한 픽셀이 몇 도인가(가로). 3857 이면 미터를 도로."""
+    try:
+        bbox = [float(v) for v in str(params.get("bbox", "")).split(",")]
+        width = float(params.get("width", 256))
+    except ValueError:
+        return 0.0
+    srs = (params.get("srs") or params.get("crs") or "EPSG:4326").upper()
+    if srs == "EPSG:4326" and str(params.get("version", "1.3.0")).startswith("1.3"):
+        span = bbox[3] - bbox[1]
+    elif srs in ("EPSG:4326", "CRS:84"):
+        span = bbox[2] - bbox[0]
+    else:
+        span = math.degrees((bbox[2] - bbox[0]) / 6378137.0)
+    return abs(span) / width
 
 
 def get_feature_info(params: dict) -> dict:
@@ -153,7 +236,9 @@ def get_feature_info(params: dict) -> dict:
     if not api:
         return {"features": []}
     lon, lat = clicked_lonlat(params)
-    half = 0.0001
+    point = LAYERS[layer].get("point")
+    # 면은 누른 자리 둘레 약 20 m, 점은 화면의 8 픽셀(점 기호가 그만하다)
+    half = max(pixel_degrees(params) * 8, 0.0001) if point else 0.0001
     r = _get(f"{settings.GSMMA_API_URL}/{api}",
              {"bbox": f"{lon - half:.6f},{lat - half:.6f},{lon + half:.6f},{lat + half:.6f}"}, "지질운")
     if r.status_code != 200:
@@ -162,11 +247,21 @@ def get_feature_info(params: dict) -> dict:
         found = r.json().get("features") or []
     except ValueError as exc:
         raise GsmmaError("지질운이 JSON 이 아닌 것을 주었다") from exc
-    inside = [f for f in found if contains(f.get("geometry"), lon, lat)]
+    if point:
+        # 가까운 점부터 셋 — 시추공은 한 자리에 여럿이 겹친다
+        def far(f):
+            x, y = ((f.get("geometry") or {}).get("coordinates") or [lon, lat])[:2]
+            return (x - lon) ** 2 + (y - lat) ** 2
+        chosen = sorted(found, key=far)[:3]
+    else:
+        inside = [f for f in found if contains(f.get("geometry"), lon, lat)]
+        chosen = inside or found
     features = []
-    for n, feature in enumerate(inside or found):
+    for n, feature in enumerate(chosen):
         props = {key: str(value).strip() for key, value in (feature.get("properties") or {}).items()
                  if key in FRIENDLY and value not in (None, "")}
+        if "SLOPE_DIR" in props:
+            props["SLOPE_DIR"] = props["SLOPE_DIR"].lstrip("ABCDEFGH")     # `B東南` — 앞의 글자는 칸 번호다
         features.append({"id": f"gsmma.{api}.{n}", "properties": props})
     return {"features": features}
 
