@@ -129,7 +129,7 @@
     // 범위는 펑후·진먼·마쭈까지 넣으면 넓어져 본섬에 맞춘다
     taiwan: { title: "대만", proj: "EPSG:3857", center: [120.9, 23.7], zoom: 7, vworld: false,
               home: [13277000, 2470000, 13617000, 2948000],
-              basemap: "eox_terrain", example: "25.033, 121.565",
+              basemap: "nlsc_grey", example: "25.033, 121.565",
               base: ["gsmma:geology_50k", "gsmma:geology_250k", "gsmma:geology_500k", "gsmma:geology_1m"],
               first: "gsmma:geology_50k" },
     eastasia: { title: "동아시아", proj: "EPSG:3857", center: [135.0, 37.5], zoom: 5, vworld: true,
@@ -977,6 +977,47 @@
         crossOrigin: "anonymous",
         transition: 0,
         attributions: GEBCO,
+      }),
+    });
+  }
+
+  // ── 대만 배경 — 내정부 국토측회중심(NLSC) WMTS (wetherilli 141) ──
+  // 국토지리원처럼 브라우저가 곧장 부른다 — CORS 가 열려 있고 열쇠가 없다. 3857 격자(GoogleMapsCompatible)라
+  // 그대로 얹는다. **지질도 밑에는 회색 판이 낫다** — 일본의 담색과 같은 까닭이다. 대만 밖은 비어 있다
+  var NLSC = '<a href="https://maps.nlsc.gov.tw/" target="_blank" rel="noopener">國土測繪圖資服務雲</a> (內政部國土測繪中心)';
+  BASEMAPS.nlsc_grey = {
+    title: T("대만 회색 지도 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 지질도 밑에 깔기 좋다"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("EMAP01", "jpg", 18); },
+  };
+  BASEMAPS.nlsc_emap = {
+    title: T("대만 전자지도 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("EMAP", "jpg", 18); },
+  };
+  BASEMAPS.nlsc_photo = {
+    title: T("대만 정사영상 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 대만 밖은 비어 있다"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("PHOTO2", "jpg", 19); },
+  };
+  BASEMAPS.nlsc_hillshade = {
+    title: T("대만 음영기복 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 지형을 지질도와 견줄 때"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("MOI_HILLSHADE", "png", 16); },
+  };
+
+  function nlscLayer(name, ext, maxZoom) {
+    return new ol.layer.Tile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://wmts.nlsc.gov.tw/wmts/" + name + "/default/GoogleMapsCompatible/{z}/{y}/{x}",
+        crossOrigin: "anonymous",
+        maxZoom: maxZoom,
+        attributions: NLSC,
       }),
     });
   }
