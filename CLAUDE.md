@@ -95,6 +95,11 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
   레이어 패널·좌표 표시·점묶음은 그대로 쓸 수 있다. 키 신청이 심사 중인
   동안 나머지를 만들려고 그렇게 했다
 
+**연구소 밖 정적 판(https://koprifossillab.github.io/GSM-open/)은 예외가 아니다 — 거기에는 우리 키가 없다.** 보는 사람이 각자
+KIGAM 키를 넣고(그 브라우저 localStorage, 30 일), 브라우저가 `/openapi/wms` 를 곧장 부른다(`map.js` 의 `STATIC_KIGAM`).
+서버 없이 돌므로 위의 "서버가 키를 붙인다" 가 없다. 판 세션이 판마다 `deploy/publish_pages.sh` 로 굽고 민다
+(wetherilli P11·162). 실을 지역·상류는 `deploy/static_site.py` 의 `REGIONS`·`UPSTREAMS`.
+
 ## 상류의 함정 — 문서를 믿지 않는다
 
 오픈API 안내 문서(`/guide/openapi`)와 레이어 목록 페이지에 **틀린 것이 있다.**
@@ -287,7 +292,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
   받아 우리가 그린다(019·022·025). 면이 만 개를 넘는 중국은 `render: image`
-  (`ol.layer.VectorImage`)로 한 장씩 굽는다
+  (`ol.layer.VectorImage`)로 한 장씩 굽는다. 점의 `style: value` 는 **연속값 색**이다 — 서버가 고를 열(`values`)을 싣고
+  화면이 고른 열의 분위수 일곱 칸을 viridis 로 칠한다(`map.js` 의 `valueStyle`, 그린란드 지화학, wetherilli 159). 점이 많아
+  열을 다 실을 수 없는 레이어(`slice`, 그린란드 전암 화학 3 만 점)는 서버가 **고른 열의 점만 잘라** 준다(`?value=`, wetherilli 163)
 - **WMS 는 대개 3857 로 받고 OpenLayers 가 옮겨 그린다** — 캐시 열쇠가 앞 판과
   같다. **NPI 만은 지역의 투영으로 곧장 받는다** — 3857 로 물으면 축척이 부풀어
   1:25만 대신 1:75만을 준다 (021). **일본(GSJ)은 WMS 가 아니라 z/x/y 타일**이다 —

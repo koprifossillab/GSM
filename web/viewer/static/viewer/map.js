@@ -32,6 +32,39 @@
   var vworldKey = JSON.parse(document.getElementById("vworld-key").textContent || '""');
   var catalog = JSON.parse(document.getElementById("catalog-data").textContent || "[]");
 
+  // ── 정적 판 (wetherilli P11·162) ─────────────────────────────────
+  //
+  // 연구소 밖의 GitHub Pages 판은 서버가 없다. 서버가 그린 약속(`static-config` — 실을 지역·상류)이 있으면
+  // 그 판이다. **KIGAM 키는 보는 사람이 각자 넣는다** — 이 브라우저(localStorage)에만 30 일 두고, "이 PC 에
+  // 기억하지 않기" 면 탭 동안만(sessionStorage). 키는 KIGAM 에만 간다 — 우리 키는 이 판에 없다
+  var STATIC = JSON.parse((document.getElementById("static-config") || {}).textContent || "null");
+  var KEY_DAYS = 30;
+
+  function readKey(name) {
+    var slot = "gsm.key." + name;
+    try {
+      var held = JSON.parse(sessionStorage.getItem(slot) || "null");
+      if (held && held.key) return held.key;
+      held = JSON.parse(localStorage.getItem(slot) || "null");
+      if (!held || !held.key) return "";
+      if (Date.now() - (held.at || 0) > KEY_DAYS * 864e5) { localStorage.removeItem(slot); return ""; }
+      held.at = Date.now();                       // 쓸 때마다 30 일을 새로 센다
+      localStorage.setItem(slot, JSON.stringify(held));
+      return held.key;
+    } catch (e) { return staticKeys[name] || ""; }   // 사생활 모드 — 탭 동안만
+  }
+  var staticKeys = {};
+
+  function writeKey(name, key, remember) {
+    var slot = "gsm.key." + name;
+    staticKeys[name] = key;
+    try {
+      localStorage.removeItem(slot);
+      sessionStorage.removeItem(slot);
+      if (key) (remember ? localStorage : sessionStorage).setItem(slot, JSON.stringify({ key: key, at: Date.now() }));
+    } catch (e) { /* 저장소가 막혔다 — 탭 동안만 */ }
+  }
+
   // ── 지역 ─────────────────────────────────────────────────────────
   //
   // 한국·그린란드·남극. **지역마다 레이어 목록·켠 레이어·보던 자리·색이 따로다**
@@ -194,6 +227,18 @@
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age" },
   };
+  if (STATIC) {
+    // 정적 판이 싣지 않은 지역은 탭에서 뺀다. 묶음은 품은 지역 가운데 실린 것만 남기고, 하나도 없으면 뺀다
+    Object.keys(REGIONS).forEach(function (key) {
+      var spec = REGIONS[key];
+      if (spec.includes) {
+        spec.includes = spec.includes.filter(function (k) { return STATIC.regions.indexOf(k) >= 0; });
+        if (!spec.includes.length) delete REGIONS[key];
+      } else if (STATIC.regions.indexOf(key) < 0) {
+        delete REGIONS[key];
+      }
+    });
+  }
   var region = "korea";
 
   //: 남극 GeoMAP 타일의 격자. **우리 서버(`geomap/`)가 이 격자로 굽는다** —
@@ -233,11 +278,12 @@
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
   //  파일이 없는 자리에 띄운 서버가 그렇다.
-  REGIONS.antarctica.pending = !catalog.some(function (g) {
+  if (REGIONS.antarctica) REGIONS.antarctica.pending = !catalog.some(function (g) {
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
   ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe"].forEach(function (key) {
+    if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -600,7 +646,44 @@
 
   function layerKind(name) {
     var row = byName[name];
-    return LAYER_KINDS[(row && row.upstream) || "kigam"] || LAYER_KINDS.kigam;
+    var up = (row && row.upstream) || "kigam";
+    if (STATIC) {
+      if (up === "kigam") return STATIC_KIGAM;
+      var kinds = window.GSM_STATIC_KINDS || {};
+      if (kinds[up]) return kinds[up];
+    }
+    return LAYER_KINDS[up] || LAYER_KINDS.kigam;
+  }
+
+  // ── 정적 판의 KIGAM (wetherilli P11·162) ──
+  // 문서화된 `/openapi/wms` 를 각자 키로 브라우저가 곧장 부른다. 타일은 `<img>` 라 CORS 가 없어도 받힌다
+  // (KIGAM 은 CORS 를 열지 않았다 — docs/정적_밖_경로.md §2). 그래서 `crossOrigin` 을 두지 않고, 속성은
+  // 묻지 않는다(`/openapi/wms` 는 GetFeatureInfo 를 막았고 GeoServer 길은 CORS 가 없다). 키가 없으면 타일을 묻지 않는다
+  var KIGAM_OPENAPI = "https://data.kigam.re.kr/openapi/wms";
+  var STATIC_KIGAM = {
+    source: function (name) {
+      return new ol.source.TileWMS({
+        url: KIGAM_OPENAPI,
+        params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true, key: readKey("kigam") },
+        transition: 0,
+        projection: "EPSG:3857",
+        tileGrid: ol.tilegrid.createXYZ({ tileSize: 512 }),
+        tileLoadFunction: function (tile, src) {
+          if (!readKey("kigam")) { tile.setState(4); return; }     // 4 = 빈 타일 — 키가 없으면 묻지 않는다
+          tile.getImage().src = src;
+        },
+      });
+    },
+    info: null,
+  };
+
+  /** 정적 판에서 KIGAM 레이어들의 키를 바꾼다 — 키를 넣거나 지우면 켠 레이어를 다시 그린다. */
+  function refreshKigamKey() {
+    active.forEach(function (entry) {
+      var row = byName[entry.name];
+      if (!row || (row.upstream || "kigam") !== "kigam" || !entry.layer.getSource().updateParams) return;
+      entry.layer.getSource().updateParams({ key: readKey("kigam") });
+    });
   }
 
   function layerSource(name) {
@@ -668,6 +751,13 @@
     lt_l_gimspoten: { color: "#1f5fa8", width: 1.2, dash: null, labelBy: "legend", unit: "m" },
     lt_l_gimsec: { color: "#2a7f62", width: 1.2, dash: [6, 3], labelBy: "legend", unit: "µS/cm" },
     lt_l_gimsdepth: { color: "#6a3fa0", width: 1.1, dash: [2, 3], labelBy: "legend", unit: "m" },
+    // 수질·지하수 측정망 — 점이다(wetherilli 156). 수질 다섯은 색으로 가르고, 지하수는 네모로 가른다
+    lt_p_weissitema: { point: "circle", color: "#1f6fb2", width: 1, radius: 4.5 },
+    lt_p_weissitemb: { point: "circle", color: "#1a9a9a", width: 1, radius: 4.5 },
+    lt_p_weissitemd: { point: "circle", color: "#5f8f1a", width: 1, radius: 4.5 },
+    lt_p_weissiteme: { point: "circle", color: "#8a4a1f", width: 1, radius: 4.5 },
+    lt_p_weissitemf: { point: "circle", color: "#7a3fb0", width: 1, radius: 4.5 },
+    lt_p_sgisgwchg: { point: "square", color: "#c0392b", width: 1, radius: 5 },
   };
   //: 등치선 값을 적기 시작하는 줌. 멀리서는 글자가 선을 덮는다
   var VECTOR_LABEL_ZOOM = 11;
@@ -675,7 +765,15 @@
   var vectorStyleCache = {};
 
   function vectorStyleOf(spec) {
-    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "");
+    var key = spec.color + "|" + spec.width + "|" + (spec.dash || "") + "|" + (spec.point || "");
+    if (spec.point && !vectorStyleCache[key]) {
+      // 점 — 흰 테두리를 둘러 지질도 색 위에서도 묻히지 않게 (wetherilli 156)
+      var fill = new ol.style.Fill({ color: spec.color });
+      var rim = new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 1.5 });
+      vectorStyleCache[key] = [new ol.style.Style({ image: spec.point === "square"
+        ? new ol.style.RegularShape({ points: 4, radius: spec.radius || 5, angle: Math.PI / 4, fill: fill, stroke: rim })
+        : new ol.style.Circle({ radius: spec.radius || 4.5, fill: fill, stroke: rim }) })];
+    }
     if (!vectorStyleCache[key]) {
       vectorStyleCache[key] = [
         // 밑에 흰 테두리 — 지질도 색 위에서도 선이 묻히지 않게
@@ -774,13 +872,17 @@
       return { spec: table.classes[value], label: T("구분 {value}", { value: value }) };
     }) : table && table.unit ? [{ spec: table, label: T("등치선 ({unit}) — 줌 {n} 부터 값을 적는다",
                                                         { unit: table.unit, n: VECTOR_LABEL_ZOOM }) }]
-      : [{ spec: DEFAULT_VECTOR_STYLE, label: title }];
+      : [{ spec: table && table.point ? table : DEFAULT_VECTOR_STYLE, label: title }];
     rows.forEach(function (r) {
       var line = document.createElement("div");
       line.className = "vector-legend-row";
-      var svg = '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
-        r.spec.color + '" stroke-width="' + r.spec.width + '"' +
-        (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
+      var svg = r.spec.point
+        ? '<svg width="36" height="10" aria-hidden="true">' + (r.spec.point === "square"
+          ? '<rect x="13" y="0.5" width="9" height="9" fill="' + r.spec.color + '" stroke="#fff"/>'
+          : '<circle cx="18" cy="5" r="4.5" fill="' + r.spec.color + '" stroke="#fff"/>') + "</svg>"
+        : '<svg width="36" height="10" aria-hidden="true"><line x1="2" y1="5" x2="34" y2="5" stroke="' +
+          r.spec.color + '" stroke-width="' + r.spec.width + '"' +
+          (r.spec.dash ? ' stroke-dasharray="' + r.spec.dash.join(" ") + '"' : "") + "/></svg>";
       line.innerHTML = svg + "<span>" + esc(r.label) + "</span>";
       box.appendChild(line);
     });
@@ -1104,6 +1206,66 @@
       }),
     });
   }
+
+  // 국토지리원의 주제 타일 셋 (wetherilli 156) — 담색·음영기복과 같은 창구다. 지질도와 견줄 때 고른다
+  BASEMAPS.gsi_slope = {
+    title: T("일본 경사량도 (국토지리원)"),
+    note: T("일본 국토지리원. 기울기를 색으로 — 단층애·산사태 지형을 지질도와 견줄 때. 줌 15 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("slopemap", "png", 15); },
+  };
+  BASEMAPS.gsi_landcond = {
+    title: T("일본 토지조건도 (국토지리원)"),
+    note: T("일본 국토지리원. 산지·대지·저지·인공 지형을 가른 1:2만 5천 — 평야와 도시 둘레만 있다. 줌 16 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("lcmfc2", "png", 16); },
+  };
+  BASEMAPS.gsi_volcano = {
+    title: T("일본 화산기본도 (국토지리원)"),
+    note: T("일본 국토지리원. 활화산 둘레만 있는 정밀 지형도 — 그 밖은 빈다. 줌 17 까지"),
+    regions: ["japan"],
+    make: function () { return gsiLayer("vbm", "png", 17); },
+  };
+
+  // ── AWS 법선 타일로 그리는 음영·경사 (wetherilli 156) ──
+  //
+  // AWS 표고 타일의 `normal` 판은 RGB 가 땅의 법선(x 동, y 북, z 위 — 평지가 127·127·255)이다. 그것을 WebGL 셰이더로 칠한다 —
+  // 음영은 북서 45° 빛과의 내적, 경사는 법선이 기운 정도. 브라우저가 곧장 부르고(열쇠 없음, CORS `*`) 줌 15 까지다.
+  // 일본 밖(중국·대만)에는 국토지리원 음영이 없어 이것을 둔다
+  var AWS_NORMAL = 'Terrain normals: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a>';
+  function awsNormalLayer(kind) {
+    var nx = ["-", ["*", ["band", 1], 2], 1];
+    var ny = ["-", ["*", ["band", 2], 2], 1];
+    var nz = ["-", ["*", ["band", 3], 2], 1];
+    // 빛: 방위 315°·고도 45° → (−0.5, 0.5, 0.707)
+    var shade = ["clamp", ["+", ["*", nx, -0.5], ["*", ny, 0.5], ["*", nz, 0.7071]], 0, 1];
+    var steep = ["clamp", ["-", 1, nz], 0, 1];          // 0 이 평지, 1 이 낭떠러지
+    return new ol.layer.WebGLTile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png",
+        crossOrigin: "anonymous", maxZoom: 15, attributions: AWS_NORMAL, transition: 0,
+      }),
+      style: { color: kind === "slope"
+        // 1 − cos(기울기): 0.015 ≈ 10°, 0.05 ≈ 18°, 0.12 ≈ 28°, 0.25 ≈ 41°. 거친 줌은 법선이 펴져 기울기가 작게 나온다
+        ? ["interpolate", ["linear"], steep, 0, [250, 250, 245], 0.015, [245, 232, 165], 0.05, [235, 160, 75],
+           0.12, [200, 60, 40], 0.25, [100, 20, 30]]
+        : ["interpolate", ["linear"], shade, 0, [35, 35, 40], 0.5, [150, 150, 150], 0.75, [225, 225, 222],
+           1, [255, 255, 255]] },
+    });
+  }
+  BASEMAPS.aws_shade = {
+    title: T("지형 음영 (AWS)"),
+    note: T("AWS 표고 타일의 법선으로 그린 음영 — 북서에서 비춘다. 줌 15 까지"),
+    regions: ["china", "taiwan"],
+    make: function () { return awsNormalLayer("shade"); },
+  };
+  BASEMAPS.aws_slope = {
+    title: T("경사 (AWS)"),
+    note: T("AWS 표고 타일의 법선으로 칠한 기울기 — 흰 평지에서 붉은 낭떠러지까지. 줌 15 까지"),
+    regions: ["china", "taiwan"],
+    make: function () { return awsNormalLayer("slope"); },
+  };
 
   function gsiLayer(name, ext, maxZoom) {
     return new ol.layer.Tile({
@@ -2045,6 +2207,11 @@
       // 아라온호 항적 — 1개월·6개월·1년 (koprifossillab 017)
       var periods = byName[entry.name] && byName[entry.name].periods;
       if (periods) li.appendChild(periodPicker(entry, periods));
+      // 지화학 — 칠할 원소 (wetherilli 159)
+      if (byName[entry.name] && byName[entry.name].style === "value") {
+        var picker = valuePicker(entry);
+        if (picker) li.appendChild(picker);
+      }
 
       // 5만 지질도 — 층리·엽리·편리·절리를 늘 그릴지 (jikhanjung 005)
       if (ATTITUDE_LAYERS.indexOf(entry.name) >= 0 && isMercator()) li.appendChild(attitudeToggles());
@@ -2069,7 +2236,10 @@
         var img = document.createElement("img");
         img.className = "legend-img";
         img.alt = T("{title} 범례", { title: entry.title });
-        img.src = BASE + "legend/?layer=" + encodeURIComponent(entry.name);
+        img.src = STATIC && (byName[entry.name] || {}).upstream === "kigam"
+          ? KIGAM_OPENAPI + "?" + new URLSearchParams({ service: "WMS", version: "1.0.0", request: "GetLegendGraphic",
+                                                        format: "image/png", layer: entry.name, key: readKey("kigam") })
+          : BASE + "legend/?layer=" + encodeURIComponent(entry.name);
         img.addEventListener("error", function () {
           img.replaceWith(note(T("범례를 받지 못했다")));
         });
@@ -2943,7 +3113,9 @@
     var source = new ol.source.Vector({
       attributions: pointAttribution(row),
       loader: function (extent, resolution, projection, success, failure) {
-        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG)
+        // 잘라 주는 레이어(전암 화학, wetherilli 163)는 고른 원소의 점만 받는다
+        var slice = row.slice ? "&value=" + encodeURIComponent(storedValue()) : "";
+        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG + slice)
           .then(function (r) {
             if (r.ok) return r.json();
             // 서버가 까닭을 적어 보낸다 — "자료가 서버에 없다" 따위. 패널에 띄운다
@@ -2961,6 +3133,9 @@
             // 링크로 그릴 열. 서버(`arcpoints.links`)가 적어 준다 — 옛 서버면 `link` 하나
             layer.set("gsmLinks", data.links || ["link"]);
             layer.set("gsmLegend", data.legend || null);
+            // 연속값 레이어(지화학, wetherilli 159) — 고를 수 있는 원소와 처음의 원소
+            if (data.values) { layer.set("gsmValues", data.values); layer.set("gsmDefault", data.default || ""); }
+            if (data.slice) { layer.set("gsmSlice", data.slice); layer.set("gsmTotal", data.total || 0); }
             layer.set("gsmCount", features.length);
             // 극지연구소(055) — 남극 전체를 덮는 넓은 범위라 그리지 않은 자료의 수
             layer.set("gsmWide", data.wide || 0);
@@ -2985,6 +3160,7 @@
       source: source,
       style: row.style === "dike" ? dikeStyle()
         : row.style === "sheet" ? sheetStyle()
+        : row.style === "value" ? valueStyle(function () { return layer; })
         : LEGEND_STYLED[row.style] ? legendStyle(row.style, function () { return layer; })
         : portalPointStyle(row.style || "sample"),
       opacity: 1,
@@ -3081,6 +3257,170 @@
     };
   }
 
+  // ── 연속값 색 (wetherilli 159) ─────────────────────────────────
+  //
+  // 점마다 숫자 하나(지화학이면 고른 원소의 함량)를 **분위수 일곱 칸**으로 나눠 viridis 로 칠한다 — 사람이 골랐다.
+  // 칸은 그 레이어에 받은 점들의 측정값(양수)으로 화면이 셈한다. 지화학의 관례대로 음수는 **검출 한계 밑**(속이 빈 회색
+  // 동그라미), 값이 없는 점(분석하지 않은 것)은 그리지 않는다. 고른 원소는 레이어마다가 아니라 한 열쇠에 기억한다 —
+  // 토양·중광물·회사·애추를 같은 원소로 견주게. 그 레이어에 없는 원소면 서버가 적은 처음 원소로 돌아간다
+  var VALUE_RAMP = ["#440154", "#443983", "#31688e", "#21918c", "#35b779", "#90d743", "#fde725"];   // viridis 일곱
+  var VALUE_KEY = "gsm.value.element";
+  var VALUE_BELOW = "#9e9e9e";
+  //: 한계를 모르는 검출 한계 밑의 표지 — 서버의 `arcpoints.BELOW_UNKNOWN`(−1e-9). 이것만큼 작으면 한계를 적지 않는다
+  var VALUE_UNKNOWN_BELOW = 1e-6;
+  function storedValue() {
+    try { return localStorage.getItem(VALUE_KEY) || ""; } catch (e) { return ""; }
+  }
+  function valueChoice(layer) {
+    // 잘라 받은 레이어는 받은 원소가 곧 고른 원소다 — 받는 사이에 다른 것을 골랐어도 그린 것과 범례가 어긋나지 않게
+    if (layer.get("gsmSlice")) return layer.get("gsmSlice");
+    var values = layer.get("gsmValues") || [], chosen = storedValue();
+    var has = function (k) { return values.some(function (v) { return v.key === k; }); };
+    if (has(chosen)) return chosen;
+    if (has(layer.get("gsmDefault"))) return layer.get("gsmDefault");
+    return values.length ? values[0].key : "";
+  }
+  function valueSpec(layer) {
+    var key = valueChoice(layer);
+    return (layer.get("gsmValues") || []).filter(function (v) { return v.key === key; })[0] || null;
+  }
+  /** 고른 원소의 칸 경계 `[b1 … b6]`(측정값의 1/7 … 6/7 분위수). 같은 값이 많으면 겹친 경계를 걷어 칸이 줄어든다 */
+  function valueBreaks(layer) {
+    var key = valueChoice(layer), memo = layer.get("gsmBreaks");
+    if (memo && memo.key === key && memo.n === layer.getSource().getFeatures().length) return memo.breaks;
+    var nums = [];
+    layer.getSource().getFeatures().forEach(function (f) {
+      var v = f.get(key);
+      if (typeof v === "number" && v > 0) nums.push(v);
+    });
+    nums.sort(function (a, b) { return a - b; });
+    var breaks = [];
+    for (var i = 1; i < VALUE_RAMP.length && nums.length; i++) {
+      var b = nums[Math.min(nums.length - 1, Math.floor(nums.length * i / VALUE_RAMP.length))];
+      if (!breaks.length || b > breaks[breaks.length - 1]) breaks.push(b);
+    }
+    var out = { lo: nums[0], hi: nums[nums.length - 1], breaks: breaks, count: nums.length };
+    layer.set("gsmBreaks", { key: key, n: layer.getSource().getFeatures().length, breaks: out }, true);
+    return out;
+  }
+  /** 값 → 칸 번호. 칸이 줄었으면 램프의 양 끝을 살려 고르게 뽑는다 */
+  function valueClass(br, v) {
+    var i = 0;
+    while (i < br.breaks.length && v >= br.breaks[i]) i++;
+    var n = br.breaks.length + 1;
+    return n === 1 ? VALUE_RAMP.length - 1 : Math.round(i * (VALUE_RAMP.length - 1) / (n - 1));
+  }
+  function valueStyle(getLayer) {
+    var cache = {};
+    return function (feature, resolution) {
+      var layer = getLayer(), key = valueChoice(layer), v = feature.get(key);
+      if (typeof v !== "number") return null;               // 분석하지 않은 점
+      var far = mercZoom(resolution) < 6;
+      var cls = v < 0 ? "below" : valueClass(valueBreaks(layer), v);
+      var id = cls + (far ? "f" : "n");
+      if (cache[id]) return cache[id];
+      var image = cls === "below"
+        ? new ol.style.Circle({ radius: far ? 2 : 3, stroke: new ol.style.Stroke({ color: VALUE_BELOW, width: 1 }) })
+        : new ol.style.Circle({ radius: far ? 3 : 5, fill: new ol.style.Fill({ color: VALUE_RAMP[cls] }),
+                                stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.85)", width: far ? 0.5 : 0.8 }) });
+      // 높은 값이 위에 그려지게 — 낮은 칸부터 먼저
+      cache[id] = new ol.style.Style({ image: image, zIndex: cls === "below" ? -1 : cls });
+      return cache[id];
+    };
+  }
+  function valueNumber(v) {
+    var a = Math.abs(v);
+    return a >= 1000 ? Math.round(v).toLocaleString() : String(+v.toPrecision(3));
+  }
+  function valueLabel(spec) { return T(spec.label) + " (" + spec.unit + ")"; }
+  /** 켠 레이어 카드의 원소 고르개 */
+  function valuePicker(entry) {
+    var values = entry.layer.get("gsmValues");
+    if (!values || !values.length) return null;
+    var row = document.createElement("div");
+    row.className = "period-row";
+    var label = document.createElement("span");
+    label.className = "period-label";
+    label.textContent = T("칠할 원소");
+    var select = document.createElement("select");
+    select.setAttribute("aria-label", T("칠할 원소"));
+    values.forEach(function (v) {
+      var option = document.createElement("option");
+      option.value = v.key;
+      option.textContent = valueLabel(v) + " — " + T("{n}점", { n: v.n.toLocaleString() });
+      select.appendChild(option);
+    });
+    select.value = valueChoice(entry.layer);
+    select.addEventListener("change", function () {
+      try { localStorage.setItem(VALUE_KEY, select.value); } catch (e) { /* 사생활 모드 */ }
+      // 같은 열쇠를 쓰는 다른 지화학 레이어도 함께 다시 칠한다. 잘라 받은 레이어는 그 원소의 점을 다시 받는다
+      active.forEach(function (e) {
+        if (!e.layer.get || !e.layer.get("gsmValues")) return;
+        if (e.layer.get("gsmSlice")) {
+          e.layer.unset("gsmSlice");
+          e.layer.unset("gsmBreaks");
+          e.layer.getSource().clear(true);
+          e.layer.getSource().refresh();
+        } else e.layer.changed();
+      });
+      renderActive();
+    });
+    row.append(label, select);
+    return row;
+  }
+  function valueLegend(entry, row, box) {
+    var layer = entry.layer, spec = valueSpec(layer);
+    if (!spec) {
+      box.appendChild(note(layer.get("gsmFailed") ? (layer.get("gsmError") || T("점을 받지 못했다")) : T("받는 중…")));
+      return box;
+    }
+    var br = valueBreaks(layer), key = spec.key, counts = {}, below = 0, none = 0;
+    layer.getSource().getFeatures().forEach(function (f) {
+      var v = f.get(key);
+      if (typeof v !== "number") none++;
+      else if (v < 0) below++;
+      else { var c = valueClass(br, v); counts[c] = (counts[c] || 0) + 1; }
+    });
+    var head = document.createElement("div");
+    head.className = "value-head";
+    head.textContent = valueLabel(spec) + " · " + T("분위수로 나눈 칸");
+    box.appendChild(head);
+    var edges = [br.lo].concat(br.breaks, [br.hi]), n = br.breaks.length + 1;
+    for (var i = br.count ? n - 1 : -1; i >= 0; i--) {         // 높은 칸이 위
+      var cls = n === 1 ? VALUE_RAMP.length - 1 : Math.round(i * (VALUE_RAMP.length - 1) / (n - 1));
+      var line = document.createElement("div");
+      var sw = document.createElement("span");
+      sw.className = "sw dot";
+      sw.style.background = VALUE_RAMP[cls];
+      var text = document.createElement("span");
+      text.textContent = valueNumber(edges[i]) + " – " + valueNumber(edges[i + 1]) + "  (" + (counts[cls] || 0) + ")";
+      line.append(sw, text);
+      box.appendChild(line);
+    }
+    if (below) {
+      var bl = document.createElement("div"), bsw = document.createElement("span"), bt = document.createElement("span");
+      bsw.className = "sw dot";
+      bsw.style.background = "transparent";
+      bsw.style.border = "1.5px solid " + VALUE_BELOW;
+      bt.textContent = T("검출 한계 밑") + "  (" + below + ")";
+      bl.append(bsw, bt);
+      box.appendChild(bl);
+    }
+    // 잘라 받은 레이어는 그 원소가 있는 점만 받았다 — 분석하지 않은 수는 전체 점의 수에서 뺀다
+    if (layer.get("gsmSlice")) none = Math.max(0, (layer.get("gsmTotal") || 0) - layer.getSource().getFeatures().length);
+    if (none) box.appendChild(note(T("분석하지 않은 {n}점은 그리지 않았다", { n: none.toLocaleString() })));
+    if (row.source) {
+      var a = document.createElement("a");
+      a.className = "proplink";
+      a.href = row.source;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = T("포털의 원본 항목 — 이용 조건 표시 없음");
+      box.appendChild(a);
+    }
+    return box;
+  }
+
   /** 누른 점 하나 → 팝업 한 칸. 이름은 서버가 준 한국어(`labels`)이고
    *  영어판이면 팝업이 `T()` 로 옮긴다(`i18n.PROP_EN`). */
   /** 스발바르 도폭 경계 — 선만 긋고 속은 비운다(밑의 지질도가 보이게). 속을 아주 옅게
@@ -3132,6 +3472,15 @@
       }
       props[labels[key]] = value;
     });
+    if ((byName[name] || {}).style === "value") {
+      // 고른 원소의 값 한 줄 — 원소 열 일흔다섯을 다 올리면 팝업이 읽히지 않는다
+      var spec = valueSpec(layer), v = spec && feature.get(spec.key);
+      if (spec) {
+        props[valueLabel(spec)] = typeof v !== "number" ? T("분석하지 않음")
+          : v < 0 ? (-v < VALUE_UNKNOWN_BELOW ? T("검출 한계 밑") : T("검출 한계 밑 (< {n})", { n: valueNumber(-v) }))
+          : valueNumber(v);
+      }
+    }
     if ((byName[name] || {}).style === "sheet") {
       var action = sheetAction(feature);
       if (action) props[T("스캔")] = action;
@@ -3247,6 +3596,7 @@
     var box = document.createElement("div");
     box.className = "vector-legend";
     if (LEGEND_STYLED[kind]) return dataLegend(entry, row, box);
+    if (kind === "value") return valueLegend(entry, row, box);
     if (kind === "dike") return dikeLegend(entry, row, box);
     function item(color, text, shape) {
       var line = document.createElement("div");
@@ -3895,8 +4245,8 @@
       var url = info && info(entry.layer.getSource(), evt.coordinate, view);
       if (!url) { pending -= 1; return; }
 
-      fetch(url)
-        .then(function (r) { return r.json(); })
+      // 정적 판의 상류(`GSM_STATIC_KINDS`)는 주소가 아니라 받은 것을 준다 — 그쪽 꼴로 이미 손질해서
+      (url.then ? url : fetch(url).then(function (r) { return r.json(); }))
         .catch(function () { return { features: [] }; })
         .then(function (data) {
           results[index] = (data.features || []).map(function (f) {
@@ -5532,6 +5882,13 @@
       renderEdges();
     });
 
+    /** 정적 판의 좌표 읽기 — "위도, 경도" 십진도만. 도분초·평면 좌표는 서버(`coords.py`)가 읽는다 */
+    function parseDecimal(q) {
+      var m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+      var lat = m && +m[1], lon = m && +m[2];
+      return m && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? Promise.resolve({ lat: lat, lon: lon }) : Promise.reject();
+    }
+
     var input = document.getElementById("goto-input");
     document.getElementById("goto-form").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -5541,8 +5898,8 @@
       var picked = document.querySelector("#search-results li.on");
       if (picked) { picked.click(); return; }
       // **좌표가 먼저다.** 좌표로 읽히면 곧장 가고, 아니면 주소·장소로 찾는다
-      fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q) + "&crs=" + encodeURIComponent(crsCode()))
-        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      (STATIC ? parseDecimal(q) : fetch(BASE + "coords/parse/?q=" + encodeURIComponent(q) + "&crs=" + encodeURIComponent(crsCode()))
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); }))
         .then(function (d) {
           if (d.candidates) { renderOrders(d.candidates); return; }
           closeResults();
@@ -5957,6 +6314,53 @@
     });
   }
 
+  /** 정적 판의 키 칸 (wetherilli P11·162) — 한국 탭 위 알림 줄. 키가 있으면 "넣었다 · 지우기", 없으면 넣는 칸.
+   *  키는 이 브라우저에만 남는다(30 일, "이 PC 에 기억하지 않기" 면 탭 동안만). */
+  function wireStaticKey() {
+    var box = document.getElementById("static-key");
+    if (!STATIC || !box) return;
+    box.innerHTML = "";
+    var key = readKey("kigam");
+    if (key) {
+      var text = document.createElement("span");
+      text.textContent = T("KIGAM 인증키를 넣었다 — 이 브라우저에만 있다");
+      var clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "btn quiet";
+      clear.textContent = T("키 지우기");
+      clear.addEventListener("click", function () { writeKey("kigam", "", false); refreshKigamKey(); wireStaticKey(); });
+      box.append(text, clear);
+      return;
+    }
+    var lead = document.createElement("span");
+    lead.innerHTML = T("<b>한국 지질도는 각자의 KIGAM 인증키로 본다.</b> 지오빅데이터 오픈플랫폼에서 받은 키를 넣는다 — 이 브라우저에만 남고 KIGAM 에만 간다.");
+    var input = document.createElement("input");
+    input.type = "password";
+    input.autocomplete = "off";
+    input.placeholder = T("인증키");
+    var forget = document.createElement("label");
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    forget.append(check, document.createTextNode(T("이 PC 에 기억하지 않기")));
+    var save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn";
+    save.textContent = T("넣기");
+    save.addEventListener("click", function () {
+      var value = input.value.trim();
+      if (!value) return;
+      writeKey("kigam", value, !check.checked);
+      refreshKigamKey();
+      wireStaticKey();
+    });
+    var get = document.createElement("a");
+    get.href = "https://data.kigam.re.kr/";
+    get.target = "_blank";
+    get.rel = "noopener noreferrer";
+    get.textContent = T("키 받기");
+    box.append(lead, input, forget, save, get);
+  }
+
   function cssEscape(text) {
     return String(text).replace(/["\\]/g, "\\$&");
   }
@@ -5981,6 +6385,7 @@
   wireUpload();
   wirePopup();
   wireEmblemMenu();
+  wireStaticKey();
 
   renderRegions();
   applyRegion();

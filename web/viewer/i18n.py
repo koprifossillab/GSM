@@ -265,6 +265,17 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    # 연속값 색 — 그린란드 지화학 (wetherilli 159)
+    "칠할 원소": "Colour by",
+    "분위수로 나눈 칸": "quantile classes",
+    "검출 한계 밑": "Below detection limit",
+    "검출 한계 밑 (< {n})": "Below detection limit (< {n})",
+    "분석하지 않음": "Not analysed",
+    "분석하지 않은 {n}점은 그리지 않았다": "{n} points not analysed are not drawn",
+    "Fe₂O₃ (전철)": "Fe₂O₃ (total)",
+    "강열 감량": "LOI",
+    "Fe (전철)": "Fe (total)",
+    "휘발분": "Volatiles",
     # 수성 화면 (wetherilli P10)
     "수성": "Mercury",
     "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",
@@ -633,6 +644,22 @@ EN = {
     "VWorld · 2013 년 위성영상. 두 기지 둘레 10 km 남짓에만 있고 그 밖은 REMA 음영이다":
         "VWorld · 2013 satellite imagery. Only about 10 km around the two stations; REMA hillshade elsewhere",
     "GEBCO 해저 지형": "GEBCO bathymetry",
+    # 국토지리원 주제 타일·AWS 법선 음영 (wetherilli 156)
+    "일본 경사량도 (국토지리원)": "Japan slope map (GSI)",
+    "일본 국토지리원. 기울기를 색으로 — 단층애·산사태 지형을 지질도와 견줄 때. 줌 15 까지":
+        "GSI Japan. Slope in colour — compare fault scarps and landslides with the geology. Up to zoom 15",
+    "일본 토지조건도 (국토지리원)": "Japan land condition map (GSI)",
+    "일본 국토지리원. 산지·대지·저지·인공 지형을 가른 1:2만 5천 — 평야와 도시 둘레만 있다. 줌 16 까지":
+        "GSI Japan. 1:25,000 landform classes (mountain, terrace, lowland, artificial) — plains and cities only. Up to zoom 16",
+    "일본 화산기본도 (국토지리원)": "Japan volcano base map (GSI)",
+    "일본 국토지리원. 활화산 둘레만 있는 정밀 지형도 — 그 밖은 빈다. 줌 17 까지":
+        "GSI Japan. Detailed topography around active volcanoes only — blank elsewhere. Up to zoom 17",
+    "지형 음영 (AWS)": "Hillshade (AWS)",
+    "AWS 표고 타일의 법선으로 그린 음영 — 북서에서 비춘다. 줌 15 까지":
+        "Hillshade from AWS terrain-tile normals, lit from the northwest. Up to zoom 15",
+    "경사 (AWS)": "Slope (AWS)",
+    "AWS 표고 타일의 법선으로 칠한 기울기 — 흰 평지에서 붉은 낭떠러지까지. 줌 15 까지":
+        "Slope from AWS terrain-tile normals — white flats to red cliffs. Up to zoom 15",
     "GEBCO — 해저 지형": "GEBCO — bathymetry",
     "GEBCO 2026 (약 450 m). 바다의 수심과 땅의 높이를 음영으로. 공공 도메인. 항해에 쓰지 않는다":
         "GEBCO 2026 (about 450 m). Ocean depth and land height as shaded relief. Public domain. Not for navigation",
@@ -1017,6 +1044,15 @@ EN = {
         "Geospatial Information Authority of Japan. For comparing terrain with geology",
     # 대만 — 국토측회중심 배경 (map.js, wetherilli 141)
     "범위가 넓다 — 더 들어오면 범례가 뜬다": "The extent is too wide — zoom in to see the legend",
+    # 정적 판 — 각자 넣는 KIGAM 키 (map.js, wetherilli P11·162)
+    "KIGAM 인증키를 넣었다 — 이 브라우저에만 있다": "KIGAM API key set — kept only in this browser",
+    "키 지우기": "Clear key",
+    "<b>한국 지질도는 각자의 KIGAM 인증키로 본다.</b> 지오빅데이터 오픈플랫폼에서 받은 키를 넣는다 — 이 브라우저에만 남고 KIGAM 에만 간다.":
+        "<b>Korean geological maps use your own KIGAM API key.</b> Enter the key issued by the Geo Big Data Open Platform — it stays in this browser and goes only to KIGAM.",
+    "인증키": "API key",
+    "이 PC 에 기억하지 않기": "Don't remember on this computer",
+    "넣기": "Save",
+    "키 받기": "Get a key",
     "대만 회색 지도 (국토측회중심)": "Taiwan grey map (NLSC)",
     "대만 내정부 국토측회중심. 지질도 밑에 깔기 좋다": "National Land Surveying and Mapping Center, Taiwan. Good under a geological map",
     "대만 전자지도 (국토측회중심)": "Taiwan e-Map (NLSC)",
@@ -1834,6 +1870,9 @@ PROP_EN = {
     "경제성": "Economic status",
     "보고서": "Report",
     "시료 갈래": "Sample type",
+    "해": "Year",
+    "분석 번호": "Analysis no.",
+    "채취·보고": "Collected / reported by",
     "시료 기재": "Sample description",
     "채취 지점": "Locality",
     "채취자": "Collector",
@@ -1908,6 +1947,19 @@ PROP_EN = {
     "가운데": "Centre",
     "지은이": "Authors",
     "지형구": "Province",
+    # VWorld 수질·지하수 측정망 (wetherilli 156)
+    "측정소": "Station",
+    "수계": "River system",
+    "단위유역": "Unit watershed",
+    "환경 기준": "Environmental standard",
+    "용도": "Use",
+    "측정 기관": "Monitoring agency",
+    "설치 연도": "Year installed",
+    "폐쇄 연도": "Year closed",
+    "측정소 코드": "Station code",
+    "주소": "Address",
+    "음용": "Drinking",
+    "관정 번호": "Well number",
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
@@ -2375,6 +2427,7 @@ GROUP_EN = {
     "동위원소 연대지도": "Isotope age maps",
     "그 밖": "Other",
     "지질 참고": "Geological reference",
+    "수질·지하수 측정망": "Water quality & groundwater monitoring",
     "보호구역": "Protected areas",
     "토양·산림": "Soils & forests",
     "재해·공역": "Hazards & airspace",
@@ -2385,6 +2438,7 @@ GROUP_EN = {
     # 그린란드 정부 포털
     "시료·연대 (정부 포털)": "Samples & ages (government portal)",
     "광물 자원 (정부 포털)": "Mineral resources (government portal)",
+    "지화학 (정부 포털)": "Geochemistry (government portal)",
     "사면 재해 (정부 포털)": "Slope hazards (government portal)",
     # 남극 (GeoMAP)
     "GeoMAP 지질도": "GeoMAP geological maps",
@@ -2417,6 +2471,13 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # VWorld 수질·지하수 측정망 (wetherilli 156)
+    "lt_p_weissitema": "Water quality network — rivers",
+    "lt_p_weissitemb": "Water quality network — lakes & reservoirs",
+    "lt_p_weissitemd": "Water quality network — agricultural water",
+    "lt_p_weissiteme": "Water quality network — industrial discharge",
+    "lt_p_weissitemf": "Water quality network — urban streams",
+    "lt_p_sgisgwchg": "Groundwater network — contamination-risk areas",
     # 영국·프랑스·유럽 (wetherilli 143)
     "bgs:BGS.50k.Bedrock": "Bedrock (1:50k)",
     "bgs:BGS.50k.Superficial.deposits": "Superficial deposits (1:50k)",
@@ -2601,6 +2662,11 @@ LAYER_EN = {
     "grportal:diamond_occurrences": "Diamond-related occurrences (kimberlite etc.)",
     "grportal:unstable_slopes": "Unstable slopes",
     "grportal:mass_movements": "Registered mass movements",
+    "grportal:geochem_soil": "Soil geochemistry",
+    "grportal:geochem_heavy": "Heavy-mineral concentrate geochemistry",
+    "grportal:geochem_companies": "Company exploration geochemistry",
+    "grportal:geochem_scree": "Scree geochemistry",
+    "grportal:whole_rock": "Whole-rock chemistry",
     # 남극 (SCAR GeoMAP)
     "geomap_simple_geology": "Geology (simplified)",
     "geomap_chronostratigraphic": "Chronostratigraphy",

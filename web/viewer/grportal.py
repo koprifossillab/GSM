@@ -43,6 +43,54 @@ class PortalError(RuntimeError):
 _field = arcpoints.field
 
 
+# ── 지화학 원소 (wetherilli 159) ──────────────────────────────────
+#
+# 토양·중광물 농축·회사 자료·애추 넷이 같은 열 77 개를 갖는다(셰이프파일에서 옮겨 열 이름이 10 자로 잘렸다). 원소마다
+# `_num` 이 붙은 수 열을 받는다 — 회사 자료에는 `_num` 없는 글 열도 있는데 그것은 받지 않는다.
+# **값의 관례**(2026-10-02 에 토양 2 000 점을 받아 보았다): 양수는 측정값, **음수는 검출 한계 밑**(절댓값이 한계),
+# **0 은 분석하지 않은 것**이다. 그래서 `assay` 로 받는다 — 0 은 빼고 음수는 그대로 둔다(화면이 "검출 한계 밑" 으로 칠한다).
+#: (우리 열쇠, 상류 열, 이름, 단위). 차례가 고르개의 차례다 — 주성분 산화물, 그다음 원자 번호
+ELEMENTS = tuple(
+    [(k, f, n, "wt%") for k, f, n in (
+        ("sio2", "sio2_wt_pc", "SiO₂"), ("tio2", "tio2_wt_pc", "TiO₂"), ("al2o3", "al2o3_wt_p", "Al₂O₃"),
+        ("fe2o3t", "fe2o3_tot_", "Fe₂O₃ (전철)"), ("fe2o3", "fe2o3_wt_p", "Fe₂O₃"), ("feo", "feo_wt_pct", "FeO"),
+        ("mno", "mno_wt_pct", "MnO"), ("mgo", "mgo_wt_pct", "MgO"), ("cao", "cao_wt_pct", "CaO"),
+        ("na2o", "na2o_wt_pc", "Na₂O"), ("k2o", "k2o_wt_pct", "K₂O"), ("p2o5", "p2o5_wt_pc", "P₂O₅"),
+        ("loi", "loi_wt_pct", "강열 감량"), ("cl", "cl_wt_pct_", "Cl"))]
+    + [(sym, f"{sym}_{unit}_num", sym.capitalize(), unit) for sym, unit in (
+        ("be", "ppm"), ("b", "ppm"), ("s", "ppm"), ("sc", "ppm"), ("v", "ppm"), ("cr", "ppm"), ("co", "ppm"),
+        ("ni", "ppm"), ("cu", "ppm"), ("zn", "ppm"), ("ga", "ppm"), ("ge", "ppm"), ("as", "ppm"), ("se", "ppm"),
+        ("br", "ppm"), ("rb", "ppm"), ("sr", "ppm"), ("y", "ppm"), ("zr", "ppm"), ("nb", "ppm"), ("mo", "ppm"),
+        ("ru", "ppb"), ("rh", "ppb"), ("pd", "ppb"), ("ag", "ppm"), ("cd", "ppm"), ("in", "ppm"), ("sn", "ppm"),
+        ("sb", "ppm"), ("te", "ppm"), ("i", "ppm"), ("cs", "ppm"), ("ba", "ppm"), ("la", "ppm"), ("ce", "ppm"),
+        ("pr", "ppm"), ("nd", "ppm"), ("sm", "ppm"), ("eu", "ppm"), ("gd", "ppm"), ("tb", "ppm"), ("dy", "ppm"),
+        ("ho", "ppm"), ("er", "ppm"), ("tm", "ppm"), ("yb", "ppm"), ("lu", "ppm"), ("hf", "ppm"), ("ta", "ppm"),
+        ("w", "ppm"), ("re", "ppb"), ("os", "ppb"), ("ir", "ppb"), ("pt", "ppb"), ("au", "ppb"), ("hg", "ppm"),
+        ("tl", "ppm"), ("pb", "ppm"), ("bi", "ppm"), ("th", "ppm"), ("u", "ppm"))])
+#: 처음 켤 때의 원소 — 사람이 골랐다(구리, 토양 2 000 점 가운데 1 295 점에 값이 있다)
+DEFAULT_ELEMENT = "cu"
+
+
+# ── 전암 화학 (wetherilli 163) ────────────────────────────────────
+#
+# `Rock_Chemical_Analysis_from_Greenland` 31 769 점. 값이 모두 **쉼표 소수의 글**이고 **원소 무게 퍼센트**다(규소 중앙값 22.9 %,
+# 구리 0.0087 % = 87 ppm, 금 3e-6 % = 30 ppb — 2026-10-02 에 다 받아 보았다). 포털 항목에 설명이 없어 분포로 가렸다.
+# 받을 때 화면 단위로 옮긴다 — 주성분 wt%, 미량 ppm, 귀금속 ppb(`arcpoints.pct`). 시료 번호 말고 다른 속성(암석명·지점)이 없다.
+# 비활성 기체·짧게 사는 방사성 원소(H·He·N·O·Ne·Ar·Kr·Xe·Rn·Fr·Ra·Ac·Po·At·Pa)는 값이 거의 없거나 뜻이 없어 뺐다
+#: (우리 열쇠, 상류 열, 이름, 단위)
+WHOLE_ROCK = tuple(
+    [(c.lower(), c, n, "wt%") for c, n in (
+        ("SI", "Si"), ("TI", "Ti"), ("AL", "Al"), ("FE", "Fe (전철)"), ("FE2", "Fe²⁺"), ("FE3", "Fe³⁺"), ("MN", "Mn"),
+        ("MG", "Mg"), ("CA", "Ca"), ("NA", "Na"), ("K", "K"), ("P", "P"), ("C", "C"), ("S", "S"),
+        ("LOI", "강열 감량"), ("VOL", "휘발분"))]
+    + [({"GER": "ge", "ARS": "as", "IND": "in"}.get(c, c.lower()), c,
+        {"GER": "Ge", "ARS": "As", "IND": "In"}.get(c, c.capitalize()), "ppm") for c in (
+        "LI", "BE", "B", "F", "CL", "SC", "V", "CR", "CO", "NI", "CU", "ZN", "GA", "GER", "ARS", "SE", "BR", "RB", "SR",
+        "Y", "ZR", "NB", "MO", "AG", "CD", "IND", "SN", "SB", "TE", "I", "CS", "BA", "LA", "CE", "PR", "ND", "SM", "EU",
+        "GD", "TB", "DY", "HO", "ER", "TM", "YB", "LU", "HF", "TA", "W", "HG", "TL", "PB", "BI", "TH", "U")]
+    + [(c.lower(), c, c.capitalize(), "ppb") for c in ("RU", "RH", "PD", "RE", "OS", "IR", "PT", "AU")])
+
+
 #: 레이어명 → 상류 서비스와 받는 열. **열쇠가 짧은 까닭** — 2 만 점마다 되풀이되는
 #: 이름이라 짧을수록 덜 싣는다. 팝업의 이름(`label`)은 한 번만 따로 보낸다.
 #: `label` 이 없는 열(색 따위)은 그리는 데만 쓰고 팝업에 올리지 않는다.
@@ -227,6 +275,33 @@ LAYERS = {
             "year": _field("DATE", "연도"),
         },
     },
+    **{f"grportal:geochem_{key}": {
+        "service": service, "item": item, "style": "value",
+        "fields": {
+            "sample": _field("sampleno", "시료 번호"),
+            "type": _field("sample_typ", "시료 갈래"),
+            "year": _field("year", "해"),
+            "sheet": _field("map_sheet", "도폭"),
+            "who": _field("fullname", "채취·보고"),
+            "link": _field(link, "GEUS 상세", "link"),
+            **{k: _field(f, "", "assay") for k, f, _, _ in ELEMENTS},
+        },
+    } for key, service, item, link in (
+        ("soil", "geochemistry_soil", "8724682f88e548288870bdd1611e52a1", "link"),
+        ("heavy", "geochemistry_heavy_minerals_conc", "a4ae0f04bd84410d8a696ca3fc097d24", "link"),
+        ("companies", "geochemistry_companies", "ae1c3db86cfe4767a0d7f4e0fa54c25a", "link"),
+        ("scree", "geochemistry_scree", "ae10729f316549fbbfe68f6f32204d16", "details"),
+    )},
+    # 전암 화학 3 만 점 — 원소 열을 다 실으면 덩이가 수십 MB 라 **고른 원소만 잘라 준다**(`slice`, `value_slice`)
+    "grportal:whole_rock": {
+        "service": "Rock_Chemical_Analysis_from_Greenland", "item": "57e5bb29a3f044ca986fa9c22e5ab659",
+        "style": "value", "slice": True,
+        "fields": {
+            "sample": _field("ORIGINALSA", "시료 번호"),
+            "anal": _field("SAMPLETREA", "분석 번호"),
+            **{k: _field(f, "", {"wt%": "pct_wt", "ppm": "pct_ppm", "ppb": "pct_ppb"}[u]) for k, f, _, u in WHOLE_ROCK},
+        },
+    },
 }
 
 #: 지도 귀퉁이에 적는 출처. 항목 주소가 있으면 그리로, 없으면 웹지도로 잇는다.
@@ -332,10 +407,58 @@ def class_of(spec: dict, props: dict) -> tuple:
     return classes["else"]
 
 
+def _value_body(spec: dict, features_json: bytes) -> bytes:
+    """연속값 레이어(지화학, wetherilli 159)의 덩이 — `values`([{key, label, unit, n, below}])에 이 레이어에서 값이 하나라도
+    있는 원소만 싣는다(`n` 은 측정값의 수, `below` 는 검출 한계 밑의 수). 색은 화면이 고른 원소의 분위수로 칠한다."""
+    features = json.loads(features_json)
+    keys, counts = {k for k, *_ in _table(spec)}, {}
+    for feature in features:
+        for key, value in feature["properties"].items():
+            if isinstance(value, (int, float)) and key in keys:
+                n, below = counts.get(key, (0, 0))
+                counts[key] = (n + (value > 0), below + (value < 0))
+    values = [{"key": k, "label": label, "unit": unit, "n": counts[k][0], "below": counts[k][1]}
+              for k, _, label, unit in _table(spec) if counts.get(k, (0, 0))[0]]
+    return json.dumps({"type": "FeatureCollection", "labels": arcpoints.labels(spec), "links": arcpoints.links(spec),
+                       "style": "value", "values": values, "default": DEFAULT_ELEMENT,
+                       "features": features}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def _table(spec: dict) -> tuple:
+    return WHOLE_ROCK if spec.get("slice") else ELEMENTS
+
+
+_SLICES = {}
+
+
+def value_slice(name: str, features_json: bytes, key: str) -> bytes:
+    """잘라 주는 연속값 레이어(전암 화학, wetherilli 163)의 덩이 — **고른 원소의 값이 있는 점만**, 그 원소와 시료 번호만
+    싣는다. `values` 는 원소마다의 수(덩이 전체를 한 번 세어 기억한다). 모르는 원소면 처음 원소(구리)로."""
+    spec = LAYERS[name]
+    memo = _SLICES.get(name)
+    if not memo or memo[0] != len(features_json):
+        features = json.loads(features_json)
+        meta = json.loads(_value_body(spec, json.dumps(features).encode()))["values"]
+        memo = _SLICES[name] = (len(features_json), features, meta)
+    _, features, values = memo
+    known = {v["key"] for v in values}
+    key = key if key in known else (DEFAULT_ELEMENT if DEFAULT_ELEMENT in known else next(iter(known), ""))
+    base = [k for k, f in spec["fields"].items() if f["label"]]
+    out = [{"type": "Feature", "id": f.get("id"), "geometry": f["geometry"],
+            "properties": {**{b: f["properties"][b] for b in base if b in f["properties"]}, key: f["properties"][key]}}
+           for f in features if key in f["properties"]]
+    return json.dumps({"type": "FeatureCollection", "labels": arcpoints.labels(spec), "links": arcpoints.links(spec),
+                       "style": "value", "values": values, "default": DEFAULT_ELEMENT, "slice": key,
+                       "total": len(features), "features": out},
+                      ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
 def body(name: str, features_json: bytes) -> bytes:
     """브라우저에 보내는 한 덩이 (`arcpoints.body`). 갈래가 있는 레이어는 feature 마다 `code`,
     덩이에 `legend`([{code, label, color, shape, count}])를 싣는다 — 극지연구소와 같은 꼴이다."""
     spec = LAYERS[name]
+    if spec["style"] == "value":
+        return _value_body(spec, features_json)
     if "classes" not in spec:
         return arcpoints.body(spec, features_json)
     features = json.loads(features_json)
