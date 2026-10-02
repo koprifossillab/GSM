@@ -245,3 +245,39 @@ class Seed(TestCase):
         self.assertEqual(layer.upstream, "grportal")
         self.assertEqual(layer.group.region, "greenland")
         self.assertEqual(layer.group.name, "시료·연대 (정부 포털)")
+
+
+class Geochem(SimpleTestCase):
+    """지화학 넷 — 연속값 레이어 (wetherilli 159). 0 은 분석하지 않은 것, 음수는 검출 한계 밑."""
+
+    def test_assay_는_0_을_빼고_음수를_둔다(self):
+        from viewer import arcpoints
+        self.assertIsNone(arcpoints.clean(0, "assay"))
+        self.assertEqual(arcpoints.clean(-10, "assay"), -10)
+        self.assertEqual(arcpoints.clean("62", "assay"), 62)
+
+    def test_넷이_같은_원소_표를_받는다(self):
+        for key in ("soil", "heavy", "companies", "scree"):
+            spec = grportal.LAYERS[f"grportal:geochem_{key}"]
+            self.assertEqual(spec["style"], "value")
+            self.assertEqual(spec["fields"]["cu"], {"from": "cu_ppm_num", "label": "", "kind": "assay"})
+        self.assertEqual(grportal.LAYERS["grportal:geochem_scree"]["fields"]["link"]["from"], "details")
+        # 원소 열은 팝업 이름이 없다 — 일흔다섯을 다 올리지 않는다
+        self.assertNotIn("cu", grportal.labels("grportal:geochem_soil"))
+
+    def test_덩이에_값이_있는_원소만_싣는다(self):
+        features = [{"type": "Feature", "id": 1, "geometry": {"type": "Point", "coordinates": [-45, 62]},
+                     "properties": {"sample": "a", "cu": 62, "u": -0.5}},
+                    {"type": "Feature", "id": 2, "geometry": {"type": "Point", "coordinates": [-46, 62]},
+                     "properties": {"sample": "b", "cu": 12}}]
+        data = json.loads(grportal.body("grportal:geochem_soil", json.dumps(features).encode()))
+        self.assertEqual(data["style"], "value")
+        self.assertEqual(data["default"], "cu")
+        # 우라늄은 검출 한계 밑뿐이라 칠할 값이 없다 — 고르개에 싣지 않는다
+        self.assertEqual(data["values"], [{"key": "cu", "label": "Cu", "unit": "ppm", "n": 2, "below": 0}])
+        self.assertEqual(len(data["features"]), 2)
+
+    def test_원소_이름의_영어(self):
+        for _, _, label, _ in grportal.ELEMENTS:
+            if any("가" <= ch <= "힣" for ch in label):
+                self.assertIn(label, i18n.EN, label)
