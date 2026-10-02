@@ -50,7 +50,8 @@ def enabled() -> bool:
     return bool(settings.VWORLD_KEY)
 
 
-def _get(url: str, params: dict) -> dict:
+def _get(url: str, params: dict, *, whole: bool = False) -> dict:
+    """`whole` 면 `result` 만이 아니라 응답 전체(`refined` 따위가 든)를 준다."""
     sent = dict(params, key=settings.VWORLD_KEY, format="json", crs="EPSG:4326")
     try:
         # KOPRI 망이 TLS 를 가로챈다 — kigam.py 와 같은 CA 꾸러미를 쓴다
@@ -71,7 +72,7 @@ def _get(url: str, params: dict) -> dict:
     if status != "OK":
         error = (body.get("error") or {}).get("text", status)
         raise VWorldError(f"VWorld 가 거절했다: {error}")
-    return body.get("result") or {}
+    return body if whole else (body.get("result") or {})
 
 
 def _point(item) -> tuple:
@@ -164,6 +165,41 @@ def _reverse(lat: float, lon: float) -> dict:
         if kind in out and not out[kind]:
             out[kind] = row.get("text") or ""
     return out
+
+
+# ── 주소 → 좌표 — 주소만 적힌 CSV 를 점묶음으로 (wetherilli 152) ──────────
+#
+# 지오코더(`getcoord`)다. 검색(`search`)과 달리 주소 하나에 한 점을 준다 — 표의 한 줄이 한 점이 되어야 해서 이쪽을 쓴다.
+# 도로명으로 먼저 묻고 없으면 지번으로 묻는다. 표에는 둘이 섞여 오고, 한 줄이 어느 쪽인지 우리가 가르지 않는다 — 가르려 들면 틀린다.
+# `refine` 이 돌려주는 바로잡은 주소(`refined.text`)를 함께 준다 — 사람이 "어디로 붙었나" 를 볼 수 있게.
+# 2026-10-02 에 한 번 0.1 초 남짓. 옛 행정구역(합쳐지기 전의 군·면)은 못 찾는다(004)
+
+GEOCODE_TYPES = ("road", "parcel")
+
+
+def geocode(address: str):
+    """주소 한 줄 → `{"lat", "lon", "kind", "matched"}`. 못 찾으면 None. VWorld 가 거절하면 `VWorldError`.
+
+    부를 때마다 센다 — 도로명·지번 두 번 물으면 둘로 센다."""
+    address = " ".join(str(address or "").split())
+    if not address:
+        return None
+    for kind in GEOCODE_TYPES:
+        try:
+            body = _get(ADDRESS_URL, {"service": "address", "request": "getcoord", "version": "2.0",
+                                      "address": address, "refine": "true", "simple": "false", "type": kind},
+                        whole=True)
+        except VWorldError:
+            usage.record("vworld", ok=False)
+            raise
+        usage.record("vworld", ok=True)
+        point = (body.get("result") or {}).get("point") or {}
+        try:
+            lat, lon = float(point["y"]), float(point["x"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        return {"lat": lat, "lon": lon, "kind": kind, "matched": (body.get("refined") or {}).get("text") or ""}
+    return None
 
 
 # ── 점 하나로 묻는 것 — 시료 지점에 붙인다 (074) ────────────────────────

@@ -5855,29 +5855,95 @@
       msg.className = "msg";
       msg.textContent = T("읽는 중…");
 
-      post(BASE + "pointsets/upload/", data)
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-        .then(function (res) {
-          if (!res.ok) {
-            msg.className = "msg bad";
-            msg.textContent = res.d.error || T("올리지 못했다");
-            return;
-          }
-          pointsets.unshift(res.d.pointset);
-          renderPointSets();
-          msg.className = "msg good";
-          msg.textContent = T("올렸다 — {what}.", { what: countText(res.d.pointset) }) +
-            (res.d.notes && res.d.notes.length ? " " + res.d.notes.join(" / ") : "");
-          form.reset();
-          var box = file.closest(".filebox");
-          box.classList.remove("has");
-          box.querySelector("span").textContent = T("CSV · GeoJSON 고르기");
-        })
-        .catch(function () {
-          msg.className = "msg bad";
-          msg.textContent = T("올리지 못했다");
-        });
+      var upload = function (body, extra) {
+        return post(BASE + "pointsets/upload/", body)
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) {
+              msg.className = "msg bad";
+              msg.textContent = res.d.error || T("올리지 못했다");
+              return;
+            }
+            // 위경도 없이 주소만 적힌 CSV — 화면이 나눠 묻고 다시 올린다 (wetherilli 152)
+            if (res.d.geocode) return geocodeRows(res.d.geocode).then(function (job) {
+              if (!job) return;
+              var again = new FormData();
+              again.append("file", new File([job.csv], file.files[0].name.replace(/\.[^.]*$/, "") + ".csv",
+                                            { type: "text/csv" }));
+              again.append("name", data.get("name") || file.files[0].name.replace(/\.[^.]*$/, ""));
+              again.append("color", data.get("color"));
+              again.append("crs", "4326");
+              return upload(again, job.note);
+            });
+            pointsets.unshift(res.d.pointset);
+            renderPointSets();
+            msg.className = "msg good";
+            msg.textContent = T("올렸다 — {what}.", { what: countText(res.d.pointset) }) +
+              (res.d.notes && res.d.notes.length ? " " + res.d.notes.join(" / ") : "") + (extra ? " " + extra : "");
+            form.reset();
+            var box = file.closest(".filebox");
+            box.classList.remove("has");
+            box.querySelector("span").textContent = T("CSV · GeoJSON 고르기");
+          });
+      };
+      upload(data).catch(function () {
+        msg.className = "msg bad";
+        msg.textContent = T("올리지 못했다");
+      });
     });
+
+    /** 주소 줄들을 `chunk` 줄씩 VWorld 로 찾아, 위도·경도·찾은 주소 열을 붙인 CSV 를 짓는다 (wetherilli 152).
+     *  올리기 한 번이 60 초에 묶여 서버가 한꺼번에 찾지 않는다 — 한 요청이 10 초 안쪽이 되게 나눈다.
+     *  못 찾은 줄은 빼고 줄 번호를 알린다. 하나도 못 찾았거나 VWorld 가 거절하면 null */
+    function geocodeRows(job) {
+      var rows = job.rows, chunk = job.chunk || 50, points = [], i = 0;
+      var step = function () {
+        if (i >= rows.length) return Promise.resolve();
+        msg.className = "msg";
+        msg.textContent = T("주소로 좌표를 찾는 중… {done} / {all}줄", { done: i, all: rows.length });
+        var part = rows.slice(i, i + chunk);
+        return fetch(BASE + "pointsets/geocode/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+          body: JSON.stringify({ addresses: part.map(function (r) { return r.address; }) }),
+        }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || T("올리지 못했다"));
+            res.d.results.forEach(function (p, k) { points[i + k] = p; });
+            i += chunk;
+            return step();
+          });
+      };
+      return step().then(function () {
+        var missed = job.blank.slice();
+        var cols = job.fields.concat([T("위도"), T("경도"), T("찾은 주소")]);
+        var lines = [cols.map(csvCell).join(",")];
+        rows.forEach(function (row, k) {
+          var p = points[k];
+          if (!p) { missed.push(row.line); return; }
+          lines.push(job.fields.map(function (f) { return csvCell(row.values[f]); })
+            .concat([p.lat, p.lon, csvCell(p.matched)]).join(","));
+        });
+        if (lines.length < 2) {
+          msg.className = "msg bad";
+          msg.textContent = T("주소로 좌표를 하나도 찾지 못했다 — 도로명·지번 주소인지 본다.");
+          return null;
+        }
+        missed.sort(function (a, b) { return a - b; });
+        var shown = missed.slice(0, 20).join(", ") + (missed.length > 20 ? " …" : "");
+        return { csv: lines.join("\n"),
+                 note: missed.length ? T("주소를 못 찾은 줄 {n}개 — {lines}", { n: missed.length, lines: shown }) : "" };
+      }).catch(function (err) {
+        msg.className = "msg bad";
+        msg.textContent = (err && err.message) || T("올리지 못했다");
+        return null;
+      });
+    }
+
+    function csvCell(value) {
+      var text = value == null ? "" : String(value);
+      return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+    }
   }
 
   function closePopup() {

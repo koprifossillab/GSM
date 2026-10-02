@@ -30,7 +30,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu
+from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -277,6 +277,8 @@ def intro_view(request):
         "base": request.path,
         "shots": f"viewer/intro/{lang}/",
         "version": VERSION,
+        # AGPL 13조의 소스 길 — 공개용 저장소(GSM-open)의 판마다 사본 (wetherilli 149)
+        "source_url": settings.SOURCE_URL,
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
 
@@ -3263,6 +3265,8 @@ def pointset_upload(request):
                                         lunar=body != "earth")
     except pointsets.UploadError as exc:
         return JsonResponse({"error": i18n.t(exc.args[0], lang)}, status=400)
+    except pointsets.NeedsAddresses as need:
+        return _needs_addresses(need, body, lang)
 
     name = (request.POST.get("name") or "").strip() or upload.name.rsplit(".", 1)[0]
     color = (request.POST.get("color") or "").strip() or "#e4572e"
@@ -3289,6 +3293,65 @@ def pointset_upload(request):
         "pointset": summary,
         "notes": [i18n.t(note, lang) for note in notes],
     })
+
+
+def _needs_addresses(need, body: str, lang: str):
+    """위경도가 없고 주소만 있는 CSV (wetherilli 152). 점묶음을 만들지 않고 줄들을 화면에 돌려준다 — 화면이
+    `pointsets/geocode/` 로 50 줄씩 나눠 좌표를 받아, 위도·경도 열을 붙인 CSV 를 다시 올린다. 올리기 한 번이 60 초에
+    묶여(gunicorn) 서버가 한 번에 다 찾으면 150 줄쯤에서 끊긴다."""
+    if body != "earth":
+        return JsonResponse({"error": i18n.t(msg("주소로 찾는 것은 지구의 점묶음뿐이다."), lang)}, status=400)
+    if not vworld.enabled():
+        return JsonResponse({"error": i18n.t(msg("VWorld 열쇠가 없어 주소로 좌표를 찾지 못한다. 위경도 열을 넣어 올린다."),
+                                             lang)}, status=400)
+    if len(need.rows) > pointsets.MAX_ADDRESS_ROWS:
+        return JsonResponse({"error": i18n.t(msg("주소로 찾는 것은 한 번에 {n}줄까지다. 나눠 올린다.",
+                                                 n=pointsets.MAX_ADDRESS_ROWS), lang)}, status=400)
+    return JsonResponse({"geocode": {"fields": need.fields, "column": need.column, "rows": need.rows,
+                                     "blank": need.blank, "chunk": GEOCODE_CHUNK}})
+
+
+#: 화면이 한 번에 보내는 주소 수. 하나에 0.1–0.2 초(2026-10-02)라 50 이면 한 요청이 10 초 안쪽이다 — 60 초 제한에서 넉넉하다
+GEOCODE_CHUNK = 50
+
+
+@require_POST
+def pointset_geocode(request):
+    """주소 몇 줄 → 좌표 (wetherilli 152). 받는 것: `{"addresses": ["…", …]}` (한 번에 `GEOCODE_CHUNK` 줄까지).
+    주는 것: 같은 차례의 `{"lat", "lon", "kind", "matched"}` 또는 null(못 찾음).
+
+    **차례로 묻는다** — 한꺼번에 묻지 않는다. VWorld 지오코더는 하루 호출 수가 정해져 있고, 같은 주소는 캐시에서 꺼낸다.
+    못 찾은 것(null)도 담는다 — 같은 표를 다시 올려도 다시 묻지 않는다. VWorld 가 거절하면 거기서 멈추고 까닭을 준다"""
+    lang = i18n.lang_of(request)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": i18n.t(msg("읽지 못했다"), lang)}, status=400)
+    addresses = payload.get("addresses") if isinstance(payload, dict) else None
+    if not isinstance(addresses, list) or not addresses or len(addresses) > GEOCODE_CHUNK:
+        return JsonResponse({"error": i18n.t(msg("주소는 한 번에 {n}줄까지 보낸다", n=GEOCODE_CHUNK), lang)}, status=400)
+    if not vworld.enabled():
+        return JsonResponse({"error": i18n.t(msg("VWorld 열쇠가 없다"), lang)}, status=503)
+    results = []
+    for address in addresses:
+        address = " ".join(str(address or "").split())[:200]
+        key = tilecache.key_text("geocode", address)
+        hit = _cached_json(key)
+        if hit is not None:
+            results.append(hit.get("point"))
+            continue
+        if usage.paused():
+            return JsonResponse({"error": i18n.t(msg("상류가 바빠 잠시 멈췄다. 조금 뒤에 다시 올린다."), lang),
+                                 "results": results}, status=503)
+        try:
+            point = vworld.geocode(address)
+        except vworld.VWorldError as exc:
+            log.warning("주소로 좌표를 찾지 못했다: %s", exc)
+            error = str(exc) if lang == "ko" else i18n.t(msg("상류에서 받지 못했다"), lang)
+            return JsonResponse({"error": error, "results": results}, status=502)
+        tilecache.put(key, json.dumps({"point": point}, ensure_ascii=False).encode("utf-8"), ".json")
+        results.append(point)
+    return JsonResponse({"results": results})
 
 
 @require_POST

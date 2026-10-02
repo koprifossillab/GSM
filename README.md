@@ -59,7 +59,8 @@ python manage.py runserver
 
 **코드는 GNU Affero General Public License v3.0(AGPL-3.0)을 따른다** — 전문은 [LICENSE](LICENSE).
 AGPL 이라 **고친 판을 네트워크로 남에게 쓰게 하면 그 사람에게 소스를 내줄 길을 열어 두어야 한다**(13조).
-이 저장소는 공개(https://github.com/koprifossillab/GSM)다.
+밖에서 쓰는 사람이 받는 소스는 **공개용 저장소 https://github.com/koprifossillab/GSM-open** 이다 — 판마다 그 판의 소스를
+한 커밋으로 민다(`deploy/publish_open.sh`). 소개 화면의 "소스" 링크가 거기를 가리킨다.
 
 - 옮겨 온 남의 코드는 제 라이선스를 지닌다 — EarthThruTime3D 의 옛 위치 셈(MIT, [docs/licenses/](docs/licenses/))
 - **라이선스는 코드에만 걸린다. 지도 자료는 저마다 주인의 조건을 따른다.** KIGAM 자료의 저작권은
