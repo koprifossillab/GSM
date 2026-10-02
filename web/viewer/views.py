@@ -2733,6 +2733,13 @@ def kigam50k_attitudes(request):
 
 
 @require_GET
+def gsj_geonavi(request):
+    """지질도Navi 판 목록 (wetherilli 171). 1 849 판이라(60 KB 남짓, gzip) 지도 화면에 싣지 않고 일본·동아시아 탭이
+    판 목록을 펼 때 받는다. 씨앗(`data/gsj_geonavi_layers.json`)에서 오므로 상류를 타지 않는다."""
+    return JsonResponse(gsj.client_geonavi(i18n.lang_of(request)), json_dumps_params={"ensure_ascii": False})
+
+
+@require_GET
 @browser_cached
 def gsj_legend(request):
     """`?layer=gsj:geology&bbox=서,남,동,북&z=9` — 보는 범위의 범례 칸들.

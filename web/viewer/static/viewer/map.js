@@ -549,6 +549,18 @@
     });
   }
 
+  /** 지질도Navi 판 (wetherilli 171) — GSJ 가 판마다 구워 둔 z/x/y 타일. CORS 가 열려 있어 그림으로 내려받기에도 든다 */
+  function geonaviSource(name) {
+    var row = byName[name] || {};
+    return new ol.source.XYZ({
+      url: row.tiles,
+      maxZoom: row.maxZoom || 14,
+      crossOrigin: "anonymous",
+      transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 한반도 지질도 — phyloserver 가 카카오맵 격자로 잘라 둔 타일 (devlog 026).
    *  격자(`phyloserver.py` 의 SCAN_*)를 그대로 받고 OpenLayers 가 옮겨 그린다.
    *  카카오 레벨 L 의 한 픽셀은 2^(L-3) m 이고 13 이 가장 거칠다. 타일 번호는 아래에서
@@ -622,6 +634,8 @@
     // PGC 경사·등고선(wetherilli 099) — NPI 처럼 지역의 투영으로 곧장 받는다. 누르면 그 자리의 값
     pgc: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
+    // 지질도Navi 판(wetherilli 171) — 브라우저가 tiles.gsj.jp 를 곧장. 속성은 없다(그림 판이다)
+    geonavi: { source: geonaviSource, info: null },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
     // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
@@ -830,9 +844,11 @@
     // 묶음 탭(동아시아)에서는 레이어의 범위 밖 타일을 묻지 않는다 — 일본을 볼 때
     // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
-    if (row && row.bbox && (REGIONS[region].includes || row.upstream === "gsmma") && isMercator()) {
-      var b = row.bbox;
-      tile.setExtent(ol.proj.transformExtent([b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5],
+    // 지질도Navi 판은 도폭 하나라 좁다 — 어느 탭에서든 범위 밖을 묻지 않는다 (wetherilli 171)
+    if (row && row.bbox && (REGIONS[region].includes || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()) {
+      // 지질도Navi 판은 Capabilities 의 범위가 판 그대로라 넉넉히 두지 않는다 — 둘레의 없는 타일(404)을 묻지 않게
+      var b = row.bbox, pad = row.upstream === "geonavi" ? 0 : 0.5;
+      tile.setExtent(ol.proj.transformExtent([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad],
                                              "EPSG:4326", viewProj()));
     }
     return tile;
@@ -1691,6 +1707,7 @@
     map.on("moveend", showZoom);
     map.on("moveend", renderEdges);
     map.on("moveend", saveView);
+    map.on("moveend", function () { if (GEONAVI.here && GEONAVI.open) renderGeonavi(); });   // wetherilli 171
     map.on("moveend", refreshExtentLegends);
     window.addEventListener("resize", renderEdges);
     map.on("singleclick", onClick);
@@ -1907,7 +1924,10 @@
   function saveLayers() {
     if (restoring) return;
     var rows = active.map(function (e) {
-      return { name: e.name, opacity: Math.round(e.opacity * 100) / 100 };
+      var out = { name: e.name, opacity: Math.round(e.opacity * 100) / 100 };
+      // 지질도Navi 판은 카탈로그 밖이라 행을 함께 둔다 — 되살릴 때 판 목록을 기다리지 않게 (wetherilli 171)
+      if (byName[e.name] && byName[e.name].upstream === "geonavi") out.row = geonaviSaved(byName[e.name]);
+      return out;
     });
     try { localStorage.setItem(stateKey("gsm.layers"), JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
   }
@@ -1950,6 +1970,7 @@
     restoring = true;
     // addLayer 는 맨 위에 얹는다. 그래서 맨 아래 것부터 얹는다.
     rows.slice().reverse().forEach(function (row) {
+      if (row && !byName[row.name] && row.row) geonaviRestore(row.name, row.row);
       if (!row || !byName[row.name]) return;     // 카탈로그에서 내려간 레이어
       addLayer(row.name);
       var entry = active[0];
@@ -2097,12 +2118,12 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
-    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
@@ -2241,7 +2262,199 @@
       });
       host.appendChild(more);
     }
+    if (hasGeonavi()) host.appendChild(geonaviFolder());
     syncRows();
+  }
+
+  // ── 지질도Navi 판 (wetherilli 171) ───────────────────────────────
+  //
+  // GSJ 지질도Navi 의 판 1 849 장(5만 지질도폭 763 …)을 일본·동아시아 탭의 레이어 목록 밑에 시리즈로 묶어 세운다.
+  // 달 Trek 판(060)의 틀이다 — 씨앗을 서버가 추려 주고, 레이어는 켤 때 짓는다. 다만 목록이 60 KB 남짓이라 지도 화면에
+  // 싣지 않고 **이 칸을 펼 때 받는다**(`gsj/geonavi/`). 켠 판은 행을 저장해 두어 되살릴 때 목록을 기다리지 않는다.
+  // 판은 카탈로그 밖이라 이름 앞에 `geonavi:` 를 붙인다. 타일은 브라우저가 tiles.gsj.jp 를 곧장 부른다
+  var GEONAVI = { data: null, loading: false, failed: false, open: false, q: "", here: false, openSeries: {} };
+  var GEONAVI_LIMIT = 300;        // 거른 판을 한 번에 그리는 끝 — 넘으면 더 좁히라고 적는다
+  var GEONAVI_TILES = /^https:\/\/tiles\.gsj\.jp\/tiles\/geomap\/[\w.-]+\/\{z\}\/\{x\}\/\{y\}\.png$/;
+  var GEONAVI_LEGEND = /^https:\/\/gbank\.gsj\.jp\/geonavi\/docdata\/data\/pict_data\/[\w.-]+$/;
+
+  function hasGeonavi() {
+    return !STATIC && (region === "japan" || (REGIONS[region].includes || []).indexOf("japan") >= 0);
+  }
+
+  /** 판 하나([이름, 도폭, bbox, 줌 끝, 범례])를 카탈로그 행으로 올린다. 이름은 `geonavi:<판>` */
+  function geonaviRow(series, item) {
+    var name = "geonavi:" + item[0];
+    if (byName[name]) return byName[name];
+    var data = GEONAVI.data;
+    var row = {
+      name: name, upstream: "geonavi", verified: true,
+      title: T("{series} · {sheet}", { series: series.name, sheet: item[1] }),
+      bbox: item[2], maxZoom: item[3],
+      tiles: data.tiles + item[0] + "/{z}/{x}/{y}.png",
+      legendImg: item[4] ? data.legend + item[4] : "",
+      attribution: data.attribution,
+    };
+    byName[name] = row;
+    regionOfLayer[name] = "japan";
+    return row;
+  }
+
+  function geonaviSaved(row) {
+    return { title: row.title, bbox: row.bbox, maxZoom: row.maxZoom, tiles: row.tiles,
+             legendImg: row.legendImg, attribution: row.attribution };
+  }
+
+  /** 저장해 둔 행으로 판을 되살린다. 주소는 GSJ 의 꼴일 때만 믿는다 */
+  function geonaviRestore(name, saved) {
+    if (!/^geonavi:[\w.-]+$/.test(name) || !saved || !GEONAVI_TILES.test(saved.tiles || "")) return;
+    if (saved.legendImg && !GEONAVI_LEGEND.test(saved.legendImg)) return;
+    byName[name] = {
+      name: name, upstream: "geonavi", verified: true, title: String(saved.title || name),
+      bbox: Array.isArray(saved.bbox) && saved.bbox.length === 4 ? saved.bbox.map(Number) : null,
+      maxZoom: Math.min(20, Math.max(0, +saved.maxZoom || 14)), tiles: saved.tiles,
+      legendImg: saved.legendImg || "", attribution: String(saved.attribution || ""),
+    };
+    regionOfLayer[name] = "japan";
+  }
+
+  /** 지질도Navi 판의 범례 — GSJ 가 판마다 떠 둔 범례 그림(원도의 범례를 스캔한 것) */
+  function geonaviLegend(entry) {
+    var row = byName[entry.name] || {};
+    if (!row.legendImg) return note(T("범례가 없는 레이어다"));
+    var a = document.createElement("a");
+    a.href = row.legendImg;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.title = T("범례 그림을 새 창에서 크게 본다");
+    var img = document.createElement("img");
+    img.className = "legend-img";
+    img.alt = T("{title} 범례", { title: entry.title });
+    img.loading = "lazy";
+    img.src = row.legendImg;
+    img.addEventListener("error", function () { a.replaceWith(note(T("범례를 받지 못했다"))); });
+    a.appendChild(img);
+    return a;
+  }
+
+  function loadGeonavi() {
+    if (GEONAVI.data || GEONAVI.loading) return;
+    GEONAVI.loading = true;
+    fetch(BASE + "gsj/geonavi/")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) { GEONAVI.data = data; })
+      .catch(function () { GEONAVI.failed = true; })
+      .then(function () { GEONAVI.loading = false; renderGeonavi(); });
+  }
+
+  /** 레이어 목록 밑의 "지질도Navi 판" 칸. 펼 때 판 목록을 받는다 */
+  function geonaviFolder() {
+    var details = document.createElement("details");
+    details.className = "group more geonavi";
+    details.open = GEONAVI.open;
+    var summary = document.createElement("summary");
+    summary.innerHTML = '<span class="group-title">' + esc(T("지질도Navi 판")) + '</span> <span class="count" id="count-geonavi"></span>';
+    details.appendChild(summary);
+
+    var filter = document.createElement("div");
+    filter.className = "trek-filter geonavi-filter";
+    var q = document.createElement("input");
+    q.type = "search";
+    q.id = "geonavi-q";
+    q.value = GEONAVI.q;
+    q.placeholder = T("판 이름으로 거르기");
+    q.setAttribute("aria-label", T("판 이름으로 거르기"));
+    var here = document.createElement("label");
+    var box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = "geonavi-here";
+    box.checked = GEONAVI.here;
+    here.append(box, " " + T("보는 자리를 덮는 것만"));
+    filter.append(q, here);
+    var list = document.createElement("div");
+    list.id = "geonavi-list";
+    details.append(filter, list);
+
+    q.addEventListener("input", function () { GEONAVI.q = q.value; renderGeonavi(); });
+    box.addEventListener("change", function () { GEONAVI.here = box.checked; renderGeonavi(); });
+    details.addEventListener("toggle", function () {
+      GEONAVI.open = details.open;
+      if (details.open) { loadGeonavi(); renderGeonavi(); }
+    });
+    if (GEONAVI.open) { loadGeonavi(); setTimeout(renderGeonavi, 0); }
+    return details;
+  }
+
+  function geonaviRowEl(series, item) {
+    var name = "geonavi:" + item[0];
+    var row = document.createElement("div");
+    row.className = "layer-row";
+    row.dataset.layer = name;
+    row.setAttribute("role", "switch");
+    row.setAttribute("aria-checked", isOn(name) ? "true" : "false");
+    row.classList.toggle("on", isOn(name));
+    row.tabIndex = 0;
+    row.title = item[0];
+    var label = document.createElement("span");
+    label.className = "layer-name";
+    label.textContent = item[1];
+    row.appendChild(label);
+    function flip() { geonaviRow(series, item); toggleLayer(name); }
+    row.addEventListener("click", flip);
+    row.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); }
+    });
+    return row;
+  }
+
+  /** 판 목록을 그린다. 거르지 않으면 시리즈만 접어 두고 펼친 시리즈의 판만 짓는다 — 1 849 줄을 한꺼번에 짓지 않는다 */
+  function renderGeonavi() {
+    var list = document.getElementById("geonavi-list");
+    if (!list) return;
+    var count = document.getElementById("count-geonavi");
+    list.innerHTML = "";
+    if (!GEONAVI.data) {
+      list.appendChild(note(GEONAVI.failed ? T("판 목록을 받지 못했다") : T("받는 중…")));
+      return;
+    }
+    var q = GEONAVI.q.trim().toLowerCase();
+    var at = GEONAVI.here ? toLL(map.getView().getCenter()) : null;
+    var narrowing = !!(q || at);
+    var total = 0, shown = 0;
+    GEONAVI.data.series.forEach(function (series) {
+      var hit = series.layers.filter(function (item) {
+        if (q && (series.name + " " + item[1] + " " + item[0]).toLowerCase().indexOf(q) < 0) return false;
+        var b = item[2];
+        return !(at && b && !(at[0] >= b[0] && at[0] <= b[2] && at[1] >= b[1] && at[1] <= b[3]));
+      });
+      if (!hit.length) return;
+      total += hit.length;
+      var details = document.createElement("details");
+      details.className = "group";
+      details.open = narrowing || !!GEONAVI.openSeries[series.key];
+      var summary = document.createElement("summary");
+      summary.innerHTML = '<span class="group-title">' + esc(series.name) + '</span> <span class="count">' + hit.length + "</span>";
+      details.appendChild(summary);
+      function fillRows() {
+        if (details.dataset.filled) return;
+        details.dataset.filled = "1";
+        hit.forEach(function (item) {
+          if (narrowing && shown >= GEONAVI_LIMIT) return;
+          shown += 1;
+          details.appendChild(geonaviRowEl(series, item));
+        });
+      }
+      if (details.open) fillRows();
+      details.addEventListener("toggle", function () {
+        if (!narrowing) GEONAVI.openSeries[series.key] = details.open;
+        if (details.open) fillRows();
+      });
+      list.appendChild(details);
+    });
+    if (count) count.textContent = total;
+    if (!total) list.appendChild(note(T("맞는 판이 없다")));
+    else if (narrowing && shown < total) {
+      list.appendChild(note(T("{n} 판 가운데 앞의 {m} 판만 — 더 좁혀 거른다", { n: total, m: shown })));
+    }
   }
 
   function setCount(id, n) {
@@ -2346,6 +2559,8 @@
         li.appendChild(note(T("범례가 없는 레이어다")));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].classLegend) {
         li.appendChild(classLegend(byName[entry.name].classLegend));
+      } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].upstream === "geonavi") {
+        li.appendChild(geonaviLegend(entry));
       } else if (entry.legendOpen && byName[entry.name] && byName[entry.name].legend) {
         entry.legendBox = gsjLegend(entry);
         li.appendChild(entry.legendBox);
