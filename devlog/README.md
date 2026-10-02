@@ -180,6 +180,7 @@
 | wetherilli 136 | 2026-10-02 | [대만 — 경제부 지질조사·광업관리중심 지질도, 대만 탭과 동아시아에](20261002_wetherilli_136_taiwan_gsmma.md) |
 | wetherilli 137 | 2026-10-02 | [수성 — 화성 화면을 옮긴 1 단계 (영상·표고·지명·점묶음, 지질은 다음에)](20261002_wetherilli_137_mercury_view.md) |
 | wetherilli 138 | 2026-10-02 | [온 지구 — 지진, USGS 의 M5 이상 10 만 7 천 곳을 규모 칸 셋으로](20261002_wetherilli_138_usgs_earthquakes.md) |
+| wetherilli 139 | 2026-10-02 | [온 지구 — 제4기 고생태 산지, Neotoma 를 자료형 칸 다섯으로](20261002_wetherilli_139_neotoma_sites.md) |
 | wetherilli 140 | 2026-10-02 | [노르웨이·핀란드 — NGU·GTK 기반암 지질도를 새 지역 탭과 북극 묶음에](20261002_wetherilli_140_fennoscandia_geology.md) |
 | wetherilli 141 | 2026-10-02 | [대만 둘째 판 — 환경지질·민감구역·시추·온천, 국토측회중심 배경, 3D](20261002_wetherilli_141_taiwan_second.md) |
 | wetherilli 142 | 2026-10-02 | [대만 범례 — 지층 면과 그림을 맞대어 견본을 뜬다](20261002_wetherilli_142_taiwan_legend.md) |
