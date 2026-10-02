@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+"""연구소 밖 정적 판을 굽는다 — GitHub Pages 의 https://koprifossillab.github.io/GSM-open/ (wetherilli P11·162).
+
+    python deploy/static_site.py <출력 폴더> [--baked <bake_static 의 출력>] [--prefix /GSM-open/]
+
+서버 없이 도는 판이다. Django 로 지도 화면(map.html)을 `settings.STATIC_SITE` 를 켜고 **한 번** 그려 index.html 로 두고,
+정적 파일을 모으고, 우리 파일에서 미리 구운 것(`manage.py bake_static`, wetherilli 160)을 그 자리에 얹는다.
+WegenersDream 의 `deploy/static_site.py`(tupandactyl 029)와 같은 길이다.
+
+- 카탈로그는 빈 DB 에 씨앗을 넣어 만든다(`seed_catalog`) — 운영 DB 를 읽지 않는다. 점묶음은 싣지 않는다
+- 실을 지역·상류는 `REGIONS`·`UPSTREAMS` 가 정한다. 상류를 늘리려면 브라우저가 곧장 부르는 소스(`static-kinds.js`)나
+  구운 파일이 먼저 있어야 한다. 연구실 내부용(`views.LAB_ONLY`)은 싣지 않는다
+- 주소 앞머리: 그린 HTML 의 `/GSM/` 을 `--prefix` 로 바꾼다. 화면의 주소는 `location.pathname` 에서 세므로(`map.js` 의 BASE)
+  앞머리만 맞으면 된다
+- 인증키는 싣지 않는다 — KIGAM 은 보는 사람이 각자 넣는다. VWorld 키는 지금처럼 화면에 실린다(검토 §10)
+"""
+import argparse
+import os
+import pathlib
+import shutil
+import sys
+import tempfile
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+#: 정적 판에 실을 지역 — 상류가 붙는 대로 늘린다(P11 §3)
+REGIONS = ["korea"]
+#: 정적 판에 실을 상류 — kigam 은 각자 키로 곧장(map.js 의 STATIC_KIGAM)
+UPSTREAMS = ["kigam"]
+
+
+def main():
+    parser = argparse.ArgumentParser(description="연구소 밖 정적 판을 굽는다")
+    parser.add_argument("out", help="출력 폴더 — 있으면 비운다")
+    parser.add_argument("--baked", help="manage.py bake_static 의 출력 — 그 자리에 얹는다")
+    parser.add_argument("--prefix", default="/GSM-open/", help="Pages 주소의 앞머리")
+    parser.add_argument("--regions", default=",".join(REGIONS))
+    parser.add_argument("--upstreams", default=",".join(UPSTREAMS))
+    args = parser.parse_args()
+
+    out = pathlib.Path(args.out).resolve()
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    work = pathlib.Path(tempfile.mkdtemp(prefix="gsm-static-"))
+
+    # 빈 DB 에 씨앗만 — 운영 DB·타일 캐시를 건드리지 않는다
+    os.environ["GSM_DB_PATH"] = str(work / "static.db")
+    os.environ["GSM_TILE_CACHE_DIR"] = str(work / "tiles")
+    os.environ.setdefault("GSM_SECRET_KEY", "static-site-build")
+    os.environ.pop("GSM_KIGAM_KEY", None)
+    sys.path.insert(0, str(ROOT / "web"))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gsmweb.settings")
+    import django
+    django.setup()
+    from django.conf import settings
+    from django.core.management import call_command
+    from django.test import Client, override_settings
+
+    call_command("migrate", verbosity=0)
+    call_command("seed_catalog", verbosity=0, stdout=open(os.devnull, "w"))
+
+    spec = {"regions": [r for r in args.regions.split(",") if r],
+            "upstreams": [u for u in args.upstreams.split(",") if u]}
+    with override_settings(STATIC_SITE=spec, DEBUG=False, ALLOWED_HOSTS=["*"], KIGAM_KEY="",
+                           STATIC_ROOT=str(out / "static")):
+        call_command("collectstatic", verbosity=0, interactive=False)
+        page = Client().get("/GSM/map/", HTTP_ACCEPT_LANGUAGE="ko")
+        if page.status_code != 200:
+            sys.exit(f"지도 화면을 그리지 못했다: {page.status_code}")
+        html = page.content.decode("utf-8")
+    html = html.replace("/GSM/", args.prefix)
+
+    (out / "map").mkdir()
+    (out / "map" / "index.html").write_text(html, encoding="utf-8")
+    # 뿌리는 지도로 넘긴다 — 소개 화면은 서버의 것을 많이 써서 정적 판에 두지 않는다
+    (out / "index.html").write_text(
+        '<!doctype html><meta charset="utf-8"><title>대돌여지도</title>'
+        f'<meta http-equiv="refresh" content="0; url={args.prefix}map/">'
+        f'<a href="{args.prefix}map/">대돌여지도</a>\n', encoding="utf-8")
+    (out / ".nojekyll").write_text("")   # 밑줄로 시작하는 파일을 Jekyll 이 버리지 않게
+
+    if args.baked:
+        baked = pathlib.Path(args.baked)
+        for item in baked.iterdir():
+            target = out / item.name
+            if item.is_dir():
+                shutil.copytree(item, target, dirs_exist_ok=True)
+            else:
+                shutil.copy2(item, target)
+
+    # 정적 판에 쓰지 않는 무거운 정적 파일을 덜어 낸다 — Pages 는 사이트 1 GB
+    for heavy in ("admin", "viewer/vendor/cesium"):
+        shutil.rmtree(out / "static" / heavy, ignore_errors=True)
+
+    size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
+    print(f"정적 판을 구웠다: {out} ({size / 1e6:.1f} MB, 지역 {spec['regions']}, 상류 {spec['upstreams']})")
+    shutil.rmtree(work, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    main()

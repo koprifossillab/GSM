@@ -2189,3 +2189,9 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .render-failed button + button { color: var(--ink); background: var(--raise); }
 /* 지역 탭의 높이 그래프(wetherilli 109) — 축척 막대(왼쪽 아래)를 덮지 않게 조금 올린다 */
 :root:not([data-region="moon"]):not([data-region="mars"]):not([data-region="earth"]):not([data-region="mercury"]) .profile-dock { bottom: 108px; }
+
+/* ── 정적 판 (wetherilli P11·162) — 서버가 있어야 도는 것은 숨긴다 ── */
+.static-site .server-only { display: none !important; }
+.static-key { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.static-key input { flex: 1 1 12em; min-width: 0; font: inherit; padding: 4px 6px; }
+.static-key label { display: flex; gap: 4px; align-items: center; font-size: 12px; }

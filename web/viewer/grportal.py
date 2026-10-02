@@ -74,6 +74,26 @@ ELEMENTS = tuple(
 DEFAULT_ELEMENT = "cu"
 
 
+# ── 전암 화학 (wetherilli 163) ────────────────────────────────────
+#
+# `Rock_Chemical_Analysis_from_Greenland` 31 769 점. 값이 모두 **쉼표 소수의 글**이고 **원소 무게 퍼센트**다(규소 중앙값 22.9 %,
+# 구리 0.0087 % = 87 ppm, 금 3e-6 % = 30 ppb — 2026-10-02 에 다 받아 보았다). 포털 항목에 설명이 없어 분포로 가렸다.
+# 받을 때 화면 단위로 옮긴다 — 주성분 wt%, 미량 ppm, 귀금속 ppb(`arcpoints.pct`). 시료 번호 말고 다른 속성(암석명·지점)이 없다.
+# 비활성 기체·짧게 사는 방사성 원소(H·He·N·O·Ne·Ar·Kr·Xe·Rn·Fr·Ra·Ac·Po·At·Pa)는 값이 거의 없거나 뜻이 없어 뺐다
+#: (우리 열쇠, 상류 열, 이름, 단위)
+WHOLE_ROCK = tuple(
+    [(c.lower(), c, n, "wt%") for c, n in (
+        ("SI", "Si"), ("TI", "Ti"), ("AL", "Al"), ("FE", "Fe (전철)"), ("FE2", "Fe²⁺"), ("FE3", "Fe³⁺"), ("MN", "Mn"),
+        ("MG", "Mg"), ("CA", "Ca"), ("NA", "Na"), ("K", "K"), ("P", "P"), ("C", "C"), ("S", "S"),
+        ("LOI", "강열 감량"), ("VOL", "휘발분"))]
+    + [({"GER": "ge", "ARS": "as", "IND": "in"}.get(c, c.lower()), c,
+        {"GER": "Ge", "ARS": "As", "IND": "In"}.get(c, c.capitalize()), "ppm") for c in (
+        "LI", "BE", "B", "F", "CL", "SC", "V", "CR", "CO", "NI", "CU", "ZN", "GA", "GER", "ARS", "SE", "BR", "RB", "SR",
+        "Y", "ZR", "NB", "MO", "AG", "CD", "IND", "SN", "SB", "TE", "I", "CS", "BA", "LA", "CE", "PR", "ND", "SM", "EU",
+        "GD", "TB", "DY", "HO", "ER", "TM", "YB", "LU", "HF", "TA", "W", "HG", "TL", "PB", "BI", "TH", "U")]
+    + [(c.lower(), c, c.capitalize(), "ppb") for c in ("RU", "RH", "PD", "RE", "OS", "IR", "PT", "AU")])
+
+
 #: 레이어명 → 상류 서비스와 받는 열. **열쇠가 짧은 까닭** — 2 만 점마다 되풀이되는
 #: 이름이라 짧을수록 덜 싣는다. 팝업의 이름(`label`)은 한 번만 따로 보낸다.
 #: `label` 이 없는 열(색 따위)은 그리는 데만 쓰고 팝업에 올리지 않는다.
@@ -377,6 +397,16 @@ LAYERS = {
         ("companies", "geochemistry_companies", "ae1c3db86cfe4767a0d7f4e0fa54c25a", "link"),
         ("scree", "geochemistry_scree", "ae10729f316549fbbfe68f6f32204d16", "details"),
     )},
+    # 전암 화학 3 만 점 — 원소 열을 다 실으면 덩이가 수십 MB 라 **고른 원소만 잘라 준다**(`slice`, `value_slice`)
+    "grportal:whole_rock": {
+        "service": "Rock_Chemical_Analysis_from_Greenland", "item": "57e5bb29a3f044ca986fa9c22e5ab659",
+        "style": "value", "slice": True,
+        "fields": {
+            "sample": _field("ORIGINALSA", "시료 번호"),
+            "anal": _field("SAMPLETREA", "분석 번호"),
+            **{k: _field(f, "", {"wt%": "pct_wt", "ppm": "pct_ppm", "ppb": "pct_ppb"}[u]) for k, f, _, u in WHOLE_ROCK},
+        },
+    },
 }
 
 #: 지도 귀퉁이에 적는 출처. 항목 주소가 있으면 그리로, 없으면 웹지도로 잇는다.
@@ -501,20 +531,46 @@ def _value_body(spec: dict, features_json: bytes) -> bytes:
     """연속값 레이어(지화학, wetherilli 159)의 덩이 — `values`([{key, label, unit, n, below}])에 이 레이어에서 값이 하나라도
     있는 원소만 싣는다(`n` 은 측정값의 수, `below` 는 검출 한계 밑의 수). 색은 화면이 고른 원소의 분위수로 칠한다."""
     features = json.loads(features_json)
-    counts = {}
+    keys, counts = {k for k, *_ in _table(spec)}, {}
     for feature in features:
         for key, value in feature["properties"].items():
-            if isinstance(value, (int, float)) and key in _ELEMENT_KEYS:
+            if isinstance(value, (int, float)) and key in keys:
                 n, below = counts.get(key, (0, 0))
                 counts[key] = (n + (value > 0), below + (value < 0))
     values = [{"key": k, "label": label, "unit": unit, "n": counts[k][0], "below": counts[k][1]}
-              for k, _, label, unit in ELEMENTS if counts.get(k, (0, 0))[0]]
+              for k, _, label, unit in _table(spec) if counts.get(k, (0, 0))[0]]
     return json.dumps({"type": "FeatureCollection", "labels": arcpoints.labels(spec), "links": arcpoints.links(spec),
                        "style": "value", "values": values, "default": DEFAULT_ELEMENT,
                        "features": features}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
-_ELEMENT_KEYS = {k for k, *_ in ELEMENTS}
+def _table(spec: dict) -> tuple:
+    return WHOLE_ROCK if spec.get("slice") else ELEMENTS
+
+
+_SLICES = {}
+
+
+def value_slice(name: str, features_json: bytes, key: str) -> bytes:
+    """잘라 주는 연속값 레이어(전암 화학, wetherilli 163)의 덩이 — **고른 원소의 값이 있는 점만**, 그 원소와 시료 번호만
+    싣는다. `values` 는 원소마다의 수(덩이 전체를 한 번 세어 기억한다). 모르는 원소면 처음 원소(구리)로."""
+    spec = LAYERS[name]
+    memo = _SLICES.get(name)
+    if not memo or memo[0] != len(features_json):
+        features = json.loads(features_json)
+        meta = json.loads(_value_body(spec, json.dumps(features).encode()))["values"]
+        memo = _SLICES[name] = (len(features_json), features, meta)
+    _, features, values = memo
+    known = {v["key"] for v in values}
+    key = key if key in known else (DEFAULT_ELEMENT if DEFAULT_ELEMENT in known else next(iter(known), ""))
+    base = [k for k, f in spec["fields"].items() if f["label"]]
+    out = [{"type": "Feature", "id": f.get("id"), "geometry": f["geometry"],
+            "properties": {**{b: f["properties"][b] for b in base if b in f["properties"]}, key: f["properties"][key]}}
+           for f in features if key in f["properties"]]
+    return json.dumps({"type": "FeatureCollection", "labels": arcpoints.labels(spec), "links": arcpoints.links(spec),
+                       "style": "value", "values": values, "default": DEFAULT_ELEMENT, "slice": key,
+                       "total": len(features), "features": out},
+                      ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def body(name: str, features_json: bytes) -> bytes:

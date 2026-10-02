@@ -333,8 +333,11 @@ def map_view(request):
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "crs_options": [(code, i18n.t(spec[0], lang)) for code, spec in crs.SYSTEMS.items()],
-        "catalog": json.dumps(_catalog(lang), ensure_ascii=False),
-        "pointsets": _script_json(_pointset_list()),
+        "catalog": json.dumps(_static_catalog(_catalog(lang)) if settings.STATIC_SITE else _catalog(lang),
+                              ensure_ascii=False),
+        # 정적 판(wetherilli P11·162) — 서버가 없으니 점묶음은 비우고, 화면이 쓸 약속을 싣는다
+        "pointsets": "[]" if settings.STATIC_SITE else _script_json(_pointset_list()),
+        "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -1962,8 +1965,8 @@ def earth_legend(request):
 
 #: 연구실 안에서만 보는 상류. 밖에 열면(`settings.PUBLIC`) 목록에서 빠지고 길도
 #: 닫힌다. 레이어 이름이 `<상류>:…` 꼴이라 이름만 보고 가른다.
-#: 극지연구소(`kopri`, 053–057)는 KPDC 의 공개 정책을 사람이 읽기 전까지 여기 둔다
-LAB_ONLY = ("geo3al", "phyloserver", "peninsula", "kopri")
+#: 극지연구소(`kopri`)는 KPDC 공개 자료라 싣는다 — 사용자가 정했다(2026-10-02, wetherilli P11)
+LAB_ONLY = ("geo3al", "phyloserver", "peninsula")
 
 
 def _lab_only(name: str) -> bool:
@@ -2027,6 +2030,10 @@ def _point_fields(layer) -> dict:
             # 다이아몬드 탐사 자료(DED)는 항목에 CC BY 4.0 이 적혀 있다 (wetherilli 157)
             spec["license"] = grportal.license_of(layer.name)
         return spec
+        return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
+                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
+                # 고른 원소만 받는 레이어 — 전암 화학 (wetherilli 163)
+                **({"slice": True} if grportal.LAYERS[layer.name].get("slice") else {})}
     if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
@@ -2045,6 +2052,22 @@ def _point_fields(layer) -> dict:
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
                 "attribution": npolar.ATTRIBUTION, "license": "CC BY 4.0"}
     return {}
+
+
+def _static_catalog(groups: list) -> list:
+    """정적 판(wetherilli P11·162)의 카탈로그 — 정적 판이 실을 지역·상류만. 엮은 KIGAM 레이어(`kigam.COMPOSED`)는
+    문서에 없는 GeoServer 를 타므로 뺀다. 무엇을 싣는지는 `settings.STATIC_SITE` 가 정한다(`deploy/static_site.py`)."""
+    spec = settings.STATIC_SITE or {}
+    regions, upstreams = set(spec.get("regions") or ()), set(spec.get("upstreams") or ())
+    out = []
+    for group in groups:
+        if group.get("region") not in regions:
+            continue
+        layers = [l for l in group["layers"] if l.get("upstream") in upstreams
+                  and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)]
+        if layers:
+            out.append(dict(group, layers=layers))
+    return out
 
 
 def _layer_extra(layer, lang: str = "ko") -> dict:
@@ -3090,7 +3113,12 @@ def point_layer(request):
     except POINT_ERRORS as exc:
         log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
-    response = HttpResponse(module.body(name, features), content_type="application/geo+json")
+    if module is grportal and grportal.LAYERS[name].get("slice"):
+        # 전암 화학 3 만 점 — 고른 원소만 잘라 준다 (wetherilli 163)
+        body = grportal.value_slice(name, features, request.GET.get("value", ""))
+    else:
+        body = module.body(name, features)
+    response = HttpResponse(body, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
