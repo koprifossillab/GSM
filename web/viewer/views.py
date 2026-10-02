@@ -1983,7 +1983,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geomap":
         return {"attribution": geomap.ATTRIBUTION,
-                "tiles": f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png",
+                # 판을 주소에 넣는다 — 브라우저가 오래 들고 있어도 판이 바뀌면 새 주소다 (wetherilli 151)
+                "tiles": _versioned_url(f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png", geomap_version()),
                 "projection": "EPSG:3031"}
     if layer.upstream == "npolar" and npolar.knows(layer.name):
         spec = npolar.TILES[layer.name]
@@ -2055,13 +2056,15 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # IBCSO 자료 출처(071) — 우리가 잘라 둔 3031 타일. 격자는 GeoMAP 의 것이고 줌 6 까지다.
         # 범례는 갈래 표를 그대로 보낸다(그림이 아니라 — 컨테이너에 한글 글꼴이 없다)
         return {"attribution": ibcso.ATTRIBUTION, "projection": "EPSG:3031", "maxZoom": ibcso.MAX_ZOOM,
-                "tiles": "ibcso/tid/{z}/{x}/{y}.png", "classLegend": ibcso.tid_legend(lang)}
+                "tiles": _versioned_url("ibcso/tid/{z}/{x}/{y}.png", _dir_version(ibcso.tid_tiles_dir())),
+                "classLegend": ibcso.tid_legend(lang)}
     if layer.upstream == "peninsula" and layer.name in peninsula.SHEETS:
         # 한반도 지질도 음영판·민판(027·028) — 우리가 잘라 둔 5179 타일. 격자를 화면에 알린다
         sheet = peninsula.SHEETS[layer.name]
         return {"attribution": sheet.attribution, "queryable": False, "noLegend": True,
                 "projection": "EPSG:5179", "grid": sheet.grid(),
-                "tiles": f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}"}
+                "tiles": _versioned_url(f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}",
+                                        _dir_version(sheet.tiles_dir()))}
     return {}
 
 
@@ -2246,7 +2249,7 @@ def geomap_tile(request, layer, z, x, y, retina=None):
     except (geomap.GeomapError, OSError, ValueError) as exc:
         log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
         return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
-    response = _tile(png, cached=cached)
+    response = _immutable(request, _tile(png, cached=cached), geomap_version())
     if not cached:
         response["X-GSM-Cache"] = "miss"
     return response
@@ -2360,9 +2363,10 @@ def peninsula_tile(request, layer, z, x, y):
     if not sheet.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
     data = sheet.read_tile(z, x, y)
+    version = _dir_version(sheet.tiles_dir())
     if data is None:
-        return _tile(tiles.blank_tile(256, 256))
-    return _tile(data, content_type="image/webp")
+        return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
+    return _immutable(request, _tile(data, content_type="image/webp"), version)
 
 
 @require_GET
@@ -2379,9 +2383,10 @@ def ibcso_tile(request, layer, z, x, y):
     if not sheet.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_IBCSO), store=False)
     data = sheet.read_tile(z, x, y)
+    version = _dir_version(sheet.tiles_dir())
     if data is None:
-        return _tile(tiles.blank_tile(256, 256))
-    return _tile(data, content_type="image/webp")
+        return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
+    return _immutable(request, _tile(data, content_type="image/webp"), version)
 
 
 @require_GET
@@ -2395,7 +2400,8 @@ def ibcso_tid_tile(request, z, x, y):
     if not ibcso.tid_available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_IBCSO), store=False)
     data = ibcso.read_tid_tile(z, x, y)
-    return _tile(data if data is not None else tiles.blank_tile(256, 256))
+    return _immutable(request, _tile(data if data is not None else tiles.blank_tile(256, 256)),
+                      _dir_version(ibcso.tid_tiles_dir()))
 
 
 def _latlon(request):
@@ -2629,6 +2635,36 @@ def gsmma_legend(request):
             tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
     shown = [gsmma.legend_row(r, lang) for r in rows[:gsmma.MAX_LEGEND]]
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
+def _immutable(request, response, version: str):
+    """주소의 판(`?v=`)이 지금 판과 같으면 브라우저가 오래 들고 있게 한다 (wetherilli 151).
+
+    판이 바뀌면 카탈로그가 주는 주소가 바뀌므로 옛 그림을 붙들 일이 없다. `?v=` 가 없거나 옛 판이면(옛 화면이 열려 있다)
+    지금 그림을 하루짜리로 낸다 — 옛 주소에 새 그림을 오래 묶지 않는다. 안내 타일(`no-store`)은 건드리지 않는다
+    """
+    if (version and request.GET.get("v") == version and settings.TILE_IMMUTABLE_SECONDS > 0
+            and response.get("Cache-Control", "").startswith("public")):
+        response["Cache-Control"] = f"public, max-age={settings.TILE_IMMUTABLE_SECONDS}, immutable"
+    return response
+
+
+def _dir_version(path) -> str:
+    """미리 잘라 둔 타일 폴더의 판 — 폴더의 고친 때. `build_*` 가 새 폴더를 만들어 바꿔 끼우므로 다시 구우면 바뀐다."""
+    try:
+        return format(int(Path(path).stat().st_mtime), "x")
+    except (OSError, TypeError, ValueError):
+        return ""
+
+
+def _versioned_url(url: str, version: str) -> str:
+    """타일 주소에 판을 붙인다. 판을 모르면(파일이 없다) 붙이지 않는다 — 빈 판은 길게 두지 않는다."""
+    return f"{url}?v={version}" if version else url
+
+
+def geomap_version() -> str:
+    """GeoMAP 타일 주소의 판 — 자료의 판과 그리는 법. 캐시 열쇠(`geomap_tile_key`)와 같은 둘이다"""
+    return f"{geomap.data_version()}r{geomap.RENDERER}" if geomap.available() else ""
 
 
 def _tile(png: bytes, *, cached: bool = False, store: bool = True, content_type: str = "image/png"):
