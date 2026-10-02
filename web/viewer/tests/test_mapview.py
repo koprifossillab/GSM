@@ -179,6 +179,25 @@ class StaticSiteTests(TestCase):
         import io
         call_command("seed_catalog", stdout=io.StringIO())
 
+    def test_정적_판의_소개는_서버_화면으로_가는_문이_없다(self):
+        """wetherilli 167 — 3D·온 지구·달·화성·수성은 서버가 있어야 한다. 영어로도 그린다."""
+        from django.test import override_settings
+        for lang in ("ko", "en"):
+            self.client.cookies["gsm_lang"] = lang
+            with override_settings(STATIC_SITE={"regions": ["korea"], "upstreams": ["kigam"]}):
+                html = self.client.get("/GSM/").content.decode()
+            self.assertIn('id="static-config"', html)
+            self.assertIn('href="/GSM/map/?region=korea"', html)
+            for door in ("3d/", "earth/", "moon/", "mars/", "mercury/"):
+                self.assertNotIn(f'href="/GSM/{door}"', html, door)
+                self.assertNotIn(f'data-go="{door}"', html, door)
+            self.assertNotIn('id="space"', html)
+        self.assertIn("Great Stone Map", html)
+        html = self.client.get("/GSM/").content.decode()                 # 서버 판은 그대로
+        self.assertNotIn('id="static-config"', html)
+        self.assertIn('href="/GSM/moon/"', html)
+        self.assertIn('id="space"', html)
+
     def test_정적_판은_실을_것만_싣고_키는_없다(self):
         from django.test import override_settings
         import json as _json

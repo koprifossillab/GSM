@@ -280,6 +280,8 @@ def intro_view(request):
         "version": VERSION,
         # AGPL 13조의 소스 길 — 공개용 저장소(GSM-open)의 판마다 사본 (wetherilli 149)
         "source_url": settings.SOURCE_URL,
+        # 정적 판(wetherilli 167) — 서버 화면으로 가는 장면·문을 빼고, 실린 지역만 화면이 남긴다
+        "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
         "stamp": "" if settings.DEBUG else asset_stamp(),
     })
 
