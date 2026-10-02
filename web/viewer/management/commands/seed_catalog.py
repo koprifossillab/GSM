@@ -63,6 +63,8 @@ class Command(BaseCommand):
                 (settings.CCOP_CATALOG_SEED, "동아시아 (CCOP)", "china", "ccop"),
                 # 대만 — 경제부 지질조사·광업관리중심(GSMMA) 지질도 (wetherilli 136)
                 (settings.GSMMA_CATALOG_SEED, "대만 (GSMMA)", "taiwan", "gsmma"),
+                # 북극해 — EMODnet 해저 퇴적물·해저 지질. 스발바르 탭도 빌려 보인다 (wetherilli 135)
+                (settings.EMODNET_CATALOG_SEED, "북극해 (EMODnet)", "arctic_ocean", "emodnet"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)

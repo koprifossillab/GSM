@@ -134,6 +134,8 @@ CCOP_WMS_URL = env("GSM_CCOP_WMS_URL", "https://ows.gsj.jp/ows/GSJ_CCOP_Combined
 #: 대만 — 경제부 지질조사·광업관리중심(GSMMA). 그림은 MapGuide WMS(4326 만), 속성은 지질운 API (wetherilli 136)
 GSMMA_WMS_URL = env("GSM_GSMMA_WMS_URL", "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi")
 GSMMA_API_URL = env("GSM_GSMMA_API_URL", "https://www.geologycloud.tw/api/v1/zh-tw")
+#: EMODnet Geology — 유럽 바다의 해저 퇴적물·해저 지질 GeoServer WMS (`viewer/emodnet.py`, wetherilli 135). 열쇠가 없다
+EMODNET_WMS_URL = env("GSM_EMODNET_WMS_URL", "https://drive.emodnet-geology.eu/geoserver/ows")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -337,6 +339,8 @@ GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
 #: 대만 — GSMMA 지질도 (wetherilli 136)
 GSMMA_CATALOG_SEED = REPO_DIR / "data" / "gsmma_layers.json"
+#: 북극해 — EMODnet 해저 지질 (wetherilli 135)
+EMODNET_CATALOG_SEED = REPO_DIR / "data" / "emodnet_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

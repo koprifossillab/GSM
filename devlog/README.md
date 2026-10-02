@@ -176,6 +176,7 @@
 | wetherilli 132 | 2026-10-01 | [휴대폰 화면을 시험으로](20261001_wetherilli_132_mobile_test.md) |
 | wetherilli 133 | 2026-10-01 | [레이어 목록 — 체크박스 대신 상류 딱지, 줄을 눌러 켜고 끄기, 레이어군 모두 켜기](20261001_wetherilli_133_catalog_rows.md) |
 | wetherilli 134 | 2026-10-02 | [온 지구 — 홀로세 화산, 스미스소니언 GVP 1 214 곳](20261002_wetherilli_134_gvp_volcanoes.md) |
+| wetherilli 135 | 2026-10-02 | [해저 — GEBCO 해저 지형 배경, EMODnet 해저 지질을 북극해·스발바르에](20261002_wetherilli_135_seafloor_gebco_emodnet.md) |
 | wetherilli 136 | 2026-10-02 | [대만 — 경제부 지질조사·광업관리중심 지질도, 대만 탭과 동아시아에](20261002_wetherilli_136_taiwan_gsmma.md) |
 | wetherilli 138 | 2026-10-02 | [온 지구 — 지진, USGS 의 M5 이상 10 만 7 천 곳을 규모 칸 셋으로](20261002_wetherilli_138_usgs_earthquakes.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |

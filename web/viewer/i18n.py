@@ -569,6 +569,13 @@ EN = {
     "세종·장보고 기지 위성 (VWorld)": "King Sejong & Jang Bogo station imagery (VWorld)",
     "VWorld · 2013 년 위성영상. 두 기지 둘레 10 km 남짓에만 있고 그 밖은 REMA 음영이다":
         "VWorld · 2013 satellite imagery. Only about 10 km around the two stations; REMA hillshade elsewhere",
+    "GEBCO 해저 지형": "GEBCO bathymetry",
+    "GEBCO — 해저 지형": "GEBCO — bathymetry",
+    "GEBCO 2026 (약 450 m). 바다의 수심과 땅의 높이를 음영으로. 공공 도메인. 항해에 쓰지 않는다":
+        "GEBCO 2026 (about 450 m). Ocean depth and land height as shaded relief. Public domain. Not for navigation",
+    "GEBCO 해저·얼음 밑 지형": "GEBCO bathymetry and subglacial bed",
+    "GEBCO 2026 (약 450 m). 빙상을 걷어 낸 얼음 밑 기반암과 해저. 공공 도메인":
+        "GEBCO 2026 (about 450 m). Seafloor and the bed beneath the ice sheets. Public domain",
     "IBCSO 해저·빙저 지형": "IBCSO seafloor and subglacial bed",
     "IBCSO v2 (500 m). 빙붕·빙상을 걷어 낸 얼음 밑 기반암과 해저. CC BY 4.0":
         "IBCSO v2 (500 m). Seafloor and the bed beneath ice shelves and the ice sheet. CC BY 4.0",
@@ -1786,6 +1793,15 @@ PROP_EN = {
     "가운데": "Centre",
     "지은이": "Authors",
     "지형구": "Province",
+    # EMODnet 해저 지질 (wetherilli 135)
+    "해저 퇴적물 (Folk 7)": "Seabed substrate (Folk 7)",
+    "해저 퇴적물 (Folk 16)": "Seabed substrate (Folk 16)",
+    "원 분류": "Original classification",
+    "단층 종류": "Fault type",
+    "단층 이름": "Fault name",
+    "원 범례": "Original legend",
+    "자료 보유 기관": "Data holder",
+    "참고 문헌": "Reference",
 }
 
 
@@ -2245,9 +2261,15 @@ GROUP_EN = {
     "KPDC 자료": "KPDC datasets",
     "KPDC 기본도": "KPDC base map",
     "지형 (PGC)": "Terrain (PGC)",
+    "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
 }
 
 LAYER_EN = {
+    # EMODnet 해저 지질 (wetherilli 135)
+    "emodnet:cp_wp4_pre_quaternary_geology_lithology": "Pre-Quaternary geology — lithology",
+    "emodnet:cp_wp4_pre_quaternary_geology_age": "Pre-Quaternary geology — age",
+    "emodnet:bgr:pre_quaternary_faults": "Pre-Quaternary faults",
+    "emodnet:cp_wp3_seabed_substrate_folk_7": "Seabed substrate (Folk 7)",
     "EASIA_CCOP_2M_Combined_BLT_SLT_BA": "CCOP 1:2M geology (bedrock, superficial, age)",
     # 대만 (wetherilli 136)
     "gsmma:geology_50k": "1:50k geological map",

@@ -262,7 +262,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국·대만을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·ccop·gsmma·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·ccop·gsmma·emodnet·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -280,7 +280,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일)은 VWorld 처럼
+- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 모든 지역의 해저 지형 배경(GEBCO,
+  공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
   브라우저가 곧장 부른다.
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
@@ -360,6 +361,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS)
   gsmma.py        대만 경제부 지질조사·광업관리중심(GSMMA)으로 나가는 문 (지질도 WMS 는 4326 만, 누른 자리의 지층은 지질운 GeoJSON)
+  emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
   gvp.py          스미스소니언 Global Volcanism Program 으로 나가는 문 (홀로세 화산 WFS 를 통째로 한 번). 모아 둔다(`fetch_gvp`)
   usgs.py         미국 지질조사국(USGS)으로 나가는 문 (지진 목록 FDSN, M5 이상을 5 년씩). 모아 둔다(`fetch_quakes`)
@@ -411,8 +413,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 스물 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 스물하나 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는
