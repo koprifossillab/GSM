@@ -2118,6 +2118,17 @@ def _static_catalog(groups: list) -> list:
     return out
 
 
+#: 국토지리원 주제 타일 — 레이어 → 지리원 타일의 이름과 줌(2026-10-02 에 줌마다 받아 본 것, wetherilli 172).
+#: 그 위 줌은 화면이 늘려 그린다(`maxZoom`), 그 밑은 묻지 않는다(`minZoom`)
+GSI_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/{path}/{{z}}/{{x}}/{{y}}.png"
+GSI_TILES = {
+    "gsitile:afm": {"path": "afm", "min": 3, "max": 16},
+    "gsitile:vlcd": {"path": "vlcd", "min": 5, "max": 16},
+}
+GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">'
+                   '地理院タイル</a> (国土地理院)')
+
+
 def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
@@ -2172,6 +2183,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsitile" and layer.name in GSI_TILES:
+        # 국토지리원 주제 타일(wetherilli 172) — 서버를 거치지 않고 브라우저가 곧장 부르는 카탈로그 레이어의 첫 선례다.
+        # 지리원 타일은 열쇠가 없고 CORS 가 열려 있어 배경(BASEMAPS gsi_*)과 같은 길이다. 속성이 없고 범례는 그림이 아니다
+        spec = GSI_TILES[layer.name]
+        return {"attribution": GSI_ATTRIBUTION, "tiles": GSI_TILE_URL.format(path=spec["path"]),
+                "minZoom": spec["min"], "maxZoom": spec["max"], "queryable": False, "noLegend": True}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)

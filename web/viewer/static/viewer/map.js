@@ -549,6 +549,15 @@
     });
   }
 
+  /** 국토지리원 주제 타일 (wetherilli 172). 주소·줌·출처는 카탈로그 행이 준다 — 지리원 주소 그대로라 `BASE` 를 붙이지 않는다 */
+  function gsiTileSource(name) {
+    var row = byName[name] || {};
+    return new ol.source.XYZ({
+      url: row.tiles, crossOrigin: "anonymous", maxZoom: row.maxZoom || 16, transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 한반도 지질도 — phyloserver 가 카카오맵 격자로 잘라 둔 타일 (devlog 026).
    *  격자(`phyloserver.py` 의 SCAN_*)를 그대로 받고 OpenLayers 가 옮겨 그린다.
    *  카카오 레벨 L 의 한 픽셀은 2^(L-3) m 이고 13 이 가장 거칠다. 타일 번호는 아래에서
@@ -622,6 +631,8 @@
     // PGC 경사·등고선(wetherilli 099) — NPI 처럼 지역의 투영으로 곧장 받는다. 누르면 그 자리의 값
     pgc: { source: npolarSource, info: wmsInfoUrl },
     gsj: { source: gsjSource, info: gsjInfoUrl },
+    // 국토지리원 주제 타일(wetherilli 172) — 카탈로그가 준 지리원 주소를 브라우저가 곧장 부른다(서버를 거치지 않는다)
+    gsitile: { source: gsiTileSource, info: null },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
     // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
@@ -2097,12 +2108,12 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
-    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
