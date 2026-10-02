@@ -26,7 +26,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
+from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
@@ -1878,6 +1878,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 "minZoom": spec["min"], "maxZoom": spec["max"],
                 "legend": spec["legend"] or "none", "viewer": gsj.VIEWER_URL,
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "gsmma" and gsmma.knows(layer.name):
+        # 대만(wetherilli 136) — 상류가 4326 만 받아 그 격자로 받는다(`map.js` 의 `taiwanSource`). 범례는 주지 않는다
+        return {"attribution": gsmma.ATTRIBUTION, "projection": "EPSG:4326", "noLegend": True,
+                **({} if gsmma.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "phyloserver" and phyloserver.knows_scan(layer.name):
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
@@ -1923,7 +1927,8 @@ def catalog_json(request):
 # 타일은 셋이 같이 쓴다.
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
-                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError)
+                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
+                   gsmma.GsmmaError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -1950,14 +1955,16 @@ class _Door:
                # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
                "pgc": elevation,
                # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
-               "ccop": gsj.CCOP}
+               "ccop": gsj.CCOP,
+               # 대만 지질도(wetherilli 136) — 그림은 4326 WMS, 속성은 지질운 GeoJSON. 문은 gsmma.py 다
+               "gsmma": gsmma.DOOR}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2492,6 +2499,8 @@ def feature_info(request):
             props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "ccop":
             props = gsj.ccop_friendly(props, lang)   # code → 지질기호 …, 시대를 옮긴다
+        elif door.name == "gsmma":
+            props = gsmma.friendly(props, lang)      # Name → 지층명 …, 시대를 중국어에서 옮긴다
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)

@@ -120,12 +120,22 @@
              basemap: "eox_terrain", example: "39.904, 116.407",
              base: ["geo3al:age", "geo3al:rock"],
              first: "geo3al:age" },
+    // ── 대만 (wetherilli 136) ──
+    // 경제부 지질조사·광업관리중심(GSMMA)의 WMS 를 우리 서버가 중계한다. **상류가 4326 만 받아** 4326 격자로
+    // 받고 OpenLayers 가 옮겨 그린다(`taiwanSource`). 누르면 지질운 API 의 지층(5만·25만)이 뜬다.
+    // 범위는 펑후·진먼·마쭈까지 넣으면 넓어져 본섬에 맞춘다
+    taiwan: { title: "대만", proj: "EPSG:3857", center: [120.9, 23.7], zoom: 7, vworld: false,
+              home: [13277000, 2470000, 13617000, 2948000],
+              basemap: "eox_terrain", example: "25.033, 121.565",
+              base: ["gsmma:geology_50k", "gsmma:geology_250k", "gsmma:geology_500k", "gsmma:geology_1m"],
+              first: "gsmma:geology_50k" },
     eastasia: { title: "동아시아", proj: "EPSG:3857", center: [135.0, 37.5], zoom: 5, vworld: true,
-                includes: ["korea", "japan", "china"],
+                includes: ["korea", "japan", "china", "taiwan"],
                 home: [13803617, 3763311, 16252646, 5388389],
                 basemap: "eox_terrain",
                 // 중국(geo3al, 025)은 한반도·일본까지 덮는 1:500만이라 늘 펼쳐 두되 켜지는 않는다
-                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults", "geo3al:age"],
+                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults", "gsmma:geology_500k",
+                       "geo3al:age"],
                 // 넓게 보는 탭이라 한국은 100만, 일본은 20만(가장 넓은 판)을 켠다
                 first: ["L_1M_Geology_Map", "gsj:geology"] },
   };
@@ -168,7 +178,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "japan", "china"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "japan", "china", "taiwan"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -380,6 +390,28 @@
     });
   }
 
+  /** 대만 — GSMMA 지질도 (wetherilli 136). 상류(MapGuide)가 **4326 만 받는다** — 3857·3826 은 `InvalidCRS`.
+   *  그래서 4326 격자로 받고 OpenLayers 가 옮겨 그린다. 격자는 줌 0 이 180° 네모 두 장이다 — 한 장이 360° 면
+   *  위도가 -270° 까지 걸쳐 상류가 받지 않는다. 대만 범위 밖은 묻지 않는다(`makeLayer` 가 범위를 건다). */
+  var TAIWAN_GRID = (function () {
+    var resolutions = [];
+    for (var z = 0; z <= 19; z++) resolutions.push(180 / 512 / Math.pow(2, z));
+    return new ol.tilegrid.TileGrid({ extent: [-180, -90, 180, 90], origin: [-180, 90],
+                                      resolutions: resolutions, tileSize: 512 });
+  })();
+
+  function taiwanSource(name) {
+    var row = byName[name] || {};
+    return new ol.source.TileWMS({
+      url: BASE + "wms",
+      params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true, VERSION: "1.3.0" },
+      transition: 0,
+      projection: "EPSG:4326",
+      tileGrid: TAIWAN_GRID,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 일본 — GSJ 심리스 지질도 (devlog 024). 우리 서버(`gsj/`)가 z/x/y 타일을 중계한다.
    *  주소·줌·출처는 카탈로그 행이 준다. 줌 13 까지만 그려 주고, 더 들어가면
    *  OpenLayers 가 13 을 키워 그린다. */
@@ -468,6 +500,8 @@
     gsj: { source: gsjSource, info: gsjInfoUrl },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
+    // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
+    gsmma: { source: taiwanSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -505,7 +539,7 @@
     // 묶음 탭(동아시아)에서는 레이어의 범위 밖 타일을 묻지 않는다 — 일본을 볼 때
     // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
-    if (row && row.bbox && REGIONS[region].includes && isMercator()) {
+    if (row && row.bbox && (REGIONS[region].includes || row.upstream === "gsmma") && isMercator()) {
       var b = row.bbox;
       tile.setExtent(ol.proj.transformExtent([b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5],
                                              "EPSG:4326", viewProj()));
@@ -761,13 +795,13 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -1613,12 +1647,13 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    gsmma: T("대만 지질조사·광업관리중심"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };

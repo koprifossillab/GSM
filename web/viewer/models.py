@@ -19,6 +19,8 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            ("japan", "일본"),
            # 중국 — USGS geo3al 을 우리가 그린다 (devlog 025). 동아시아 묶음에도 들어간다
            ("china", "중국"),
+           # 대만 — 경제부 지질조사·광업관리중심(GSMMA) 지질도 (wetherilli 136). 동아시아 묶음에도 들어간다
+           ("taiwan", "대만"),
            # 북극해 — 스발바르·그린란드 밖의 북극. 지금은 KPDC 자료뿐이다 (devlog 076). 북극 묶음에도 들어간다
            ("arctic_ocean", "북극해"))
 
@@ -71,7 +73,8 @@ class Layer(models.Model):
     #: gsj → `gsj.py` (일본 GSJ 심리스 지질도 — 타일을 z/x/y 로 받는다, devlog 024),
     #: geo3al → `geo3al.py` (USGS 동아시아 지질도 파일, 모양을 통째로 준다 — devlog 025),
     #: phyloserver → `phyloserver.py` (연구실 암맥 기록·한반도 지질도 — devlog 026),
-    #: peninsula → `peninsula.py` (한반도 지질도 음영판 PDF 를 잘라 둔 타일 — devlog 027)
+    #: peninsula → `peninsula.py` (한반도 지질도 음영판 PDF 를 잘라 둔 타일 — devlog 027),
+    #: gsmma → `gsmma.py` (대만 지질도 — 4326 WMS 를 받고 속성은 지질운 GeoJSON, wetherilli 136)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

@@ -1690,6 +1690,28 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(252, 252, 253, .95); --glass-line: #d6dbe6;
 }
 
+/* ── 대만 (wetherilli 136) — 보라얼룩나비(紫斑蝶): 가지빛 먹 바탕에 나비 날개의 보라 ──
+   나비의 섬이라 그 나비에서 땄다. 이웃 탭의 벚꽃 분홍(일본)·코발트(중국)·비색(동아시아)과 겹치지 않게
+   붉은 기도 푸른 기도 덜어 낸 제비꽃빛으로 갔다. 밝은 판은 날개 안쪽의 흰 반점이다 */
+:root[data-region="taiwan"] {
+  --bg: #17141d; --panel: #1f1a27; --panel-tint: #120f17; --raise: #2a2333;
+  --ink: #f0ebf6; --ink-soft: #c2b6d2; --ink-faint: #857a95;
+  --line: #352c41; --line-soft: #262030;
+  --gold: #b79af0; --gold-bright: #dacbfb; --gold-muted: #9d84d0;
+  --gold-wash: rgba(183, 154, 240, .13); --gold-edge: rgba(183, 154, 240, .42);
+  --hi: #b79af0; --hi-deep: #dacbfb; --on-hi: #120f17; --hi-ink: #dacbfb;
+  --glass: rgba(18, 15, 23, .93); --glass-line: rgba(183, 154, 240, .35);
+}
+:root[data-region="taiwan"][data-theme="light"] {
+  --bg: #f3f0f7; --panel: #fdfcfe; --panel-tint: #f7f4fa; --raise: #e9e3f0;
+  --ink: #1f1729; --ink-soft: #564a66; --ink-faint: #8f84a0;
+  --line: #ddd5e7; --line-soft: #e9e3f0;
+  --gold: #6d45c2; --gold-bright: #4f2c99; --gold-muted: #7a5db8;
+  --gold-wash: #efe8fb; --gold-edge: #cbb8ef;
+  --hi: #34224f; --hi-deep: #211534; --on-hi: #f8f4ff; --hi-ink: #6d45c2;
+  --glass: rgba(253, 252, 254, .95); --glass-line: #ddd5e7;
+}
+
 /* ── 동아시아 (devlog 024) — 한국·일본을 한 화면에. 청자: 먹녹 바탕에 비색 ──
    두 나라가 함께 빚은 것에서 땄다. 품은 지역의 색(금·벚꽃 분홍) 어느 쪽도 아니다.
    남극의 청록보다 회색이 돌고 밝다 */
