@@ -346,8 +346,9 @@ EN = {
     "판 조각 (PALEOMAP 2016)": "Plate pieces (PALEOMAP 2016)",
     "판 조각 경계": "Plate piece outlines",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구": "The Earth then, computed with the PALEOMAP 2016 plate rotations",
-    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
+    "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 다른 판 모델과는 100 Ma 에 1 000 km 안팎 다르다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
         "The Earth then, computed with the PALEOMAP 2016 plate rotations — not an observation. "
+        "Other plate models differ by around 1,000 km at 100 Ma. "
         "Today's imagery, terrain and geology appear only at the present",
     "오늘의 지구다 — 1 Ma 안에서 판이 움직인 것은 수십 km 안이다":
         "Today's Earth — within 1 Ma the plates moved a few tens of kilometres at most",
@@ -813,6 +814,20 @@ EN = {
     "선 {n}": "{n} lines",
     "면 {n}": "{n} polygons",
     "올리지 못했다": "Upload failed",
+    # 주소만 적힌 CSV (wetherilli 152)
+    "주소로 좌표를 찾는 중… {done} / {all}줄": "Finding coordinates from addresses… {done} / {all} rows",
+    "찾은 주소": "Matched address",
+    "주소로 좌표를 하나도 찾지 못했다 — 도로명·지번 주소인지 본다.":
+        "No address could be located — check that they are Korean road or parcel addresses.",
+    "주소를 못 찾은 줄 {n}개 — {lines}": "{n} rows not located — {lines}",
+    "주소 열({col})이 모두 비어 있다.": "The address column ({col}) is empty.",
+    "주소로 찾는 것은 지구의 점묶음뿐이다.": "Addresses can only be located for Earth point sets.",
+    "VWorld 열쇠가 없어 주소로 좌표를 찾지 못한다. 위경도 열을 넣어 올린다.":
+        "No VWorld key, so addresses cannot be located. Add latitude/longitude columns and upload again.",
+    "주소로 찾는 것은 한 번에 {n}줄까지다. 나눠 올린다.": "Up to {n} address rows at a time. Split the file and upload again.",
+    "주소는 한 번에 {n}줄까지 보낸다": "Send up to {n} addresses at a time",
+    "VWorld 열쇠가 없다": "No VWorld key",
+    "상류가 바빠 잠시 멈췄다. 조금 뒤에 다시 올린다.": "The source is busy, so we paused. Upload again shortly.",
 
     # 좌표 막대
     "좌표·주소·장소로 이동 — 36.378, 127.362 · 과학로 124 · 가정동":
@@ -1542,6 +1557,14 @@ PROP_EN = {
     "사방휘석": "Orthopyroxene",
     "사장석": "Plagioclase",
     "토륨": "Thorium",
+    # 다누리 KGRS·북극 판 (wetherilli 150)
+    "칼륨 상대값 (단위 미확인)": "Potassium, relative (unit unconfirmed)",
+    "우라늄 상대값 (단위 미확인)": "Uranium, relative (unit unconfirmed)",
+    "토륨 상대값 (단위 미확인)": "Thorium, relative (unit unconfirmed)",
+    "열중성자 상대값 (단위 미확인)": "Thermal neutrons, relative (unit unconfirmed)",
+    "FeO (북극)": "FeO (north pole)",
+    "얼음이 버틸 깊이 — 오늘의 자전축": "Ice stability depth — today's spin axis",
+    "얼음이 버틸 깊이 — 옛 자전축": "Ice stability depth — paleo spin axis",
     "티타늄": "Titanium",
     "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)
