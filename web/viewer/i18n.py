@@ -1082,6 +1082,7 @@ EN = {
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
     "범례가 없는 레이어다": "This layer has no legend",
+    "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
     # 5만 지질도의 자세 기호 — 커서와 팝업 (jikhanjung 004)
     "미상": "unknown",
