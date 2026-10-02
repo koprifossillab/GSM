@@ -137,13 +137,12 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 
 ### 달 — Trek ImageServer
 
-- [ ] 누른 자리의 값 — 남은 것. 팝업은 섰다(wetherilli 103 — 켠 판만, Kaguya MI 다섯·LP Th·Ti·GRAIL 지각 두께 넷).
-      극지 광물·얼음 깊이(`sp_feo_mlemelin_031417`·`*_ice_depth_*`)는 2026-09-30 에 502 라 뺐다. 다누리 KGRS 열중성자
-      (`KPLO_KGRS_Thermal_Neutron_2ppd`)는 씨앗에 판이 없어 못 켠다 — 단위를 확인하고 판을 세울지. 점묶음 열(새 JSONField,
-      이주)은 아직. Kaguya 는 JAXA 조건(043)
-- [ ] 고운 지형 — 남은 것. 극 5 m·남극 30 m·NAC 38 곳은 섰다(wetherilli 107). 극 평사도법 판 둘(`LRO_NAC_DEM_73N350E_150cmp_NP`·
-      `86S356E_3mp`)과 투영 좌표 NAC 둘(02N085E·07N022E), 아폴로 PanCam·메트릭 카메라 DEM 은 아직. NAC 판과 256 ppd 사이 턱은
-      평균 0–8 m(20N010E 가 8 m 낮다) — 거슬리면 판마다 높이를 맞춘다
+- [ ] 누른 자리의 값 — 남은 것. 켠 판만(wetherilli 103), 다누리 KGRS 다섯(상대값·단위 미확인)·북극 FeO·얼음 깊이 둘은 섰다(150).
+      **남극 짝(`sp_feo_mlemelin_031417`·`sp_ice_depth_*`)은 2026-09-30·10-02 둘 다 답이 없다** — 살아나면 `EXTRA_ITEMS` 에 북극 셋처럼.
+      KGRS 의 단위가 밝혀지면 `VALUES` 의 이름·단위를 고친다. 점묶음 열(새 JSONField, 이주)은 아직. Kaguya 는 JAXA 조건(043)
+- [ ] 고운 지형 — 남은 것. 극 5 m·남극 30 m·NAC 41 곳(107·150). 아폴로 15 PanCam 셋은 256 ppd 와 평균 ±15 m·흩어짐 23–52 m 라
+      자리가 어긋난 판으로 보여 뺐다. 메트릭 카메라 1024 ppd(`Apollo17_…`·`ApolloZone_…`, 30 m)는 256 ppd 보다 120 m 남짓 낮다 —
+      기준면이 다른 까닭을 알면 맞춰 넣는다. NAC 판과 256 ppd 사이 턱은 평균 0–8 m(20N010E 가 8 m 낮다)
 
 ### 표고 단면 — 화성 남음 (+ 지질 띠는 그 이상)
 
