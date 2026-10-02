@@ -1,4 +1,4 @@
-"""NASA Trek 으로 나가는 문 — 달·화성의 지질도·표고·지명.
+"""NASA Trek 으로 나가는 문 — 달·화성·수성의 지질도·표고·지명.
 
 `kigam.py`·`npolar.py` 와 나란한 문이다 (CLAUDE.md "상류마다 문이 하나"). 달의 자료는
 여기로만 나간다. 계획은 devlog P05, 고른 까닭은 devlog 036.
@@ -21,6 +21,8 @@ Cesium 의 `GeographicTilingScheme` 과 같다 — 줌 0 이 가로 2 장·세�
 주는 것이다 — 상류 하나에 문 하나다. Terrarium 부호화만 같다.
 
 영상 배경(LRO WAC·LOLA 음영 WMTS)은 이 문을 타지 않는다 — 브라우저가 곧장 부른다(EOX 와 같다).
+
+**수성도 이 문이다**(wetherilli P10) — `settings.TREK_MERCURY_URL`, 아래 "수성" 마디의 `mercury_*`.
 
 **화성도 이 문이다**(058). Mars Trek 은 같은 NASA Trek 의 다른 몸이라(`settings.TREK_MARS_URL`,
 `trek.nasa.gov/mars`) 문을 새로 내지 않았다 — 아래 "화성" 마디가 `mars_*` 로 같은 일을 한다.
@@ -601,8 +603,8 @@ def fetch_places(body: str = "moon") -> list:
     (아폴로·루나·창어 …, 화성은 바이킹·큐리오시티 …)다. 경도는 −180–180 으로 맞춘다."""
     mars = body == "mars"
     r = _get("TrekServices/ws/index/eq/searchItems", {
-        "proj": f"urn:ogc:def:crs:EPSG::{MARS_SR if mars else SR}", "start": 0, "rows": 100000,
-    }, base=settings.TREK_MARS_URL if mars else "")
+        "proj": f"urn:ogc:def:crs:EPSG::{BODIES[body][1]}", "start": 0, "rows": 100000,
+    }, base=_body_base(body))
     docs = (_json(r).get("response") or {}).get("docs") or []
     out, seen = [], set()
     for doc in docs:
@@ -618,9 +620,13 @@ def fetch_places(body: str = "moon") -> list:
             continue
         # 갈래는 "Lacus, lacūs" 처럼 단수·복수를 적는데, 복수 쪽이 상류에서 글자가 깨져 온다
         # ("lac?à?½s", 2026-09-29). 쉼표 앞의 단수만 쓴다
-        # 달은 갈래를 `productType` 에, 화성은 `productCat2` 에 적는다 (2026-09-29)
+        # 달은 갈래를 `productType` 에, 화성은 `productCat2` 에 적는다 (2026-09-29). 수성은 `productType` 이
+        # "nomenclature" 뿐이고 갈래는 `keyword` 에 있다 — "Crater, craters" (wetherilli P10)
+        keyword = doc.get("keyword") or []
         group = ("Landing site" if kind == "bookmark"
-                 else str(doc.get("productType") or doc.get("productCat2") or "Feature").split(",")[0].strip())
+                 else str((keyword[0] if body == "mercury" and keyword else "")
+                          or (doc.get("productType") if doc.get("productType") != "nomenclature" else "")
+                          or doc.get("productCat2") or "Feature").split(",")[0].strip())
         key = (name.lower(), group)
         if key in seen:
             continue
@@ -961,6 +967,83 @@ def mars_traverses() -> list:
     return out
 
 
+# ── 수성 (wetherilli P10) ────────────────────────────────────────────
+#
+# 화성과 같은 틀이다 — 주소만 `settings.TREK_MERCURY_URL` 밑이다. **ArcGIS 의 뿌리가 다르다** — 달·화성의
+# `trekarcgis/` 가 아니라 `arcgis/rest/services/mercury/` 다(2026-10-02, `trekarcgis` 는 404).
+# 지질도는 아직 없다 — Trek 의 5M 도폭 일곱은 색인·Capabilities 만 있고 타일이 404 다(2026-10-02). 원본
+# 셰이프파일을 우리가 굽는 것이 다음 단계다(P10 §2). 영상 배경(MESSENGER MDIS)은 브라우저가 곧장 부른다.
+
+MERCURY_ATTRIBUTION = ("MESSENGER MDIS (NASA/JHUAPL/Carnegie Institution of Washington) · "
+                       "MESSENGER DEM v2 (USGS, Becker et al., 2016) · via NASA Mercury Trek")
+#: 상류에 적는 수성 경위도의 코드 (ESRI GCS_Mercury_2000). 우리 이름은 `IAU_2015:19900`
+MERCURY_SR = 104974
+#: 수성 반지름 — Trek 의 경위도(`GCS_Mercury_2000`)가 적는 것. 구로 다룬다
+MERCURY_RADIUS = 2439700.0
+#: USGS 의 MESSENGER 표고 665 m(64 ppd). 정수(S16)이고 반지름 2 439.4 km 구에서 잰 높이다(서비스의 WKT)
+MERCURY_DEM = "Mercury_Messenger_USGS_DEM_Global_665m_v2"
+#: 64 ppd — 줌 7 의 한 칸(1.41° ÷ 64)이 0.022° 로 판의 한 칸(0.0156°)쯤이다
+MERCURY_DEM_MAX_ZOOM = 7
+#: 수성의 높이는 ±10 km 안이다. 자료 밖은 S16 의 −32768
+MERCURY_ELEV_RANGE = (-12000.0, 12000.0)
+MERCURY_ELEV_SOURCE = "messenger-usgs-665m"
+MERCURY_ELEV_DATUM = "mercury-sphere"
+
+
+def _mercury(path: str, params: dict):
+    return _get(f"arcgis/rest/services/mercury/{path}", params, base=settings.TREK_MERCURY_URL)
+
+
+def mercury_dem_tile(z: int, x: int, y: int) -> bytes:
+    """수성 표고 격자 한 장 — 65×65 Terrarium PNG. 달의 `dem_tile` 과 같은 수(반 칸 넓혀 묻기)다."""
+    from PIL import Image
+
+    w, s, e, n = tile_bbox(z, x, y)
+    half = (e - w) / (DEM_SIZE - 1) / 2
+    r = _mercury(f"{MERCURY_DEM}/ImageServer/exportImage", {
+        "bbox": f"{w - half},{s - half},{e + half},{n + half}", "bboxSR": MERCURY_SR, "imageSR": MERCURY_SR,
+        "size": f"{DEM_SIZE},{DEM_SIZE}", "format": "tiff", "pixelType": "F32",
+        "interpolation": "RSP_BilinearInterpolation", "f": "image",
+    })
+    try:
+        image = Image.open(io.BytesIO(_image(r)))
+        image.load()
+    except (OSError, ValueError) as exc:
+        raise TrekError(f"표고 TIFF 를 읽지 못했다: {exc}") from exc
+    if image.mode != "F" or image.size != (DEM_SIZE, DEM_SIZE):
+        raise TrekError(f"표고의 꼴이 다르다 ({image.mode}, {image.size})")
+    lo, hi = MERCURY_ELEV_RANGE
+    out = Image.new("RGB", (DEM_SIZE, DEM_SIZE))
+    out.putdata([_terrarium_rgb(v if lo < v < hi and not math.isnan(v) else 0.0) for v in image.getdata()])
+    buf = io.BytesIO()
+    out.save(buf, "PNG")
+    return buf.getvalue()
+
+
+def mercury_values(points: dict) -> dict:
+    """`{id: (lat, lon)}` → `{id: 표고 m}` — 반지름 2 439.4 km 구에서 잰 높이. 화성의 `mars_values` 와 같은 길(GET)."""
+    ids = list(points)
+    out = {}
+    lo, hi = MERCURY_ELEV_RANGE
+    for start in range(0, len(ids), SAMPLE_CHUNK):
+        chunk = ids[start:start + SAMPLE_CHUNK]
+        geometry = {"points": [[round(points[i][1], 6), round(points[i][0], 6)] for i in chunk],
+                    "spatialReference": {"wkid": MERCURY_SR}}
+        data = _json(_mercury(f"{MERCURY_DEM}/ImageServer/getSamples", {
+            "geometry": json.dumps(geometry), "geometryType": "esriGeometryMultipoint",
+            "returnFirstValueOnly": "true", "interpolation": "RSP_BilinearInterpolation", "f": "json",
+        }))
+        for sample in data.get("samples") or []:
+            try:
+                value = float(sample.get("value"))
+                index = int(sample.get("locationId"))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= index < len(chunk) and lo < value < hi:
+                out[chunk[index]] = value
+    return out
+
+
 # ── Trek 판 목록 (060) — 달·화성이 함께 쓴다 ────────────────────────
 #
 # Trek 색인(`searchItems`)에는 지명 말고도 판(product·dataset)이 달 1 200 남짓, 화성 240 남짓 있다
@@ -974,7 +1057,7 @@ def mars_traverses() -> list:
 # ·NAC 아폴로 12 16)과 같았다.
 
 #: 몸 → (Trek 타일 경로의 이름, 상류에 적는 경위도 코드)
-BODIES = {"moon": ("Moon", SR), "mars": ("Mars", 104905)}
+BODIES = {"moon": ("Moon", SR), "mars": ("Mars", 104905), "mercury": ("Mercury", 104974)}
 
 #: 색인의 갈래(`productCat1`) → 레이어군 이름 (한국어, 영어). 목록에 이 차례로 선다. 없는 갈래는 맨 끝 "기타"
 CATEGORIES = (
@@ -1016,6 +1099,9 @@ IN_USE = {
              *LAYERS.values(), "Lunar_Anthropogenic_Impacts_and_Spacecraft"},
     "mars": {"Mars_Viking_MDIM21_ClrMosaic_global_232m", "THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018",
              "Mars_MGS_MOLA_ClrShade_merge_global_463m", "Mars_MOLA_blend200ppx_HRSC_Shade_clon0dd_200mpp_lzw"},
+    "mercury": {"Mercury_MESSENGER_mosaic_global_250m_2013", "Mercury_MESSENGER_MDIS_Basemap_BDR_Mosaic_Global_166m",
+                "Mercury_MESSENGER_MDIS_Basemap_EnhancedColor_Mosaic_Global_665m",
+                "Mercury_Messenger_USGS_DEM_665m_v2_HillshadeColor", "Mercury_Messenger_USGS_DEM_665m_v2_Hillshade"},
 }
 
 #: 처음 들어올 때 숨겨 두는 갈래 — 착륙 공학용(위험·암괴·색인)이거나, 값을 회색으로 칠한 판(같은 것을 칠한 짝이
@@ -1054,7 +1140,7 @@ def catalog_items(body: str) -> list:
     name, sr = BODIES[body]
     r = _get("TrekServices/ws/index/eq/searchItems", {
         "proj": f"urn:ogc:def:crs:EPSG::{sr}", "start": 0, "rows": 100000,
-    }, base=settings.TREK_MARS_URL if body == "mars" else "")
+    }, base=_body_base(body))
     docs = (_json(r).get("response") or {}).get("docs") or []
     out, seen = [], set()
     for doc in docs:
@@ -1074,7 +1160,7 @@ def catalog_items(body: str) -> list:
 
 def tiles_root(body: str) -> str:
     """판 타일의 뿌리 — `https://trek.nasa.gov/tiles/Moon/EQ`. 색인 주소의 호스트를 따른다."""
-    base = settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL
+    base = _body_base(body)
     host = base.split("://", 1)[-1].split("/", 1)[0]
     return f"{base.split('://', 1)[0]}://{host}/tiles/{BODIES[body][0]}/EQ"
 
@@ -1148,8 +1234,10 @@ def tile_exists(body: str, label: str, info: dict, bbox, delay: float = 0.0) -> 
 
 def polar_twins(body: str, delay: float = 0.0) -> dict:
     """`{판: {"s": (경로 뿌리, 서비스 이름, 갈래), …}}` — 서비스 목록에서 `_SP`·`_NP` 로 끝나는 것.
-    목록을 셋 받는다 — 사이에 `delay` 초 쉰다."""
+    목록을 셋 받는다 — 사이에 `delay` 초 쉰다. 수성은 극지 판 타일이 없어(`tiles/Mercury/NP` 404, P10) 묻지 않는다."""
     out = {}
+    if body == "mercury":
+        return out
     for i, root in enumerate(_SERVICE_ROOTS):
         if i and delay:
             time.sleep(delay)
@@ -1275,7 +1363,7 @@ def client_catalog(body: str) -> dict:
     out = sorted(groups.values(), key=lambda g: g["order"])
     for g in out:
         del g["order"]
-    base = settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL
+    base = _body_base(body)
     return {"root": tiles_root(body), "legend": f"{base.rstrip('/')}/TrekWS/rest/cat/legend/stream?label=",
             "groups": out}
 
@@ -1291,7 +1379,9 @@ _SERVICE_ROOTS = ("trekarcgis", "trekarcgis2", "trekarcgis3")
 
 
 def _body_base(body: str) -> str:
-    return (settings.TREK_MARS_URL if body == "mars" else settings.TREK_URL).rstrip("/")
+    """몸의 Trek 뿌리 — `trek.nasa.gov/moon`·`/mars`·`/mercury`."""
+    return {"mars": settings.TREK_MARS_URL, "mercury": settings.TREK_MERCURY_URL}.get(
+        body, settings.TREK_URL).rstrip("/")
 
 
 def find_mapserver(body: str, uuid: str, label: str) -> str:

@@ -222,6 +222,12 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   이름이 `IAU2000:49918`·`49920` 이다 (065). **달 화면을 고치면 화성에도 옮길지 본다** — 두 파일은 일부러 나란히 두었다. 화성 지명은
   `data/mars_places.json`(`manage.py fetch_moon_places --body mars`). 달·화성은 아이콘(`emblem-moon.png`·
   `emblem-mars.png`)과 대기 화면(`splash-*.gif`)이 따로다 — 원본은 `docs/brand/`
+- **수성도 지역이 아니다** — 화성 화면을 옮긴 따로 화면(`/GSM/mercury/`, `mercury.js`·`mercury.html`, wetherilli P10·137)이다.
+  문은 같은 `trek.py`(`mercury_*`, 주소 `TREK_MERCURY_URL`)인데 ArcGIS 의 뿌리가 `arcgis/rest/services/mercury/` 다. 영상은 MESSENGER
+  MDIS, 표고는 USGS 665 m. **지질도는 아직 없다** — Trek 의 5M 도폭은 Capabilities 만 있고 타일이 404 라 원본 셰이프파일을
+  우리가 굽는 것이 다음 단계다(P10 §2). 극지 판 타일이 없어 극 평면(`IAU_2015:19930`·`19935`)은 경위도 타일을 옮겨 그린다.
+  테마는 MESSENGER 강조색의 청회색·황갈. **화성 화면을 고치면 수성에도 옮길지 본다.** 지명은 `data/mercury_places.json`
+  (`fetch_moon_places --body mercury`)
 - **온 지구도 지역이 아니다** — 화성 화면을 옮긴 따로 화면(`/GSM/earth/`, `earth.js`·`earth.html`, wetherilli P06·086)이다.
   지역 탭이 "그 나라의 지도를 그 나라의 투영으로" 보는 자리라면, 여기는 둥근 지구 하나에 온 지구의 자료를 얹는다.
   지질도는 Macrostrat(`macrostrat.py`, CC BY 4.0)이고, 배경(NASA GIBS Blue Marble)·표고(AWS Terrarium)는 브라우저가
@@ -246,9 +252,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   **최근 빙기의 빙상 가장자리**(NADI-1·DATED-1, `icemargins.py`, `data/ice_margins.json` — `manage.py build_ice_margins`, wetherilli 104).
   `mantle: true` 는 구에서만 — **맨틀 슬랩·하부 더미**(Müller 2022 OPT1, `mantle.py`, `<EARTH_DIR>/mantle/` — `manage.py build_mantle <zip>`,
   wetherilli 106). 켜면 땅이 비친다. 옛 연대는 맨틀 기준틀이라 판 조각과 어긋난다고 캡션에 적는다
-- **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`, 037·058). 지구 화면은 `earth` 만, 달 화면은
-  `moon` 만, 화성 화면은 `mars` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
-  화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면)
+- **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`·`mercury`, 037·058·P10). 지구 화면은 `earth` 만, 달 화면은
+  `moon` 만, 화성 화면은 `mars` 만, 수성 화면은 `mercury` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
+  화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면), 수성은 MESSENGER(`trek.mercury_values`, 2 439.4 km 구)
 - **지역마다 화면 투영이 다르다** — 한국·일본·중국·동아시아 3857, 그린란드·스발바르·얀마옌·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다. 지금의 투영은 축척 막대 옆에
@@ -358,7 +364,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   era5.py         ARCO-ERA5(Google Cloud 공개 버킷)로 나가는 문 (지난 바람). 37 층 덩이에서 그 층만 Range 로. 사람이 부른다(`build_era5_wind`)
   ecco.py         ECCO2(NASA NAS 데이터 포털, 로그인 없음)로 나가는 문 (해류, 3 일 평균 표층). netCDF 머리를 읽고 표층만 Range 로. 사람이 부른다(`build_ecco2`)
   kopri.py        극지연구소로 나가는 문 (암석 시료 DB·KPDC 자료 목록·KPDC 지도 서버·아라온호 위치). 목록은 모아 둔다(`fetch_kopri`), 아라온호는 매시간 쌓아(`fetch_araon`) 항적 레이어로 낸다 — 남극·북극해 탭과 온 지구. 지난 1 년은 한 번 떠 둔 것(`fetch_araon --past`, 날짜는 하루 단위)
-  trek.py         NASA Trek 으로 나가는 문 (달·화성의 지질도·표고·지명·착륙지). 달·화성 화면(Cesium)만 쓴다
+  trek.py         NASA Trek 으로 나가는 문 (달·화성·수성의 지질도·표고·지명·착륙지). 달·화성·수성 화면(Cesium)만 쓴다
   macrostrat.py   Macrostrat 으로 나가는 문 (온 지구의 지질도 타일·누른 자리의 단위·범례). 온 지구 화면만 쓴다
   phyloserver.py  연구실 phyloserver 로 나가는 문 (암맥 기록 한 덩이, 한반도 지질도 카카오 격자 타일). 읽기만 한다
   zhurong.py      주룽 로버 경로 파일(data/mars_zhurong.json) -> 착륙지·경로. Trek 에 없는 것을 덧붙인다. 문이 아니다

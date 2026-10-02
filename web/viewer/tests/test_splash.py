@@ -6,7 +6,7 @@ from gsmweb.version import VERSION
 
 class SplashVersionTests(TestCase):
     def test_every_screen_shows_version(self):
-        for url in ("/GSM/map/", "/GSM/earth/", "/GSM/moon/", "/GSM/mars/"):
+        for url in ("/GSM/map/", "/GSM/earth/", "/GSM/moon/", "/GSM/mars/", "/GSM/mercury/"):
             with self.subTest(url=url):
                 page = self.client.get(url).content.decode()
                 self.assertIn(f'<p class="splash-ver">v{VERSION}</p>', page)

@@ -1779,6 +1779,31 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #c1552a; --hi-deep: #8e3a12; --on-hi: #ffffff; --hi-ink: #8e3a12;
   --glass: rgba(255, 250, 246, .94); --glass-line: #e0c8b8;
 }
+/* ══ 수성 (wetherilli P10) — 화성의 틀 그대로, 색은 MESSENGER 강조색 모자이크에서 땄다 — 저반사 물질(LRM)의
+ * 청회색을 바탕에, 고반사 평원(HRP)의 황갈을 빛에 ══ */
+:root[data-region="mercury"] {
+  --bg: #0f1317; --panel: #161b21; --panel-tint: #12161b; --raise: #1f262e;
+  --ink: #e8ecf0; --ink-soft: #aeb8c2; --ink-faint: #75818c;
+  --line: #2c3640; --line-soft: #1f272f;
+  --gold: #c9a46a; --gold-bright: #e3c38a; --gold-muted: #9c7f52;
+  --gold-wash: rgba(201, 164, 106, .1); --gold-edge: rgba(201, 164, 106, .42);
+  --hi: #b8935a; --hi-deep: #e3c38a; --on-hi: #14181d; --hi-ink: #e3c38a;
+  --glass: rgba(18, 22, 27, .9); --glass-line: rgba(201, 164, 106, .3);
+}
+:root[data-region="mercury"][data-theme="light"] {
+  --bg: #eef1f4; --panel: #ffffff; --panel-tint: #f4f6f8; --raise: #e3e8ed;
+  --ink: #161b21; --ink-soft: #3f4a55; --ink-faint: #85909b;
+  --line: #ccd4dc; --line-soft: #e2e7ec;
+  --gold: #8a6630; --gold-bright: #6b4d1f; --gold-muted: #9c7f52;
+  --gold-wash: #f5eee2; --gold-edge: #dcc7a2;
+  --hi: #8a6630; --hi-deep: #6b4d1f; --on-hi: #ffffff; --hi-ink: #6b4d1f;
+  --glass: rgba(255, 255, 255, .94); --glass-line: #ccd4dc;
+}
+:root[data-region="mercury"] .count { color: var(--on-hi); background: var(--hi); }
+:root[data-region="mercury"] #map { background: #000; }
+:root[data-region="mercury"] .popup { z-index: 8; }
+:root[data-region="mercury"] .temp-no { color: var(--on-hi); background: var(--hi); }
+:root[data-region="mercury"] .range-box { border-color: #e3c38a; background: rgba(227, 195, 138, .14); }
 /* ══ 온 지구 (wetherilli P06) — 화성의 틀 그대로, 색만 깊은 바다의 남색과 산호초의 청록이다 ══ */
 :root[data-region="earth"] {
   --bg: #07111c; --panel: #0c1826; --panel-tint: #09141f; --raise: #132336;
@@ -1836,6 +1861,7 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .moon-globe #scalebar { display: none; }
 .hidden-menu .moon-dot.earth-dot { background: radial-gradient(circle at 35% 35%, #9fd0ff, #3d6fa8 60%, #1d3a5c); }
 .hidden-menu .moon-dot.mars-dot { background: radial-gradient(circle at 35% 35%, #f6a36a, #c1552a 60%, #5a2210); }
+.hidden-menu .moon-dot.mercury-dot { background: radial-gradient(circle at 35% 35%, #e3c38a, #7d8a96 60%, #2c3640); }
 /* 소개 화면(뿌리)으로 — 몸이 아니라 금 테두리만 둔 빈 동그라미 (wetherilli 113) */
 .hidden-menu .intro-link { border-top: 1px solid var(--line); margin-top: 2px; }
 .hidden-menu .moon-dot.intro-dot { background: none; border: 2px solid var(--gold-bright); box-sizing: border-box; }
@@ -1990,4 +2016,4 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
                         border-radius: 6px; cursor: pointer; }
 .render-failed button + button { color: var(--ink); background: var(--raise); }
 /* 지역 탭의 높이 그래프(wetherilli 109) — 축척 막대(왼쪽 아래)를 덮지 않게 조금 올린다 */
-:root:not([data-region="moon"]):not([data-region="mars"]):not([data-region="earth"]) .profile-dock { bottom: 108px; }
+:root:not([data-region="moon"]):not([data-region="mars"]):not([data-region="earth"]):not([data-region="mercury"]) .profile-dock { bottom: 108px; }

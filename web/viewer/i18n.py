@@ -265,6 +265,34 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    # 수성 화면 (wetherilli P10)
+    "수성": "Mercury",
+    "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",
+    "수성 위도 {lat}° · 경도 {lon}°": "Mercury lat {lat}° · lon {lon}°",
+    "MESSENGER 모자이크 (2013)": "MESSENGER mosaic (2013)",
+    "MESSENGER 모자이크 BDR (고해상)": "MESSENGER BDR mosaic (high resolution)",
+    "MESSENGER 강조색 모자이크": "MESSENGER enhanced-color mosaic",
+    "MESSENGER 표고 색 음영": "MESSENGER elevation color hillshade",
+    "MESSENGER 표고로 세운다": "Raise terrain from MESSENGER elevation",
+    "표고 음영 겹치기 — 영상 위에 지형의 그늘을 곱한다": "Overlay hillshade — multiply terrain shading over the imagery",
+    "경도 0°·위도 0° 로 — 본초 자오선 둘레(훈 칼 크레이터가 서경 20°)":
+        "To 0° lon, 0° lat — around the prime meridian (set by Hun Kal crater at 20° W)",
+    "방위 — 바늘이 수성의 북쪽을 가리킨다. 누르면 기울기는 두고 북쪽을 위로 돌린다":
+        "Heading — the needle points to Mercury's north. Click to turn north up and keep the tilt",
+    "수성의 자전축 — 북극과 남극을 잇는 선을 켜고 끈다": "Mercury's spin axis — show or hide the line through the poles",
+    "수성에 얹은 내 것": "My data on Mercury",
+    "바깥 자료를 수성에": "Outside data onto Mercury",
+    "좌표는 수성의 위도·경도(도, 행성 중심·동경)다. 평면 좌표계는 받지 않는다.":
+        "Coordinates are Mercury latitude/longitude (degrees, planetocentric, east-positive). Projected coordinates are not accepted.",
+    "영상·표고: NASA Mercury Trek (MESSENGER MDIS — NASA/JHUAPL/Carnegie Institution of Washington, USGS Astrogeology).":
+        "Imagery and elevation: NASA Mercury Trek (MESSENGER MDIS — NASA/JHUAPL/Carnegie Institution of Washington, USGS Astrogeology).",
+    "좌표·지명으로 이동 — 31.5, 162.7 · Caloris · Rembrandt": "Go to coordinates or a name — 31.5, 162.7 · Caloris · Rembrandt",
+    "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(수성의 북쪽 0°)":
+        "Tilt (0° straight down) and heading (0° Mercury's north) seen from the point at screen centre",
+    "표고 채우기 — MESSENGER 표고에서 점마다 높이를 읽는다 (반지름 2 439.4 km 구)":
+        "Fill elevation — read each point's height from MESSENGER elevation (2,439.4 km sphere)",
+    "수성 지질도(USGS 1:500만 도폭, 1984–1990)는 준비 중이다 — Trek 의 그림이 비어 있어 원본을 우리가 굽는다.":
+        "The Mercury geologic map (USGS 1:5M quadrangles, 1984–1990) is on its way — Trek's tiles are empty, so we are rendering the originals ourselves.",
     "화성에 얹은 내 것": "Yours on Mars",
     # 화성 크레이터 (067)
     "크레이터 (Robbins 2012)": "Craters (Robbins 2012)",

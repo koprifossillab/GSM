@@ -1167,6 +1167,58 @@ def mars_places(request):
     return JsonResponse({"results": trek.search_places(_mars_places(), request.GET.get("q", "")[:80])})
 
 
+# ── 수성 (wetherilli P10) ─────────────────────────────────────────────
+#
+# 화성 화면을 옮겼다. 문은 `trek.py` 의 `mercury_*` 다. 지질도는 아직 없다 — 5M 도폭을 굽는 것이 다음 단계다
+
+@require_GET
+def mercury_view(request):
+    """수성 (wetherilli P10). 화성 화면의 틀에 MESSENGER 영상과 표고를 얹는다.
+
+    달·화성처럼 대돌여지도 아이콘의 숨은 차림에서 들어온다."""
+    lang = i18n.lang_of(request)
+    return render(request, "viewer/mercury.html", {
+        "lang": lang,
+        "pointsets": _script_json(_pointset_list("mercury")),
+        "trek_catalog": _script_json(trek.client_catalog("mercury")),
+        "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        "base": request.path.rsplit("mercury", 1)[0],
+        "version": VERSION,
+        "stamp": "" if settings.DEBUG else asset_stamp(),
+    })
+
+
+@require_GET
+def mercury_dem(request, z, x, y):
+    """수성 표고 격자 — `mercury/dem/<z>/<x>/<y>.png`, 65×65 Terrarium. 못 받으면 502 (화성과 같다)."""
+    z, x, y = int(z), int(x), int(y)
+    if not trek.valid_tile(z, x, y, trek.MERCURY_DEM_MAX_ZOOM):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = tilecache.key_text("trek-mercury-dem", f"{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = trek.mercury_dem_tile(z, x, y)
+    except trek.TrekError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("수성 표고를 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
+        return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), i18n.lang_of(request))}, status=502)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def mercury_places(request):
+    """`?q=caloris` — 수성 지명 찾기. 저장소의 `data/mercury_places.json` 만 뒤진다."""
+    return JsonResponse({"results": trek.search_places(trek.load_places(settings.MERCURY_PLACES_FILE),
+                                                       request.GET.get("q", "")[:80])})
+
+
 # ── 온 지구 (wetherilli P06·086) ─────────────────────────────────────
 #
 # 달·화성 화면의 틀에 지구를 얹는다. 지질도는 Macrostrat(`macrostrat.py`) 하나이고, 배경(NASA GIBS)·표고(AWS
@@ -3144,21 +3196,27 @@ ELEV_IN_REQUEST = 2000
 ELEV_POLAR_IN_REQUEST = 100
 
 
+#: 지구 밖의 몸 → (표고 읽기, 출처, 높이 기준). 지구의 표고 원천을 타지 않는다
+BODY_ELEVATION = {
+    "moon": lambda: (trek.lola_values, trek.ELEV_SOURCE, trek.ELEV_DATUM),
+    "mars": lambda: (trek.mars_values, trek.MARS_ELEV_SOURCE, trek.MARS_ELEV_DATUM),
+    "mercury": lambda: (trek.mercury_values, trek.MERCURY_ELEV_SOURCE, trek.MERCURY_ELEV_DATUM),
+}
+
+
 def fill_elevation(pointset, *, only_missing: bool = False, pause: float = elevation.PGC_PAUSE) -> tuple:
     """점묶음의 점마다 표고를 채운다. (채운 수, 못 읽은 수). 명령과 화면이 함께 쓴다.
     다시 부르면 덮는다 — 원천이 판을 올리면 출처 칸이 달라져 알아볼 수 있다(P03 §3).
 
     달 점묶음은 LOLA 로 간다(`trek.lola_values`, 037) — 지구의 표고 원천을 타지 않는다.
-    화성 점묶음은 MOLA–HRSC 로 간다(`trek.mars_values`, 058)."""
+    화성 점묶음은 MOLA–HRSC 로 간다(`trek.mars_values`, 058). 수성은 MESSENGER 665 m(`trek.mercury_values`, P10)."""
     points = pointset.points.all()
     if only_missing:
         points = points.filter(elev__isnull=True)
     rows = {p.id: p for p in points}
-    if pointset.body in ("moon", "mars"):
-        mars = pointset.body == "mars"
-        got = (trek.mars_values if mars else trek.lola_values)({pid: (p.lat, p.lon) for pid, p in rows.items()})
-        source, datum = ((trek.MARS_ELEV_SOURCE, trek.MARS_ELEV_DATUM) if mars
-                         else (trek.ELEV_SOURCE, trek.ELEV_DATUM))
+    if pointset.body in BODY_ELEVATION:
+        values, source, datum = BODY_ELEVATION[pointset.body]()
+        got = values({pid: (p.lat, p.lon) for pid, p in rows.items()})
         for pid, value in got.items():
             p = rows[pid]
             p.elev, p.elev_source, p.elev_datum = round(value, 1), source, datum
