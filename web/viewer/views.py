@@ -333,8 +333,11 @@ def map_view(request):
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         "crs_options": [(code, i18n.t(spec[0], lang)) for code, spec in crs.SYSTEMS.items()],
-        "catalog": json.dumps(_catalog(lang), ensure_ascii=False),
-        "pointsets": _script_json(_pointset_list()),
+        "catalog": json.dumps(_static_catalog(_catalog(lang)) if settings.STATIC_SITE else _catalog(lang),
+                              ensure_ascii=False),
+        # 정적 판(wetherilli P11·162) — 서버가 없으니 점묶음은 비우고, 화면이 쓸 약속을 싣는다
+        "pointsets": "[]" if settings.STATIC_SITE else _script_json(_pointset_list()),
+        "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -1962,8 +1965,8 @@ def earth_legend(request):
 
 #: 연구실 안에서만 보는 상류. 밖에 열면(`settings.PUBLIC`) 목록에서 빠지고 길도
 #: 닫힌다. 레이어 이름이 `<상류>:…` 꼴이라 이름만 보고 가른다.
-#: 극지연구소(`kopri`, 053–057)는 KPDC 의 공개 정책을 사람이 읽기 전까지 여기 둔다
-LAB_ONLY = ("geo3al", "phyloserver", "peninsula", "kopri")
+#: 극지연구소(`kopri`)는 KPDC 공개 자료라 싣는다 — 사용자가 정했다(2026-10-02, wetherilli P11)
+LAB_ONLY = ("geo3al", "phyloserver", "peninsula")
 
 
 def _lab_only(name: str) -> bool:
@@ -2041,6 +2044,22 @@ def _point_fields(layer) -> dict:
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
                 "attribution": npolar.ATTRIBUTION, "license": "CC BY 4.0"}
     return {}
+
+
+def _static_catalog(groups: list) -> list:
+    """정적 판(wetherilli P11·162)의 카탈로그 — 정적 판이 실을 지역·상류만. 엮은 KIGAM 레이어(`kigam.COMPOSED`)는
+    문서에 없는 GeoServer 를 타므로 뺀다. 무엇을 싣는지는 `settings.STATIC_SITE` 가 정한다(`deploy/static_site.py`)."""
+    spec = settings.STATIC_SITE or {}
+    regions, upstreams = set(spec.get("regions") or ()), set(spec.get("upstreams") or ())
+    out = []
+    for group in groups:
+        if group.get("region") not in regions:
+            continue
+        layers = [l for l in group["layers"] if l.get("upstream") in upstreams
+                  and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)]
+        if layers:
+            out.append(dict(group, layers=layers))
+    return out
 
 
 def _layer_extra(layer, lang: str = "ko") -> dict:

@@ -169,3 +169,34 @@ class Map3dRegions(TestCase):
         html = self.client.get(reverse("viewer:map3d"), {"region": "antarctica"}).content.decode()
         self.assertIn('data-region="korea"', html)
         self.assertIn('data-region="antarctica"', html)
+
+
+class StaticSiteTests(TestCase):
+    """연구소 밖 정적 판 (wetherilli P11·162) — 지도 화면을 서버 없이 도는 꼴로 그린다."""
+
+    def setUp(self):
+        from django.core.management import call_command
+        import io
+        call_command("seed_catalog", stdout=io.StringIO())
+
+    def test_정적_판은_실을_것만_싣고_키는_없다(self):
+        from django.test import override_settings
+        import json as _json
+        import re as _re
+        with override_settings(STATIC_SITE={"regions": ["korea"], "upstreams": ["kigam"]}, KIGAM_KEY="비밀"):
+            html = self.client.get("/GSM/map/").content.decode()
+        self.assertIn('class="static-site"', html)
+        self.assertIn('id="static-config"', html)
+        self.assertIn("static-kinds.js", html)
+        self.assertNotIn("비밀", html)
+        groups = _json.loads(_re.search(r'id="catalog-data" type="application/json">(.*?)</script>', html, _re.S).group(1))
+        ups = {l["upstream"] for g in groups for l in g["layers"]}
+        self.assertEqual(ups, {"kigam"})
+        self.assertEqual({g["region"] for g in groups}, {"korea"})
+        names = {l["name"] for g in groups for l in g["layers"]}
+        self.assertNotIn("L_50K_Geology_Map_NoAttitude", names)          # 문서에 없는 GeoServer 를 탄다
+
+    def test_운영_판은_그대로(self):
+        html = self.client.get("/GSM/map/").content.decode()
+        self.assertNotIn('class="static-site"', html)
+        self.assertNotIn("static-config", html)
