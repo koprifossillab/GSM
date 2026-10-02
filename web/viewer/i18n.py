@@ -574,8 +574,8 @@ EN = {
     "VWorld 에서 받지 못했다": "Could not get it from VWorld",
     "점이 많아 화면에서 채우지 않는다 — 서버에서 manage.py fill_places {id} 를 부른다":
         "Too many points to fill here — run manage.py fill_places {id} on the server",
-    "둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명을 읽는다 ({n}/{m}점 채움)":
-        "Fill surroundings — read address, district, nearest fault and nearby place name from VWorld ({n}/{m} filled)",
+    "둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명·보호구역·지목·소유구분을 읽는다 ({n}/{m}점 채움)":
+        "Fill surroundings — read address, district, nearest fault, nearby place name, protected area, land category and ownership from VWorld ({n}/{m} filled)",
     "{n}점 채움 · {m}점은 받지 못했다": "{n} filled · {m} not received",
     "점이 많아 화면에서 채우지 않는다 — 서버에서 manage.py fill_elevation {id} 를 부른다":
         "Too many points to fill here — run manage.py fill_elevation {id} on the server",
@@ -1088,6 +1088,7 @@ EN = {
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
     "범례가 없는 레이어다": "This layer has no legend",
+    "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
     # 5만 지질도의 자세 기호 — 커서와 팝업 (jikhanjung 004)
     "미상": "unknown",
@@ -1666,6 +1667,10 @@ PROP_EN = {
     "해저·빙저(IBCSO)": "Bed (IBCSO, m)",
     "도로명(VWorld)": "Road address (VWorld)",
     "지번(VWorld)": "Parcel address (VWorld)",
+    "보호구역(VWorld)": "Protected area (VWorld)",
+    "지목(VWorld)": "Land category (VWorld)",
+    "소유구분(VWorld)": "Ownership (VWorld)",
+    "지정 구분": "Designation",
     "읍면동(VWorld)": "District (VWorld)",
     "가까운 단층(VWorld, m)": "Nearest fault (VWorld, m)",
     "둘레 지명(VWorld)": "Nearby place name (VWorld)",
@@ -2458,6 +2463,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "국토지리원 주제도": "GSI thematic maps",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
     # 대만 (wetherilli 136)
@@ -2520,6 +2526,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 국토지리원 주제 타일 (wetherilli 172)
+    "gsitile:afm": "Active fault map (urban areas)",
+    "gsitile:vlcd": "Volcanic land condition map",
     # VWorld 수질·지하수 측정망 (wetherilli 156)
     "lt_p_weissitema": "Water quality network — rivers",
     "lt_p_weissitemb": "Water quality network — lakes & reservoirs",

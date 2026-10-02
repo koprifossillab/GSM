@@ -32,6 +32,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
+from . import static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -341,6 +342,8 @@ def map_view(request):
         # 정적 판(wetherilli P11·162) — 서버가 없으니 점묶음은 비우고, 화면이 쓸 약속을 싣는다
         "pointsets": "[]" if settings.STATIC_SITE else _script_json(_pointset_list()),
         "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
+        # 정적 판의 극지 상류 표(wetherilli 161) — 문의 명세·이름 표를 떠서 `static-kinds.js` 가 읽는다. 서버 판에는 싣지 않는다
+        "static_tables": _script_json(static_tables.tables()) if settings.STATIC_SITE else "",
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -2107,10 +2110,23 @@ def _static_catalog(groups: list) -> list:
         layers = [l for l in group["layers"] if (l.get("upstream") in upstreams or l["name"] in baked)
                   and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)
                   # VWorld 의 벡터(단층 따위)는 WFS 라 CORS 가 없어 정적 판에서 받을 수 없다 (wetherilli 164)
-                  and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")]
+                  and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")
+                  # 극지연구소는 지도 서버(KPDC WMS)만 곧장 부른다 — 모아 둔 파일의 점(시료·운석·KPDC 목록)은 구운 것이 있어야 (wetherilli 161)
+                  and not (l.get("upstream") == "kopri" and l["name"] not in kopri.WMS and l["name"] not in baked)]
         if layers:
             out.append(dict(group, layers=layers))
     return out
+
+
+#: 국토지리원 주제 타일 — 레이어 → 지리원 타일의 이름과 줌(2026-10-02 에 줌마다 받아 본 것, wetherilli 172).
+#: 그 위 줌은 화면이 늘려 그린다(`maxZoom`), 그 밑은 묻지 않는다(`minZoom`)
+GSI_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/{path}/{{z}}/{{x}}/{{y}}.png"
+GSI_TILES = {
+    "gsitile:afm": {"path": "afm", "min": 3, "max": 16},
+    "gsitile:vlcd": {"path": "vlcd", "min": 5, "max": 16},
+}
+GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">'
+                   '地理院タイル</a> (国土地理院)')
 
 
 def _layer_extra(layer, lang: str = "ko") -> dict:
@@ -2167,6 +2183,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsitile" and layer.name in GSI_TILES:
+        # 국토지리원 주제 타일(wetherilli 172) — 서버를 거치지 않고 브라우저가 곧장 부르는 카탈로그 레이어의 첫 선례다.
+        # 지리원 타일은 열쇠가 없고 CORS 가 열려 있어 배경(BASEMAPS gsi_*)과 같은 길이다. 속성이 없고 범례는 그림이 아니다
+        spec = GSI_TILES[layer.name]
+        return {"attribution": GSI_ATTRIBUTION, "tiles": GSI_TILE_URL.format(path=spec["path"]),
+                "minZoom": spec["min"], "maxZoom": spec["max"], "queryable": False, "noLegend": True}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -3652,7 +3674,9 @@ def pointset_restore(request, pk):
 
 #: VWorld 둘레(074)를 GeoJSON·팝업에 싣는 이름. "(VWorld)" 를 붙여 원본의 `주소` 열과 부딪히지 않게 한다.
 #: 되살리기(`pointsets.restore`)가 이 이름들을 떼어 제 칸(`Point.place`)으로 돌린다
-PLACE_PROPS = (("road", "도로명(VWorld)"), ("parcel", "지번(VWorld)"), ("emd", "읍면동(VWorld)"))
+PLACE_PROPS = (("road", "도로명(VWorld)"), ("parcel", "지번(VWorld)"), ("emd", "읍면동(VWorld)"),
+               # 보호구역·지목·소유구분 (wetherilli 173)
+               ("protected", "보호구역(VWorld)"), ("jimok", "지목(VWorld)"), ("owner", "소유구분(VWorld)"))
 FAULT_PROP, PLACENAME_PROP = "가까운 단층(VWorld, m)", "둘레 지명(VWorld)"
 
 
@@ -3673,7 +3697,7 @@ def _korean_points(ps):
     return ps.points.filter(lat__gte=s_, lat__lte=n, lon__gte=w, lon__lte=e)
 
 
-#: 한 번의 요청 안에서 VWorld 에 묻는 점의 수. 한 점에 넷을 묻는다. 넘으면 명령(`fill_places`)으로
+#: 한 번의 요청 안에서 VWorld 에 묻는 점의 수. 한 점에 열 번 묻는다(넷 + 보호구역 넷 + 토지 둘, wetherilli 173). 넘으면 명령(`fill_places`)으로
 PLACES_IN_REQUEST = 50
 #: 올리거나 찍을 때 곧바로 묻는 점의 수. 넘으면 사람이 📍 를 누른다 — 올리기가 느려지지 않게
 PLACES_AUTO = 20
@@ -3723,7 +3747,7 @@ def _auto_places(pointset):
 
 @require_POST
 def pointset_places(request, pk):
-    """`POST pointsets/<번호>/places/` — 한국 점마다 주소·읍면동·가까운 단층·둘레 지명을 채운다 (074)."""
+    """`POST pointsets/<번호>/places/` — 한국 점마다 주소·읍면동·가까운 단층·둘레 지명·보호구역·지목·소유구분을 채운다 (074·wetherilli 173)."""
     lang = i18n.lang_of(request)
     ps = PointSet.objects.filter(pk=pk).first()
     if ps is None:
