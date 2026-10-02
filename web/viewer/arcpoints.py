@@ -114,13 +114,16 @@ def clean(value, kind):
     """값 하나. 고치지 않는다 — 앞뒤 빈칸만 떼고, 빈 값은 뺀다."""
     if value is None:
         return None
-    if kind in ("number", "measure"):
+    if kind in ("number", "measure", "assay"):
         try:
             number = round(float(value), 3)
         except (TypeError, ValueError):
             return None
         # `measure` — GEUS 의 다이아몬드 자료처럼 모르는 값을 -999 로 적는 열
-        return None if kind == "measure" and number <= -999 else number
+        if kind == "measure" and number <= -999:
+            return None
+        # `assay` — 그린란드 지화학(wetherilli 159): 0 은 분석하지 않은 것, 음수는 검출 한계 밑이라 그대로 둔다
+        return None if kind == "assay" and number == 0 else number
     text = " ".join(str(value).split())       # 앞뒤 빈칸·줄바꿈("\r\n")을 한 칸으로
     if not text:
         return None

@@ -265,6 +265,15 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    # 연속값 색 — 그린란드 지화학 (wetherilli 159)
+    "칠할 원소": "Colour by",
+    "분위수로 나눈 칸": "quantile classes",
+    "검출 한계 밑": "Below detection limit",
+    "검출 한계 밑 (< {n})": "Below detection limit (< {n})",
+    "분석하지 않음": "Not analysed",
+    "분석하지 않은 {n}점은 그리지 않았다": "{n} points not analysed are not drawn",
+    "Fe₂O₃ (전철)": "Fe₂O₃ (total)",
+    "강열 감량": "LOI",
     # 수성 화면 (wetherilli P10)
     "수성": "Mercury",
     "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",
@@ -989,9 +998,13 @@ EN = {
         "Norwegian Polar Institute · Copernicus Sentinel-2. CC BY 4.0",
     "스발바르 지형도 (NPI)": "Svalbard topographic map (NPI)",
     "노르웨이 극지연구소. CC BY 4.0": "Norwegian Polar Institute. CC BY 4.0",
-    "이 지역에서는 좌표로 간다 — 주소·장소는 한국, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
-        "Coordinates only here — addresses and places in Korea, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
+    "이 지역에서는 좌표로 간다 — 주소·장소는 한국·일본, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
+        "Coordinates only here — addresses and places in Korea and Japan, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
     "좌표·지명으로 이동 — {example}": "Go to coordinates or a place name — {example}",
+    # 일본 찾기 칸 — 국토지리원 (wetherilli 155)
+    "좌표·주소·지명으로 이동 — {example}": "Go to coordinates, an address or a place name — {example}",
+    "주소·지명": "Address/place",
+    "주소·지명 검색: 국토지리원 (지리원 지도)": "Address & place search: GSI Japan (GSI Maps)",
     "좌표로 이동 — 위도, 경도 (예: {example})": "Go to coordinates — latitude, longitude (e.g. {example})",
     "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
     "찾은 것이 없다 — 이 지역의 지명을 넣어 본다": "Nothing found — try a place name in this region",
@@ -1830,6 +1843,8 @@ PROP_EN = {
     "경제성": "Economic status",
     "보고서": "Report",
     "시료 갈래": "Sample type",
+    "해": "Year",
+    "채취·보고": "Collected / reported by",
     "시료 기재": "Sample description",
     "채취 지점": "Locality",
     "채취자": "Collector",
@@ -2381,6 +2396,7 @@ GROUP_EN = {
     # 그린란드 정부 포털
     "시료·연대 (정부 포털)": "Samples & ages (government portal)",
     "광물 자원 (정부 포털)": "Mineral resources (government portal)",
+    "지화학 (정부 포털)": "Geochemistry (government portal)",
     "사면 재해 (정부 포털)": "Slope hazards (government portal)",
     # 남극 (GeoMAP)
     "GeoMAP 지질도": "GeoMAP geological maps",
@@ -2597,6 +2613,10 @@ LAYER_EN = {
     "grportal:diamond_occurrences": "Diamond-related occurrences (kimberlite etc.)",
     "grportal:unstable_slopes": "Unstable slopes",
     "grportal:mass_movements": "Registered mass movements",
+    "grportal:geochem_soil": "Soil geochemistry",
+    "grportal:geochem_heavy": "Heavy-mineral concentrate geochemistry",
+    "grportal:geochem_companies": "Company exploration geochemistry",
+    "grportal:geochem_scree": "Scree geochemistry",
     # 남극 (SCAR GeoMAP)
     "geomap_simple_geology": "Geology (simplified)",
     "geomap_chronostratigraphic": "Chronostratigraphy",
