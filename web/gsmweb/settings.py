@@ -152,6 +152,10 @@ MACROSTRAT_TILES_URL = env("GSM_MACROSTRAT_TILES_URL", "https://tiles.macrostrat
 MACROSTRAT_API_URL = env("GSM_MACROSTRAT_API_URL", "https://macrostrat.org/api/v2")
 #: 화성 지명 — `manage.py fetch_moon_places --body mars` 가 적는다
 MARS_PLACES_FILE = BASE_DIR.parent / "data" / "mars_places.json"
+#: NASA Mercury Trek — 수성 (`viewer/trek.py` 의 "수성" 마디, wetherilli P10). 같은 Trek 의 또 다른 몸이다
+TREK_MERCURY_URL = env("GSM_TREK_MERCURY_URL", "https://trek.nasa.gov/mercury")
+#: 수성 지명 — `manage.py fetch_moon_places --body mercury` 가 적는다
+MERCURY_PLACES_FILE = BASE_DIR.parent / "data" / "mercury_places.json"
 #: 주룽 로버의 착륙 지점·주행 경로 (066, `manage.py build_zhurong`)
 MARS_ZHURONG_FILE = BASE_DIR.parent / "data" / "mars_zhurong.json"
 #: PALEOMAP 2016 판 회전과 대륙 다각형 — 온 지구의 옛 위치 (`viewer/paleo.py`, wetherilli 087,

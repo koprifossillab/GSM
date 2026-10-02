@@ -133,12 +133,13 @@ class Stored(TestCase):
         self.assertIn(f"fill_elevation {self.ps.id}", r.json()["error"])
 
     def test_높이_기준표가_두_곳에서_같다(self):
-        # 지구의 원천(`elevation.SOURCES`)과 달의 LOLA(`trek`, 037)·화성의 MOLA–HRSC(058)를 합친 것이다
+        # 지구의 원천(`elevation.SOURCES`)과 달의 LOLA(`trek`, 037)·화성의 MOLA–HRSC(058)·수성의 MESSENGER(P10)를 합친 것이다
         from viewer import trek
         expected = {k: v[1] for k, v in elevation.SOURCES.items()}
         expected[trek.ELEV_SOURCE] = trek.ELEV_DATUM
         expected["lola-128ppd"] = "moon-sphere"   # 옛 판으로 채워 내보낸 것을 다시 올릴 때 (wetherilli 083)
         expected[trek.MARS_ELEV_SOURCE] = trek.MARS_ELEV_DATUM
+        expected[trek.MERCURY_ELEV_SOURCE] = trek.MERCURY_ELEV_DATUM
         self.assertEqual(pointsets.ELEV_DATUMS, expected)
 
 

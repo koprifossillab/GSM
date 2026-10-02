@@ -146,7 +146,7 @@ class PhoneScreenTests(StaticLiveServerTestCase):
         self.check_map_screen("map/?region=antarctica")
 
     def test_구_화면은_범례가_접혀_열린다(self):
-        for path in ("earth/", "moon/", "mars/"):
+        for path in ("earth/", "moon/", "mars/", "mercury/"):
             with self.subTest(path=path):
                 page = self.check_map_screen(path, settle=3000)
                 self.assertFalse(page.evaluate("document.getElementById('legend-dock').open"),

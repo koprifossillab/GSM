@@ -388,7 +388,9 @@ ELEV_DATUMS = {"aws-terrarium-z12": "egm96", "gsi-dem-10m": "gsi-geoid",
                "lola-256ppd": "moon-sphere",
                "lola-128ppd": "moon-sphere",   # 2026-09-30 전에 채운 점 (wetherilli 083)
                # 화성 — `trek.MARS_ELEV_SOURCE`. 화성 기준면(아레오이드)에서 잰 높이 (058)
-               "mola-hrsc-200m": "mars-areoid"}
+               "mola-hrsc-200m": "mars-areoid",
+               # 수성 — `trek.MERCURY_ELEV_SOURCE`. 반지름 2 439.4 km 구에서 잰 높이 (wetherilli P10)
+               "messenger-usgs-665m": "mercury-sphere"}
 
 
 #: VWorld 둘레(074)의 이름 — `views.PLACE_PROPS` 와 같다. 이 파일은 뷰를 모르게 두려고 옮겨 적었다

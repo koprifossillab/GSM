@@ -27,7 +27,7 @@ MAX_FAILS = 5
 
 
 class Command(BaseCommand):
-    help = "Trek 의 판 목록(달, --body mars 면 화성)을 받아 data/*_trek_layers.json 에 적는다"
+    help = "Trek 의 판 목록(달, --body mars·mercury 면 화성·수성)을 받아 data/*_trek_layers.json 에 적는다"
 
     def add_arguments(self, parser):
         parser.add_argument("--body", choices=tuple(trek.BODIES), default="moon")
@@ -42,7 +42,8 @@ class Command(BaseCommand):
             items = trek.catalog_items(body)
         except trek.TrekError as exc:
             raise CommandError(str(exc))
-        if len(items) < 100:
+        # 수성은 판이 53 개다(2026-10-02) — 달 1 200·화성 240 남짓보다 훨씬 적다
+        if len(items) < (40 if body == "mercury" else 100):
             raise CommandError(f"판이 {len(items)} 개뿐이다 — 상류가 이상하다. 적지 않는다")
         old = {e["id"]: e for e in trek.load_catalog(body)}
         today = timezone.localdate().isoformat()

@@ -5,6 +5,7 @@ IAU 행성 지명 사전을 Trek 이 옮겨 둔 것과 착륙지 북마크다. �
 저장소에 담는다(수백 KB, 공개 영역인 IAU 이름).
 
 `--body mars` 면 화성 지명을 Mars Trek 에서 받아 `data/mars_places.json` 에 적는다 (058).
+`--body mercury` 면 수성 지명을 Mercury Trek 에서 받아 `data/mercury_places.json` 에 적는다 (wetherilli P10).
 """
 import json
 from pathlib import Path
@@ -17,24 +18,25 @@ from viewer import trek
 
 
 class Command(BaseCommand):
-    help = "달(또는 --body mars 면 화성) 지명을 Trek 에서 받아 data/*_places.json 에 적는다"
+    help = "달(또는 --body mars·mercury 면 화성·수성) 지명을 Trek 에서 받아 data/*_places.json 에 적는다"
 
     def add_arguments(self, parser):
-        parser.add_argument("--body", choices=("moon", "mars"), default="moon")
+        parser.add_argument("--body", choices=("moon", "mars", "mercury"), default="moon")
         parser.add_argument("--out", default="")
 
     def handle(self, *args, **o):
-        mars = o["body"] == "mars"
+        body = o["body"]
         try:
             places = trek.fetch_places(o["body"])
         except trek.TrekError as exc:
             raise CommandError(str(exc))
-        # 화성 지명은 1 800 개 남짓이다(2026-09-29) — 달(9 000 남짓)보다 적다
-        if len(places) < 1000:
+        # 화성 지명은 1 800 개 남짓(2026-09-29), 수성은 500 남짓(2026-10-02) — 달(9 000 남짓)보다 적다
+        if len(places) < (400 if body == "mercury" else 1000):
             raise CommandError(f"지명이 {len(places)} 개뿐이다 — 상류가 이상하다. 적지 않는다")
-        out = Path(o["out"] or (settings.MARS_PLACES_FILE if mars else settings.MOON_PLACES_FILE))
+        out = Path(o["out"] or {"mars": settings.MARS_PLACES_FILE, "mercury": settings.MERCURY_PLACES_FILE}.get(
+            body, settings.MOON_PLACES_FILE))
         out.write_text(json.dumps({
-            "source": f"NASA {'Mars' if mars else 'Moon'} Trek index "
+            "source": f"NASA {trek.BODIES[body][0]} Trek index "
                       "(IAU Gazetteer of Planetary Nomenclature, landing sites)",
             "fetched": timezone.localdate().isoformat(),
             "columns": ["name", "kind", "lon", "lat"],
