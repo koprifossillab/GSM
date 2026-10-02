@@ -208,6 +208,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 **브라우저 캐시** (wetherilli 151) — 응답마다 ETag 가 붙어 하루(`TILE_CACHE_SECONDS`)가 지나면 304 로 되묻는다
 (`ConditionalGetMiddleware`). 주소에 판(`?v=`)이 든 우리 타일만 1 년 `immutable` 이다(`views._immutable`) — 판이 바뀌면 주소가
 바뀌기 때문이다. 상류에서 받은 것에는 판이 없으니 길게 두지 않는다. 그리는 법을 고쳐 `RENDERER` 를 올리면 주소의 판도 따라 오른다.
+속성·범례 JSON 도 하루이고 언어(쿠키)로 가른다(`views.browser_cached`, wetherilli 158). 3D 의 `warp/` 는 원본의 판을 열쇠에 넣어
+디스크에 담는다 — 스캔판(phyloserver)만 빼고. 다시 펴는 법을 고치면 `views.WARP_RENDERER` 를 올린다.
 
 캐시는 여전히 **덤이지 자료가 아니다.** 통째로 지워도 뷰어는 그대로 돌고,
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
