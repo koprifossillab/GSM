@@ -43,6 +43,9 @@
 - [ ] 일본의 찾기 칸 — 지금은 좌표로만 간다. 국토지리원의 주소 검색 API 를 살펴본다
       (붙이면 문이 하나 는다)
 - [ ] GSJ 는 호출 제한 수치를 밝히지 않는다 — `upstream_stats` 의 `gsj` 를 지켜본다
+- [ ] **대만 지질도** — 경제부 지질조사·광업관리중심 WMS(레이어 62, 1/100 만·50 만·25 만·활성단층)를 동아시아 묶음에
+      대만 지역으로. 이용 조건부터 읽는다. **gsm-31 이 맡았다** (2026-10-02). 후보 견줌은
+      [docs/새_상류_후보.md](docs/새_상류_후보.md)
 
 ## 3D (015)
 
@@ -60,10 +63,18 @@
 - [ ] (사람) 달 Trek 판 한글 제목 초안(몸 전체를 덮는 114 판)을 읽고 고친다 — `data/moon_trek_layers.json` 의 `ko` (060)
 - [ ] (사람) SPA 지질도 원본(Zenodo 10.5281/zenodo.19728952 의 `GeoMap.tif.zip`·`Mapplate.zip`)을 NAS `sources/moon/` 에 둔다.
       운영 `db/moon/` 에는 두었다 (wetherilli 081)
+- [ ] 수성 화면 — USGS Astrogeology WMS(MESSENGER·Mariner)로 달·화성의 틀을 옮긴다. 달 화면의 Lunar Orbiter·Clementine
+      배경도 같은 상류 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §1)
 
 ## 온 지구 (P06·P07)
 
 (2026-09-30 운영 `/srv/GSM/db/earth/` 에 옛 해안선·화석 산지·맨틀을 두었다. 화석 산지는 가끔 `fetch_pbdb` 로 새로 받는다)
+
+- [ ] 점 레이어 셋 — 화산(스미스소니언 GVP WFS)·지진(USGS FDSN)·제4기 고생태 산지(Neotoma). PBDB 의 `always` 틀을 따른다.
+      이용 조건부터 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §1)
+- [ ] 해저 지형 GEBCO WMS (온 지구·동아시아 바다), EMODnet 해저 지질 (스발바르·얀마옌 둘레) — 같은 문서 §1
+- [ ] (검토) GPlates Web Service 로 "그때의 자리" 를 다른 모델과 견주기 — 판 회전 셈은 `paleo.py` 하나라는 원칙과
+      부딪혀 검산용으로만 (같은 문서 §1)
 
 ## 인증키 뒤에 남은 것
 
@@ -193,6 +204,10 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 
 - [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
       검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
+
+- [ ] 다른 나라 지질도 — BGS·GA·BRGM·NGU·GTK WMS 는 응답한다. 북극을 노르웨이 본토·핀란드로 넓히면 NGU·GTK.
+      **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
+      VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 
 - [ ] 데이터셋 검색 API(`/openapi/data`) 붙이기 — 시료 자료를 지도에서 바로 찾기.
       이번 판은 WMS 만 쓴다
