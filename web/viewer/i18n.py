@@ -265,6 +265,15 @@ EN = {
     "화성": "Mars",
     "화성 위도": "Mars lat", "화성 경도": "Mars lon",
     "화성 위도 {lat}° · 경도 {lon}°": "Mars lat {lat}° · lon {lon}°",
+    # 연속값 색 — 그린란드 지화학 (wetherilli 159)
+    "칠할 원소": "Colour by",
+    "분위수로 나눈 칸": "quantile classes",
+    "검출 한계 밑": "Below detection limit",
+    "검출 한계 밑 (< {n})": "Below detection limit (< {n})",
+    "분석하지 않음": "Not analysed",
+    "분석하지 않은 {n}점은 그리지 않았다": "{n} points not analysed are not drawn",
+    "Fe₂O₃ (전철)": "Fe₂O₃ (total)",
+    "강열 감량": "LOI",
     # 수성 화면 (wetherilli P10)
     "수성": "Mercury",
     "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",
@@ -1830,6 +1839,8 @@ PROP_EN = {
     "경제성": "Economic status",
     "보고서": "Report",
     "시료 갈래": "Sample type",
+    "해": "Year",
+    "채취·보고": "Collected / reported by",
     "시료 기재": "Sample description",
     "채취 지점": "Locality",
     "채취자": "Collector",
@@ -2381,6 +2392,7 @@ GROUP_EN = {
     # 그린란드 정부 포털
     "시료·연대 (정부 포털)": "Samples & ages (government portal)",
     "광물 자원 (정부 포털)": "Mineral resources (government portal)",
+    "지화학 (정부 포털)": "Geochemistry (government portal)",
     "사면 재해 (정부 포털)": "Slope hazards (government portal)",
     # 남극 (GeoMAP)
     "GeoMAP 지질도": "GeoMAP geological maps",
@@ -2597,6 +2609,10 @@ LAYER_EN = {
     "grportal:diamond_occurrences": "Diamond-related occurrences (kimberlite etc.)",
     "grportal:unstable_slopes": "Unstable slopes",
     "grportal:mass_movements": "Registered mass movements",
+    "grportal:geochem_soil": "Soil geochemistry",
+    "grportal:geochem_heavy": "Heavy-mineral concentrate geochemistry",
+    "grportal:geochem_companies": "Company exploration geochemistry",
+    "grportal:geochem_scree": "Scree geochemistry",
     # 남극 (SCAR GeoMAP)
     "geomap_simple_geology": "Geology (simplified)",
     "geomap_chronostratigraphic": "Chronostratigraphy",

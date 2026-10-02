@@ -195,6 +195,7 @@
 | wetherilli 153 | 2026-10-02 | [온 지구 아이콘과 대기 화면](20261002_wetherilli_153_earth_emblem.md) |
 | wetherilli 154 | 2026-10-02 | [그때의 자리 — GPlates 와 견준 회귀 시험, 캡션 한 줄](20261002_wetherilli_154_paleo_gws_check.md) |
 | wetherilli 152 | 2026-10-02 | [주소만 적힌 CSV 를 점묶음으로 — 화면이 50 줄씩 나눠 VWorld 에 묻는다](20261002_wetherilli_152_address_csv.md) |
+| wetherilli 159 | 2026-10-02 | [연속값 색 — 그린란드 지화학 넷을 원소 하나로 칠한다](20261002_wetherilli_159_value_colors.md) |
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
