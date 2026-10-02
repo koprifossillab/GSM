@@ -186,6 +186,7 @@
 | wetherilli 143 | 2026-10-02 | [영국·프랑스·유럽 — BGS·BRGM 지질도와 EGDI 범유럽 1:100만, 탭 둘과 묶음 하나](20261002_wetherilli_143_europe_geology.md) |
 | wetherilli 144 | 2026-10-02 | [수성 지질도 — USGS 1:500만 도폭 아홉의 합본을 우리가 굽는다](20261002_wetherilli_144_mercury_geology.md) |
 | wetherilli 145 | 2026-10-02 | [휴대폰 화면 시험 — 구 화면을 하나씩 닫는다](20261002_wetherilli_145_mobile_test_close_pages.md) |
+| wetherilli 147 | 2026-10-02 | [유럽 2단계 — 독일 BGR·스페인 IGME·아일랜드 GSI·북아일랜드 GSNI](20261002_wetherilli_147_europe_more.md) |
 | wetherilli 146 | 2026-10-02 | [수성 더 — 소개 화면에 수성, 도폭 경계는 우리가 긋는다](20261002_wetherilli_146_mercury_more.md) |
 | wetherilli 148 | 2026-10-02 | [화성·수성의 높이 그래프](20261002_wetherilli_148_planet_profiles.md) |
 | wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |

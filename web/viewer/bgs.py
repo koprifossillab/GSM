@@ -120,3 +120,92 @@ def friendly(props: dict, lang: str = "ko") -> dict:
             value = i18n.age_ko(value)
         out[label] = value
     return out
+
+
+# ── GSNI(북아일랜드 지질조사소) 1:25만 (wetherilli 147) ─────────────────
+#
+# BGS 가 같은 서버(`map.bgs.ac.uk`)에서 대신 내준다 — 그래서 문은 여기 하나다(CCOP 가 gsj.py 에 든 것과 같다). 상류 이름은
+# `gsni` 로 따로 둔다 — 출처 문구가 GSNI 의 것이다. 3857 그대로, 줌 제한 없음. 속성은 GeoJSON 을 청해도 ArcGIS XML 을 주어
+# `featureinfo_xml`(Field·FieldName·FieldValue)로 읽는다. 열은 BGS 1:5만과 같은 꼴(`LEX_D`·`RCS_D`)이라 `friendly` 를 같이 쓴다
+import xml.etree.ElementTree as _ET
+from types import SimpleNamespace as _NS
+
+GSNI_PREFIX = "gsni:"
+GSNI_ATTRIBUTION = ('Contains <a href="https://www.economy-ni.gov.uk/topics/geological-survey-northern-ireland" target="_blank"'
+                    ' rel="noopener">Geological Survey of Northern Ireland</a> materials © Crown Copyright (OGL)')
+_ESRI = "{http://www.esri.com/wms}"
+
+
+def _gsni_get(params: dict):
+    left = usage.paused()
+    if left:
+        raise BgsError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
+    try:
+        r = requests.get(settings.GSNI_WMS_URL, params=params, timeout=settings.UPSTREAM_TIMEOUT,
+                         verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("gsni", ok=False)
+        raise BgsError(f"GSNI(BGS) 에 닿지 못했다: {exc}") from exc
+    log.info("GSNI %s -> %s", r.url, r.status_code)
+    usage.record("gsni", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    return r
+
+
+def _gsni_wms(params: dict, request: str) -> dict:
+    params = dict(params, service="WMS", request=request, version="1.1.1")
+    if "crs" in params and "srs" not in params:
+        params["srs"] = params.pop("crs")
+    for key in ("layers", "query_layers"):
+        if key in params:
+            params[key] = ",".join(n.strip()[len(GSNI_PREFIX):] if n.strip().startswith(GSNI_PREFIX) else n.strip()
+                                   for n in str(params[key]).split(","))
+    return params
+
+
+def gsni_get_map(params: dict):
+    r = _gsni_get(_gsni_wms(params, "GetMap"))
+    ctype = r.headers.get("content-type", "")
+    if r.status_code != 200 or not ctype.startswith("image/"):
+        raise BgsError(f"그림이 아닌 것이 왔다 (status={r.status_code}, type={ctype})")
+    return r.content, ctype
+
+
+def gsni_get_legend(layer: str):
+    name = layer[len(GSNI_PREFIX):] if layer.startswith(GSNI_PREFIX) else layer
+    r = _gsni_get({"service": "WMS", "version": "1.1.1", "request": "GetLegendGraphic", "format": "image/png",
+                   "layer": name})
+    if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+        raise BgsError(f"범례가 아닌 것이 왔다 (status={r.status_code})")
+    return r.content, r.headers.get("content-type")
+
+
+def gsni_get_feature_info(params: dict) -> dict:
+    params = _gsni_wms(params, "GetFeatureInfo")
+    params["info_format"] = "application/vnd.esri.wms_featureinfo_xml"
+    if "i" in params and "x" not in params:
+        params["x"], params["y"] = params.pop("i"), params.pop("j", "0")
+    r = _gsni_get(params)
+    if r.status_code != 200:
+        raise BgsError(f"속성을 읽지 못했다 (status={r.status_code})")
+    return {"features": parse_esri_xml(r.text)}
+
+
+def parse_esri_xml(text: str) -> list:
+    """ArcGIS `featureinfo_xml` → feature 목록. 문은 서로를 타지 않아 igme.py 의 것과 따로 둔다."""
+    try:
+        root = _ET.fromstring(text.encode("utf-8") if isinstance(text, str) else text)
+    except _ET.ParseError:
+        return []
+    features = []
+    for info in root.iter(f"{_ESRI}FeatureInfo"):
+        props = {}
+        for field in info.iter(f"{_ESRI}Field"):
+            name = (field.findtext(f"{_ESRI}FieldName") or "").strip()
+            if name:
+                props[name] = (field.findtext(f"{_ESRI}FieldValue") or "").strip()
+        features.append({"id": f"gsni.{props.get('OBJECTID', len(features))}", "properties": props})
+    return features
+
+
+#: `views._Door` 가 쓰는 꼴 — 다른 문(모듈)과 같은 이름의 셋
+GSNI = _NS(get_map=gsni_get_map, get_feature_info=gsni_get_feature_info, get_legend=gsni_get_legend)

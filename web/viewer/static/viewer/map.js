@@ -165,9 +165,31 @@
               first: "brgm:SCAN_F_GEOL1M",
               // 범유럽 1:100만(EGDI)은 영국 지역에 들어 있다 — 그 상류의 레이어군만 빌린다
               borrow: { uk: ["egdi"] } },
+    // ── 독일·스페인·아일랜드 (wetherilli 147) ──
+    // BGR·IGME·GSI 를 중계한다. 판마다 그리는 줌이 좁아 넓게 볼 때는 EGDI 1:100만을 빌려 깐다. 아일랜드는 섬 전체 —
+    // GSI 1:100만이 이미 섬 하나로 이어져 있고, 북아일랜드 1:25만(GSNI, BGS 서버)을 같은 레이어군에 둔다
+    germany: { title: "독일", proj: "EPSG:3857", center: [10.4, 51.2], zoom: 6, vworld: false,
+               home: [646000, 5975000, 1681000, 7381000],
+               basemap: "eox_terrain", example: "51.31, 9.48 · Kassel",
+               base: ["egdi:GeologicUnitView_Age", "bgr:gk1000:0", "bgr:guek250:7", "bgr:guek250:4"],
+               first: ["egdi:GeologicUnitView_Age", "bgr:guek250:7"],
+               borrow: { uk: ["egdi"] } },
+    spain: { title: "스페인", proj: "EPSG:3857", center: [-3.7, 40.2], zoom: 6, vworld: false,
+             home: [-1046000, 4287000, 490000, 5450000],
+             basemap: "eox_terrain", example: "40.417, -3.704 · Madrid",
+             base: ["igme:geologico1m:0", "igme:magna50:0", "igme:magna50:2"],
+             first: "igme:geologico1m:0",
+             borrow: { uk: ["egdi"] } },
+    ireland: { title: "아일랜드", proj: "EPSG:3857", center: [-7.8, 53.4], zoom: 7, vworld: false,
+               home: [-1191000, 6675000, -601000, 7460000],
+               basemap: "eox_terrain", example: "53.35, -6.26 · Dublin",
+               base: ["gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM", "gsi:100k:IE_GSI_Bedrock_Geology_100K_IE26_ITM",
+                      "gsni:5"],
+               first: "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM",
+               borrow: { uk: ["egdi"] } },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
-              includes: ["uk", "france"],
-              home: [-1000000, 5000000, 1100000, 8900000],
+              includes: ["uk", "ireland", "france", "germany", "spain"],
+              home: [-1225000, 4232000, 1781000, 8626000],
               basemap: "eox_terrain",
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age" },
@@ -215,7 +237,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "europe"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -565,6 +587,11 @@
     bgs: { source: npolarSource, info: wmsInfoUrl },
     brgm: { source: npolarSource, info: wmsInfoUrl },
     egdi: { source: npolarSource, info: wmsInfoUrl },
+    // 독일 BGR·스페인 IGME(1:100만은 4326)·아일랜드 GSI·북아일랜드 GSNI(wetherilli 147) — 카탈로그 행의 투영으로 받는다
+    bgr: { source: npolarSource, info: wmsInfoUrl },
+    igme: { source: npolarSource, info: wmsInfoUrl },
+    gsi: { source: npolarSource, info: wmsInfoUrl },
+    gsni: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -860,13 +887,15 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
+              "germany", "spain", "ireland"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
+              "germany", "spain", "ireland"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -1789,7 +1818,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
@@ -1799,6 +1828,8 @@
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
+    bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
+    gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };

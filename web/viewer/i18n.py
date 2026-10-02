@@ -584,6 +584,14 @@ EN = {
     "영국": "United Kingdom",
     "프랑스": "France",
     "유럽": "Europe",
+    # 독일·스페인·아일랜드 (wetherilli 147)
+    "독일": "Germany",
+    "스페인": "Spain",
+    "아일랜드": "Ireland",
+    "독일 연방 지구과학·자원청": "BGR (Federal Institute for Geosciences and Natural Resources)",
+    "스페인 지질광물연구소": "IGME (Geological and Mining Institute of Spain)",
+    "아일랜드 지질조사소": "Geological Survey Ireland",
+    "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
     "노르웨이 지질조사소": "Geological Survey of Norway",
@@ -1860,6 +1868,9 @@ PROP_EN = {
     "가운데": "Centre",
     "지은이": "Authors",
     "지형구": "Province",
+    # 독일 BGR·스페인 IGME (wetherilli 147)
+    "대": "Era",
+    "성인": "Genesis",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -2360,6 +2371,9 @@ GROUP_EN = {
     "영국 지질 (BGS)": "Great Britain geology (BGS)",
     "프랑스 지질 (BRGM)": "France geology (BRGM)",
     "유럽 지질 (EGDI 1:100만)": "Europe geology (EGDI 1:1M)",
+    "독일 지질 (BGR)": "Germany geology (BGR)",
+    "스페인 지질 (IGME)": "Spain geology (IGME)",
+    "아일랜드 기반암 (GSI·GSNI)": "Ireland bedrock (GSI · GSNI)",
 }
 
 LAYER_EN = {
@@ -2373,6 +2387,18 @@ LAYER_EN = {
     "brgm:LITHO_1M_SIMPLIFIEE": "Simplified lithology (1:1M)",
     "egdi:GeologicUnitView_Age": "Surface geology — age",
     "egdi:GeologicUnitView_Lithology": "Surface geology — lithology",
+    # 독일·스페인·아일랜드 (wetherilli 147)
+    "bgr:gk1000:0": "Geological map (1:1M)",
+    "bgr:guek250:7": "Stratigraphy (1:250k)",
+    "bgr:guek250:4": "Lithology (1:250k)",
+    "bgr:guek250:11": "Structural lines (1:250k)",
+    "igme:geologico1m:0": "Lithology (1:1M)",
+    "igme:magna50:0": "MAGNA lithology (1:50k)",
+    "igme:magna50:2": "MAGNA contacts & faults (1:50k)",
+    "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM": "Bedrock (1:1M, whole island)",
+    "gsi:1m:IE_GSI_GSNI_Faults_1M_IE32_ITM": "Faults (1:1M)",
+    "gsi:100k:IE_GSI_Bedrock_Geology_100K_IE26_ITM": "Bedrock (1:100k, Republic)",
+    "gsni:5": "Bedrock (1:250k, Northern Ireland)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
