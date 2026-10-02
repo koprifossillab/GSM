@@ -122,6 +122,34 @@ class Areas(SimpleTestCase):
                          [("kimb", 2), ("carb", 1), ("lampo", 1), ("lampr", 1), ("other", 1)])
         self.assertIn("rock", body["labels"])
 
+    def _codes(self, name, props_list):
+        rows = [{"type": "Feature", "id": i, "geometry": {"type": "Point", "coordinates": [-52, 65]}, "properties": p}
+                for i, p in enumerate(props_list)]
+        body = json.loads(grportal.body(name, json.dumps(rows).encode()))
+        return [f["properties"]["code"] for f in body["features"]]
+
+    def test_시추공_보고_없음은_만나지_못했다와_가른다(self):
+        # `Not_Reported` 도 `No` 로 시작한다 (wetherilli 157)
+        self.assertEqual(self._codes("grportal:diamond_drillholes", [{"kim": "Yes"}, {"kim": "No"}, {"kim": "Not_Reported"}]),
+                         ["yes", "no", "nr"])
+
+    def test_농도는_값의_구간으로(self):
+        self.assertEqual(self._codes("grportal:diamond_indicators",
+                                     [{"pkg": 130783.3}, {"pkg": 100}, {"pkg": 99.9}, {"pkg": 1}, {"pkg": 0.5}, {}]),
+                         ["c100", "c100", "c10", "c1", "c0", "c0"])
+        self.assertEqual(self._codes("grportal:diamond_per_kg", [{"pkg": 3.5}, {"pkg": 0.3}, {"pkg": 0.05}, {"pkg": 0}]),
+                         ["d1", "d025", "d005", "d0"])
+
+    def test_석류석은_G10D_G10_G9_차례로(self):
+        self.assertEqual(self._codes("grportal:garnet_classes",
+                                     [{"g10d": 1, "g10": 22, "g9": 67}, {"g10d": 0, "g10": 3}, {"g9": 5}, {"g11": 9}]),
+                         ["g10d", "g10", "g9", "other"])
+
+    def test_DED_는_이용_조건이_적혀_있다(self):
+        self.assertIn("CC BY 4.0", grportal.license_of("grportal:diamond_drillholes"))
+        self.assertIn("CC BY 4.0", grportal.license_of("grportal:diamond_occurrences"))
+        self.assertEqual(grportal.license_of("grportal:geochron"), "")
+
     def test_갈래가_없는_옛_레이어는_그대로_싼다(self):
         body = json.loads(grportal.body("grportal:geochron", b"[]"))
         self.assertEqual(body["style"], "age")
