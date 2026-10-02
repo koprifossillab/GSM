@@ -813,6 +813,20 @@ EN = {
     "선 {n}": "{n} lines",
     "면 {n}": "{n} polygons",
     "올리지 못했다": "Upload failed",
+    # 주소만 적힌 CSV (wetherilli 152)
+    "주소로 좌표를 찾는 중… {done} / {all}줄": "Finding coordinates from addresses… {done} / {all} rows",
+    "찾은 주소": "Matched address",
+    "주소로 좌표를 하나도 찾지 못했다 — 도로명·지번 주소인지 본다.":
+        "No address could be located — check that they are Korean road or parcel addresses.",
+    "주소를 못 찾은 줄 {n}개 — {lines}": "{n} rows not located — {lines}",
+    "주소 열({col})이 모두 비어 있다.": "The address column ({col}) is empty.",
+    "주소로 찾는 것은 지구의 점묶음뿐이다.": "Addresses can only be located for Earth point sets.",
+    "VWorld 열쇠가 없어 주소로 좌표를 찾지 못한다. 위경도 열을 넣어 올린다.":
+        "No VWorld key, so addresses cannot be located. Add latitude/longitude columns and upload again.",
+    "주소로 찾는 것은 한 번에 {n}줄까지다. 나눠 올린다.": "Up to {n} address rows at a time. Split the file and upload again.",
+    "주소는 한 번에 {n}줄까지 보낸다": "Send up to {n} addresses at a time",
+    "VWorld 열쇠가 없다": "No VWorld key",
+    "상류가 바빠 잠시 멈췄다. 조금 뒤에 다시 올린다.": "The source is busy, so we paused. Upload again shortly.",
 
     # 좌표 막대
     "좌표·주소·장소로 이동 — 36.378, 127.362 · 과학로 124 · 가정동":
