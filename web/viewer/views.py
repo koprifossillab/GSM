@@ -29,7 +29,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, ocean, wind
+from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, ocean, volcanoes, wind
 from . import linked
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -1183,6 +1183,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
+                                   "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
                                    # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
@@ -1647,6 +1649,49 @@ def earth_fossil_at(request):
         out.append({"no": row["no"], "name": row["name"], "rows": rows, "link": pbdb.collection_url(row["no"]),
                     "today": [row["lon"], row["lat"]], "at": [plon, plat], "mid": mid})
     return JsonResponse({"hits": out, "credit": pbdb.CREDIT})
+
+
+# ── 홀로세 화산 (wetherilli 134) ─────────────────────────────────────
+
+@require_GET
+def earth_volcano_tile(request, z, x, y):
+    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`)."""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not volcanoes.available():
+        return _tile(tiles.blank_tile(), store=False)
+    # 다시 받은 날이 열쇠에 든다 — 판이 오르면 새로 그린다
+    key = tilecache.key_text("gvp", f"{volcanoes.RENDERER}/{volcanoes.fetched()}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = volcanoes.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_volcano_at(request):
+    """`?lon=&lat=&r=` — 누른 자리 둘레(`r`°)의 화산, 가까운 것부터 다섯."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for v in volcanoes.near(lon, lat, r):
+        last = volcanoes.year_text(v["last"])
+        rows = [("화산", v["name"]), ("화산 종류", v["type"]), ("마지막 분화", i18n.t(last, lang) if last else ""),
+                ("근거", v["evidence"]), ("나라", v["country"]), ("지역", v["subregion"]),
+                ("표고 (m)", f"{v['elev']:,}" if v["elev"] is not None else ""), ("지구조 환경", v["tectonic"]),
+                ("주 암석", v["rock"]), ("지질 개요", v["summary"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, str(val)] for k, val in rows if val]
+        out.append({"no": v["no"], "name": v["name"], "rows": rows, "link": gvp.volcano_url(v["no"]),
+                    "at": [v["lon"], v["lat"]]})
+    return JsonResponse({"hits": out, "credit": gvp.CREDIT})
 
 
 def _age_span(oldest, youngest) -> str:
