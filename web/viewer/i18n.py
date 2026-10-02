@@ -470,6 +470,8 @@ EN = {
     "화성 지질 (USGS 1:2000만, 2014)": "Mars geology (USGS 1:20M, 2014)",
     "수성 지질 (USGS 1:500만 도폭, 1980–1990)": "Mercury geology (USGS 1:5M quadrangles, 1980–1990)",
     "구조선 — 급사면·능선·단층·분지 고리": "Structures — scarps, ridges, faults, basin rings",
+    "도폭 경계 (H-1 … H-15)": "Quadrangle boundaries (H-1 … H-15)",
+    "도폭 경계 — 원도가 있는 아홉에 원도 번호": "Quadrangle boundary — the nine with a map carry its number",
     "c{n} — c1 가장 닳음, c5 가장 또렷함": "c{n} — c1 most degraded, c5 freshest",
     "마리너 10 이 찍지 못해 지질도가 없는 곳이다": "No geologic map here — Mariner 10 did not image this area",
     "수성 지질도 파일이 서버에 없다": "The Mercury geologic map file is not on the server",
@@ -1159,6 +1161,13 @@ EN = {
     "지질도 USGS · 지형·영상 NASA Trek": "Geology USGS · Terrain and imagery NASA Trek",
     "달 화면 — 둥근 달 위의 USGS 지질도": "Moon view — USGS geology on the globe",
     "화성 화면 — 둥근 화성 위의 USGS 지질도": "Mars view — USGS geology on the globe",
+    "수성 화면 — 둥근 수성 위의 USGS 지질도": "Mercury view — USGS geology on the globe",
+    "둥근 지구와 달, 화성, 수성": "The Earth, the Moon, Mars and Mercury as globes",
+    "해에 가장 가까운 행성의 지질도.": "A geologic map of the planet nearest the Sun.",
+    "마리너 10 시절의 USGS 1:500만 지질도 아홉 장을 MESSENGER 영상 위에. <b>엽상 급사면</b>과 칼로리스 분지의 고리까지.":
+        "Nine USGS 1:5M geologic maps from the Mariner 10 era over MESSENGER imagery — down to <b>lobate scarps</b> and the rings of the Caloris basin.",
+    "지질도 USGS · 영상·지형 MESSENGER(NASA Trek)": "Geology USGS · imagery and terrain MESSENGER (NASA Trek)",
+    "USGS 1:500만 지질도 · MESSENGER 영상·지형": "USGS 1:5M geology · MESSENGER imagery and terrain",
     "이제 직접 볼 차례입니다": "Your turn",
     "어디부터 볼까요?": "Where would you like to start?",
     "KIGAM 지질도와 VWorld": "KIGAM geology and VWorld",
@@ -1173,7 +1182,6 @@ EN = {
     "코드는 AGPL-3.0": "Code under AGPL-3.0",
     "소스": "Source",
     # ── 소개 다듬기 (wetherilli 115) ──
-    "둥근 지구와 달, 화성": "The Earth, the Moon and Mars as globes",
     "극지연구소 고생물진화연구실": "Lab. of Paleontology &amp; Evolution in KOPRI",
     "지질도를 겹쳐 보고, 눌러 속성을 읽고, 내 좌표를 얹는 지도.":
         "A map for overlaying geological maps, clicking to read attributes and adding your own coordinates.",
