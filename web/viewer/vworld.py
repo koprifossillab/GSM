@@ -517,6 +517,21 @@ FRIENDLY = {
     "res_lbl_3": "하한 고도",
     "dng_lbl_3": "하한 고도",
     "uac_lbl_3": "하한 고도",
+    # 수질측정망 다섯·지하수측정망 — 벡터 점(WFS). 2026-10-02 에 모았다 (wetherilli 156)
+    "st_nm": "측정소",
+    "st_id": "위치",
+    "water": "수계",
+    "am_nm": "단위유역",
+    "env_std": "환경 기준",
+    "use": "용도",
+    "chk_mngt": "측정 기관",
+    "int_year": "설치 연도",
+    "clo_year": "폐쇄 연도",
+    "st_cd": "측정소 코드",
+    "addr": "주소",
+    "cyongdo": "용도",
+    "cdrink": "음용",
+    "code": "관정 번호",
     # 유역
     "bbsnnm": "대권역",
     "mbsnnm": "중권역",
@@ -550,6 +565,10 @@ def friendly(props: dict, layer: str = "") -> dict:
         if not name or value in (None, "", "null"):
             continue
         if name == "지정 연도" and str(value) == "0000":    # 모르는 해를 0000 으로 적는다
+            continue
+        if name == "폐쇄 연도" and str(value) == "9999":    # 측정망은 아직 재는 곳을 9999 로 적는다
+            continue
+        if name == "환경 기준" and re.fullmatch(r"0(\.0+)?", str(value)):   # 하천수는 기준이 없는 자리를 0 으로 채운다
             continue
         if name == "길이 (m)":
             try:
