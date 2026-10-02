@@ -274,6 +274,8 @@ EN = {
     "분석하지 않은 {n}점은 그리지 않았다": "{n} points not analysed are not drawn",
     "Fe₂O₃ (전철)": "Fe₂O₃ (total)",
     "강열 감량": "LOI",
+    "Fe (전철)": "Fe (total)",
+    "휘발분": "Volatiles",
     # 수성 화면 (wetherilli P10)
     "수성": "Mercury",
     "수성 위도": "Mercury lat", "수성 경도": "Mercury lon",
@@ -1844,6 +1846,7 @@ PROP_EN = {
     "보고서": "Report",
     "시료 갈래": "Sample type",
     "해": "Year",
+    "분석 번호": "Analysis no.",
     "채취·보고": "Collected / reported by",
     "시료 기재": "Sample description",
     "채취 지점": "Locality",
@@ -2617,6 +2620,7 @@ LAYER_EN = {
     "grportal:geochem_heavy": "Heavy-mineral concentrate geochemistry",
     "grportal:geochem_companies": "Company exploration geochemistry",
     "grportal:geochem_scree": "Scree geochemistry",
+    "grportal:whole_rock": "Whole-rock chemistry",
     # 남극 (SCAR GeoMAP)
     "geomap_simple_geology": "Geology (simplified)",
     "geomap_chronostratigraphic": "Chronostratigraphy",

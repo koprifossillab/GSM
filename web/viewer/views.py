@@ -2022,7 +2022,9 @@ def _point_fields(layer) -> dict:
                 "opacity": spec["opacity"]}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
-                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP}
+                "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
+                # 고른 원소만 받는 레이어 — 전암 화학 (wetherilli 163)
+                **({"slice": True} if grportal.LAYERS[layer.name].get("slice") else {})}
     if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
@@ -3086,7 +3088,12 @@ def point_layer(request):
     except POINT_ERRORS as exc:
         log.warning("점 레이어를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
-    response = HttpResponse(module.body(name, features), content_type="application/geo+json")
+    if module is grportal and grportal.LAYERS[name].get("slice"):
+        # 전암 화학 3 만 점 — 고른 원소만 잘라 준다 (wetherilli 163)
+        body = grportal.value_slice(name, features, request.GET.get("value", ""))
+    else:
+        body = module.body(name, features)
+    response = HttpResponse(body, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
