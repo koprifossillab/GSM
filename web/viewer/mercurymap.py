@@ -138,11 +138,12 @@ def quad_of(lon: float, lat: float) -> str:
     """수성 사각형 도폭 — 경도는 동경(−180–180)으로 받는다. 도폭은 서경으로 나뉜다.
     합본이 덮지 않는 도폭(H-4·5·9·10·13·14)도 이름은 낸다 — 거기에는 단위가 없으므로 부를 일이 없다."""
     west = (-lon) % 360                              # 서경 0–360
-    if lat >= 65:
+    # 경계는 USGS 도폭 목록의 것 — 극 66° 너머, 중위도 22–66°, 적도 띠 ±22° (화면의 도폭 경계 레이어와 같다)
+    if lat >= 66:
         return "H-1"
-    if lat <= -65:
+    if lat <= -66:
         return "H-15"
-    if abs(lat) < 22.5:
+    if abs(lat) < 22:
         return f"H-{6 + min(4, int(west // 72))}"
     base = 2 if lat > 0 else 11
     return f"H-{base + min(3, int(west // 90))}"
