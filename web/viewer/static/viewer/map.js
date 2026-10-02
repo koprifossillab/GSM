@@ -84,7 +84,10 @@
                 home: [890000, -739000, 1380000, -212000],
                 basemap: "npi_sat", places: "78.223, 15.647 · Longyearbyen",
                 base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
-                first: "npolar:svalbard_units" },
+                first: "npolar:svalbard_units",
+                // 북극해의 해저 지질(EMODnet)을 빌려 보인다 — 스발바르를 둘러싼 바다다. 묶음(`includes`)으로 만들면
+                // KPDC 의 북극해 자료까지 따라와서, 상류 하나만 빌린다 (wetherilli 135)
+                borrow: { arctic_ocean: ["emodnet"] } },
     // ── 북극해 (devlog 076) ──
     // 스발바르·그린란드 탭 밖의 북극 — 지금은 KPDC 자료(아라온의 축치해·베링해 항해, 캐나다
     // 케임브리지베이, 시베리아·스칸디나비아 관측소)뿐이다. 3413 은 경도 -45° 가 아래라 베링 해협이
@@ -95,8 +98,17 @@
                     basemap: "gibs_bm_n", example: "71.5, -156.8",
                     base: [],
                     first: "kopri:kpdc_ocean_arctic_ocean" },
+    // ── 노르웨이·핀란드 (wetherilli 140) ──
+    // NGU(노르웨이)·GTK(핀란드)의 기반암 지질도를 중계한다. 스발바르와 같은 3413 이라 북극 묶음에 든다.
+    // GTK 는 3413 을 그대로 받고, NGU 는 3413 을 그려 주지 않아 북극 람베르트(3575)로 받아 옮겨 그린다
+    fennoscandia: { title: "노르웨이·핀란드", proj: "EPSG:3413", center: [18.0, 65.0], zoom: 4, vworld: false,
+                    home: [1525000, -2371000, 3522000, -455000],
+                    basemap: "eox_terrain", example: "69.649, 18.956 · Tromsø",
+                    base: ["ngu:Berggrunn_nasjonal_bergartsenheter", "ngu:Berggrunn_regional_hovedbergarter",
+                           "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132"],
+                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet"] },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
-              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean"],
+              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia"],
               home: [-612000, -3344000, 1380000, -212000],
               basemap: "eox_s2", places: "78.223, 15.647 · Longyearbyen",
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
@@ -120,12 +132,22 @@
              basemap: "eox_terrain", example: "39.904, 116.407",
              base: ["geo3al:age", "geo3al:rock"],
              first: "geo3al:age" },
+    // ── 대만 (wetherilli 136) ──
+    // 경제부 지질조사·광업관리중심(GSMMA)의 WMS 를 우리 서버가 중계한다. **상류가 4326 만 받아** 4326 격자로
+    // 받고 OpenLayers 가 옮겨 그린다(`taiwanSource`). 누르면 지질운 API 의 지층(5만·25만)이 뜬다.
+    // 범위는 펑후·진먼·마쭈까지 넣으면 넓어져 본섬에 맞춘다
+    taiwan: { title: "대만", proj: "EPSG:3857", center: [120.9, 23.7], zoom: 7, vworld: false,
+              home: [13277000, 2470000, 13617000, 2948000],
+              basemap: "nlsc_grey", example: "25.033, 121.565",
+              base: ["gsmma:geology_50k", "gsmma:geology_250k", "gsmma:geology_500k", "gsmma:geology_1m"],
+              first: "gsmma:geology_50k" },
     eastasia: { title: "동아시아", proj: "EPSG:3857", center: [135.0, 37.5], zoom: 5, vworld: true,
-                includes: ["korea", "japan", "china"],
+                includes: ["korea", "japan", "china", "taiwan"],
                 home: [13803617, 3763311, 16252646, 5388389],
                 basemap: "eox_terrain",
                 // 중국(geo3al, 025)은 한반도·일본까지 덮는 1:500만이라 늘 펼쳐 두되 켜지는 않는다
-                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults", "geo3al:age"],
+                base: ["L_1M_Geology_Map", "L_250K_Geology_Map", "gsj:geology", "gsj:faults", "gsmma:geology_500k",
+                       "geo3al:age"],
                 // 넓게 보는 탭이라 한국은 100만, 일본은 20만(가장 넓은 판)을 켠다
                 first: ["L_1M_Geology_Map", "gsj:geology"] },
   };
@@ -155,11 +177,15 @@
     // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
     // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // 북극 람베르트 등적 유럽판 — NGU 지질도가 3413 을 그려 주지 않아 이것으로 받는다 (wetherilli 140).
+    // 범위는 적도까지(극에서 약 9 000 km) — 타일 격자가 이 범위로 선다
+    proj4.defs("EPSG:3575", "+proj=laea +lat_0=90 +lon_0=10 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
     // 중부원점(GRS80) — phyloserver 의 한반도 지질도가 카카오맵 격자로 잘려 있다 (devlog 026)
     proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     // UTM-K(GRS80) — 한반도 지질도 음영판을 이 격자로 잘라 둔다 (devlog 027)
     proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
+    ol.proj.get("EPSG:3575").setExtent([-9009964.76, -9009964.76, 9009964.76, 9009964.76]);
   }
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
@@ -168,7 +194,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "japan", "china"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"].forEach(function (key) {
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
       return keys.indexOf(g.region) >= 0 && g.layers.length;
@@ -217,8 +243,14 @@
   /** 지금 지역의 레이어군. 묶음 지역이면 `includes` 차례로 모은다. */
   function regionCatalog() {
     var keys = regionKeys();
-    return catalog.filter(function (g) { return keys.indexOf(g.region || "korea") >= 0; })
-      .sort(function (a, b) { return keys.indexOf(a.region || "korea") - keys.indexOf(b.region || "korea"); });
+    var borrow = REGIONS[region].borrow || {};
+    // 빌려 온 레이어군(`borrow`)은 제 지역의 것 뒤에 선다
+    var rank = function (g) { var i = keys.indexOf(g.region || "korea"); return i >= 0 ? i : keys.length; };
+    return catalog.filter(function (g) {
+      if (keys.indexOf(g.region || "korea") >= 0) return true;
+      var from = borrow[g.region];
+      return !!from && g.layers.some(function (l) { return from.indexOf(l.upstream) >= 0; });
+    }).sort(function (a, b) { return rank(a) - rank(b); });
   }
   var pointsets = JSON.parse(document.getElementById("pointset-data").textContent || "[]");
 
@@ -380,6 +412,28 @@
     });
   }
 
+  /** 대만 — GSMMA 지질도 (wetherilli 136). 상류(MapGuide)가 **4326 만 받는다** — 3857·3826 은 `InvalidCRS`.
+   *  그래서 4326 격자로 받고 OpenLayers 가 옮겨 그린다. 격자는 줌 0 이 180° 네모 두 장이다 — 한 장이 360° 면
+   *  위도가 -270° 까지 걸쳐 상류가 받지 않는다. 대만 범위 밖은 묻지 않는다(`makeLayer` 가 범위를 건다). */
+  var TAIWAN_GRID = (function () {
+    var resolutions = [];
+    for (var z = 0; z <= 19; z++) resolutions.push(180 / 512 / Math.pow(2, z));
+    return new ol.tilegrid.TileGrid({ extent: [-180, -90, 180, 90], origin: [-180, 90],
+                                      resolutions: resolutions, tileSize: 512 });
+  })();
+
+  function taiwanSource(name) {
+    var row = byName[name] || {};
+    return new ol.source.TileWMS({
+      url: BASE + "wms",
+      params: { LAYERS: name, TILED: true, FORMAT: "image/png", TRANSPARENT: true, VERSION: "1.3.0" },
+      transition: 0,
+      projection: "EPSG:4326",
+      tileGrid: TAIWAN_GRID,
+      attributions: row.attribution || undefined,
+    });
+  }
+
   /** 일본 — GSJ 심리스 지질도 (devlog 024). 우리 서버(`gsj/`)가 z/x/y 타일을 중계한다.
    *  주소·줌·출처는 카탈로그 행이 준다. 줌 13 까지만 그려 주고, 더 들어가면
    *  OpenLayers 가 13 을 키워 그린다. */
@@ -468,6 +522,13 @@
     gsj: { source: gsjSource, info: gsjInfoUrl },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
+    // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
+    gsmma: { source: taiwanSource, info: wmsInfoUrl },
+    // EMODnet 해저 지질(wetherilli 135) — NPI 처럼 3413 으로 곧장 받는다
+    emodnet: { source: npolarSource, info: wmsInfoUrl },
+    // 노르웨이 NGU(3575)·핀란드 GTK(3413) 기반암(wetherilli 140) — 카탈로그 행의 투영으로 받는다
+    ngu: { source: npolarSource, info: wmsInfoUrl },
+    gtk: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -505,7 +566,7 @@
     // 묶음 탭(동아시아)에서는 레이어의 범위 밖 타일을 묻지 않는다 — 일본을 볼 때
     // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
-    if (row && row.bbox && REGIONS[region].includes && isMercator()) {
+    if (row && row.bbox && (REGIONS[region].includes || row.upstream === "gsmma") && isMercator()) {
       var b = row.bbox;
       tile.setExtent(ol.proj.transformExtent([b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5],
                                              "EPSG:4326", viewProj()));
@@ -761,19 +822,19 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "japan", "china"],
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   // 같은 ImageServer 의 다른 그리는 법 둘 (wetherilli 092). 여러 방향 음영은 한 방향 음영이 그늘에 묻는
@@ -781,19 +842,19 @@
   BASEMAPS.arcticdem_multi = {
     title: T("ArcticDEM 음영 (여러 방향)"),
     note: T("Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Multidirectional"); },
   };
   BASEMAPS.arcticdem_tinted = {
     title: T("ArcticDEM 높이 색 음영"),
     note: T("Polar Geospatial Center. 높이를 색으로 칠한 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Elevation Tinted"); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -899,6 +960,83 @@
     regions: ["japan"],
     make: function () { return gsiLayer("hillshademap", "png", 16); },
   };
+
+  // ── 해저 지형 — GEBCO (wetherilli 135) ──
+  //
+  // 온 바다의 수심과 땅의 높이를 한 장에 칠한 음영(15″ 격자, 약 450 m). 공공 도메인이고 출처만 밝힌다.
+  // 극지 배경처럼 **브라우저가 곧장 부른다** — 열쇠가 없고 CORS 가 열려 있다. 지역마다 두므로 `regions` 가 없다.
+  // 상류가 3857·4326 만 그려 주어, 극 평사도법 탭은 4326 을 받아 OpenLayers 가 옮겨 그린다(3857 은 극에서 끊긴다).
+  // 한 장에 2 초 남짓 걸리고 격자가 450 m 라, 줌 9 보다 가까우면 더 묻지 않고 늘려 그린다
+  var GEBCO = 'GEBCO Compilation Group (2026) <a href="https://www.gebco.net/data-products/gridded-bathymetry-data" target="_blank" rel="noopener">GEBCO 2026 Grid</a>';
+  BASEMAPS.gebco = {
+    title: T("GEBCO 해저 지형"),
+    note: T("GEBCO 2026 (약 450 m). 바다의 수심과 땅의 높이를 음영으로. 공공 도메인. 항해에 쓰지 않는다"),
+    make: function () { return gebcoLayer("GEBCO_LATEST"); },
+  };
+  BASEMAPS.gebco_subice = {
+    title: T("GEBCO 해저·얼음 밑 지형"),
+    note: T("GEBCO 2026 (약 450 m). 빙상을 걷어 낸 얼음 밑 기반암과 해저. 공공 도메인"),
+    regions: ["greenland", "antarctica"],
+    make: function () { return gebcoLayer("GEBCO_LATEST_SUB_ICE_TOPO"); },
+  };
+
+  function gebcoLayer(name) {
+    var code = regionProj() === "EPSG:3857" ? "EPSG:3857" : "EPSG:4326";
+    return new ol.layer.Tile({
+      opacity: 0.9,
+      source: new ol.source.TileWMS({
+        url: "https://wms.gebco.net/mapserv",
+        // 1.1.1 이면 4326 도 경도가 먼저다
+        params: { LAYERS: name, VERSION: "1.1.1", FORMAT: "image/png", TILED: true },
+        projection: code,
+        tileGrid: ol.tilegrid.createXYZ({ extent: ol.proj.get(code).getExtent(), maxZoom: 9, tileSize: 512 }),
+        crossOrigin: "anonymous",
+        transition: 0,
+        attributions: GEBCO,
+      }),
+    });
+  }
+
+  // ── 대만 배경 — 내정부 국토측회중심(NLSC) WMTS (wetherilli 141) ──
+  // 국토지리원처럼 브라우저가 곧장 부른다 — CORS 가 열려 있고 열쇠가 없다. 3857 격자(GoogleMapsCompatible)라
+  // 그대로 얹는다. **지질도 밑에는 회색 판이 낫다** — 일본의 담색과 같은 까닭이다. 대만 밖은 비어 있다
+  var NLSC = '<a href="https://maps.nlsc.gov.tw/" target="_blank" rel="noopener">國土測繪圖資服務雲</a> (內政部國土測繪中心)';
+  BASEMAPS.nlsc_grey = {
+    title: T("대만 회색 지도 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 지질도 밑에 깔기 좋다"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("EMAP01", "jpg", 18); },
+  };
+  BASEMAPS.nlsc_emap = {
+    title: T("대만 전자지도 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("EMAP", "jpg", 18); },
+  };
+  BASEMAPS.nlsc_photo = {
+    title: T("대만 정사영상 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 대만 밖은 비어 있다"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("PHOTO2", "jpg", 19); },
+  };
+  BASEMAPS.nlsc_hillshade = {
+    title: T("대만 음영기복 (국토측회중심)"),
+    note: T("대만 내정부 국토측회중심. 지형을 지질도와 견줄 때"),
+    regions: ["taiwan"],
+    make: function () { return nlscLayer("MOI_HILLSHADE", "png", 16); },
+  };
+
+  function nlscLayer(name, ext, maxZoom) {
+    return new ol.layer.Tile({
+      opacity: 0.85,
+      source: new ol.source.XYZ({
+        url: "https://wmts.nlsc.gov.tw/wmts/" + name + "/default/GoogleMapsCompatible/{z}/{y}/{x}",
+        crossOrigin: "anonymous",
+        maxZoom: maxZoom,
+        attributions: NLSC,
+      }),
+    });
+  }
 
   function gsiLayer(name, ext, maxZoom) {
     return new ol.layer.Tile({
@@ -1613,12 +1751,15 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), ccop: "CCOP",
+    gsmma: T("대만 지질조사·광업관리중심"),
+    emodnet: "EMODnet Geology",
+    ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
   };

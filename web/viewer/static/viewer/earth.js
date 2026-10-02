@@ -46,6 +46,9 @@
     bm: { name: "BlueMarble_ShadedRelief_Bathymetry", credit: "Blue Marble shaded relief & bathymetry · NASA EOSDIS GIBS" },
     bmng: { name: "BlueMarble_NextGeneration", credit: "Blue Marble Next Generation · NASA EOSDIS GIBS" },
     relief: { name: "BlueMarble_ShadedRelief", credit: "Blue Marble shaded relief · NASA EOSDIS GIBS" },
+    // GEBCO 해저 지형(공공 도메인, wetherilli 135) — GIBS 가 아니라 GEBCO 의 WMS 다. 4326 뿐이라 극 평면은 Blue Marble 로 갈음한다
+    gebco: { name: "GEBCO_LATEST", wms: "https://wms.gebco.net/mapserv", format: "image/png", max: 8,
+             credit: "GEBCO Compilation Group (2026) GEBCO 2026 Grid" },
   };
   // 지질 레이어 목록 — 달·화성과 같은 꼴이다. 이름은 서버 `earth/tiles/<이름>` 의 것
   //   info    누르면 읽는 갈래 (`earth/info/`)   legend  범례 칸의 갈래   src  카드 밑의 출처
@@ -111,6 +114,25 @@
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "ocean", title: "해류", ocean: true, legend: "ocean", src: "ECCO2 cube92 (NASA JPL·MIT) · Menemenlis et al. 2008" });
   }
+  // 홀로세 화산 — GVP 의 1 200 여 곳. 받아 둔 것이 있을 때만. 오늘의 레이어라 1 Ma 부터는 꺼진다 (wetherilli 134)
+  if (THEN.volcanoes && THEN.volcanoes.length) {
+    CATALOG.splice(CATALOG.findIndex(function (g) { return g.layers[0].name === "fossils"; }) + 1, 0,
+      { group: "화산 (GVP)", layers: [
+        { name: "volcanoes", title: "홀로세 화산", grid: "ll", legend: "volcano",
+          src: "Global Volcanism Program, Smithsonian Institution" },
+      ] });
+  }
+  // 지진 — USGS 의 M5 이상, 1900 년부터. 규모의 칸 셋을 따로 켠다. 오늘의 레이어다 (wetherilli 138)
+  //   quake  타일 주소의 칸(`earth/quakes/tiles/<칸>/…`)이자 누를 때 묻는 칸
+  if (THEN.quakes && THEN.quakes.length) {
+    var QUAKE_SRC = "U.S. Geological Survey ComCat · public domain";
+    CATALOG.splice(CATALOG.findIndex(function (g) { return g.layers[0].name === "fossils"; }) + 1, 0,
+      { group: "지진 (USGS)", layers: [
+        { name: "quake6", title: "M6 이상", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+        { name: "quake55", title: "M5.5–6", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+        { name: "quake5", title: "M5–5.5", grid: "ll", quake: true, legend: "quake", legendTitle: "지진 (USGS)", src: QUAKE_SRC },
+      ] });
+  }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
@@ -127,6 +149,8 @@
     if (name === "icemargins") return BASE + "earth/icemargins/tiles/" + Math.min(1000, Math.round(age * 1000)) + "/{z}/{x}/{y}.png";
     if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png";
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png";
+    if (name === "volcanoes") return BASE + "earth/volcanoes/tiles/{z}/{x}/{y}.png";
+    if (LAYER[name].quake) return BASE + "earth/quakes/tiles/" + name + "/{z}/{x}/{y}.png";
     return BASE + "earth/tiles/" + name + "/{z}/{x}/{y}.png";
   }
   var GEO_CREDIT = "Macrostrat (CC BY 4.0) · Peters, Husson & Czaplewski 2018, G-cubed";
@@ -134,11 +158,13 @@
   var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
+  var GVP_CREDIT = "Global Volcanism Program, Smithsonian Institution · Volcanoes of the World";
+  var QUAKE_CREDIT = "U.S. Geological Survey · ANSS ComCat";
   var NE_CREDIT = "Natural Earth 10 m (public domain)";
   var ICE_CREDIT = "NADI-1 (Dalton et al. 2023, CC BY 4.0) · DATED-1 (Hughes et al. 2016, CC BY 3.0)";
   var MANTLE_CREDIT = "Müller et al. (2022) OPT1, Solid Earth (CC BY 4.0)";
   function creditOf(name) {
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, crust: CRUST_CREDIT,
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT,
              names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
@@ -196,9 +222,10 @@
   // 몸은 Cesium 의 기본(WGS84)이다. 달·화성처럼 구를 따로 짓지 않는다 — 지구의 자료가 다 WGS84 다
   var ELL = Cesium.Ellipsoid.WGS84;
   function cesiumBase(key) {
+    var b = BASES[key];
     return new Cesium.ImageryLayer(new Cesium.WebMapServiceImageryProvider({
-      url: GIBS_WMS, layers: BASES[key].name, parameters: { format: "image/jpeg", transparent: false },
-      tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: 8, credit: BASES[key].credit,
+      url: b.wms || GIBS_WMS, layers: b.name, parameters: { format: b.format || "image/jpeg", transparent: false },
+      tilingScheme: new Cesium.GeographicTilingScheme(), maximumLevel: b.max || 8, credit: b.credit,
     }));
   }
 
@@ -403,6 +430,13 @@
   // CORS 로 받아야 한다(GIBS 는 `*`)
   function baseSource(key) {
     var polar = proj !== EQC, e = polar ? (proj === NPS ? "3413" : "3031") : "4326";
+    if (BASES[key].wms && polar) key = "bm";       // 극 평면을 그려 주지 않는 WMS(GEBCO) — 옮겨 그리지 못해 Blue Marble 로
+    if (BASES[key].wms) {
+      return new ol.source.TileWMS({
+        url: BASES[key].wms, params: { LAYERS: BASES[key].name, VERSION: "1.1.1", FORMAT: BASES[key].format, TILED: true },
+        projection: proj, tileGrid: gibsGrid(), crossOrigin: "anonymous", attributions: BASES[key].credit, wrapX: true,
+      });
+    }
     return new ol.source.XYZ({
       url: GIBS_WMTS.replace("{e}", e).replace("{name}", BASES[key].name),
       projection: proj, tileGrid: polar ? gibsPolarGrid() : gibsGrid(), crossOrigin: "anonymous",
@@ -2181,6 +2215,20 @@
     }
     if (kind === "ocean") return Promise.resolve(flowLegend(OCEAN_COLORS, OCEAN_REF, T("입자 색은 해류의 빠르기 — 표층 5 m")));
     if (legends[kind] !== undefined) return Promise.resolve(legends[kind]);
+    if (kind === "quake") {
+      legends[kind] = '<li class="empty">' + esc(T("원의 크기는 규모, 색은 진원 깊이")) + "</li>" +
+        THEN.quakes.map(function (row) {
+          return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+        }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "volcano") {
+      legends[kind] = '<li class="empty">' + esc(T("세모의 색은 마지막 분화")) + "</li>" +
+        THEN.volcanoes.map(function (row) {
+          return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+        }).join("");
+      return Promise.resolve(legends[kind]);
+    }
     if (kind === "crust") {
       legends[kind] = '<li class="empty">' + esc(T("2° 칸의 모형이다 — 관측이 아니다")) + "</li>" +
         (THEN.crust || []).map(function (row) {
@@ -2214,10 +2262,10 @@
     Promise.all(layers.map(function (l) { return legendHtml(l.legend); })).then(function (parts) {
       if (mine !== legendAsked) return;
       $("legend-list").innerHTML = parts.map(function (html, i) {
-        var head = parts.length > 1 ? '<li class="layer">' + esc(T(layers[i].title)) + "</li>" : "";
+        var head = parts.length > 1 ? '<li class="layer">' + esc(T(layers[i].legendTitle || layers[i].title)) + "</li>" : "";
         return head + html;
       }).join("");
-      $("legend-sub").textContent = layers.length === 1 ? T(layers[0].title) : "";
+      $("legend-sub").textContent = layers.length === 1 ? T(layers[0].legendTitle || layers[0].title) : "";
     });
   }
 
@@ -2690,10 +2738,65 @@
   // 켜져 있으면 먼저 누른 자리 둘레(7 칸)의 산지를 묻는다. 있으면 산지를, 없으면 여느 때처럼 그 자리를(오늘은 지질 단위,
   // 옛 연대는 판 조각) 보인다 — 점묶음의 점을 누른 것과 같은 차례다
   function askAt(ll, pixel) {
+    var perPx = (mode === "flat" ? groundRes() : heightToRes(hereHeight())) / 111320;
+    // 화산이 켜져 있고 보이면 그것부터 — 없으면 화석 산지, 그다음 그 자리 (wetherilli 134)
+    if (isOn("volcanoes") && LAYER.volcanoes && visibleNow("volcanoes")) {
+      var mineV = ++asked;
+      fetch(BASE + "earth/volcanoes/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
+            "&r=" + Math.max(0.002, perPx * 8).toFixed(4))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (mineV !== asked) return;
+          if (d.hits && d.hits.length) showVolcanoes(d.hits, pixel); else askQuake(ll, pixel, perPx);
+        })
+        .catch(function () { if (mineV === asked) askQuake(ll, pixel, perPx); });
+      return;
+    }
+    askQuake(ll, pixel, perPx);
+  }
+  // 지진 — 켠 규모 칸에서만 찾는다. 없으면 화석 산지 (wetherilli 138)
+  function askQuake(ll, pixel, perPx) {
+    var bands = active.filter(function (e) { return LAYER[e.name].quake && visibleNow(e.name); })
+                      .map(function (e) { return e.name; });
+    if (!bands.length) { askFossil(ll, pixel, perPx); return; }
+    var mine = ++asked;
+    fetch(BASE + "earth/quakes/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) +
+          "&r=" + Math.max(0.002, perPx * 7).toFixed(4) + "&bands=" + bands.join(","))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (mine !== asked) return;
+        if (d.hits && d.hits.length) showQuakes(d.hits, pixel); else askFossil(ll, pixel, perPx);
+      })
+      .catch(function () { if (mine === asked) askFossil(ll, pixel, perPx); });
+  }
+  function showQuakes(hits, pixel) {
+    markAt(hits[0].at);
+    var html = coordHead(hits[0].at);
+    if (hits.length > 1) html += '<p class="none">' + esc(T("지진 {n} 곳 가운데 가까운 것부터", { n: hits.length })) + "</p>";
+    html += hits.map(function (h) {
+      return "<h3>" + esc(h.name) + "</h3><table>" + h.rows.map(function (row) {
+        return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+      }).join("") + '</table><p><a class="ett-link" target="_blank" rel="noopener" href="' + esc(h.link) + '">' +
+        esc(T("USGS 에서 보기")) + "</a></p>";
+    }).join("");
+    showPopup(html, pixel);
+  }
+  function showVolcanoes(hits, pixel) {
+    markAt(hits[0].at);
+    var html = coordHead(hits[0].at);
+    if (hits.length > 1) html += '<p class="none">' + esc(T("화산 {n} 곳 가운데 가까운 것부터", { n: hits.length })) + "</p>";
+    html += hits.map(function (h) {
+      return "<h3>" + esc(h.name) + "</h3><table>" + h.rows.map(function (row) {
+        return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+      }).join("") + '</table><p><a class="ett-link" target="_blank" rel="noopener" href="' + esc(h.link) + '">' +
+        esc(T("GVP 에서 보기")) + "</a></p>";
+    }).join("");
+    showPopup(html, pixel);
+  }
+  function askFossil(ll, pixel, perPx) {
     var ask = paleoOn() ? askPaleo : askUnit;
     if (!isOn("fossils") || !THEN.fossils) { ask(ll, pixel); return; }
     var mine = ++asked;
-    var perPx = (mode === "flat" ? groundRes() : heightToRes(hereHeight())) / 111320;
     fetch(BASE + "earth/fossils/at/?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&age=" + age +
           "&r=" + Math.max(0.002, perPx * 7).toFixed(4))
       .then(function (r) { return r.json(); })

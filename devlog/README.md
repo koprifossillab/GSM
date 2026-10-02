@@ -175,8 +175,14 @@
 | wetherilli 131 | 2026-10-01 | [개인 레이어 — 아이콘을 눌러 색·모양, 면 투명도, 용량 재기, 켠 지질 레이어 모두 끄기](20261001_wetherilli_131_personal_style_capacity.md) |
 | wetherilli 132 | 2026-10-01 | [휴대폰 화면을 시험으로](20261001_wetherilli_132_mobile_test.md) |
 | wetherilli 133 | 2026-10-01 | [레이어 목록 — 체크박스 대신 상류 딱지, 줄을 눌러 켜고 끄기, 레이어군 모두 켜기](20261001_wetherilli_133_catalog_rows.md) |
-| wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
+| wetherilli 134 | 2026-10-02 | [온 지구 — 홀로세 화산, 스미스소니언 GVP 1 214 곳](20261002_wetherilli_134_gvp_volcanoes.md) |
+| wetherilli 135 | 2026-10-02 | [해저 — GEBCO 해저 지형 배경, EMODnet 해저 지질을 북극해·스발바르에](20261002_wetherilli_135_seafloor_gebco_emodnet.md) |
+| wetherilli 136 | 2026-10-02 | [대만 — 경제부 지질조사·광업관리중심 지질도, 대만 탭과 동아시아에](20261002_wetherilli_136_taiwan_gsmma.md) |
 | wetherilli 137 | 2026-10-02 | [수성 — 화성 화면을 옮긴 1 단계 (영상·표고·지명·점묶음, 지질은 다음에)](20261002_wetherilli_137_mercury_view.md) |
+| wetherilli 138 | 2026-10-02 | [온 지구 — 지진, USGS 의 M5 이상 10 만 7 천 곳을 규모 칸 셋으로](20261002_wetherilli_138_usgs_earthquakes.md) |
+| wetherilli 140 | 2026-10-02 | [노르웨이·핀란드 — NGU·GTK 기반암 지질도를 새 지역 탭과 북극 묶음에](20261002_wetherilli_140_fennoscandia_geology.md) |
+| wetherilli 141 | 2026-10-02 | [대만 둘째 판 — 환경지질·민감구역·시추·온천, 국토측회중심 배경, 3D](20261002_wetherilli_141_taiwan_second.md) |
+| wetherilli P10 | 2026-10-02 | [수성 — 화성 화면을 옮겨 짓는다 (계획)](20261002_wetherilli_P10_mercury.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |

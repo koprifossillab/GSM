@@ -26,11 +26,11 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, i18n, ibcso, janmayen, kigam, kopri, npolar,
+from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, zhurong)
-from . import arcpoints, crust, fossils, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, spamap, ocean, wind
-from . import linked
+from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, paleo, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import emodnet, gtk, linked, ngu
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -353,8 +353,9 @@ def map3d_view(request):
     # 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
+    # 대만(GSMMA)은 상류가 4326 만 받아 문이 4326 으로 받아 3857 로 편다(`gsmma.mercator_map`, wetherilli 141)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
-                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop")
+                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop", "gsmma")
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS))])
               for g in _catalog(lang)]
@@ -1235,6 +1236,10 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
+                                   "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
+                                   # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
+                                   "quakes": quakes.legend(lang) if quakes.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
                                    "icemargins": icemargins.stops(),
                                    # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
@@ -1701,6 +1706,91 @@ def earth_fossil_at(request):
     return JsonResponse({"hits": out, "credit": pbdb.CREDIT})
 
 
+# ── 홀로세 화산 (wetherilli 134) ─────────────────────────────────────
+
+@require_GET
+def earth_volcano_tile(request, z, x, y):
+    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`)."""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not volcanoes.available():
+        return _tile(tiles.blank_tile(), store=False)
+    # 다시 받은 날이 열쇠에 든다 — 판이 오르면 새로 그린다
+    key = tilecache.key_text("gvp", f"{volcanoes.RENDERER}/{volcanoes.fetched()}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = volcanoes.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_volcano_at(request):
+    """`?lon=&lat=&r=` — 누른 자리 둘레(`r`°)의 화산, 가까운 것부터 다섯."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for v in volcanoes.near(lon, lat, r):
+        last = volcanoes.year_text(v["last"])
+        rows = [("화산", v["name"]), ("화산 종류", v["type"]), ("마지막 분화", i18n.t(last, lang) if last else ""),
+                ("근거", v["evidence"]), ("나라", v["country"]), ("지역", v["subregion"]),
+                ("표고 (m)", f"{v['elev']:,}" if v["elev"] is not None else ""), ("지구조 환경", v["tectonic"]),
+                ("주 암석", v["rock"]), ("지질 개요", v["summary"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, str(val)] for k, val in rows if val]
+        out.append({"no": v["no"], "name": v["name"], "rows": rows, "link": gvp.volcano_url(v["no"]),
+                    "at": [v["lon"], v["lat"]]})
+    return JsonResponse({"hits": out, "credit": gvp.CREDIT})
+
+
+# ── 지진 (wetherilli 138) ───────────────────────────────────────────
+
+@require_GET
+def earth_quake_tile(request, band, z, x, y):
+    """`earth/quakes/tiles/<칸>/<z>/<x>/<y>.png` — USGS 의 지진, 규모 칸 하나(`quakes.BANDS`). 오늘의 레이어다."""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y) or band not in quakes.BANDS:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not quakes.available():
+        return _tile(tiles.blank_tile(), store=False)
+    # 다시 구운 날이 열쇠에 든다 — 새 지진이 쌓이면 새로 그린다
+    key = tilecache.key_text("usgs", f"{quakes.RENDERER}/{quakes.built()}/{band}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    png = quakes.render_tile(band, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def earth_quake_at(request):
+    """`?lon=&lat=&r=&bands=quake6,quake55` — 누른 자리 둘레(`r`°)의 지진, 켠 규모 칸에서 가까운 것부터 다섯."""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    bands = [b for b in (request.GET.get("bands") or "").split(",") if b in quakes.BANDS]
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for q in quakes.near(bands, lon, lat, r):
+        when = q["time"].replace("T", " ")[:16]
+        rows = [("규모", f"{q['mag']:g} {q['mag_type']}".strip()), ("일시 (UTC)", when),
+                ("깊이 (km)", f"{q['depth']:g}" if q["depth"] is not None else ""), ("곳", q["place"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+        out.append({"id": q["id"], "name": i18n.t(msg("M{mag} 지진", mag=f"{q['mag']:g}"), lang), "rows": rows,
+                    "link": usgs.event_url(q["id"]), "at": [q["lon"], q["lat"]]})
+    return JsonResponse({"hits": out, "credit": usgs.CREDIT})
+
+
 def _age_span(oldest, youngest) -> str:
     if oldest is None:
         return ""
@@ -1832,6 +1922,15 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "kopri" and kopri.knows_wms(layer.name):
         # KPDC 지도 서버(057) — 남극은 3031 을, 북극은 3413 을 그대로 받는다(NPI 와 같다, wetherilli 095)
         return {"attribution": kopri.ATTRIBUTION, "projection": kopri.wms_projection(layer.name)}
+    if layer.upstream == "emodnet":
+        # EMODnet 해저 지질(wetherilli 135) — GeoServer 가 3413 도 그려 준다. 북극해·스발바르 탭이 그대로 받는다
+        return {"attribution": emodnet.ATTRIBUTION, "projection": "EPSG:3413"}
+    if layer.upstream == "ngu":
+        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
+        return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+    if layer.upstream == "gtk":
+        # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
+        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
     if layer.upstream == "gsj" and gsj.knows(layer.name):
         # 일본(024) — z/x/y 타일을 우리 서버가 중계한다. 경계·단층·기호는 줌 10·11
         # 부터 그려져서 그보다 멀면 화면이 레이어를 숨긴다(`minZoom`)
@@ -1841,6 +1940,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 "minZoom": spec["min"], "maxZoom": spec["max"],
                 "legend": spec["legend"] or "none", "viewer": gsj.VIEWER_URL,
                 **({} if spec["info"] else {"queryable": False})}
+    if layer.upstream == "gsmma" and gsmma.knows(layer.name):
+        # 대만(wetherilli 136) — 상류가 4326 만 받아 그 격자로 받는다(`map.js` 의 `taiwanSource`). 범례는 주지 않는다
+        return {"attribution": gsmma.ATTRIBUTION, "projection": "EPSG:4326", "noLegend": True,
+                **({} if gsmma.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "phyloserver" and phyloserver.knows_scan(layer.name):
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
@@ -1886,7 +1989,8 @@ def catalog_json(request):
 # 타일은 셋이 같이 쓴다.
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
-                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError)
+                   npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
+                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -1913,14 +2017,20 @@ class _Door:
                # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
                "pgc": elevation,
                # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
-               "ccop": gsj.CCOP}
+               "ccop": gsj.CCOP,
+               # 대만 지질도(wetherilli 136) — 그림은 4326 WMS, 속성은 지질운 GeoJSON. 문은 gsmma.py 다
+               "gsmma": gsmma.DOOR,
+               # EMODnet 해저 지질(wetherilli 135) — 북극해. NPI 처럼 3413 으로 곧장 받는다
+               "emodnet": emodnet,
+               # 노르웨이·핀란드 기반암(wetherilli 140)
+               "ngu": ngu, "gtk": gtk}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2455,9 +2565,19 @@ def feature_info(request):
             props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "ccop":
             props = gsj.ccop_friendly(props, lang)   # code → 지질기호 …, 시대를 옮긴다
+        elif door.name == "gsmma":
+            props = gsmma.friendly(props, lang)      # Name → 지층명 …, 시대를 중국어에서 옮긴다
+        elif door.name == "emodnet":
+            props = emodnet.friendly(props, lang)    # 마흔 남짓한 열에서 추린다. 시대를 옮긴다
+        elif door.name == "ngu":
+            props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
+        elif door.name == "gtk":
+            props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
+        if not props:                                # 추리고 나니 남은 것이 없다(NGU 의 그리지 않은 칸)
+            continue
         if lang == "en":
             # 캐시에는 상류가 준 한국어 그대로 두고, 내보낼 때만 옮긴다
             props = i18n.props_en(props)

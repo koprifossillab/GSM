@@ -1625,6 +1625,28 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --glass: rgba(251, 251, 254, .95); --glass-line: #d4d1e5;
 }
 
+/* ── 노르웨이·핀란드 (wetherilli 140) — 타이가의 순록이끼: 가문비 숲그늘 바탕에 지의류의 연두 ──
+   북쪽 숲 바닥을 덮는 이끼에서 땄다. 이웃 탭(스발바르 국기 남색·빨강, 북극해 라일락, 그린란드 빙하 청, 얀마옌 용암 주황)과
+   남쪽의 청자(동아시아)보다 노란 기를 더 넣어 갈랐다 */
+:root[data-region="fennoscandia"] {
+  --bg: #111710; --panel: #182017; --panel-tint: #0d130c; --raise: #212b1f;
+  --ink: #eef2e6; --ink-soft: #bcc6ab; --ink-faint: #7d8a6d;
+  --line: #2e3a2a; --line-soft: #212b1f;
+  --gold: #c2d65a; --gold-bright: #e0ec9c; --gold-muted: #a5b754;
+  --gold-wash: rgba(194, 214, 90, .12); --gold-edge: rgba(194, 214, 90, .4);
+  --hi: #c2d65a; --hi-deep: #e0ec9c; --on-hi: #0d130c; --hi-ink: #e0ec9c;
+  --glass: rgba(13, 19, 12, .93); --glass-line: rgba(194, 214, 90, .33);
+}
+:root[data-region="fennoscandia"][data-theme="light"] {
+  --bg: #f1f4ea; --panel: #fcfdf9; --panel-tint: #f5f7ef; --raise: #e6eadb;
+  --ink: #1a2115; --ink-soft: #4b5640; --ink-faint: #868f78;
+  --line: #d7ddc8; --line-soft: #e6eadb;
+  --gold: #5f7a12; --gold-bright: #45590b; --gold-muted: #6d8430;
+  --gold-wash: #eef3dc; --gold-edge: #c9d79a;
+  --hi: #2e3a17; --hi-deep: #1c240e; --on-hi: #f8fbef; --hi-ink: #5f7a12;
+  --glass: rgba(252, 253, 249, .95); --glass-line: #d7ddc8;
+}
+
 /* ── 북극 (devlog 021) — 그린란드·스발바르·얀마옌을 한 화면에. 극야: 먹청 바탕에
    흰 얼음빛. 품은 지역의 색(빙하 청·국기 빨강·용암 주황) 어느 것과도 겹치지 않게
    색을 빼고 밝기로만 가른다 */
@@ -1688,6 +1710,28 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --gold-wash: #e6ecfb; --gold-edge: #b3c3ef;
   --hi: #1d2d5c; --hi-deep: #111c3d; --on-hi: #f4f7ff; --hi-ink: #2f55c2;
   --glass: rgba(252, 252, 253, .95); --glass-line: #d6dbe6;
+}
+
+/* ── 대만 (wetherilli 136) — 보라얼룩나비(紫斑蝶): 가지빛 먹 바탕에 나비 날개의 보라 ──
+   나비의 섬이라 그 나비에서 땄다. 이웃 탭의 벚꽃 분홍(일본)·코발트(중국)·비색(동아시아)과 겹치지 않게
+   붉은 기도 푸른 기도 덜어 낸 제비꽃빛으로 갔다. 밝은 판은 날개 안쪽의 흰 반점이다 */
+:root[data-region="taiwan"] {
+  --bg: #17141d; --panel: #1f1a27; --panel-tint: #120f17; --raise: #2a2333;
+  --ink: #f0ebf6; --ink-soft: #c2b6d2; --ink-faint: #857a95;
+  --line: #352c41; --line-soft: #262030;
+  --gold: #b79af0; --gold-bright: #dacbfb; --gold-muted: #9d84d0;
+  --gold-wash: rgba(183, 154, 240, .13); --gold-edge: rgba(183, 154, 240, .42);
+  --hi: #b79af0; --hi-deep: #dacbfb; --on-hi: #120f17; --hi-ink: #dacbfb;
+  --glass: rgba(18, 15, 23, .93); --glass-line: rgba(183, 154, 240, .35);
+}
+:root[data-region="taiwan"][data-theme="light"] {
+  --bg: #f3f0f7; --panel: #fdfcfe; --panel-tint: #f7f4fa; --raise: #e9e3f0;
+  --ink: #1f1729; --ink-soft: #564a66; --ink-faint: #8f84a0;
+  --line: #ddd5e7; --line-soft: #e9e3f0;
+  --gold: #6d45c2; --gold-bright: #4f2c99; --gold-muted: #7a5db8;
+  --gold-wash: #efe8fb; --gold-edge: #cbb8ef;
+  --hi: #34224f; --hi-deep: #211534; --on-hi: #f8f4ff; --hi-ink: #6d45c2;
+  --glass: rgba(253, 252, 254, .95); --glass-line: #ddd5e7;
 }
 
 /* ── 동아시아 (devlog 024) — 한국·일본을 한 화면에. 청자: 먹녹 바탕에 비색 ──

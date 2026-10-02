@@ -202,12 +202,12 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
 한국지질자원연구원이다 — 우리는 받은 것을 다시 내주지 않는다.
 
-## 지역 — 한국·일본·중국·그린란드·스발바르·얀마옌·남극, 그리고 동아시아·북극
+## 지역 — 한국·일본·중국·대만·그린란드·스발바르·얀마옌·노르웨이·핀란드·남극, 그리고 동아시아·북극
 
 화면 위 지역 탭으로 가른다 (devlog 016). **한국이 기본**이고 다른 지역은
 "+ 추가 지역" 에서 더한다. 지역마다 레이어 목록·켠 레이어·보던 자리·배경·색이
-따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 중국은 청화백자, 그린란드는 빙하빛, 스발바르는 노르웨이
-국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 남극은 오로라 청록, 동아시아는 청자.
+따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 중국은 청화백자, 대만은 보라얼룩나비, 그린란드는 빙하빛, 스발바르는 노르웨이
+국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 노르웨이·핀란드는 타이가의 순록이끼, 남극은 오로라 청록, 동아시아는 청자.
 
 - **달은 지역이 아니다** — 대돌여지도 아이콘의 숨은 차림에서 들어가는 따로 화면(`/GSM/moon/`)이다.
   CesiumJS 의 둥근 달(극까지 온전하다)에 USGS 달 통합 지질도와 LOLA 지형을 얹고, 테마는 늘 흑백이다
@@ -245,6 +245,10 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097).
   `always` 는 늘 뜬다 — **화석 산지**(PBDB 27 만 곳, 문 `pbdb.py`, `manage.py fetch_pbdb` 가 받아 `fossils.py` 가 `<EARTH_DIR>/pbdb.sqlite`
   로 굽는다, wetherilli 098). 화면이 부를 때 PBDB 를 타지 않는다. 옛 연대에는 그 연대를 품은 산지를 우리 판 회전으로 옮겨 찍는다.
+  **홀로세 화산**(스미스소니언 GVP 1 214 곳, 문 `gvp.py`, `manage.py fetch_gvp` 가 `<EARTH_DIR>/gvp_volcanoes.json` 에 적고 `volcanoes.py`
+  가 그린다, wetherilli 134)은 오늘의 레이어다 — 1 Ma 부터 꺼진다. 비상업·인용 조건이고 사진은 담지 않는다.
+  **지진**(USGS M5 이상 1900 년부터 10 만 7 천 곳, 문 `usgs.py`, `manage.py fetch_quakes` 가 5 년씩 1 초 간격으로 받아 `quakes.py` 가
+  `<EARTH_DIR>/quakes.sqlite` 로 굽는다, wetherilli 138)도 오늘의 레이어다. 규모 칸 셋(M6 이상·M5.5–6·M5–5.5)이 따로 레이어다.
   오늘의 레이어로 **지각 두께**(CRUST 2.0, `crust.py`, 1° 격자 `data/crust2_thickness.json` — `manage.py build_crust <zip>` 은
   h5py 가 있는 파이썬으로만 돈다. 제품은 h5py 를 쓰지 않는다, wetherilli 101)와 **지명 찾기·산맥·바다 이름·강·호수·빙하**
   (Natural Earth 10 m, `naturalearth.py`, `data/earth_places.json`·`earth_water.json`·`earth_ice.json` — `manage.py build_natural_earth`,
@@ -255,16 +259,16 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`·`mercury`, 037·058·P10). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만, 수성 화면은 `mercury` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면), 수성은 MESSENGER(`trek.mercury_values`, 2 439.4 km 구)
-- **지역마다 화면 투영이 다르다** — 한국·일본·중국·동아시아 3857, 그린란드·스발바르·얀마옌·북극
+- **지역마다 화면 투영이 다르다** — 한국·일본·중국·대만·동아시아 3857, 그린란드·스발바르·얀마옌·노르웨이·핀란드·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다. 지금의 투영은 축척 막대 옆에
   EPSG 번호로 늘 떠 있다 (jikhanjung 001)
 - **북극은 지역이 아니라 묶음이다** — `REGIONS.arctic.includes` 가 그린란드·스발바르·
-  얀마옌의 레이어군을 한 화면에 모은다. DB 의 `REGIONS` 에는 없다 (021).
-  **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국을 모은다. 묶음
+  얀마옌·북극해·노르웨이·핀란드의 레이어군을 한 화면에 모은다. DB 의 `REGIONS` 에는 없다 (021).
+  **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국·대만을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·ccop·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·ccop·gsmma·emodnet·ngu·gtk·phyloserver·geomap·janmayen·geo3al·kopri). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -274,12 +278,18 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   같다. **NPI 만은 지역의 투영으로 곧장 받는다** — 3857 로 물으면 축척이 부풀어
   1:25만 대신 1:75만을 준다 (021). **일본(GSJ)은 WMS 가 아니라 z/x/y 타일**이다 —
   GSJ 의 WMS 는 옛 판(V1)이라 타일 API(V2)를 `gsj/<레이어>/{z}/{x}/{y}.png` 로 중계하고,
-  속성은 `point=위도,경도`(`gsj/info/`), 범례는 보는 범위의 것만 JSON 으로(`gsj/legend/`) 받는다 (024)
+  속성은 `point=위도,경도`(`gsj/info/`), 범례는 보는 범위의 것만 JSON 으로(`gsj/legend/`) 받는다 (024).
+  **대만(GSMMA)은 4326 으로 받는다** — 상류 MapGuide 가 4326 말고는 `InvalidCRS` 다. 줌 0 이 180° 네모 두 장인 4326 격자
+  (`map.js` 의 `TAIWAN_GRID`)로 받아 옮겨 그린다. WMS 가 속성·범례를 주지 않아, 누른 자리의 지층은 같은 기관의 지질운
+  GeoJSON API 에 작은 네모로 묻는다(점 레이어 — 온천·시추공 — 는 화면의 8 픽셀). 지질시대는 번체 중국어에서
+  옮긴다(`i18n.age_zh`, wetherilli 136). **3D 는 3857 로 묻는다** — 문이 4326 으로 받아 줄(위도)만 다시 골라 편다
+  (`gsmma.mercator_map`, wetherilli 141). 3857 의 가로는 경도에 비례해서 줄만 고르면 된다
 - 카탈로그 씨앗은 상류마다 `data/*_layers.json` 이다. KIGAM 씨앗처럼 사람이
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일)은 VWorld 처럼
+- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경(국토지리원 지리원 타일), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
+  공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
   브라우저가 곧장 부른다.
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
@@ -358,7 +368,13 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS)
+  gsmma.py        대만 경제부 지질조사·광업관리중심(GSMMA)으로 나가는 문 (지질도 WMS 는 4326 만, 누른 자리의 지층은 지질운 GeoJSON)
+  emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
+  ngu.py          노르웨이 지질조사소(NGU)로 나가는 문 (본토 기반암 1:135만·25만·5만 MapServer WMS). 3413 을 안 그려 북극 람베르트(3575)로
+  gtk.py          핀란드 지질조사소(GTK)로 나가는 문 (기반암 1:100만·20만 ArcGIS WMS). 3413 으로 곧장
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
+  gvp.py          스미스소니언 Global Volcanism Program 으로 나가는 문 (홀로세 화산 WFS 를 통째로 한 번). 모아 둔다(`fetch_gvp`)
+  usgs.py         미국 지질조사국(USGS)으로 나가는 문 (지진 목록 FDSN, M5 이상을 5 년씩). 모아 둔다(`fetch_quakes`)
   gfs.py          NOAA GFS 로 나가는 문 (지금의 바람 u·v, 10 m·250 hPa, 구름량 넷, 분석과 +12 시간까지 예보). 호스트 cron 이 받는다(`fetch_gfs_wind`)
   gmgsi.py        NOAA GMGSI(AWS 공개 버킷)로 나가는 문 (위성 구름 — 정지궤도 적외선 온 지구 합성, 한 시간마다). 호스트 cron 이 받는다(`fetch_gmgsi`)
   era5.py         ARCO-ERA5(Google Cloud 공개 버킷)로 나가는 문 (지난 바람). 37 층 덩이에서 그 층만 Range 로. 사람이 부른다(`build_era5_wind`)
@@ -390,6 +406,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
   linked.py       연결 레이어로 나가는 문 — 사람이 준 주소(남의 API)를 대신 부른다. 사설망·낮은 포트를 막고 검사한 IP 로만 붙는다
   fossils.py      PBDB 화석 산지 CSV -> sqlite(R*Tree) -> 연대마다 그 자리의 점 타일·누른 자리. 문이 아니다
+  volcanoes.py    GVP 홀로세 화산 JSON -> 경위도 세모 타일(마지막 분화의 색)·누른 자리. 문이 아니다
+  quakes.py       USGS 지진 CSV -> sqlite(R*Tree) -> 규모 칸마다 경위도 원 타일(깊이의 색)·누른 자리. 문이 아니다
   warp.py         평면 격자(5179·5181·3031) 타일 -> 3857 타일. 3D 가 한반도 지질도·GeoMAP 을 얹는 길. 문이 아니다
   catalog.py      GetCapabilities XML -> 카탈로그
   coords.py       십진도 <-> 도분초. import 가 없다
@@ -405,11 +423,11 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 열일곱 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 스물셋 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
