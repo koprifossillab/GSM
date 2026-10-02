@@ -568,8 +568,8 @@ EN = {
     "VWorld 에서 받지 못했다": "Could not get it from VWorld",
     "점이 많아 화면에서 채우지 않는다 — 서버에서 manage.py fill_places {id} 를 부른다":
         "Too many points to fill here — run manage.py fill_places {id} on the server",
-    "둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명을 읽는다 ({n}/{m}점 채움)":
-        "Fill surroundings — read address, district, nearest fault and nearby place name from VWorld ({n}/{m} filled)",
+    "둘레 채우기 — VWorld 에서 점마다 주소·읍면동·가까운 단층·둘레 지명·보호구역·지목·소유구분을 읽는다 ({n}/{m}점 채움)":
+        "Fill surroundings — read address, district, nearest fault, nearby place name, protected area, land category and ownership from VWorld ({n}/{m} filled)",
     "{n}점 채움 · {m}점은 받지 못했다": "{n} filled · {m} not received",
     "점이 많아 화면에서 채우지 않는다 — 서버에서 manage.py fill_elevation {id} 를 부른다":
         "Too many points to fill here — run manage.py fill_elevation {id} on the server",
@@ -1661,6 +1661,10 @@ PROP_EN = {
     "해저·빙저(IBCSO)": "Bed (IBCSO, m)",
     "도로명(VWorld)": "Road address (VWorld)",
     "지번(VWorld)": "Parcel address (VWorld)",
+    "보호구역(VWorld)": "Protected area (VWorld)",
+    "지목(VWorld)": "Land category (VWorld)",
+    "소유구분(VWorld)": "Ownership (VWorld)",
+    "지정 구분": "Designation",
     "읍면동(VWorld)": "District (VWorld)",
     "가까운 단층(VWorld, m)": "Nearest fault (VWorld, m)",
     "둘레 지명(VWorld)": "Nearby place name (VWorld)",

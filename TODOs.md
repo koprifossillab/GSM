@@ -135,8 +135,6 @@ GSJ 는 2024-05-10 에 WMS·WMTS 를 `ows.gsj.jp` 로 옮겼다(심리스 V2 만
 
 ### 한국 — 시료 지점 칸·KIGAM 자료
 
-- [ ] 시료 지점 속성에 "보호구역 안"·"지목·소유구분" [실측: `LT_C_UO301`] — `point_facts`(074)에 일 둘. `uname` 이 온천의 뜻과
-      부딪혀 `LAYER_FRIENDLY` 로 가른다. 소유자 이름은 싣지 않는다. 자동으로 묻는 20 점마다 호출이 는다. 반나절
 - [ ] **KIGAM `/openapi/data` 모으기 — 이틀 반** [실측] — 목록 3 450 건. `page` 는 0 부터, `collection=` 거르기가 안 먹고 목록엔 좌표가
       없어 한 건씩 상세 → `fetch_kopri` 꼴(2 초, 두 시간, 다음부터 `lastModified`). `kigam.py` 에 더하고 씨앗은 따로
       (`kigam_data_layers.json`). CC BY-NC, DOI 로 출처, 밖에 열 때 `LAB_ONLY` 를 정한다. `POINT` 의 축 차례를 먼저 본다
