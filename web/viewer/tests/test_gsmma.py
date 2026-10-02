@@ -83,7 +83,7 @@ class Views(TestCase):
         groups = self.client.get(reverse("viewer:catalog")).json()["groups"]
         rows = {l["name"]: l for g in groups for l in g["layers"] if l["upstream"] == "gsmma"}
         self.assertEqual(rows["gsmma:geology_50k"]["projection"], "EPSG:4326")
-        self.assertTrue(rows["gsmma:geology_50k"]["noLegend"])
+        self.assertTrue(rows["gsmma:geology_1m"]["noLegend"])
         self.assertTrue(rows["gsmma:geology_50k"]["queryable"])
         self.assertFalse(rows["gsmma:geology_1m"]["queryable"])
 
@@ -193,3 +193,66 @@ class Second(TestCase):
     def test_3D_목록에_대만이_든다(self):
         r = self.client.get(reverse("viewer:map3d"))
         self.assertContains(r, "gsmma:geology_50k")
+
+
+class Legend(TestCase):
+    """범례 (wetherilli 142) — 지층 면과 그림을 맞대어 견본을 뜬다."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-gsmma3-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+        call_command("seed_catalog", stdout=io.StringIO())
+
+    def _answers(self):
+        """지질운: 왼쪽 반 沖積層·오른쪽 반 南港層. 그림: 왼쪽 반 노랑·오른쪽 반 초록."""
+        from PIL import Image
+        left = {"type": "Polygon", "coordinates": [[[121.0, 25.0], [121.05, 25.0], [121.05, 25.1], [121.0, 25.1],
+                                                     [121.0, 25.0]]]}
+        right = {"type": "Polygon", "coordinates": [[[121.05, 25.0], [121.1, 25.0], [121.1, 25.1], [121.05, 25.1],
+                                                      [121.05, 25.0]]]}
+        strata = mock.Mock(status_code=200, content=b"", url="…", headers={"content-type": "application/json"})
+        strata.json.return_value = {"features": [
+            {"geometry": left, "properties": {"Name": "沖積層", "Abbrev": "a", "Time": "全新世", "Note": "礫石"}},
+            {"geometry": right, "properties": {"Name": "南港層", "Abbrev": "Nk", "Time": "中新世中期"}},
+            {"geometry": left, "properties": {"Name": "沖積層", "Abbrev": "a", "Time": "全新世", "Note": "礫石"}}]}
+        # 범위가 0.1° × 0.2° 라 문은 512 × 1024 로 묻는다 — 받는 그림도 그 크기다
+        image = Image.new("RGBA", (512, 1024), (255, 253, 166, 255))
+        image.paste((124, 205, 124, 255), (256, 0, 512, 1024))
+        buf = io.BytesIO()
+        image.save(buf, "PNG")
+        picture = mock.Mock(status_code=200, content=buf.getvalue(), url="…", headers={"content-type": "image/png"})
+        return lambda url, **kw: strata if "geologycloud" in url else picture
+
+    def test_보는_범위의_지층을_견본과_함께(self):
+        with mock.patch.object(gsmma.requests, "get", side_effect=self._answers()), \
+             mock.patch.object(gsmma.usage, "record"), mock.patch.object(gsmma.usage, "paused", return_value=0):
+            data = self.client.get(reverse("viewer:gsmma-legend"),
+                                   {"layer": "gsmma:geology_50k", "bbox": "121.0,25.0,121.1,25.2"}).json()
+        rows = data["rows"]
+        self.assertEqual([r["symbol"] for r in rows], ["a", "Nk"])               # 많이 나온 차례
+        self.assertEqual((rows[0]["color"], rows[1]["color"]), ("#fffda6", "#7ccd7c"))
+        self.assertEqual(rows[0]["lithology"], "沖積層 (礫石)")
+        self.assertEqual(rows[1]["age"], "마이오세 중기")
+        self.assertTrue(rows[0]["swatch"].startswith("data:image/png;base64,"))
+
+    def test_넓으면_들어오라고_한다(self):
+        with mock.patch.object(gsmma.requests, "get") as get:
+            r = self.client.get(reverse("viewer:gsmma-legend"), {"layer": "gsmma:geology_50k",
+                                                                  "bbox": "120.0,23.0,121.5,24.5"})
+        self.assertEqual(r.status_code, 422)
+        get.assert_not_called()
+
+    def test_카탈로그는_범위_범례를_알린다(self):
+        groups = self.client.get(reverse("viewer:catalog")).json()["groups"]
+        rows = {l["name"]: l for g in groups for l in g["layers"] if l["upstream"] == "gsmma"}
+        self.assertEqual((rows["gsmma:geology_50k"]["legend"], rows["gsmma:geology_50k"]["legendUrl"]),
+                         ("extent", "gsmma/legend/"))
+        self.assertTrue(rows["gsmma:geology_1m"]["noLegend"])
+
+    def test_오목한_면도_안의_점을(self):
+        # ㄷ 자 — 가운데가 비었다
+        u = {"type": "Polygon", "coordinates": [[[0, 0], [3, 0], [3, 1], [1, 1], [1, 2], [3, 2], [3, 3], [0, 3],
+                                                  [0, 0]]]}
+        for x, y in gsmma.inner_points(u):
+            self.assertTrue(gsmma.contains(u, x, y), (x, y))

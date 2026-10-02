@@ -3096,7 +3096,8 @@
         .map(function (v) { return v.toFixed(2); }).join(",");
       q.z = Math.round(view.getZoom());
     }
-    fetch(BASE + "gsj/legend/?" + new URLSearchParams(q).toString())
+    // 대만(wetherilli 142)도 같은 꼴의 범례를 준다 — 주소는 카탈로그 행이 알린다
+    fetch(BASE + (row.legendUrl || "gsj/legend/") + "?" + new URLSearchParams(q).toString())
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "");
@@ -3111,8 +3112,14 @@
           var sw = document.createElement("span");
           sw.className = "sw box";
           sw.style.background = r.color;
+          // 무늬가 있는 지층은 그림 조각을 견본으로 준다(대만) — 색 한 칸으로는 빗금·점이 안 보인다
+          if (r.swatch) {
+            sw.style.backgroundImage = "url(" + r.swatch + ")";
+            sw.style.backgroundSize = "cover";
+            sw.style.imageRendering = "pixelated";
+          }
           var label = document.createElement("span");
-          label.textContent = r.lithology + (r.age ? " — " + r.age : "");
+          label.textContent = (r.symbol && r.swatch ? r.symbol + " " : "") + r.lithology + (r.age ? " — " + r.age : "");
           label.title = r.symbol;
           line.append(sw, label);
           box.appendChild(line);

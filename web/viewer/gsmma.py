@@ -13,6 +13,7 @@
   지도 서버에는 따로 붙은 문구가 없다. GetCapabilities 는 `Fees=none`, `AccessConstraints=none`
 - 값(지층명·암상)은 중국어 그대로 둔다. 지질시대만 옮긴다(`i18n.age_zh`)
 """
+import base64
 import io
 import logging
 import math
@@ -278,3 +279,141 @@ def friendly(props: dict, lang: str = "ko") -> dict:
 
 #: `views._Door` 가 쓰는 꼴
 DOOR = SimpleNamespace(get_map=get_map, get_feature_info=get_feature_info, get_legend=get_legend)
+
+
+# ── 범례 — 보는 범위의 지층을 그림에서 떠 온다 (wetherilli 142) ─────────────
+#
+# WMS 의 `GetLegendGraphic` 은 559, MapGuide 의 `GETLEGENDIMAGE` 는 401 이다. 지질운의 지층 자료에는 색이 없다.
+# 그래서 **보는 범위의 지층 면(지질운)과 같은 범위의 지층 그림(WMS)을 맞대어** 면마다 안쪽 한 점의 그림 조각을 뜬다.
+# 무늬(빗금·점)가 있는 지층이 많아 색 한 칸이 아니라 조각(16 픽셀)을 견본으로 준다. 일본(GSJ)처럼 화면이 HTML 로 그린다.
+
+#: 범례를 주는 레이어 → 지질운 자료, 칠한 면만 그린 상류 레이어, 범례를 물을 수 있는 가장 넓은 범위(도)
+LEGENDS = {
+    "gsmma:geology_50k": {"api": "Stratum", "wms": "50K_Geomap_strata", "span": 0.6},
+    "gsmma:geology_250k": {"api": "Stratum25", "wms": "250K_Geomap_strata_1974", "span": 4.0},
+}
+LEGEND_PIXELS = 1024          # 범위 그림의 긴 변
+SWATCH = 16                   # 견본 조각의 한 변
+MAX_LEGEND = 60
+
+
+def inner_points(geometry: dict, lines: int = 7):
+    """면 안의 점들 — 가장 큰 고리를 세로로 고르게 가로지르는 줄마다, 가장 긴 안쪽 구간의 가운데. 면이 오목해도 안에 든다."""
+    kind = (geometry or {}).get("type")
+    coords = (geometry or {}).get("coordinates") or []
+    polygons = [coords] if kind == "Polygon" else coords if kind == "MultiPolygon" else []
+    best, best_area = None, -1.0
+    for rings in polygons:
+        if not rings or len(rings[0]) < 3:
+            continue
+        xs, ys = [p[0] for p in rings[0]], [p[1] for p in rings[0]]
+        area = (max(xs) - min(xs)) * (max(ys) - min(ys))
+        if area > best_area:
+            best, best_area = rings, area
+    if best is None:
+        return []
+    ring = [tuple(p[:2]) for p in best[0]]
+    low, high = min(p[1] for p in ring), max(p[1] for p in ring)
+    points = []
+    # 가운데 줄부터 바깥으로 — 가운데가 가장 넉넉할 때가 많다
+    order = sorted(range(1, lines + 1), key=lambda k: abs(k - (lines + 1) / 2))
+    for k in order:
+        y = low + (high - low) * k / (lines + 1)
+        cuts = sorted(x1 + (y - y1) * (x2 - x1) / (y2 - y1)
+                      for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]) if (y1 > y) != (y2 > y))
+        spans = [(cuts[i], cuts[i + 1]) for i in range(0, len(cuts) - 1, 2)]
+        if spans:
+            a, b = max(spans, key=lambda s: s[1] - s[0])
+            points.append(((a + b) / 2, y))
+    return points
+
+
+def extent_legend(name: str, bbox) -> list:
+    """보는 범위(서, 남, 동, 북)에 든 지층 — [{swatch, color, symbol, name, time, note}], 많이 나온 차례."""
+    from PIL import Image
+
+    spec = LEGENDS[name]
+    west, south, east, north = bbox
+    if east - west > spec["span"] or north - south > spec["span"]:
+        raise LegendTooWide(spec["span"])
+    r = _get(f"{settings.GSMMA_API_URL}/{spec['api']}",
+             {"bbox": f"{west:.4f},{south:.4f},{east:.4f},{north:.4f}", "all": "true"}, "지질운")
+    if r.status_code != 200:
+        raise GsmmaError(f"지층을 받지 못했다 (status={r.status_code})")
+    try:
+        polygons = r.json().get("features") or []
+    except ValueError as exc:
+        raise GsmmaError("지질운이 JSON 이 아닌 것을 주었다") from exc
+    # 그림 — 가로·세로를 범위의 비에 맞춘다(4326 그대로, 위도에 따른 늘임은 견본에 상관없다)
+    ratio = (north - south) / (east - west)
+    width = LEGEND_PIXELS if ratio <= 1 else max(64, int(LEGEND_PIXELS / ratio))
+    height = max(64, int(width * ratio))
+    content, _ = _fetch({"service": "WMS", "request": "GetMap", "version": "1.3.0", "layers": "WMS/" + spec["wms"],
+                         "styles": "", "crs": "EPSG:4326", "bbox": f"{south},{west},{north},{east}",
+                         "width": width, "height": height, "format": "image/png", "transparent": "true"})
+    image = Image.open(io.BytesIO(content)).convert("RGBA")
+    units = {}
+    half = SWATCH // 2
+    dx, dy = (east - west) / width * half, (north - south) / height * half
+
+    def cut(point, h=half):
+        px = int((point[0] - west) / (east - west) * width)
+        py = int((north - point[1]) / (north - south) * height)
+        if not (h <= px < width - h and h <= py < height - h):
+            return None
+        crop = image.crop((px - h, py - h, px + h, py + h))
+        colors = [c for c in crop.getdata() if c[3] > 0]
+        if len(colors) < (2 * h) ** 2 // 2:         # 반 넘게 비었다 — 경계·구멍에 걸렸다
+            return None
+        if h != half:
+            crop = crop.resize((SWATCH, SWATCH), Image.NEAREST)
+        return crop, max(set(colors), key=colors.count)
+
+    for feature in polygons:
+        props = feature.get("properties") or {}
+        label = (str(props.get("Abbrev") or "").strip(), str(props.get("Name") or "").strip(),
+                 str(props.get("Time") or "").strip())
+        if not label[1]:
+            continue
+        unit = units.setdefault(label, {"count": 0, "swatch": None, "fits": False,
+                                        "note": str(props.get("Note") or "").strip()})
+        unit["count"] += 1
+        if unit["fits"]:
+            continue
+        geometry = feature.get("geometry")
+        for point in inner_points(geometry):
+            # 조각의 네 귀퉁이가 모두 이 면 안이면 옆 지층이 섞이지 않는다. 안 들어맞으면 작은 조각(6 픽셀)을
+            # 떠서 키운다 — 무늬는 굵어지지만 옆 지층이 덜 섞인다. 들어맞는 면이 뒤에 오면 그것으로 바꾼다
+            corners = [(point[0] + sx * dx, point[1] + sy * dy) for sx in (-1, 1) for sy in (-1, 1)]
+            fits = all(contains(geometry, x, y) for x, y in corners)
+            if not fits and unit["swatch"]:
+                continue                              # 섞인 견본은 이미 있다 — 들어맞는 자리만 찾는다
+            got = cut(point) if fits else cut(point, 3)
+            if not got:
+                continue
+            crop, common = got
+            buf = io.BytesIO()
+            crop.save(buf, "PNG")
+            unit["swatch"] = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+            unit["color"] = "#%02x%02x%02x" % common[:3]
+            unit["fits"] = fits
+            if fits:
+                break
+    rows = [{"symbol": k[0], "name": k[1], "time": k[2], "note": v["note"], "swatch": v["swatch"],
+             "color": v.get("color", "#cccccc"), "count": v["count"]}
+            for k, v in units.items() if v["swatch"]]
+    rows.sort(key=lambda row: -row["count"])
+    return rows
+
+
+class LegendTooWide(GsmmaError):
+    def __init__(self, span):
+        super().__init__(f"범위가 넓다 — {span}° 안으로 들어오면 범례가 뜬다")
+        self.span = span
+
+
+def legend_row(row: dict, lang: str = "ko") -> dict:
+    """화면이 그리는 한 칸 — 일본(GSJ)의 칸과 같은 이름에 견본 조각을 더했다."""
+    return {"color": row["color"], "swatch": row["swatch"], "symbol": row["symbol"],
+            "lithology": row["name"] + (f" ({row['note']})" if row.get("note") else ""),
+            "age": i18n.age_zh(row["time"], lang) if row.get("time") else ""}
