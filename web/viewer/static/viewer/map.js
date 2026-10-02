@@ -3027,7 +3027,9 @@
     var source = new ol.source.Vector({
       attributions: pointAttribution(row),
       loader: function (extent, resolution, projection, success, failure) {
-        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG)
+        // 잘라 주는 레이어(전암 화학, wetherilli 163)는 고른 원소의 점만 받는다
+        var slice = row.slice ? "&value=" + encodeURIComponent(storedValue()) : "";
+        fetch(BASE + "points/?layer=" + encodeURIComponent(row.name) + "&lang=" + LANG + slice)
           .then(function (r) {
             if (r.ok) return r.json();
             // 서버가 까닭을 적어 보낸다 — "자료가 서버에 없다" 따위. 패널에 띄운다
@@ -3047,6 +3049,7 @@
             layer.set("gsmLegend", data.legend || null);
             // 연속값 레이어(지화학, wetherilli 159) — 고를 수 있는 원소와 처음의 원소
             if (data.values) { layer.set("gsmValues", data.values); layer.set("gsmDefault", data.default || ""); }
+            if (data.slice) { layer.set("gsmSlice", data.slice); layer.set("gsmTotal", data.total || 0); }
             layer.set("gsmCount", features.length);
             // 극지연구소(055) — 남극 전체를 덮는 넓은 범위라 그리지 않은 자료의 수
             layer.set("gsmWide", data.wide || 0);
@@ -3177,9 +3180,15 @@
   var VALUE_RAMP = ["#440154", "#443983", "#31688e", "#21918c", "#35b779", "#90d743", "#fde725"];   // viridis 일곱
   var VALUE_KEY = "gsm.value.element";
   var VALUE_BELOW = "#9e9e9e";
+  //: 한계를 모르는 검출 한계 밑의 표지 — 서버의 `arcpoints.BELOW_UNKNOWN`(−1e-9). 이것만큼 작으면 한계를 적지 않는다
+  var VALUE_UNKNOWN_BELOW = 1e-6;
+  function storedValue() {
+    try { return localStorage.getItem(VALUE_KEY) || ""; } catch (e) { return ""; }
+  }
   function valueChoice(layer) {
-    var values = layer.get("gsmValues") || [], chosen = "";
-    try { chosen = localStorage.getItem(VALUE_KEY) || ""; } catch (e) { /* 사생활 모드 */ }
+    // 잘라 받은 레이어는 받은 원소가 곧 고른 원소다 — 받는 사이에 다른 것을 골랐어도 그린 것과 범례가 어긋나지 않게
+    if (layer.get("gsmSlice")) return layer.get("gsmSlice");
+    var values = layer.get("gsmValues") || [], chosen = storedValue();
     var has = function (k) { return values.some(function (v) { return v.key === k; }); };
     if (has(chosen)) return chosen;
     if (has(layer.get("gsmDefault"))) return layer.get("gsmDefault");
@@ -3258,8 +3267,16 @@
     select.value = valueChoice(entry.layer);
     select.addEventListener("change", function () {
       try { localStorage.setItem(VALUE_KEY, select.value); } catch (e) { /* 사생활 모드 */ }
-      // 같은 열쇠를 쓰는 다른 지화학 레이어도 함께 다시 칠한다
-      active.forEach(function (e) { if (e.layer.get && e.layer.get("gsmValues")) e.layer.changed(); });
+      // 같은 열쇠를 쓰는 다른 지화학 레이어도 함께 다시 칠한다. 잘라 받은 레이어는 그 원소의 점을 다시 받는다
+      active.forEach(function (e) {
+        if (!e.layer.get || !e.layer.get("gsmValues")) return;
+        if (e.layer.get("gsmSlice")) {
+          e.layer.unset("gsmSlice");
+          e.layer.unset("gsmBreaks");
+          e.layer.getSource().clear(true);
+          e.layer.getSource().refresh();
+        } else e.layer.changed();
+      });
       renderActive();
     });
     row.append(label, select);
@@ -3303,6 +3320,8 @@
       bl.append(bsw, bt);
       box.appendChild(bl);
     }
+    // 잘라 받은 레이어는 그 원소가 있는 점만 받았다 — 분석하지 않은 수는 전체 점의 수에서 뺀다
+    if (layer.get("gsmSlice")) none = Math.max(0, (layer.get("gsmTotal") || 0) - layer.getSource().getFeatures().length);
     if (none) box.appendChild(note(T("분석하지 않은 {n}점은 그리지 않았다", { n: none.toLocaleString() })));
     if (row.source) {
       var a = document.createElement("a");
@@ -3372,7 +3391,8 @@
       var spec = valueSpec(layer), v = spec && feature.get(spec.key);
       if (spec) {
         props[valueLabel(spec)] = typeof v !== "number" ? T("분석하지 않음")
-          : v < 0 ? T("검출 한계 밑 (< {n})", { n: valueNumber(-v) }) : valueNumber(v);
+          : v < 0 ? (-v < VALUE_UNKNOWN_BELOW ? T("검출 한계 밑") : T("검출 한계 밑 (< {n})", { n: valueNumber(-v) }))
+          : valueNumber(v);
       }
     }
     if ((byName[name] || {}).style === "sheet") {
