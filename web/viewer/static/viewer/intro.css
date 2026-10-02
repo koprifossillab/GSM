@@ -384,6 +384,7 @@ html[lang="en"] .title h1 { font-size: clamp(46px, 5.4vw, 82px); }
 .door:hover, .door:focus-visible { transform: translateY(-3px); border-color: var(--accent); outline: none; }
 .door img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 .door b { padding: 12px 14px 0; font-size: 18px; color: var(--accent); }
+.door b .door-icon { width: 22px; height: 22px; aspect-ratio: auto; display: inline-block; vertical-align: -4px; margin-right: 6px; }
 .door span { padding: 2px 14px 14px; font-size: 13.5px; color: var(--soft); }
 .door.wide { grid-template-columns: 46% 1fr; grid-template-rows: auto 1fr; }
 .door.wide img { grid-row: 1 / 3; height: 100%; aspect-ratio: auto; }
