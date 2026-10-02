@@ -212,6 +212,25 @@ class StaticSiteTests(TestCase):
         self.assertFalse([l["name"] for l in vworld if l.get("kind") == "vector"])
         self.assertNotIn("lt_l_gimsfault", {l["name"] for l in vworld})
 
+    def test_구운_점_레이어는_이름으로_싣는다(self):
+        # NPI·극지연구소에는 서버를 타는 지도 레이어가 섞여 있다 — 구운 점만 이름으로 (wetherilli 165)
+        from django.test import override_settings
+        import json as _json
+        import re as _re
+        spec = {"regions": ["antarctica", "jan_mayen"], "upstreams": ["geomap"],
+                "baked": {"geomap": {"geomap_simple_geology": 10}, "points": {"npolar:dml_samples": False,
+                                                                                "janmayen:units": True}}}
+        with override_settings(STATIC_SITE=spec):
+            html = self.client.get("/GSM/map/").content.decode()
+        groups = _json.loads(_re.search(r'id="catalog-data" type="application/json">(.*?)</script>', html, _re.S).group(1))
+        names = {l["name"] for g in groups for l in g["layers"]}
+        self.assertIn("geomap_simple_geology", names)
+        self.assertIn("npolar:dml_samples", names)
+        self.assertIn("janmayen:units", names)
+        self.assertNotIn("janmayen:lines", names)                             # 굽지 않은 것은 없다
+        self.assertFalse({n for n in names if n.startswith("npolar:") and n != "npolar:dml_samples"})
+        self.assertIn('"baked"', html)
+
     def test_운영_판은_그대로(self):
         html = self.client.get("/GSM/map/").content.decode()
         self.assertNotIn('class="static-site"', html)

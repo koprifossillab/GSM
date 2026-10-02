@@ -18,6 +18,7 @@ WegenersDream 의 `deploy/static_site.py`(tupandactyl 029)와 같은 길이다.
   둘 다 없으면 VWorld 를 빼고 굽는다(배경·찾기·좌표→주소·VWorld 레이어가 빠진다)
 """
 import argparse
+import json
 import os
 import pathlib
 import shutil
@@ -30,6 +31,21 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 REGIONS = ["korea"]
 #: 정적 판에 실을 상류 — kigam 은 각자 키로 곧장(map.js 의 STATIC_KIGAM), vworld 는 공개 판용 키로 곧장(STATIC_VWORLD)
 UPSTREAMS = ["kigam", "vworld"]
+#: 구운 것(`--baked`)이 있으면 더 서는 극지 — 남극 GeoMAP·IBCSO·NPI 점, 얀마옌, 그린란드 포털 점, 스발바르 NPI 점,
+#: 극지연구소 KPDC 점 (wetherilli 160·165). 브라우저가 곧장 부르는 극지 상류(`static-kinds.js`)가 오면 그 레이어도 함께 선다
+BAKED_REGIONS = ["antarctica", "greenland", "svalbard", "jan_mayen", "arctic_ocean"]
+#: 구운 타일로 통째로 서는 상류 — 점 레이어는 상류가 아니라 이름으로 싣는다(`views._static_catalog`)
+BAKED_UPSTREAMS = {"geomap": "geomap", "ibcso": "ibcso"}
+
+
+def baked_spec(baked: pathlib.Path) -> dict:
+    """`bake_static` 의 manifest.json → 화면에 알릴 것. GeoMAP 레이어마다 마지막 줌, 점 레이어마다 영어판이 따로 있나."""
+    manifest = json.loads((baked / "manifest.json").read_text(encoding="utf-8"))
+    parts = manifest.get("parts") or {}
+    geomap = {name: info["max_zoom"] for name, info in (parts.get("geomap") or {}).items()
+              if isinstance(info, dict) and info.get("tiles")}
+    points = {name: bool(info.get("lang")) for name, info in (parts.get("points") or {}).items()}
+    return {"geomap": geomap, "points": points, "ibcso": bool(parts.get("ibcso"))}
 
 
 def main():
@@ -71,6 +87,12 @@ def main():
             "upstreams": [u for u in args.upstreams.split(",") if u and (u != "vworld" or vworld_key)]}
     if "vworld" in args.upstreams.split(",") and not vworld_key:
         print("공개 판용 VWorld 키가 없어 VWorld 를 빼고 굽는다 (--vworld-key-file 이나 GSM_STATIC_VWORLD_KEY)")
+    if args.baked:
+        # 구운 것을 화면에 알린다 — 마지막 줌·점 레이어·영어판 (wetherilli 165)
+        spec["baked"] = baked_spec(pathlib.Path(args.baked))
+        spec["regions"] += [r for r in BAKED_REGIONS if r not in spec["regions"]]
+        spec["upstreams"] += [up for part, up in BAKED_UPSTREAMS.items()
+                              if spec["baked"].get(part) and up not in spec["upstreams"]]
     with override_settings(STATIC_SITE=spec, DEBUG=False, ALLOWED_HOSTS=["*"], KIGAM_KEY="", VWORLD_KEY=vworld_key,
                            STATIC_ROOT=str(out / "static")):
         call_command("collectstatic", verbosity=0, interactive=False)

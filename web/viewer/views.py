@@ -2024,10 +2024,14 @@ def _point_fields(layer) -> dict:
                 "source": geo3al.SOURCE_URL, "attribution": geo3al.ATTRIBUTION,
                 "opacity": spec["opacity"]}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
-        return {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
+        spec = {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
                 # 고른 원소만 받는 레이어 — 전암 화학 (wetherilli 163)
                 **({"slice": True} if grportal.LAYERS[layer.name].get("slice") else {})}
+        if grportal.license_of(layer.name):
+            # 다이아몬드 탐사 자료(DED)는 항목에 CC BY 4.0 이 적혀 있다 (wetherilli 157)
+            spec["license"] = grportal.license_of(layer.name)
+        return spec
     if layer.upstream == "phyloserver" and phyloserver.knows(layer.name):
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
@@ -2053,11 +2057,14 @@ def _static_catalog(groups: list) -> list:
     문서에 없는 GeoServer 를 타므로 뺀다. 무엇을 싣는지는 `settings.STATIC_SITE` 가 정한다(`deploy/static_site.py`)."""
     spec = settings.STATIC_SITE or {}
     regions, upstreams = set(spec.get("regions") or ()), set(spec.get("upstreams") or ())
+    # 구워 실은 점 레이어(`bake_static`)는 이름으로 싣는다 — 같은 상류(NPI·극지연구소)에 서버를 타는 지도 레이어가 섞여 있어
+    # 상류 하나를 통째로 켤 수 없다 (wetherilli 165)
+    baked = set((spec.get("baked") or {}).get("points") or ())
     out = []
     for group in groups:
         if group.get("region") not in regions:
             continue
-        layers = [l for l in group["layers"] if l.get("upstream") in upstreams
+        layers = [l for l in group["layers"] if (l.get("upstream") in upstreams or l["name"] in baked)
                   and not (l.get("upstream") == "kigam" and l["name"] in kigam.COMPOSED)
                   # VWorld 의 벡터(단층 따위)는 WFS 라 CORS 가 없어 정적 판에서 받을 수 없다 (wetherilli 164)
                   and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")]
