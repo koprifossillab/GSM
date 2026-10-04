@@ -410,6 +410,9 @@ EN = {
     # 홀로세 화산 (wetherilli 134)
     "화산 (GVP)": "Volcanoes (GVP)",
     "홀로세 화산": "Holocene volcanoes",
+    "플라이스토세 화산": "Pleistocene volcanoes",   # wetherilli 194
+    "플라이스토세 화산 — 분화 기록이 없다": "Pleistocene volcano — no eruption on record",   # wetherilli 194
+    "플라이스토세": "Pleistocene",   # wetherilli 194
     "세모의 색은 마지막 분화": "Triangle colour is the last eruption",
     "화산 {n} 곳 가운데 가까운 것부터": "Nearest of {n} volcanoes",
     "GVP 에서 보기": "Open in GVP",
@@ -1682,6 +1685,7 @@ PROP_EN = {
     "얼음이 버틸 깊이 — 오늘의 자전축": "Ice stability depth — today's spin axis",
     "얼음이 버틸 깊이 — 옛 자전축": "Ice stability depth — paleo spin axis",
     "높이 — 화성 기준면(아레오이드)": "Elevation — above the Mars areoid",   # 화성 표고 판의 값 (wetherilli 192)
+    "높이 — 수성 기준구 2439.4 km": "Elevation — above the 2,439.4 km Mercury sphere",   # 수성 (wetherilli 194)
     "티타늄": "Titanium",
     "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)

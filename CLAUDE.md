@@ -265,6 +265,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   로 굽는다, wetherilli 098). 화면이 부를 때 PBDB 를 타지 않는다. 옛 연대에는 그 연대를 품은 산지를 우리 판 회전으로 옮겨 찍는다.
   **홀로세 화산**(스미스소니언 GVP 1 214 곳, 문 `gvp.py`, `manage.py fetch_gvp` 가 `<EARTH_DIR>/gvp_volcanoes.json` 에 적고 `volcanoes.py`
   가 그린다, wetherilli 134)은 오늘의 레이어다 — 1 Ma 부터 꺼진다. 비상업·인용 조건이고 사진은 담지 않는다.
+  **플라이스토세 화산**(1 452 곳)은 같은 명령이 `gvp_pleistocene.json` 에 따로 받아 따로 레이어로 그린다 — 마지막 분화 열이 없어 한 색이다(wetherilli 194).
   **지진**(USGS M5 이상 1900 년부터 10 만 7 천 곳, 문 `usgs.py`, `manage.py fetch_quakes` 가 5 년씩 1 초 간격으로 받아 `quakes.py` 가
   `<EARTH_DIR>/quakes.sqlite` 로 굽는다, wetherilli 138)도 오늘의 레이어다. 규모 칸 셋(M6 이상·M5.5–6·M5–5.5)이 따로 레이어다.
   **제4기 고생태 산지**(Neotoma, CC BY 4.0, 문 `neotoma.py`, `manage.py fetch_neotoma` 가 자료 번호를 500 개씩 묶어 한 시간쯤 받아

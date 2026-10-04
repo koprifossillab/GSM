@@ -394,3 +394,19 @@ class MarsPolar(SimpleTestCase):
         outside = mock.Mock(status_code=200, text=json.dumps(out), json=lambda: out)
         with mock.patch("viewer.trek._get", return_value=outside):
             self.assertEqual(trek.value_at("mars_gale", 0, 0), {"rows": []})
+
+
+class MercuryValues(SimpleTestCase):
+    """수성 표고 판의 값 (wetherilli 194) — 화성의 것(192)을 옮겼다"""
+
+    def test_표고_판만(self):
+        self.assertEqual(trek.value_key("mercury", "Mercury_Messenger_USGS_ClrShade_Global_2km"), "mercury_elev")
+        self.assertEqual(trek.value_key("mercury", "Mercury_Messenger_USGS_DEM_665m_v2_HillshadeColor"), "mercury_elev")
+        self.assertEqual(trek.value_key("mercury", "Mercury_Messenger_USGS_DEM_665m_v2_SlopeColor"), "")
+        body = {"samples": [{"value": "1356.2"}]}
+        ok = mock.Mock(status_code=200, text=json.dumps(body), json=lambda: body)
+        with mock.patch("viewer.trek._get", return_value=ok) as get:
+            self.assertEqual(trek.value_at("mercury_elev", -31.5, -11.3)["rows"][0],
+                             ["높이 — 수성 기준구 2439.4 km", "1,356 m"])
+        self.assertIn("arcgis/rest/services/mercury/Mercury_Messenger_USGS_DEM_Global_665m_v2/ImageServer",
+                      get.call_args[0][0])
