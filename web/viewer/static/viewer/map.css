@@ -2409,6 +2409,26 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --glass: rgba(254, 251, 249, .95); --glass-line: #e6d4ca;
 }
 
+/* ── 멕시코 (wetherilli 206) — 로사 메히카노: 오악사카 흑도기 바탕 ── */
+:root[data-region="mexico"] {
+  --bg: #141013; --panel: #1c161b; --panel-tint: #0f0b0e; --raise: #281f26;
+  --ink: #f8edf3; --ink-soft: #d3b6c6; --ink-faint: #917585;
+  --line: #3a2a34; --line-soft: #281f26;
+  --gold: #e0389a; --gold-bright: #f394c8; --gold-muted: #bf3884;
+  --gold-wash: rgba(224, 56, 154, .13); --gold-edge: rgba(224, 56, 154, .42);
+  --hi: #e0389a; --hi-deep: #f394c8; --on-hi: #0f0b0e; --hi-ink: #f394c8;
+  --glass: rgba(15, 11, 14, .93); --glass-line: rgba(224, 56, 154, .35);
+}
+:root[data-region="mexico"][data-theme="light"] {
+  --bg: #f9eff5; --panel: #fefbfd; --panel-tint: #fbf3f8; --raise: #f0e0ea;
+  --ink: #2b1222; --ink-soft: #654253; --ink-faint: #a0808f;
+  --line: #e8d3df; --line-soft: #f0e0ea;
+  --gold: #b11f73; --gold-bright: #8a1558; --gold-muted: #a05380;
+  --gold-wash: #f9e0ee; --gold-edge: #eaa9cc;
+  --hi: #4f0c33; --hi-deep: #320620; --on-hi: #fdf4f9; --hi-ink: #b11f73;
+  --glass: rgba(254, 251, 253, .95); --glass-line: #e8d3df;
+}
+
 /* ── 아프리카 (wetherilli 207) — 사바나 황토와 바오바브 껍질의 적갈 ── */
 :root[data-region="africa"] {
   --bg: #17120c; --panel: #1f1810; --panel-tint: #120e09; --raise: #2b2116;
