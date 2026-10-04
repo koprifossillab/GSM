@@ -32,6 +32,10 @@
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
 - [ ] 브리티시컬럼비아(BCGS)는 캐나다 탭에 섰다 — 줌 11 부터(wetherilli 231). 넓게도 칠하려면 색 스타일(640 KB)을 줄여 SLD 로 보내거나, openmaps 에 작은 축척 판이 있는지 찾는다(훑지 않았다). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)는 아직
+- [ ] 캐나다 주 판 — 앨버타·사스카치원·노바스코샤는 섰다(wetherilli 235). **(사람)** 뉴브런즈윅(`gis-erd-der.gnb.ca/…/OpenData/NBGS_Bedrock_Geology`
+      WMS·WFS 가 열려 있다)·뉴펀들랜드래브라도(`dnrmaps.gov.nl.ca/…/GeoAtlas/Bedrock_Geology_All` WMS)는 조건을 읽지 못했다 — 뉴브런즈윅 조건
+      쪽은 우리에게 403, WMS 의 조건 칸은 둘 다 비었다. 매니토바(`maps.gov.mb.ca`)는 2026-10-04 에 502. 노스웨스트준주는 ArcGIS Online 의
+      피처 서비스(`MapD1860A_NWTGeology`)뿐이라 그림이 없다 — 우리가 그려야 한다. 누나부트는 서비스를 찾지 못했다
 - [ ] 미국 — 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 USGS mrdata 같은 서버에 있다. 캘리포니아 CGS 1:75만은 섰다(wetherilli 231 — 상류가 레이어 지정을 무시해 인쇄도 한 장)
 - [ ] 멕시코 SGM — 지질 연대·고생물·광상(219), 지화학·원소 이상·광산 1:5만(233)이 섰다. 남은 것: 지자기(`DatosAbiertos/DatosAbiertos`
       7 `Campo magnético esc 1:250,000`). 2026-10-05 에 다시 쟀다(wetherilli 244) — 나라를 다 덮지만 **타일 한 칸(256 px)이 줌과 상관없이

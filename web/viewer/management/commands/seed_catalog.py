@@ -131,6 +131,10 @@ class Command(BaseCommand):
                 # 퀘벡 SIGÉOM·유콘 YGS (wetherilli 210)
                 (settings.SIGEOM_CATALOG_SEED, "퀘벡 (SIGÉOM)", "canada", "sigeom"),
                 (settings.YGS_CATALOG_SEED, "유콘 (YGS)", "canada", "ygs"),
+                # 사스카치원·노바스코샤·앨버타 (wetherilli 235)
+                (settings.SKGS_CATALOG_SEED, "사스카치원 (SGS)", "canada", "skgs"),
+                (settings.NSGS_CATALOG_SEED, "노바스코샤 (NRR)", "canada", "nsgs"),
+                (settings.AGS_CATALOG_SEED, "앨버타 (AGS)", "canada", "ags"),
                 # 브리티시컬럼비아 BCGS(캐나다 탭)·캘리포니아 CGS(미국 탭) (wetherilli 231)
                 (settings.BCGS_CATALOG_SEED, "브리티시컬럼비아 (BCGS)", "canada", "bcgs"),
                 (settings.CALGS_CATALOG_SEED, "캘리포니아 (CGS)", "usa", "calgs"),
