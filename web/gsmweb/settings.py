@@ -464,6 +464,8 @@ CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 KIGAM_COMPOSED_CATALOG_SEED = REPO_DIR / "data" / "kigam_composed_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
+#: 그린란드 — GEUS ArcGIS 의 자력·중력·지질구 (wetherilli 259)
+GEUSARC_CATALOG_SEED = REPO_DIR / "data" / "geusarc_layers.json"
 #: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)
 VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 #: 그린란드 정부 포털의 점 레이어 씨앗. 역시 seed_catalog 가 함께 넣는다
