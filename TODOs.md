@@ -38,16 +38,17 @@
 ### 북미
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
-- [ ] 미국 USGS SGMC(주 지질도 합본)·알래스카 SIM 3340 — 공공 도메인, CORS `*`. SGMC 는 GetFeatureInfo 가 막혀 WFS 로 속성.
-      온 지구의 Macrostrat 이 미국 본토는 이미 SGMC 라 미국 탭을 세우는 값이다. 하루
-- [ ] 멕시코 SGM 1:25만·1:5만 — CC BY 4.0. WMS 는 400 이라 ArcGIS REST export·identify. 범례 888·2 571 칸이라 보는 범위의 범례. 하루
+- [ ] 북미 묶음 — 미국 탭은 섰다(wetherilli 205). 캐나다 탭이 들어오면 `north_america` 묶음을 세우고, 알래스카를 그 투영에 맞춘다
+      (지금은 3857 이라 부푼다). 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 같은 서버에 있다
+- [ ] 멕시코 SGM 의 다른 서비스 — 같은 서버에 지질 연대(`SunEdadesGeocronologicas`)·고생물(`Paleontologia`)·광상이 있다. 탭은 섰다(wetherilli 206)
 - [ ] 퀘벡 SIGÉOM — CC BY 4.0, Macrostrat 의 빈 자리. Origin 헤더가 붙으면 403 이라 서버 문으로만. 반나절. 그다음 캘리포니아·유콘·BC
 - 막힌 것: USGS 북미 지질도 GMNA(403), ScienceBase(503), NGMDB(지도 API 없음)
 
 ### 아프리카
 
-- [ ] CGMW–BRGM 아프리카 1:1000만(`mapsref.brgm.fr`) — 3857, CORS `*`, 지질시대 ICS. `brgm.py` 의 틀. 속성은 GML, 범례는 정적 PNG. 반나절
-- [ ] BGS 아프리카 지하수 지도책의 나라별 1:500만 지질 — 38 나라, `bgs.py` 와 같은 호스트, CC BY-SA 4.0. 속성은 암상 하나. 반나절
+- [ ] **(사람) 아프리카 1:1000만의 CGMW 이용 조건** — 아프리카 탭은 CGMW–BRGM 1:1000만과 BGS 지하수 지도책으로 섰다(wetherilli 207).
+      CGMW 는 인쇄판을 판다 — 정적 판·밖에 열기 전에 읽는다(남미 1:500만과 같다). CORS 가 `*` 라 되면 `static-kinds.js` 한 갈래
+- [ ] 아프리카 지하수 지도책의 수리지질(`<ISO3>_BGS_5M_Hydrogeology`) — 같은 서버·같은 조건(CC BY-SA). 지질 탭에 둘지 사람이 본다
 - [ ] 남아공 CGS 1:100만(정부 사본 ArcGIS REST, 하루)·나미비아 GSN 1:100만·탄자니아 GMIS 1:150만(CORS 없음)
 - [ ] (사람) RMCA 의 콩고·르완다·부룬디 판 — 이용 조건을 묻는다
 - 막힌 것: SIGAfrique(호스트 없음), USGS certmapper(403), OneGeology 포털(닫힘), 모로코·나이지리아(서비스 없음)
