@@ -1455,6 +1455,12 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   #scalebar { left: 8px; bottom: 54px; transform: scale(.82); transform-origin: left bottom; }
   .ol-attribution { bottom: 52px !important; right: 8px !important; max-width: calc(100% - 16px); }
   .popup { min-width: 0; width: min(320px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: 50vh; }
+  /* 닫기 단추가 × 글자 크기(11 px)라 손가락에 작았다 — 32 px 네모로, 첫 줄이 그 밑에 들지 않게 비킨다 (wetherilli 193) */
+  .popup-close { top: 2px; right: 2px; width: 32px; height: 32px; }
+  /* 팝업이 도구 묶음(z 6) 밑에 깔려 닫기 단추가 가려졌다 — 공유 단추(189)로 묶음이 길어져 드러났다. 팝업은 OpenLayers 가 인라인
+     z-index 0 을 건 겹 안에 있어 올릴 수 없다. 좁은 화면에서는 팝업이 지도를 거의 덮으니 열린 동안 묶음을 숨긴다 (wetherilli 193) */
+  #map-wrap.popup-open #toolbar { visibility: hidden; }
+  .popup > #popup-body > :first-child { padding-right: 28px; }
 }
 
 /* 범위잡기 — 끄는 동안의 네모. 다 그리면 지도 위의 금색 네모(rangeStyle)로 바뀐다 */

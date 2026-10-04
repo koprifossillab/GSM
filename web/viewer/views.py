@@ -2261,6 +2261,9 @@ GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" ta
 def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
+    if layer.upstream == "vworld" and layer.name in vworld.MIN_ZOOM:
+        # 가까이서만 그려 주는 VWorld 레이어(토양·산림·국가유산, wetherilli 084·193) — 멀리서는 묻지 않는다
+        return {"minZoom": vworld.MIN_ZOOM[layer.name]}
     if layer.upstream == "geomap":
         return {"attribution": geomap.ATTRIBUTION,
                 # 판을 주소에 넣는다 — 브라우저가 오래 들고 있어도 판이 바뀌면 새 주소다 (wetherilli 151)
