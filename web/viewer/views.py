@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgb, sgc, usage
+from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, ingemmet, linked, ngu, sgb, sgc, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -382,7 +382,7 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
-                                   or (l.get("upstream") in ("gsj", "gsitile") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2310,6 +2310,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "ingemmet" and ingemmet.knows(layer.name):
+        # 페루 INGEMMET(wetherilli 195) — WMS 는 넓게 물으면 30 초를 넘겨 REST 타일 캐시(3857 z/x/y)를 우리 서버가 중계한다(일본과 같다).
+        # 누른 자리는 위경도로(`ingemmet/info/`), 범례는 보는 범위의 것(`ingemmet/legend/`)
+        return {"attribution": ingemmet.ATTRIBUTION,
+                "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
+                "maxZoom": ingemmet.LAYERS[layer.name]["max"], "legend": "extent", "legendUrl": "ingemmet/legend/"}
     if layer.upstream == "sgb" and sgb.knows(layer.name):
         # 브라질 SGB(wetherilli 191) — GeoServer 라 3857 을 그대로. 1:100만·1:25만은 가까이서만 그린다. 범례 그림이 225×46 700 이라
         # 보는 범위의 범례를 뜬다(`sgb/legend/`) — 대만과 같은 꼴이다. 구조선은 범례가 없다
@@ -2396,7 +2402,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, basemaps.BasemapError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2435,14 +2441,16 @@ class _Door:
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
                "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI,
                # 남미·콜롬비아(wetherilli 188)·브라질(191)
-               "sgc": sgc, "sgb": sgb}
+               "sgc": sgc, "sgb": sgb,
+               # 페루(wetherilli 195) — 그림은 타일 캐시라 이 문의 WMS 길은 오류를 낸다. 눌러 묻는 것도 따로다(`ingemmet_info`)
+               "ingemmet": ingemmet}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3033,6 +3041,101 @@ def gsmma_legend(request):
         else:
             tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
     shown = [gsmma.legend_row(r, lang) for r in rows[:gsmma.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
+def ingemmet_tile_key(name, z, x, y):
+    """페루 캐시 타일의 열쇠. `manage.py prewarm` 도 이것으로 담는다."""
+    return tilecache.key_text("ingemmet", f"{name}/{z}/{x}/{y}")
+
+
+@require_GET
+def ingemmet_tile(request, sheet, z, x, y):
+    """페루 지질도 — `ingemmet/<판>/<z>/<x>/<y>.png`. 상류의 REST 캐시(`tile/{z}/{y}/{x}`)를 중계한다 (wetherilli 195).
+    캐시 밖(바다·나라 밖)은 투명한 빈 타일이고, 그것도 담는다 — 다시 물을 까닭이 없다"""
+    name, z, x, y = f"{ingemmet.PREFIX}{sheet}", int(z), int(x), int(y)
+    if not ingemmet.valid_tile(name, z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    key = ingemmet_tile_key(name, z, x, y)
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = ingemmet.get_tile(name, z, x, y)
+    except ingemmet.IngemmetError as exc:
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("페루 타일을 받지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    png = png if png is not None else tiles.blank_tile(256, 256)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+@browser_cached
+def ingemmet_info(request):
+    """`?layer=ingemmet:50k&lat=-12.05&lon=-77.0` — 누른 자리의 속성 (wetherilli 195). 팝업이 받는 꼴은 `/featureinfo/` 와 같다."""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if not ingemmet.knows(name) or lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []}, status=400)
+    # 1e-5° 는 1 m 남짓이다. 같은 자리를 다시 누르면 상류를 타지 않는다
+    key = tilecache.key_text("ingemmet-info", f"{name}/{lat:.5f},{lon:.5f}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = {"row": ingemmet.point_attributes(name, lat, lon)}
+        except ingemmet.IngemmetError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("페루 속성을 읽지 못했다: %s", exc)
+                error = str(exc) if lang == "ko" else i18n.t(msg("상류에서 받지 못했다"), lang)
+                return JsonResponse({"error": error, "features": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    row = raw.get("row")
+    if not row:
+        return JsonResponse({"features": []})
+    props = ingemmet.friendly(row, lang)
+    if lang == "en":
+        props = i18n.props_en(props)
+    return JsonResponse({"features": [{"id": props.get("기호", ""), "props": props}]})
+
+
+@require_GET
+@browser_cached
+def ingemmet_legend(request):
+    """`?layer=ingemmet:50k&bbox=서,남,동,북` — 페루 지질도의 보는 범위 범례 (wetherilli 195).
+
+    범위 안의 단위는 통계 질의로, 색은 칠하기 규칙(`ingemmet.colors`, 한 번 받아 담는다)에서. 꼴은 브라질(`sgb_legend`)과 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if not ingemmet.knows(name):
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    span = ingemmet.LAYERS[name]["span"]
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("ingemmet-legend", f"{name}/{bbox}")
+    rows = (_cached_json(key) or {}).get("rows")
+    try:
+        if rows is None:
+            rows = ingemmet.extent_legend(name, tuple(bbox))
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+        table = ingemmet.colors(name)
+    except ingemmet.IngemmetError as exc:
+        log.info("페루 범례를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+    shown = [ingemmet.legend_row(name, r, table, lang) for r in rows[:ingemmet.MAX_LEGEND]]
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 

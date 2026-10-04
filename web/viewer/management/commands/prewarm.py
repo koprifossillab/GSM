@@ -59,7 +59,7 @@ from PIL import Image
 
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import elevation, geomap, gsj, kigam, kopri, npolar, tilecache, tilegrid, trek, usage, views
+from viewer import elevation, geomap, gsj, ingemmet, kigam, kopri, npolar, tilecache, tilegrid, trek, usage, views
 from viewer.models import Layer
 
 DEFAULT_LAYERS = ["L_50K_Geology_Map"]
@@ -255,6 +255,35 @@ class WmsPlan:
         return len(pieces)
 
 
+class IngemmetPlan:
+    """페루 INGEMMET — 상류의 REST 캐시 z/x/y 를 한 장씩 (`views.ingemmet_tile`, wetherilli 195). 캐시가 있는 줌까지만.
+    캐시 밖(바다·나라 밖)은 빈 타일로 담는다 — 화면이 부를 때와 같다"""
+    remote = True
+    upstream = "ingemmet"
+
+    def block(self, meta):
+        return 1
+
+    def __init__(self, name):
+        self.name = name
+
+    def seconds(self, rate, meta):
+        return max(1 / rate, 1.5)                  # 한 장에 1.3–1.8 초 (2026-10-04)
+
+    def tiles_for(self, bbox, z):
+        if z > ingemmet.LAYERS[self.name]["max"]:
+            return iter(())
+        return tilegrid.tiles_for(bbox, z)        # 칸 수(2^z)로 세므로 256 px z/x/y 에도 맞는다 — 일본과 같다
+
+    def key(self, z, x, y):
+        return views.ingemmet_tile_key(self.name, z, x, y)
+
+    def fetch_block(self, z, x, y, meta):
+        png = ingemmet.get_tile(self.name, z, x, y)
+        tilecache.put(self.key(z, x, y), png if png is not None else views.tiles.blank_tile(256, 256))
+        return 1
+
+
 class GsjPlan:
     """GSJ — z/x/y 타일을 한 장씩 (`views.gsj_tile`). 줌 밖은 묻지 않는다."""
     remote = True
@@ -428,6 +457,8 @@ def plan_for(name, upstream):
         return _projected_plan(name, upstream)
     if upstream == "gsj" and gsj.knows(name):
         return GsjPlan(name)
+    if upstream == "ingemmet" and ingemmet.knows(name):
+        return IngemmetPlan(name)
     if upstream == "geomap" and name in geomap.LAYERS:
         return GeomapPlan(name)
     return None
