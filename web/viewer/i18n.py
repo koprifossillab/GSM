@@ -98,6 +98,7 @@ EN = {
     "사우디아라비아": "Saudi Arabia", "사우디 지질조사소": "Saudi Geological Survey",
     # 동남아 (wetherilli 228)
     "인도네시아": "Indonesia", "말레이시아": "Malaysia", "필리핀": "Philippines", "태국": "Thailand", "동남아": "Southeast Asia",
+    "브리티시컬럼비아 지질조사소": "British Columbia Geological Survey", "캘리포니아 지질조사소": "California Geological Survey",
     "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
     "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
@@ -2864,6 +2865,7 @@ GROUP_EN = {
     "몽골 지질도 (MonGeoCat)": "Geology of Mongolia (MonGeoCat)",
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
+    "브리티시컬럼비아 지질도 (BCGS)": "Geology of British Columbia (BCGS)", "캘리포니아 지질도 (CGS 1:75만)": "Geologic Map of California (CGS 1:750k)",
     "인도네시아 지질도 (ESDM)": "Geology of Indonesia (ESDM)", "말레이시아 지질도 (JMG)": "Geology of Malaysia (JMG)",
     "필리핀 지질도 (MGB)": "Geology of the Philippines (MGB)", "태국 지질도 (DMR)": "Geology of Thailand (DMR)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
@@ -2989,6 +2991,7 @@ LAYER_EN = {
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
+    "bcgs:bedrock": "Bedrock (BC Digital Geology)", "calgs:geology": "Geologic map (1:750k)",
     "esdm:geology": "Geology (1:100k compilation 2018)", "jmg:lithology": "Lithology (by state)", "jmg:age": "Rock age (by state)",
     "mgb:geology": "Regional geology", "dmr:rock_units": "Rock units (1:250k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)

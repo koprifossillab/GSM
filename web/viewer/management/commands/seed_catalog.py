@@ -131,6 +131,9 @@ class Command(BaseCommand):
                 # 퀘벡 SIGÉOM·유콘 YGS (wetherilli 210)
                 (settings.SIGEOM_CATALOG_SEED, "퀘벡 (SIGÉOM)", "canada", "sigeom"),
                 (settings.YGS_CATALOG_SEED, "유콘 (YGS)", "canada", "ygs"),
+                # 브리티시컬럼비아 BCGS(캐나다 탭)·캘리포니아 CGS(미국 탭) (wetherilli 231)
+                (settings.BCGS_CATALOG_SEED, "브리티시컬럼비아 (BCGS)", "canada", "bcgs"),
+                (settings.CALGS_CATALOG_SEED, "캘리포니아 (CGS)", "usa", "calgs"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),
