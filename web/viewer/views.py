@@ -2241,7 +2241,9 @@ def _static_catalog(groups: list) -> list:
                   # VWorld 의 벡터(단층 따위)는 WFS 라 CORS 가 없어 정적 판에서 받을 수 없다 (wetherilli 164)
                   and not (l.get("upstream") == "vworld" and l.get("kind") == "vector")
                   # 극지연구소는 지도 서버(KPDC WMS)만 곧장 부른다 — 모아 둔 파일의 점(시료·운석·KPDC 목록)은 구운 것이 있어야 (wetherilli 161)
-                  and not (l.get("upstream") == "kopri" and l["name"] not in kopri.WMS and l["name"] not in baked)]
+                  and not (l.get("upstream") == "kopri" and l["name"] not in kopri.WMS and l["name"] not in baked)
+                  # SGC 는 조건이 열린 콜롬비아 1:50만만 — 남미 1:500만(CGMW)은 싣지 않는다 (wetherilli 201)
+                  and not (l.get("upstream") == "sgc" and not sgc.static_ok(l["name"]))]
         if layers:
             out.append(dict(group, layers=layers))
     return out
