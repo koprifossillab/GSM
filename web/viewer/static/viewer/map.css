@@ -2312,3 +2312,19 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #15264a; --hi-deep: #0b162e; --on-hi: #f5f8fd; --hi-ink: #2d5bb5;
   --glass: rgba(251, 252, 254, .95); --glass-line: #d3dbe9;
 }
+
+/* 층리·엽리 장미도 (wetherilli 197) — 팝업 안 */
+.rose-block { margin-top: 10px; }
+.rose-open { font: inherit; font-size: 12px; padding: 4px 10px; color: var(--ink); background: var(--panel-tint);
+  border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.rose-open:hover:not(:disabled) { border-color: var(--hi); }
+.rose-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.rose-tabs button { font: inherit; font-size: 11.5px; padding: 2px 8px; color: var(--ink-soft); background: none;
+  border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.rose-tabs button.on { color: var(--on-hi); background: var(--hi); border-color: var(--hi); }
+.rose-pic { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.rose-svg .ring, .dip-svg .ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.rose-svg .ring.half { stroke-dasharray: 2 3; }
+.rose-svg .petal, .dip-svg .bar { fill: var(--hi); fill-opacity: .75; stroke: var(--hi-ink); stroke-width: .6; }
+.rose-svg .tick, .dip-svg .tick { font-size: 9px; fill: var(--ink-faint); text-anchor: middle; dominant-baseline: middle; }
+.rose-foot { margin: 2px 0 0; font-size: 11px; color: var(--ink-faint); line-height: 1.45; }

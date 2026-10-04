@@ -2946,6 +2946,34 @@ def gsj_info(request):
 
 
 @require_GET
+def kigam50k_rose(request):
+    """`?lat=&lon=` 누른 자리의 도폭, 또는 `?bbox=서,남,동,북` 고른 범위의 층리·엽리·편리·절리 장미도 (wetherilli 197).
+
+    각도를 칸으로 센 것만 준다(`kigam50k.rose`) — 화면이 SVG 로 그린다. 받아 둔 파일을 읽고 상류를 타지 않는다.
+    jikhanjung P01 §5 의 5 단계다. 도폭은 누른 자리에서 가장 가까운 자세 기호의 도폭이다."""
+    lang = i18n.lang_of(request)
+    if not kigam50k.available():
+        return JsonResponse({"error": i18n.t(msg("5만 지질도의 자세 기호 파일이 없다"), lang)}, status=503)
+    sheet = None
+    if request.GET.get("bbox"):
+        parts = [_float(v) for v in request.GET["bbox"].split(",")]
+        if len(parts) != 4 or None in parts or parts[0] >= parts[2] or parts[1] >= parts[3]:
+            return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang)}, status=400)
+        rows, _ = kigam50k.within(*parts, limit=10 ** 6)
+    else:
+        lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+        if lat is None or lon is None:
+            return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+        sheet = kigam50k.sheet_at(lon, lat)
+        if sheet is None:
+            return JsonResponse({"sheet": None, "n": {}, "fetched": kigam50k.fetched_on()})
+        rows = kigam50k.in_sheet(sheet[0])
+    data = kigam50k.rose(rows)
+    data.update(sheet={"no": sheet[0], "name": sheet[1]} if sheet else None, fetched=kigam50k.fetched_on())
+    return JsonResponse(data)
+
+
+@require_GET
 def kigam50k_attitudes(request):
     """`?bbox=서,남,동,북` — 그 범위의 층리·엽리·편리·절리 자리와 값 (jikhanjung 004).
 

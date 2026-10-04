@@ -76,6 +76,19 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 층리·엽리 장미도 (wetherilli 197)
+    "이 범위의 층리·엽리 장미도": "Rose diagram of bedding and foliation in this extent",
+    "이 도폭의 층리·엽리 장미도": "Rose diagram of bedding and foliation on this map sheet",
+    "장미도를 받지 못했다": "Could not load the rose diagram",
+    "{name} 도폭 ({no}) — 자세 기호": "{name} sheet ({no}) — attitude symbols",
+    "잡은 범위 — 자세 기호": "Selected extent — attitude symbols",
+    "자세 기호": "Attitude symbols",
+    "이 자리에는 받아 둔 층리·엽리·절리가 없다": "No stored bedding, foliation or joints here",
+    "받은 날 {date}": "Fetched {date}",
+    "경사 미상 {n}": "Dip unknown {n}",
+    "주향은 경사 방향 − 90° (오른손 법칙)": "Strike = dip direction − 90° (right-hand rule)",
+    "5만 지질도의 자세 기호 파일이 없다": "The 1:50k attitude symbol files are not on the server",
+    "주향": "Strike", "경사 방향": "Dip direction", "경사": "Dip",
     # 지역 탭의 지구 자료 점 (wetherilli 185)
     "제4기": "Quaternary", "신진기": "Neogene", "고진기": "Paleogene", "백악기": "Cretaceous", "쥐라기": "Jurassic",
     "트라이아스기": "Triassic", "페름기": "Permian", "석탄기": "Carboniferous", "데본기": "Devonian",

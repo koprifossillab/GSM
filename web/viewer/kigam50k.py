@@ -15,6 +15,7 @@
 """
 import gzip
 import json
+import math
 import threading
 from pathlib import Path
 
@@ -117,3 +118,52 @@ def fetched_on() -> str:
         return ""
     n = folder.name
     return f"{n[:4]}-{n[4:6]}-{n[6:8]}" if len(n) == 8 else n
+
+
+# ── 장미도 (wetherilli 197, jikhanjung P01 §5 의 5 단계) ─────────────
+#
+# 도폭 하나(또는 고른 범위)의 층리·엽리·편리·절리 방향 분포. 서버가 각도를 칸으로 세어 주고 화면이 SVG 로 그린다 —
+# 점을 다 보내지 않아 가볍다. 주향은 축(180° 대칭)이라 10° 칸 열여덟, 경사 방향은 10° 칸 서른여섯, 경사는 10° 칸 아홉이다.
+
+#: 도폭을 찾을 때 누른 자리에서 가장 가까운 기호까지 볼 거리(°) — 5만 도폭 한 장이 15′(0.25°)다
+SHEET_REACH = 0.25
+
+
+def sheet_at(lon: float, lat: float):
+    """누른 자리의 도폭 `(번호, 이름)` — 가장 가까운 자세 기호의 도폭이다. 둘레에 기호가 없으면 None.
+    도폭 틀이 아직 레이어로 서지 않아(P01 §5 의 3 단계) 기호에 적힌 도폭으로 정한다."""
+    best, best_d = None, SHEET_REACH ** 2
+    cos = max(0.2, math.cos(math.radians(lat)))
+    for row in load():
+        d = ((row["lon"] - lon) * cos) ** 2 + (row["lat"] - lat) ** 2
+        if d < best_d and row["sheet_no"]:
+            best, best_d = row, d
+    return (best["sheet_no"], best["sheet"]) if best else None
+
+
+def in_sheet(sheet_no: str) -> list:
+    return [row for row in load() if row["sheet_no"] == sheet_no]
+
+
+def rose(rows: list) -> dict:
+    """`{"n": {갈래: 수}, "strike": {갈래: [18]}, "dipdir": {갈래: [36]}, "dip": {갈래: [9]}, "nodip": {갈래: 수}}`.
+    경사 방향이 없는 기호는 장미에서, 경사가 없는 기호(`-99`)는 경사 분포에서 빠진다(`nodip` 으로 센다)."""
+    out = {"n": {}, "strike": {}, "dipdir": {}, "dip": {}, "nodip": {}}
+    for kind in KINDS:
+        mine = [r for r in rows if r["kind"] == kind]
+        if not mine:
+            continue
+        strike, dipdir, dip = [0] * 18, [0] * 36, [0] * 9
+        nodip = 0
+        for r in mine:
+            if r["dipdir"] is not None:
+                dipdir[int(r["dipdir"]) % 360 // 10] += 1
+                strike[int(strike_of(r["dipdir"])) % 180 // 10] += 1
+            if r["dip"] is None:
+                nodip += 1
+            else:
+                dip[min(8, int(r["dip"]) // 10)] += 1
+        out["n"][kind] = len(mine)
+        out["strike"][kind], out["dipdir"][kind], out["dip"][kind] = strike, dipdir, dip
+        out["nodip"][kind] = nodip
+    return out
