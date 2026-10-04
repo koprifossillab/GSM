@@ -12,7 +12,7 @@
 | SCAR ADD (해안선·노두·빙퇴석·등고선) | ADD 뷰어가 BAS 의 ArcGIS Online 앱. 같은 것이 벡터 타일·피처 서비스로 있다 | — | 이미 있다 — 극지연구소 KPDC 기본도(노출암·등고선·호수·빙퇴석, 057)가 ADD 판이다 |
 | SCAR 지명 사전(CGA) | BAS 의 피처 서비스, CORS | 항목에 조건 글 없음 | TODOs (사람) |
 | BAS 암석 표본·코어 | 피처 서비스(표본 14 만 3 천, 해양 코어 966, 빙하 코어 84) | 조건 글 없음 | TODOs (사람) |
-| ADMAP-2 자력 이상 | PANGAEA 의 grd 파일뿐 | CC BY 3.0 | TODOs — 굽는 꼴 |
+| ADMAP-2 자력 이상 | PANGAEA 의 grd 파일뿐 | CC BY 3.0 | 굽는 꼴 — 따로 했다(wetherilli 262) |
 | BedMachine Antarctica | NSIDC — Earthdata 로그인 | — | 버림 — 열쇠 없이 받을 수 없다. Bedmap3 가 같은 자리를 메운다 |
 | BAS 지질도 | — | — | GeoMAP(SCAR, 018)이 그것이다 |
 | NASA GIBS 3031 | WMTS, CORS `*` | 공공 도메인 | 지질에 쓸 것이 없다 — SCAR 육지·물 가림과 해안선뿐 |
