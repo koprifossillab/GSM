@@ -631,6 +631,10 @@ CHANGELOG 의 그 절로 GitHub 릴리스(`v<판>`)를 만든다 — 태그마�
 지켜야 할 것이 생기면 거기에 검사를 더한다. 로컬에서 돌리려면 `pip install -r requirements-browser.txt` 와
 `python -m playwright install chromium` — 없으면 그 시험은 건너뛴다.
 
+**시험은 나란히 돌린다** — `manage.py test viewer --parallel 8`(CI 는 `--parallel auto`). 오래 걸리는 브라우저 시험은 반으로 나눠
+두어야 갈래들이 나눠 받는다(지역 탭 `RegionTabs*`, 구 화면 `GlobeScreens`). 카탈로그 씨앗은 `setUp` 이 아니라 `setUpTestData` 에서
+넣는다 — 시험마다 0.5 초씩 든다. 깨진 시험은 tblib 가 넘겨 보인다(`requirements-dev.txt`, wetherilli 294).
+
 **문서·기록만 고치는 커밋은 `main` 에 바로 올린다**(HANDOFF·TODOs·CLAUDE.md·devlog 색인 같은 것).
 브랜치는 부딪힐 수 있는 것을 격리하려고 있는 것이다. 애매하면 묻는다.
 

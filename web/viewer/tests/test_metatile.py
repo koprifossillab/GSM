@@ -85,11 +85,15 @@ class Metatile(SimpleTestCase):
 
 
 class View(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # 카탈로그는 반마다 한 번 — 시험마다 넣으면 0.5 초씩 든다 (wetherilli 294)
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+
     def setUp(self):
         patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-meta-view-"))
         patch.enable()
         self.addCleanup(patch.disable)
-        call_command("seed_catalog", stdout=open("/dev/null", "w"))
 
     def test_지자기는_메타타일로(self):
         sent = []
