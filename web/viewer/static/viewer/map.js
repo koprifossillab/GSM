@@ -1050,7 +1050,8 @@
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
     // GSJ 의 다른 WMS — 1:200만 지질도·부게 중력·지구화학도(wetherilli 255). 누르기는 없고 범례 그림
-    gsjows: { source: wmsSource, info: wmsInfoUrl },
+    // 공중 자력 편집도(wetherilli 266)는 지질도Navi 판이라 행에 `tiles` 가 있다 — 그 행만 z/x/y 로
+    gsjows: { source: function (name) { return (byName[name] || {}).tiles ? geonaviSource(name) : wmsSource(name); }, info: wmsInfoUrl },
     // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
     gsmma: { source: taiwanSource, info: wmsInfoUrl },
     // EMODnet 해저 지질(wetherilli 135) — NPI 처럼 3413 으로 곧장 받는다

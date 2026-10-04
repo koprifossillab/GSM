@@ -424,7 +424,7 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
-                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2617,6 +2617,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsjows" and gsj.gsjows_tiles(layer.name):
+        # 공중 자력 편집도(wetherilli 266) — 지질도Navi 판을 카탈로그에 올린 것. 타일은 브라우저가 tiles.gsj.jp 를 곧장(Navi 칸과 같은 길),
+        # 범례는 문이 받아 준 범례 그림
+        return {"attribution": gsj.GEONAVI_ATTRIBUTION, "tiles": gsj.gsjows_tiles(layer.name),
+                "maxZoom": gsj.GSJOWS_NAVI[layer.name][1], "queryable": False}
     if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
         # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
         return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
