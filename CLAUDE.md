@@ -458,16 +458,20 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
                   CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)·카메룬 IRGM 1:100만(`irgm`, 4326 만, 246)도
                   해외 영토의 스캔도(앤틸리스·폴리네시아·레위니옹·마요트·생피에르 미클롱 — 지역은 씨앗마다, wetherilli 260)
+                  같은 geologie WMS 의 광상·광화 지점(BD Gîtes `GITES_PT`)·광산(`MINES_PT`)도 (wetherilli 296)
   egdi.py         EGDI(EuroGeoSurveys)로 나가는 문 (범유럽 1:100만 지표 지질 GeoServer WMS). 느리다. 속성은 두 판 모두 암상 판에 묻는다(wetherilli 177)
   bgr.py          독일 연방 지구과학·자원청(BGR)으로 나가는 문 (GK1000·GÜK250 ArcGIS WMS). 이름은 `bgr:<판>:<번호>`. 유럽 1:500만 IGME5000 도
                   (축척마다 갈린 상류 레이어는 `+` 로 잇는다, 독일 탭에 두고 유럽 나라 탭이 빌린다, wetherilli 217)
+                  원료 — 지표 부근 원료 1:25만 KOR250·지하자원 1:100만 BSK1000(`wms/rohstoffe` 폴더, 속성은 text/plain, wetherilli 296)
   igme.py         스페인 지질광물연구소(IGME)로 나가는 문 (1:100만은 4326, MAGNA 1:5만은 3857 ArcGIS WMS). 이름은 `igme:<판>:<번호>` 같은 서버 PSysmin 폴더의 도미니카공화국 SGN 1:25만(판 `sgnrd`, wetherilli 242)도
+                  광물 산지·산업 광물 채굴지 BDMIN(`BasesDatos` 폴더, 판 `bdmin`·`bdminexp`, 상류 레이어 여럿은 `+`, wetherilli 296)
   gsi.py          아일랜드 지질조사소(GSI)로 나가는 문 (섬 전체 1:100만·공화국 1:10만 ArcGIS WMS)
   sgc.py          콜롬비아 지질조사소(SGC)로 나가는 문 (남미 1:500만 CGMW 2019·콜롬비아 1:50만 2023 ArcGIS WMS, 3857 로. 금속광상도·지구물리 이상 2022 도 — wetherilli 265). 이름은 `sgc:<판>:<번호>`
   ingemmet.py     페루 지질광업야금연구소(INGEMMET)로 나가는 문 (GEOCATMIN 1:5만·1:10만 통합판 — 그림은 REST 타일 캐시 z/x/y 중계, 누른 자리는 REST query, 범례는 보는 범위의 통계 질의. 단층·습곡은 SERV_GEOLOGIA_FALLAS 의 export 를 타일 칸으로, 1:5만 지질 단위만은 암상 레이어 export — 줌 9 부터, wetherilli 234)
                   광물 산지·광상·사업·금속 광화대·부게 이상·항공 자력도 — 다른 서비스의 export(자력은 ImageServer exportImage)를 타일 칸으로, 누른 자리는 REST query (wetherilli 277)
   ispra.py        이탈리아 지질조사소(ISPRA)로 나가는 문 (1:100만·1:10만 ArcGIS WMS 를 3857 로, 속성은 GeoJSON. 1:100만은 WMS·REST 번호가 거꾸로)
   lneg.py         포르투갈 국립 에너지·지질연구소(LNEG)로 나가는 문 (1:50만 ArcGIS WMS 를 3857 로, 속성은 ESRI XML)
+                  광상 1:20만·자력·중력·방사능(같은 서버의 다른 서비스 — 이름 `lneg:<판>:<번호>` 의 판이 서비스를 고른다, wetherilli 296)
   swisstopo.py    스위스 연방 지형청(swisstopo)으로 나가는 문 (1:50만·GeoCover geo.admin.ch WMS 를 3857 로, 속성은 geo.admin.ch REST identify)
   ga.py           Geoscience Australia 로 나가는 문 (호주 지표 지질 1:250만·1:100만 ArcGIS WMS — 두 판을 함께 물어 상류가 축척에 맞는 판을 그린다, 범례는 보는 범위.
                   지질구·핵심 광물·지구물리 격자도(`OTHER`, 격자는 png8 로, wetherilli 241))
@@ -541,7 +545,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   zhurong.py      주룽 로버 경로 파일(data/mars_zhurong.json) -> 착륙지·경로. Trek 에 없는 것을 덧붙인다. 문이 아니다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. 칠하기 규칙 → 색 표(`renderer_colors`, ingemmet·iige). requests 없음
-  arcwms.py       ArcGIS WMS 를 중계하는 문들의 틀 — 문이 제 `_get` 을 넘기고 이것은 변수를 고치고 응답(geojson·ESRI XML)·REST 범례를 읽는다(esdm·mgb·dmr). requests 없음. WMS 를 켜지 않은 서비스는 WMS 꼴 변수를 REST export·identify 로 옮긴다(`rest_export_params`·`rest_identify_params`)
+  arcwms.py       ArcGIS WMS 를 중계하는 문들의 틀 — 문이 제 `_get` 을 넘기고 이것은 변수를 고치고 응답(geojson·ESRI XML)·REST 범례를 읽는다(esdm·mgb·dmr). requests 없음. WMS 를 켜지 않은 서비스는 WMS 꼴 변수를 REST export·identify 로 옮긴다(`rest_export_params`·`rest_identify_params`). ArcGIS WMS 의 `text/plain` 속성(한 줄에 머리와 값)도 읽는다(`fields_plain`, wetherilli 296)
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
