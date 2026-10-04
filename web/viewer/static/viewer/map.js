@@ -4434,6 +4434,21 @@
     };
   }
 
+  /** 방향 기호(wetherilli 223) — 위(북)를 가리키는 SVG. `arrow` 는 선구조의 침강 방향 화살, `strike` 는 주향선과 경사 방향의 짧은 눈금.
+   *  지도에서는 서버의 `azimuth`(°)만큼 돌린다 — 화살은 침강 방향, 주향 기호는 경사 방향이 위다. */
+  function attitudeSvg(shape, color, size) {
+    var c = esc(color || "#888"), h = size / 2;
+    var body = shape === "arrow"
+      ? '<line x1="' + h + '" y1="' + (size - 2) + '" x2="' + h + '" y2="5" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="' + h + '" y1="' + (size - 2) + '" x2="' + h + '" y2="5" stroke="' + c + '" stroke-width="2"/>' +
+        '<path d="M' + h + ' 1 L' + (h - 4) + ' 8 L' + (h + 4) + ' 8 Z" fill="' + c + '" stroke="#fff" stroke-width="0.8"/>'
+      : '<line x1="2" y1="' + h + '" x2="' + (size - 2) + '" y2="' + h + '" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="' + h + '" y1="' + h + '" x2="' + h + '" y2="' + (h - 6) + '" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="2" y1="' + h + '" x2="' + (size - 2) + '" y2="' + h + '" stroke="' + c + '" stroke-width="2"/>' +
+        '<line x1="' + h + '" y1="' + h + '" x2="' + h + '" y2="' + (h - 6) + '" stroke="' + c + '" stroke-width="2"/>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">' + body + "</svg>";
+  }
+
   /** 극지연구소(053–056) — 서버가 갈래(`code`)마다 색·모양을 준다. 점은 모양대로, 범위(면·선)는
    *  같은 색의 테두리와 옅은 속으로 그린다. 멀리서는 점을 작게 — 암석 시료가 빅토리아랜드에 몰려 있다. */
   function classStyle(feature, resolution, getLayer, cache) {
@@ -4446,7 +4461,8 @@
       fade = periodFade(periods, ago);
       if (!fade) return null;
     }
-    var key = code + "|" + type + (far ? "f" : "n") + fade;
+    var azimuth = feature.get("azimuth");
+    var key = code + "|" + type + (far ? "f" : "n") + fade + (azimuth != null ? "|" + Math.round(azimuth / 5) * 5 : "");
     if (cache[key]) return cache[key];
     var spec = {};
     (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
@@ -4461,6 +4477,11 @@
       // 5만 단층·습곡(wetherilli 202) — 굵기·끊김을 서버의 표가 준다. 선이 수천이라 테두리 없이 가늘게
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: spec.width || 1.4,
                                                                 lineDash: spec.dash || undefined }) });
+    } else if ((spec.shape === "arrow" || spec.shape === "strike") && azimuth != null) {
+      // 5만 선구조·유동구조(wetherilli 223) — 방향을 돌린 기호. 5° 칸으로 담아 둔다
+      style = new ol.style.Style({ image: new ol.style.Icon({
+        src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(attitudeSvg(spec.shape, color, 22)),
+        rotation: (Math.round(azimuth / 5) * 5) * Math.PI / 180, rotateWithView: true, scale: far ? 0.6 : 1 }) });
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 1.6, lineDash: [6, 4] }) });
@@ -4516,6 +4537,10 @@
         sw.className = "sw-line";
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.shape === "dash" ? '1.6" stroke-dasharray="6 4' : "2.5") + '"/></svg>';
+      } else if (row.style === "class" && (r.shape === "arrow" || r.shape === "strike")) {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = attitudeSvg(r.shape, r.color, 16).replace("<svg ", '<svg aria-hidden="true" ');
       } else if (row.style === "class") {
         sw = document.createElement("span");
         sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond", triangle: "triangle" }[r.shape] || "dot");

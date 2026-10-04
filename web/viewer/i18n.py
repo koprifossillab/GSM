@@ -98,6 +98,12 @@ EN = {
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
     "단층": "Fault",
+    # 5만 선구조·신장광물·습곡축·유동구조의 갈래 (wetherilli 223)
+    "1차 선구조": "First-order lineation", "2차 선구조": "Second-order lineation", "3차 선구조": "Third-order lineation",
+    "선구조": "Lineation", "그 밖의 선구조": "Other lineations", "신장광물": "Stretched mineral",
+    "침강각 미상 신장광물": "Stretched mineral (plunge unknown)", "그 밖의 신장광물": "Other stretched minerals",
+    "습곡축": "Fold axis", "소습곡축": "Minor fold axis", "2·3차 습곡축": "Second- and third-order fold axes",
+    "유동구조": "Flow structure", "유상구조": "Flow banding", "수직 유동구조": "Vertical flow structure",
     "배사": "Anticline", "향사": "Syncline", "역전 등사 배사": "Overturned isoclinal anticline",
     "역전 등사 향사": "Overturned isoclinal syncline", "침강 배사": "Plunging anticline", "침강 향사": "Plunging syncline",
     "그 밖의 습곡": "Other folds",
@@ -2096,6 +2102,8 @@ PROP_EN = {
     "구조 갈래": "Structure type", "세부 갈래": "Subtype", "활동성": "Activity", "마지막 움직임": "Last movement",
     "움직임 속도": "Slip rate", "재발 간격 (년)": "Recurrence (years)", "위험도": "Hazard level", "위험 지수": "Hazard index",
     "평가일": "Assessed", "화석": "Fossils",
+    # 5만 선구조의 팝업 (wetherilli 223)
+    "침강 방향": "Plunge direction", "침강각": "Plunge", "방향 (사분면)": "Trend (quadrant)", "침강 방향 (사분면)": "Plunge direction (quadrant)",
     # 브라질 SGB 의 노두·연대측정·화석 산지 (wetherilli 215)
     "야외 번호": "Field number", "과제": "Project", "분석 재료": "Material analysed", "자료 공개": "Access level",
     "분류": "Systematics", "분류군": "Taxon", "재료": "Material", "암층서 단위": "Lithostratigraphic unit",
@@ -2882,6 +2890,8 @@ LAYER_EN = {
     # KIGAM 5만 구조 요소 (wetherilli 199). 열쇠는 레이어 이름이다
     "kigam50k:frame": "1:50k map sheet frames", "kigam50k:fossil": "Fossil localities (1:50k)",
     "kigam50k:sample": "Dating and geochemistry samples (1:50k)", "kigam50k:mine": "Mines (1:50k)",
+    "kigam50k:lineation": "Lineations (1:50k)", "kigam50k:mineralarray": "Stretched minerals (1:50k)",
+    "kigam50k:foldaxis": "Fold axes (1:50k)", "kigam50k:flowstructure": "Flow structures (1:50k)",
     # 지구 자료 점 (wetherilli 185) — 처음에 제목을 열쇠로 적어 영어판에 한국어가 나왔다(199 에서 이름으로 고쳤다)
     "earth:pbdb_korea": "Fossil collections (PBDB)", "earth:pbdb_antarctica": "Fossil collections (PBDB)", "earth:pbdb_arctic": "Fossil collections (PBDB)",
     "earth:gvp_korea": "Holocene volcanoes (GVP)", "earth:gvp_antarctica": "Holocene volcanoes (GVP)", "earth:gvp_arctic": "Holocene volcanoes (GVP)",
