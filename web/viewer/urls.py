@@ -88,6 +88,12 @@ urlpatterns = [
     re_path(r"^earth/tectonics/(?P<layer>tbound|tprov)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_tectonics_tile, name="earth-tectonics-tile"),
     path("earth/tectonics/at/", views.earth_tectonics_at, name="earth-tectonics-at"),
+    # 세계 암상 GLiM·지열류 IHFC (glim.py·heatflow.py, wetherilli 267)
+    re_path(r"^earth/glim/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_glim_tile, name="earth-glim-tile"),
+    path("earth/glim/at/", views.earth_glim_at, name="earth-glim-at"),
+    re_path(r"^earth/heatflow/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_heatflow_tile,
+            name="earth-heatflow-tile"),
+    path("earth/heatflow/at/", views.earth_heatflow_at, name="earth-heatflow-at"),
     # 해양 지각 연대·퇴적층 두께 (seafloor.py, wetherilli 264)
     re_path(r"^earth/seafloor/(?P<layer>seaage|sediment)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_seafloor_tile, name="earth-seafloor-tile"),

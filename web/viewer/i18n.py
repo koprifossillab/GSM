@@ -548,6 +548,20 @@ EN = {
     "전면 분지": "Foredeep basin", "조산대": "Orogenic belt", "좁은 열곡": "Narrow rift", "넓은 열곡": "Wide rift", "화산호": "Volcanic arc",
     "배호 분지": "Back-arc basin", "오피올라이트 복합체": "Ophiolite complex", "거대 화성 구역": "Magmatic province", "해양 고원": "Oceanic plateau",
     "해양 배호 분지": "Oceanic back-arc basin", "해양 지각": "Oceanic crust", "대륙 지각": "Continental crust", "전이 지각": "Transitional crust",
+    # 세계 암상 GLiM·지열류 IHFC (wetherilli 267)
+    "암상 (GLiM)": "Lithology (GLiM)", "세계 암상": "Global lithology",
+    "{name} — GLiM, 0.5° 칸에서 가장 넓은 암상": "{name} — GLiM, the most extensive lithology in the 0.5° cell",
+    "0.5° 칸에서 가장 넓은 암상이다": "The most extensive lithology in each 0.5° cell",
+    "미고결 퇴적물": "Unconsolidated sediments", "염기성 화산암": "Basic volcanic rocks", "쇄설성 퇴적암": "Siliciclastic sedimentary rocks",
+    "염기성 심성암": "Basic plutonic rocks", "혼합 퇴적암": "Mixed sedimentary rocks", "탄산염 퇴적암": "Carbonate sedimentary rocks",
+    "산성 화산암": "Acid volcanic rocks", "산성 심성암": "Acid plutonic rocks", "중성 화산암": "Intermediate volcanic rocks",
+    "화산쇄설암": "Pyroclastics", "중성 심성암": "Intermediate plutonic rocks", "증발암": "Evaporites", "빙하·만년설": "Ice and glaciers",
+    "자료 없음": "No data", "물": "Water bodies",
+    "지열류 (IHFC)": "Heat flow (IHFC)", "지열류": "Heat flow",
+    "지열류 {q} mW/m²": "Heat flow {q} mW/m²", "측정 {n} 곳 가운데 가까운 것부터 (IHFC)": "Nearest of {n} measurements (IHFC)",
+    "IHFC 자료 (GFZ)": "IHFC data (GFZ)",
+    "40 mW/m² 아래": "Below 40 mW/m²", "40–60 mW/m²": "40–60 mW/m²", "60–80 mW/m²": "60–80 mW/m²", "80–120 mW/m²": "80–120 mW/m²",
+    "120–200 mW/m²": "120–200 mW/m²", "200 mW/m² 넘게": "Above 200 mW/m²",
     # 바다 밑 — 해양 지각 연대·퇴적층 두께 (wetherilli 264)
     "바다 밑 (Seton 2020 · GlobSed)": "Beneath the sea (Seton 2020 · GlobSed)",
     "해양 지각 연대": "Ocean crust age",
@@ -1813,6 +1827,8 @@ EN = {
 PROP_EN = {
     # 세계 지질구 (wetherilli 272)
     "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
+    # 지열류 (wetherilli 267)
+    "지열류 (mW/m²)": "Heat flow (mW/m²)", "환경": "Setting", "품질": "Quality",
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "주기": "Cycle", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
