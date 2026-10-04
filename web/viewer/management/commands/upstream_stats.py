@@ -16,24 +16,9 @@ from django.utils import timezone
 from viewer import usage
 from viewer.models import UpstreamDay
 
-BUCKET_FIELDS = [f"t{i}" for i in range(len(usage.TIME_BUCKETS) + 1)]
-
-
-def p95(counts) -> str:
-    """칸마다의 건수 → p95 가 든 칸의 위 끝(`≤ 3 초`). 마지막 칸이면 `> 34 초`"""
-    total = sum(counts)
-    if not total:
-        return "—"
-    need, run = 0.95 * total, 0
-    for i, n in enumerate(counts):
-        run += n
-        if run >= need:
-            return f"≤{usage.TIME_BUCKETS[i]:g}" if i < len(usage.TIME_BUCKETS) else f">{usage.TIME_BUCKETS[-1]:g}"
-    return "—"
-
-
-def mean(seconds, timed) -> str:
-    return f"{seconds / timed:.1f}" if timed else "—"
+BUCKET_FIELDS = usage.BUCKET_FIELDS
+p95 = usage.p95
+mean = usage.mean
 
 
 class Command(BaseCommand):

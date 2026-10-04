@@ -115,6 +115,7 @@ EN = {
     "폴란드 지질연구소 (PIG-PIB)": "Polish Geological Institute (PIG-PIB)", "네덜란드 지질조사부 (TNO)": "Geological Survey of the Netherlands (TNO)",
     "플랑드르 지하 자료은행 (DOV)": "Flanders Subsurface Database (DOV)", "왈로니아 공공서비스 (SPW)": "Public Service of Wallonia (SPW)",
     "브리티시컬럼비아 지질조사소": "British Columbia Geological Survey", "캘리포니아 지질조사소": "California Geological Survey",
+    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI",
     "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
     "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
@@ -530,6 +531,13 @@ EN = {
     "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
     "최근 지진 (7 일, M2.5 이상)": "Recent earthquakes (7 days, M2.5+)",
     "속이 빈 고리 — 크기는 규모, 색은 지난 시간 (매시 받음)": "Hollow rings — size is magnitude, colour is time since (fetched hourly)",
+    # 관리 화면의 상류 응답 시간 (wetherilli 295)
+    "상류 응답 시간": "Upstream response times",
+    "지난 7 일의 평균이 느린 차례 — 시간은 상류가 응답의 머리를 보내기까지": "Slowest first by the 7-day mean — time until the upstream sends the response headers",
+    "상류": "Upstream", "지난 7 일": "Past 7 days", "건수": "Calls", "실패": "Failed", "평균 (초)": "Mean (s)",
+    "아직 센 것이 없다": "Nothing counted yet",
+    "p95 는 시간 칸(0.5·1·2·3·5·8·13·21·34 초)에서 어림한 위 끝이다. 실패는 차단 조짐을 함께 센다. 서버 쪽에서는 manage.py upstream_stats 로 같은 값을 본다.":
+        "p95 is the upper edge of the time band (0.5 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 s) it falls in. Failures include block signs. On the server, manage.py upstream_stats shows the same figures.",
     "지진 {n} 곳 가운데 가까운 것부터": "Nearest of {n} earthquakes",
     "USGS 에서 보기": "Open at USGS",
     # 제4기 고생태 산지 (wetherilli 139)
@@ -2450,6 +2458,7 @@ PROP_EN = {
     "회사": "Company",
     "생산": "Production", "발견": "Discovery",
     "광종 (태국어)": "Commodity (Thai)", "군": "District", "탐사 단계": "Exploration status", "광종 갈래": "Commodity group", "조사 단계": "Survey stage",
+    "광업 지역": "Mining area",
     "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
     "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
     "시대 기호": "Age code", "자원량": "Resources",
@@ -3132,8 +3141,11 @@ def props_en(props: dict) -> dict:
 
 GROUP_EN = {
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
+    "네바다 지질도 (NBMG 1:50만)": "Nevada geology (NBMG 1:500k)", "워싱턴 지질도 (DNR)": "Washington geology (DNR)",
+    "오리건 지질도 (DOGAMI OGDC-6)": "Oregon geology (DOGAMI OGDC-6)",
     "인도네시아 광물 자원 (ESDM)": "Indonesia mineral resources (ESDM)", "필리핀 광물 자원 (MGB)": "Philippines mineral resources (MGB)",
     "태국 광물 (DMR)": "Thailand minerals (DMR)", "사우디 광물 (SGS)": "Saudi Arabia minerals (SGS)", "몽골 광물 (MRIS)": "Mongolia minerals (MRIS)",
+    "남아공 광업·자원 지역 (CGS)": "South Africa mining and resource areas (CGS)",
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
     "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
     "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
@@ -3283,12 +3295,17 @@ LAYER_EN = {
     "bcgs:minfile": "British Columbia MINFILE mineral occurrences", "ygs:57": "Yukon MINFILE mineral occurrences",
     "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects",
     "skgs:smdi": "Saskatchewan mineral deposits index (SMDI)", "skgs:mines": "Saskatchewan mine locations",
+    # 미국 주 지질도 (wetherilli 291)
+    "nbmg:geology": "Geologic map (1:500,000)", "wadnr:500k": "Geologic map (1:500,000)", "wadnr:100k": "Geologic map (1:100,000 GeMS)",
+    "dogami:ogdc": "Oregon Geologic Data Compilation (OGDC-6)",
     # 아시아 광물 (wetherilli 280)
     "esdm:metal": "Metallic mineral potential", "esdm:nonmetal": "Non-metallic mineral and rock potential",
     "mgb:metallic": "Metallic mineral resources", "mgb:nonmetallic": "Non-metallic mineral resources",
     "dmr:min_occ": "Mineral occurrences", "dmr:critical": "Critical mineral occurrences",
     "sgs:mods": "Mineral occurrences (MODS)", "sgs:belts": "Mineralization belts (gold, nickel, zinc, VMS)",
     "mris:ree": "Rare earth deposits, mineralized points and occurrences",
+    # 남아공 광업·자원 지역 (wetherilli 285)
+    "cgs:mining_areas": "Main mining areas (CSIR)", "cgs:coal": "Main coal resource areas", "cgs:uranium": "Uranium areas",
     # 북유럽 광물·지구물리 (wetherilli 270)
     "gtk:aeromagneettinen_anomaliakartta": "Aeromagnetic anomaly", "gtk:aeroradiometrinen_yhdistelmakartta": "Aeroradiometric ternary (K·Th·U)",
     "gtk:fennoscandia_mineral_deposit": "Ore deposits (Norway, Sweden, Finland, NW Russia)",

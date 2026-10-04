@@ -65,10 +65,18 @@
       ArcGIS Online 피처 서비스(`Metallic_Mineral_Occurrences`·`Industrial_Mineral_Occurrences`)뿐이라 그림 길이 없다 — 파나마(stri)처럼 한 덩이로 받아
       화면이 그릴지. 노바스코샤는 광물 산지 서비스를 찾지 못했다. 퀘벡의 광물 산지(gîte)는 WMS 에 없다(SIGÉOM 의 다른 서비스를 찾을 것)
 
+- [ ] 미국 주 지질도(wetherilli 291) — 네바다·워싱턴·오리건은 섰다. 남은 것: 유타 UGS(`webmaps.geology.utah.gov/arcgis/rest/services/GeolMap/500k_State`)와
+      애리조나 AZGS(`services.azgs.az.gov`)는 이 서버에서 연결이 시간 초과다(나라 밖을 막는 듯) — 미국 안의 길이 생기면. 알래스카 DGGS 는 지질도가
+      SIM 3340(mrdata)과 겹쳐 두지 않았고 광물 산지(`Mineral_Occurrences_2020_MIL1`)는 따로 볼 것. 세 주 모두 조건 문구를 읽지 않았다 — 정적 판에 싣기 전에
+
 - [ ] 아시아 광물(wetherilli 280) — 인도네시아·필리핀·태국·사우디·몽골 희토류는 섰다. 남은 것: 말레이시아 MyGEMS 는 `rest/services` 목록이 허브 쪽으로
       넘어가 광물 서비스를 찾지 못했다, 인도 GSI 는 Bhukosh 가 나라 밖에서 닿지 않는다. 몽골 `Atlas/AtlasPoints` 의 광상 레이어(6–9)는 우물 자료를
       돌려준다 — 고쳐지면 금속·비금속·연료·전략 광상. 태국 지구물리 탐사 지점·사우디 지구물리 사업 범위는 범위뿐이라 뺐다.
       다섯 곳 모두 이용 조건이 적혀 있지 않다 — 정적 판에 싣기 전에 사람이 읽는다
+
+- [ ] 아프리카 광물(wetherilli 285) — 남아공 광업·석탄·우라늄 지역(DPME 사본)만 섰다. 나미비아 GSN·부르키나파소 BUMIGEB(BGS OneGeology)·카메룬 IRGM(BRGM)
+      WMS 는 지질 단위·단층뿐이고, BGS ArcGIS 의 아프리카 폴더는 지하수뿐이다(`Ghana`·`Kenya` 폴더는 비었다). CGS 자신의 서버(`maps.geoscience.org.za`)는
+      여전히 시간 초과다. 광상 점은 SIGAfrique(BRGM)·나라 지질조사소 포털에 물어야 한다
 
 - [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
       가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
