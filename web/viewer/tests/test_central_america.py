@@ -1,4 +1,4 @@
-"""중앙아메리카·카리브 — 니카라과 INETER·도미니카공화국 SGN(IGME 서버)·푸에르토리코 USGS, 묶음 (wetherilli 242). 상류는 바꿔 끼운다.
+"""중앙아메리카·카리브 — 니카라과 INETER·도미니카공화국 SGN(IGME 서버), 미국 탭의 푸에르토리코를 빌리는 묶음 (wetherilli 242). 상류는 바꿔 끼운다.
 
 응답의 꼴은 2026-10-05 에 받아 본 그대로다.
 """
@@ -10,7 +10,7 @@ from unittest import mock
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 
-from viewer import igme, ineter, mrdata, views
+from viewer import igme, ineter, views
 
 WMS = {"crs": "EPSG:3857", "bbox": "-9602000,1360000,-9582000,1380000", "width": "256", "height": "256", "i": "10", "j": "20"}
 
@@ -25,16 +25,6 @@ DR_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <Field><FieldName>System</FieldName><FieldValue>Cretaceous</FieldValue></Field>
 <Field><FieldName>Series</FieldName><FieldValue>Lower Cretaceous-Upper Cretaceous</FieldValue></Field>
 </FeatureInfo></FeatureInfoCollection></FeatureInfoResponse>"""
-PR_PLAIN = """GetFeatureInfo results:
-
-Layer 'geol'
-  Feature 12:
-    fmatn = 'Kte'
-    name = 'Tetuan Formation'
-    age = 'Campanian-Santonian'
-    lith62name = 'Volcanic rock'
-    url = 'https://mrdata.usgs.gov/geology/pr/Kte'
-"""
 
 
 def response(body=None, *, status=200, ctype="application/json", content=None, text=None):
@@ -78,30 +68,22 @@ class DominicanRepublic(SimpleTestCase):
         self.assertNotIn("세", out)
 
 
-class PuertoRico(SimpleTestCase):
-    def test_text_plain_속성(self):
-        with mock.patch("viewer.mrdata.requests.get", return_value=response(content=PR_PLAIN.encode(), ctype="text/plain",
-                                                                              text=PR_PLAIN)) as get:
-            data = mrdata.get_feature_info(dict(WMS, layers="mrdata:pr:geol", query_layers="mrdata:pr:geol"))
-        self.assertTrue(get.call_args[0][0].endswith("/services/pr"))
-        out = mrdata.friendly(data["features"][0]["properties"])
-        self.assertEqual((out["기호"], out["이름"], out["지질시대"]), ("Kte", "Tetuan Formation", "캄파이나절~산토눔절"))
-
-
 class Catalog(TestCase):
     def setUp(self):
         call_command("seed_catalog", stdout=open("/dev/null", "w"))
 
     def test_나라_탭과_묶음(self):
         rows = {l["name"]: (g, l) for g in views._catalog("ko") for l in g["layers"]}
-        for name, region in (("ineter:geology", "nicaragua"), ("igme:sgnrd:0", "dominican_republic"), ("mrdata:pr:geol", "puerto_rico")):
+        for name, region in (("ineter:geology", "nicaragua"), ("igme:sgnrd:0", "dominican_republic"), ("mrdata:pr:geol", "usa")):
             group, layer = rows[name]
             self.assertEqual((group["region"], layer["projection"]), (region, "EPSG:3857"), name)
         self.assertTrue(rows["igme:sgnrd:0"][1]["noLegend"])
         self.assertFalse(rows["ineter:faults"][1]["queryable"])
         js = (Path(views.__file__).parent / "static/viewer/map.js").read_text(encoding="utf-8")
         ca = re.search(r'central_america: \{ title: "중앙아메리카·카리브".*?includes: \[([^\]]*)\]', js, re.S).group(1)
-        self.assertEqual(ca.replace(" ", ""), '"nicaragua","dominican_republic","puerto_rico"')
+        self.assertEqual(ca.replace(" ", ""), '"nicaragua","dominican_republic"')
+        # 푸에르토리코는 미국 탭의 것을 빌린다 — 같은 레이어를 두 번 두지 않는다(wetherilli 238·242)
+        self.assertIn('borrow: { usa: ["mrdata:pr:"] }', re.search(r'central_america: \{.*?\},\n', js, re.S).group(0))
 
     def test_미리_데우기와_3D(self):
         from viewer.management.commands import prewarm

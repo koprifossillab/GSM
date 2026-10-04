@@ -2910,25 +2910,6 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #142c36; --hi-deep: #0c1b20; --on-hi: #fdfcfb; --hi-ink: #377d97;
   --glass: rgba(253, 252, 251, .95); --glass-line: #dcf0f7;
 }
-/* ── 푸에르토리코 (wetherilli 242) — 플람보얀 꽃의 진홍: 카르스트 숲의 짙은 초록 바탕 ── */
-:root[data-region="puerto_rico"] {
-  --bg: #121511; --panel: #1b1e1b; --panel-tint: #0e100d; --raise: #272a26;
-  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
-  --line: #383a37; --line-soft: #272a26;
-  --gold: #d8463f; --gold-bright: #ea9995; --gold-muted: #b83c36;
-  --gold-wash: rgba(216, 70, 63, .13); --gold-edge: rgba(216, 70, 63, .42);
-  --hi: #d8463f; --hi-deep: #ea9995; --on-hi: #0e100d; --hi-ink: #ea9995;
-  --glass: rgba(14, 16, 13, .93); --glass-line: rgba(216, 70, 63, .35);
-}
-:root[data-region="puerto_rico"][data-theme="light"] {
-  --bg: #fdf4f3; --panel: #fdfcfb; --panel-tint: #fdf8f7; --raise: #fae5e4;
-  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
-  --line: #f7dad9; --line-soft: #fae5e4;
-  --gold: #97312c; --gold-bright: #772623; --gold-muted: #924b48;
-  --gold-wash: #f9e3e2; --gold-edge: #edaca9;
-  --hi: #361210; --hi-deep: #200a09; --on-hi: #fdfcfb; --hi-ink: #97312c;
-  --glass: rgba(253, 252, 251, .95); --glass-line: #f7dad9;
-}
 /* ── 중앙아메리카·카리브 (wetherilli 242) — 카리브 바다의 청록: 화산호의 검은 모래 바탕 ── */
 :root[data-region="central_america"] {
   --bg: #101414; --panel: #1a1d1d; --panel-tint: #0c0f0f; --raise: #262929;

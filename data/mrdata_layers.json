@@ -1,5 +1,5 @@
 {
- "_주석": "USGS mrdata 지질도 씨앗이다 — 미국 탭. 본토 48 주는 SGMC(주 지질도 합본), 알래스카는 SIM 3340. 공공 도메인. 레이어명은 mrdata:<서비스>:<레이어> (web/viewer/mrdata.py). 한글 제목과 레이어군은 사람이 붙였다 (wetherilli 205).",
+ "_주석": "USGS mrdata 지질도 씨앗이다 — 미국 탭. 본토 48 주는 SGMC(주 지질도 합본), 알래스카는 SIM 3340. 공공 도메인. 레이어명은 mrdata:<서비스>:<레이어> (web/viewer/mrdata.py). 한글 제목과 레이어군은 사람이 붙였다 (wetherilli 205). 하와이(hi)·푸에르토리코(pr)도 같은 서버다 (wetherilli 238).",
  "_뽑은날": "2026-10-04",
  "_출처": "https://mrdata.usgs.gov/services/sgmc2?service=WMS&request=GetCapabilities · https://mrdata.usgs.gov/services/sim3340?service=WMS&request=GetCapabilities",
  "_지역": "usa",
@@ -7,7 +7,9 @@
  "_레이어군차례": 0,
  "레이어군순서": [
   "미국 본토 지질도 (USGS SGMC)",
-  "알래스카 지질도 (USGS SIM 3340)"
+  "알래스카 지질도 (USGS SIM 3340)",
+  "하와이 지질도 (USGS)",
+  "푸에르토리코 지질도 (USGS)"
  ],
  "레이어": [
   {
@@ -56,6 +58,78 @@
     51.2,
     -129.9,
     71.4
+   ]
+  },
+  {
+   "name": "mrdata:hi:units",
+   "title": "지질 단위 (하와이)",
+   "group": "하와이 지질도 (USGS)",
+   "abstract": "Sherrod et al. 2007, Geologic Map of the State of Hawaii (OFR 2007-1089) — units",
+   "bbox": [
+    -160.6,
+    18.8,
+    -154.7,
+    22.4
+   ]
+  },
+  {
+   "name": "mrdata:hi:faults",
+   "title": "단층 (하와이)",
+   "group": "하와이 지질도 (USGS)",
+   "abstract": "Hawaii faults",
+   "bbox": [
+    -160.6,
+    18.8,
+    -154.7,
+    22.4
+   ]
+  },
+  {
+   "name": "mrdata:hi:dikes",
+   "title": "암맥 (하와이)",
+   "group": "하와이 지질도 (USGS)",
+   "abstract": "Hawaii dikes",
+   "bbox": [
+    -160.6,
+    18.8,
+    -154.7,
+    22.4
+   ]
+  },
+  {
+   "name": "mrdata:pr:geol",
+   "title": "지질 단위 (푸에르토리코)",
+   "group": "푸에르토리코 지질도 (USGS)",
+   "abstract": "Bawiec 1998, Geology of Puerto Rico (OFR 98-38) — units",
+   "bbox": [
+    -67.95,
+    17.85,
+    -65.2,
+    18.6
+   ]
+  },
+  {
+   "name": "mrdata:pr:fault",
+   "title": "역단층 (푸에르토리코)",
+   "group": "푸에르토리코 지질도 (USGS)",
+   "abstract": "PuertoRico_ThrustFaults",
+   "bbox": [
+    -67.95,
+    17.85,
+    -65.2,
+    18.6
+   ]
+  },
+  {
+   "name": "mrdata:pr:faultn",
+   "title": "정단층 (푸에르토리코)",
+   "group": "푸에르토리코 지질도 (USGS)",
+   "abstract": "PuertoRico_NormalFaults",
+   "bbox": [
+    -67.95,
+    17.85,
+    -65.2,
+    18.6
    ]
   }
  ]

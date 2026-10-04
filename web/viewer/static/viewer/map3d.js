@@ -61,7 +61,7 @@
   var BUNDLES = { arctic: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia", "iceland"], eastasia: ["korea", "japan", "china", "taiwan", "mongolia"],
                   europe: ["uk", "ireland", "france", "germany", "spain", "portugal", "italy", "switzerland", "austria", "poland", "netherlands", "belgium"], south_america: ["colombia", "ecuador", "peru", "brazil", "uruguay", "argentina"], north_america: ["canada", "usa", "mexico"],
                   oceania: ["australia", "new_zealand"], southeast_asia: ["thailand", "malaysia", "indonesia", "philippines"],
-                  central_america: ["nicaragua", "dominican_republic", "puerto_rico"] };
+                  central_america: ["nicaragua", "dominican_republic"] };
   var ALLOWED = BUNDLES[REGION] || [REGION];
   [].slice.call(select.querySelectorAll("optgroup")).forEach(function (g) {
     if (ALLOWED.indexOf(g.getAttribute("data-region")) < 0) g.remove();

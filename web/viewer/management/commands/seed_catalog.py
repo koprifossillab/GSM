@@ -131,6 +131,10 @@ class Command(BaseCommand):
                 # 퀘벡 SIGÉOM·유콘 YGS (wetherilli 210)
                 (settings.SIGEOM_CATALOG_SEED, "퀘벡 (SIGÉOM)", "canada", "sigeom"),
                 (settings.YGS_CATALOG_SEED, "유콘 (YGS)", "canada", "ygs"),
+                # 사스카치원·노바스코샤·앨버타 (wetherilli 235)
+                (settings.SKGS_CATALOG_SEED, "사스카치원 (SGS)", "canada", "skgs"),
+                (settings.NSGS_CATALOG_SEED, "노바스코샤 (NRR)", "canada", "nsgs"),
+                (settings.AGS_CATALOG_SEED, "앨버타 (AGS)", "canada", "ags"),
                 # 브리티시컬럼비아 BCGS(캐나다 탭)·캘리포니아 CGS(미국 탭) (wetherilli 231)
                 (settings.BCGS_CATALOG_SEED, "브리티시컬럼비아 (BCGS)", "canada", "bcgs"),
                 (settings.CALGS_CATALOG_SEED, "캘리포니아 (CGS)", "usa", "calgs"),
@@ -140,10 +144,9 @@ class Command(BaseCommand):
                 (settings.TNO_CATALOG_SEED, "네덜란드 (TNO)", "netherlands", "tno"),
                 (settings.DOV_CATALOG_SEED, "플랑드르 (DOV)", "belgium", "dov"),
                 (settings.SPW_CATALOG_SEED, "왈로니아 (SPW)", "belgium", "spw"),
-                # 중앙아메리카·카리브 — 니카라과 INETER·도미니카공화국 SGN(IGME 서버)·푸에르토리코 USGS (wetherilli 242)
+                # 중앙아메리카·카리브 — 니카라과 INETER·도미니카공화국 SGN(IGME 서버) (wetherilli 242)
                 (settings.INETER_CATALOG_SEED, "니카라과 (INETER)", "nicaragua", "ineter"),
                 (settings.IGME_DR_CATALOG_SEED, "도미니카공화국 (SGN)", "dominican_republic", "igme"),
-                (settings.MRDATA_PR_CATALOG_SEED, "푸에르토리코 (USGS)", "puerto_rico", "mrdata"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),

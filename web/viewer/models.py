@@ -77,10 +77,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            ("poland", "폴란드"),
            ("netherlands", "네덜란드"),
            ("belgium", "벨기에"),
-           # 중앙아메리카·카리브 — 니카라과·도미니카공화국·푸에르토리코 (wetherilli 242). 묶음 "중앙아메리카·카리브" 는 DB 에 없다
+           # 중앙아메리카·카리브 — 니카라과·도미니카공화국 (wetherilli 242). 푸에르토리코는 미국 탭(wetherilli 238)의 것을 묶음이 빌린다. 묶음 "중앙아메리카·카리브" 는 DB 에 없다
            ("nicaragua", "니카라과"),
-           ("dominican_republic", "도미니카공화국"),
-           ("puerto_rico", "푸에르토리코"))
+           ("dominican_republic", "도미니카공화국"))
 
 
 class LayerGroup(models.Model):
