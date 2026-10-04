@@ -252,11 +252,11 @@
   // **패널의 차례만 바뀐다** — 지도에 쌓는 차례와 누를 때 묻는 차례는 켠 차례(`active`)를 따르고, 처음 켜는 것은 그대로다(지질 단위).
   // 새 레이어는 아래 표에 이름을 적는다. 적지 않으면 맨 끝 "그 밖" 에 선다(시험 `test_earth_panel` 이 적었는지 본다)
   var THEMES = [
-    ["지질", ["geology", "glim", "seaage", "sediment"]],
+    ["지질", ["geology", "glim", "seaage", "sediment", "impacts"]],
     ["구조·판", ["tbound", "gemfaults", "tprov", "plates", "stress"]],
     ["지구물리", ["crust", "heatflow", "mantle"]],
     ["자원", []],                                     // 세계 광상(USGS)의 광종 칸은 `mineral` 로 여기 선다 (wetherilli 276)
-    ["화산·지진", ["volcanoes", "pleistocene", "quake6", "quake55", "quake5"]],
+    ["화산·지진", ["volcanoes", "pleistocene", "lips", "quake6", "quake55", "quake5"]],
     ["화석·고생태", ["fossils"]],                      // 고생태 산지(Neotoma)의 자료형 칸은 `neo` 로 여기 선다
     ["그때의 지구", ["coast", "icemargins"]],
     ["움직이는 지구", ["wind", "cloud", "satcloud", "ocean", "araon"]],
