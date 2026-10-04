@@ -698,6 +698,9 @@ EN = {
     "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
     # 미국 (wetherilli 205)
     "미국": "United States",
+    # 멕시코 (wetherilli 206)
+    "멕시코": "Mexico",
+    "멕시코 지질조사소": "Mexican Geological Survey (SGM)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -2400,6 +2403,33 @@ AGE_JOINERS_KO = {"-": "~", "–": "~", "and/or": " 및/또는 ", "or": " 또는
 _AGE_TOKEN = re.compile(r"and/or|[A-Za-z]+|\?|[-–,;]")
 
 
+#: 에스파냐어 시대 이름 → ICS 영문 (페루 INGEMMET wetherilli 195, 멕시코 SGM 206). 덧붙임표를 떼고 작은 글자로 견준다.
+#: 절(Age)은 대개 `-iano` → `-ian`(Albiano → Albian)이라 표 없이 규칙으로 옮긴다(`age_es`)
+AGES_ES = {
+    "arqueano": "Archean", "arcaico": "Archean", "proterozoico": "Proterozoic", "paleoproterozoico": "Paleoproterozoic",
+    "mesoproterozoico": "Mesoproterozoic", "neoproterozoico": "Neoproterozoic", "fanerozoico": "Phanerozoic",
+    "paleozoico": "Paleozoic", "mesozoico": "Mesozoic", "cenozoico": "Cenozoic",
+    "cambrico": "Cambrian", "ordovicico": "Ordovician", "silurico": "Silurian", "devonico": "Devonian",
+    "carbonifero": "Carboniferous", "permico": "Permian", "triasico": "Triassic", "jurasico": "Jurassic",
+    "cretacico": "Cretaceous", "cretaceo": "Cretaceous", "paleogeno": "Paleogene", "neogeno": "Neogene",
+    "cuaternario": "Quaternary", "terciario": "Tertiary",
+    "paleoceno": "Paleocene", "eoceno": "Eocene", "oligoceno": "Oligocene", "mioceno": "Miocene", "plioceno": "Pliocene",
+    "pleistoceno": "Pleistocene", "holoceno": "Holocene",
+}
+
+
+def age_es(value: str) -> str:
+    """에스파냐어 시대 이름 하나 → ICS 영문. 표에 없고 `-iano` 로 끝나면 절 이름으로 보고 `-ian` 으로 바꾼다. 모르면 원문 그대로."""
+    import unicodedata
+    text = str(value or "").strip()
+    folded = "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
+    if folded in AGES_ES:
+        return AGES_ES[folded]
+    if folded.endswith("iano") and folded.isalpha():
+        return folded[:-1].capitalize()
+    return text
+
+
 def age_ko(value: str) -> str:
     """영문 지질시대 값 하나를 한국어로. 못 옮기면 원문을 그대로 돌려준다.
 
@@ -2726,6 +2756,8 @@ GROUP_EN = {
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
+    "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
+    "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
 }
 
 LAYER_EN = {
@@ -2808,6 +2840,11 @@ LAYER_EN = {
     "mrdata:sgmc2:sgmc2structure": "Structures (state map compilation)",
     "mrdata:sim3340:units": "Geologic units (Alaska 1:1.58M)",
     "mrdata:sim3340:faults": "Faults (Alaska 1:1.58M)",
+    # 멕시코 (wetherilli 206)
+    "sgm:8": "Lithology (1:250k)",
+    "sgm:6": "Structures (1:250k)",
+    "sgm:7": "Lithology (1:50k)",
+    "sgm:5": "Structures (1:50k)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

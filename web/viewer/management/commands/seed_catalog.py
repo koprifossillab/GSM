@@ -94,6 +94,8 @@ class Command(BaseCommand):
                 (settings.IIGE_CATALOG_SEED, "에콰도르 (IIGE)", "ecuador", "iige"),
                 # 미국 — USGS SGMC(본토)·SIM 3340(알래스카) (wetherilli 205)
                 (settings.MRDATA_CATALOG_SEED, "미국 (USGS)", "usa", "mrdata"),
+                # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
+                (settings.SGM_CATALOG_SEED, "멕시코 (SGM)", "mexico", "sgm"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # KIGAM 5만 구조 요소 — 받아 둔 WFS 파일의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)

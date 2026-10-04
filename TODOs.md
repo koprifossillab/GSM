@@ -40,7 +40,7 @@
 - [ ] 캐나다 NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 — ArcGIS, CORS, OGL. 온타리오 속성은 REST identify. 반나절씩
 - [ ] 북미 묶음 — 미국 탭은 섰다(wetherilli 205). 캐나다 탭이 들어오면 `north_america` 묶음을 세우고, 알래스카를 그 투영에 맞춘다
       (지금은 3857 이라 부푼다). 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 같은 서버에 있다
-- [ ] 멕시코 SGM 1:25만·1:5만 — CC BY 4.0. WMS 는 400 이라 ArcGIS REST export·identify. 범례 888·2 571 칸이라 보는 범위의 범례. 하루
+- [ ] 멕시코 SGM 의 다른 서비스 — 같은 서버에 지질 연대(`SunEdadesGeocronologicas`)·고생물(`Paleontologia`)·광상이 있다. 탭은 섰다(wetherilli 206)
 - [ ] 퀘벡 SIGÉOM — CC BY 4.0, Macrostrat 의 빈 자리. Origin 헤더가 붙으면 403 이라 서버 문으로만. 반나절. 그다음 캘리포니아·유콘·BC
 - 막힌 것: USGS 북미 지질도 GMNA(403), ScienceBase(503), NGMDB(지도 API 없음)
 
