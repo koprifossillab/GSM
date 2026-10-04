@@ -156,6 +156,9 @@ BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
 #: 아프리카(wetherilli 207) — CGMW–BRGM 1:1000만(BRGM 의 mapsref 서버)과 그 정적 범례, BGS 아프리카 지하수 지도책
 CGMW_AFRICA_URL = env("GSM_CGMW_AFRICA_URL", "https://mapsref.brgm.fr/wxs/1GG/IGC35_CGMW_BRGM_Africa_Geology")
 CGMW_LEGEND_URL = env("GSM_CGMW_LEGEND_URL", "https://mapsref.brgm.fr/legendes/ogg")
+#: 아프리카 나라 판(wetherilli 209) — 남아공 CGS(정부 DPME 사본 ArcGIS REST)·나미비아 GSN(BGS 가 대신 내주는 MapServer)
+CGS_REST_URL = env("GSM_CGS_REST_URL", "https://dpmegis.dpme.gov.za/arcgis/rest/services/Geology/MapServer")
+GSN_WMS_URL = env("GSM_GSN_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_GSN_Bedrock_Geology/wms")
 AGA_WMS_URL = env("GSM_AGA_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/AGA/BGS_Groundwater/MapServer/WMSServer")
 EGDI_WMS_URL = env("GSM_EGDI_WMS_URL", "https://geoserver.geo-zs.si/egdi-surface-geology/gsmlp/wms")
 #: 독일·스페인·아일랜드 지질도 — BGR·IGME·GSI ArcGIS WMS 의 판 앞 주소, GSNI 는 BGS 서버의 것 (wetherilli 147). 열쇠가 없다
@@ -179,6 +182,13 @@ IIGE_URL = env("GSM_IIGE_URL", "https://capas.geoenergia.gob.ec/arcgis")
 MRDATA_URL = env("GSM_MRDATA_URL", "https://mrdata.usgs.gov/services")
 #: 멕시코 지질도 — SGM ArcGIS REST 서비스 주소 (wetherilli 206). WMS 는 400 이라 export·identify 를 쓴다. 열쇠가 없다
 SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM/SUNGeologiaContinuoMineDatosEs/MapServer")
+#: 캐나다 — NRCan 1:500만(Wheeler) WMS·온타리오 OGS ArcGIS 의 앞 주소 (wetherilli 204). 열쇠가 없다
+NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/server_serveur/services/NRCan/"
+                    "geological_map_canada_wheeler_en/MapServer/WMSServer")
+OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
+#: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
+GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
+GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
 #: 이탈리아 ISPRA·포르투갈 LNEG ArcGIS 의 앞 주소, 스위스 swisstopo WMS·identify (wetherilli 211). 열쇠가 없다
 ISPRA_URL = env("GSM_ISPRA_URL", "https://sgi2.isprambiente.it/arcgis")
 LNEG_URL = env("GSM_LNEG_URL", "https://sig.lneg.pt/server")
@@ -422,6 +432,8 @@ GSI_CATALOG_SEED = REPO_DIR / "data" / "gsi_layers.json"
 GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 CGMW_CATALOG_SEED = REPO_DIR / "data" / "cgmw_layers.json"
 AGA_CATALOG_SEED = REPO_DIR / "data" / "aga_layers.json"
+CGS_CATALOG_SEED = REPO_DIR / "data" / "cgs_layers.json"
+GSN_CATALOG_SEED = REPO_DIR / "data" / "gsn_layers.json"
 #: 남미 (wetherilli 188)
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)
@@ -436,6 +448,11 @@ IIGE_CATALOG_SEED = REPO_DIR / "data" / "iige_layers.json"
 MRDATA_CATALOG_SEED = REPO_DIR / "data" / "mrdata_layers.json"
 #: 멕시코 (wetherilli 206)
 SGM_CATALOG_SEED = REPO_DIR / "data" / "sgm_layers.json"
+#: 캐나다 (wetherilli 204)
+NRCAN_CATALOG_SEED = REPO_DIR / "data" / "nrcan_layers.json"
+OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
+#: 호주 (wetherilli 212)
+GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 이탈리아·포르투갈·스위스 (wetherilli 211)
 ISPRA_CATALOG_SEED = REPO_DIR / "data" / "ispra_layers.json"
 LNEG_CATALOG_SEED = REPO_DIR / "data" / "lneg_layers.json"

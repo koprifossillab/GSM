@@ -2507,3 +2507,43 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #0c3b31; --hi-deep: #062520; --on-hi: #fbfdfd; --hi-ink: #1d7f6c;
   --glass: rgba(253, 252, 250, .95); --glass-line: #d0e2dd;
 }
+
+/* ── 캐나다 (wetherilli 204) — 단풍잎의 붉은빛: 캐나다 순상지 화강암의 회색 바탕 ── */
+:root[data-region="canada"] {
+  --bg: #151313; --panel: #1c1919; --panel-tint: #110f0f; --raise: #282323;
+  --ink: #f6f1f0; --ink-soft: #cdbfbd; --ink-faint: #8d7f7d;
+  --line: #3a3232; --line-soft: #282323;
+  --gold: #d8473a; --gold-bright: #f08a7f; --gold-muted: #b13a2f;
+  --gold-wash: rgba(216, 71, 58, .13); --gold-edge: rgba(216, 71, 58, .42);
+  --hi: #d8473a; --hi-deep: #f08a7f; --on-hi: #110f0f; --hi-ink: #f08a7f;
+  --glass: rgba(17, 15, 15, .93); --glass-line: rgba(216, 71, 58, .35);
+}
+:root[data-region="canada"][data-theme="light"] {
+  --bg: #f6f2f1; --panel: #fdfbfb; --panel-tint: #f9f5f4; --raise: #ece4e2;
+  --ink: #241a19; --ink-soft: #5a4946; --ink-faint: #93817e;
+  --line: #e4d9d7; --line-soft: #ece4e2;
+  --gold: #b22a1e; --gold-bright: #8c1f16; --gold-muted: #9a5048;
+  --gold-wash: #f7e3e0; --gold-edge: #e7b3ad;
+  --hi: #3b0f0a; --hi-deep: #250805; --on-hi: #fdf8f7; --hi-ink: #b22a1e;
+  --glass: rgba(253, 251, 251, .95); --glass-line: #e4d9d7;
+}
+
+/* ── 호주 (wetherilli 212) — 그레이트배리어리프의 산호빛: 산호해의 깊은 바다 바탕 ── */
+:root[data-region="australia"] {
+  --bg: #0c1218; --panel: #121a22; --panel-tint: #090e13; --raise: #1b2631;
+  --ink: #eef4f8; --ink-soft: #b3c3cf; --ink-faint: #71838f;
+  --line: #263442; --line-soft: #1b2631;
+  --gold: #f2836b; --gold-bright: #f9bcae; --gold-muted: #cf7360;
+  --gold-wash: rgba(242, 131, 107, .13); --gold-edge: rgba(242, 131, 107, .42);
+  --hi: #f2836b; --hi-deep: #f9bcae; --on-hi: #090e13; --hi-ink: #f9bcae;
+  --glass: rgba(9, 14, 19, .93); --glass-line: rgba(242, 131, 107, .35);
+}
+:root[data-region="australia"][data-theme="light"] {
+  --bg: #f9f1ee; --panel: #fefcfb; --panel-tint: #fbf5f3; --raise: #f0e2dd;
+  --ink: #1d1714; --ink-soft: #5b4a43; --ink-faint: #97847c;
+  --line: #e8d6cf; --line-soft: #f0e2dd;
+  --gold: #c2533b; --gold-bright: #993d2a; --gold-muted: #a8685a;
+  --gold-wash: #f9e2dc; --gold-edge: #edb3a6;
+  --hi: #3d1a12; --hi-deep: #250e09; --on-hi: #fdf6f4; --hi-ink: #c2533b;
+  --glass: rgba(254, 252, 251, .95); --glass-line: #e8d6cf;
+}

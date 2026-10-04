@@ -49,6 +49,10 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            ("mexico", "멕시코"),
            # 아프리카 — 대륙 판(CGMW–BRGM 1:1000만)이 바탕이라 탭 하나. 나라 판이 붙으면 그때 가른다 (wetherilli 207)
            ("africa", "아프리카"),
+           # 캐나다 — NRCan 1:500만·온타리오 OGS (wetherilli 204). 화면은 캐나다 람베르트(3978)다. 묶음 "북미" 는 DB 에 없다(남미와 같다)
+           ("canada", "캐나다"),
+           # 호주 — Geoscience Australia 1:250만·1:100만 (wetherilli 212)
+           ("australia", "호주"),
            # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211). 유럽 묶음에 들고 EGDI 1:100만은 영국에서 빌린다
            ("italy", "이탈리아"),
            ("portugal", "포르투갈"),
@@ -114,6 +118,7 @@ class Layer(models.Model):
     #: iige → `iige.py` (에콰도르 지질도, wetherilli 198),
     #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205), sgm → `sgm.py` (멕시코 지질도 — REST export, wetherilli 206),
     #: cgmw → `brgm.py` 의 CGMW (아프리카 1:1000만), aga → `bgs.py` 의 AGA (아프리카 지하수 지도책 나라별 지질, wetherilli 207)
+    #: nrcan → `nrcan.py` (캐나다 1:500만), ogs → `ogs.py` (온타리오 1:25만, wetherilli 204)
     #: ispra → `ispra.py`·lneg → `lneg.py`·swisstopo → `swisstopo.py` (이탈리아·포르투갈·스위스 지질도, wetherilli 211)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
