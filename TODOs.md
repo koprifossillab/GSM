@@ -61,6 +61,10 @@
       브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다), 페루 광업 권리(`SERV_CATASTRO_MINERO`)·
       지화학 지도첩(`SERV_ATLAS_GEOQUIMICO`)·산업 광물(`SERV_ROCAS_MINERALES_INDUSTRIALES`)
 
+- [ ] 캐나다 주 광물(wetherilli 288) — BC·유콘 MINFILE, 온타리오 MDI, 퀘벡 가동 광산·사업, 사스카치원 SMDI 는 섰다. 남은 것: 앨버타 금속·산업 광물 산지는
+      ArcGIS Online 피처 서비스(`Metallic_Mineral_Occurrences`·`Industrial_Mineral_Occurrences`)뿐이라 그림 길이 없다 — 파나마(stri)처럼 한 덩이로 받아
+      화면이 그릴지. 노바스코샤는 광물 산지 서비스를 찾지 못했다. 퀘벡의 광물 산지(gîte)는 WMS 에 없다(SIGÉOM 의 다른 서비스를 찾을 것)
+
 - [ ] 미국 주 지질도(wetherilli 291) — 네바다·워싱턴·오리건은 섰다. 남은 것: 유타 UGS(`webmaps.geology.utah.gov/arcgis/rest/services/GeolMap/500k_State`)와
       애리조나 AZGS(`services.azgs.az.gov`)는 이 서버에서 연결이 시간 초과다(나라 밖을 막는 듯) — 미국 안의 길이 생기면. 알래스카 DGGS 는 지질도가
       SIM 3340(mrdata)과 겹쳐 두지 않았고 광물 산지(`Mineral_Occurrences_2020_MIL1`)는 따로 볼 것. 세 주 모두 조건 문구를 읽지 않았다 — 정적 판에 싣기 전에
@@ -165,6 +169,8 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 (2026-09-30 운영 `/srv/GSM/db/earth/` 에 옛 해안선·화석 산지·맨틀을 두었다. 화석 산지는 가끔 `fetch_pbdb` 로 새로 받는다)
 
+- [ ] **(사람)** RGI 7.0 빙하 **윤곽** — NSIDC-0770 은 NASA Earthdata 로그인 뒤에만 받힌다. 계정을 만들어 `RGI2000-v7.0-G-global` 셰이프를 받아 NAS
+      `sources/earth/rgi7/` 에 두면 `glaciers.py` 의 점을 면으로 바꾼다(지금은 속성 표의 가운데·넓이로 넓이만 한 원) (wetherilli 289)
 - [ ] **(사람)** GEOROC 암석 지화학 시료(wetherilli 293 으로 받은 일) — 조건은 **CC BY-SA 4.0**(GEOROC Compilation 미리 엮은 파일, 일에 적힌 CC BY 가
       아니다). 파일은 모두 GRO.data(`data.goettingen-research-online.de`, "Rock Types" doi:10.25625/2JETOA, 356 MB zip 90 개)에 있는데 **이 서버에서는
       TLS 연결이 끊긴다**(2026-10-05, 여러 번·CA 묶음으로도 SSLEOF). GEOROC 2.0 API 는 접근 열쇠가 든다. 다른 망에서 zip 을 받아 NAS
