@@ -44,7 +44,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 에콰도르 — IIGE 일반 지질도 (wetherilli 198). 남미 1:500만은 브라질·페루처럼 빌린다
            ("ecuador", "에콰도르"),
            # 미국 — USGS SGMC·알래스카 SIM 3340 (wetherilli 205). 북미 묶음은 캐나다가 들어오면 세운다
-           ("usa", "미국"))
+           ("usa", "미국"),
+           # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
+           ("mexico", "멕시코"))
 
 
 class LayerGroup(models.Model):
@@ -104,7 +106,7 @@ class Layer(models.Model):
     #: ingemmet → `ingemmet.py` (페루 지질도 — REST 타일 캐시, wetherilli 195)
     #: segemar → `segemar.py` (아르헨티나 지질도), dinamige → `dinamige.py` (우루과이 지질도, wetherilli 196)
     #: iige → `iige.py` (에콰도르 지질도, wetherilli 198)
-    #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205)
+    #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205), sgm → `sgm.py` (멕시코 지질도 — REST export, wetherilli 206)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
