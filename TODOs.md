@@ -61,6 +61,11 @@
       브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다), 페루 광업 권리(`SERV_CATASTRO_MINERO`)·
       지화학 지도첩(`SERV_ATLAS_GEOQUIMICO`)·산업 광물(`SERV_ROCAS_MINERALES_INDUSTRIALES`)
 
+- [ ] 아시아 광물(wetherilli 280) — 인도네시아·필리핀·태국·사우디·몽골 희토류는 섰다. 남은 것: 말레이시아 MyGEMS 는 `rest/services` 목록이 허브 쪽으로
+      넘어가 광물 서비스를 찾지 못했다, 인도 GSI 는 Bhukosh 가 나라 밖에서 닿지 않는다. 몽골 `Atlas/AtlasPoints` 의 광상 레이어(6–9)는 우물 자료를
+      돌려준다 — 고쳐지면 금속·비금속·연료·전략 광상. 태국 지구물리 탐사 지점·사우디 지구물리 사업 범위는 범위뿐이라 뺐다.
+      다섯 곳 모두 이용 조건이 적혀 있지 않다 — 정적 판에 싣기 전에 사람이 읽는다
+
 - [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
       가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
 
