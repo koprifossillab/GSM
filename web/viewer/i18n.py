@@ -724,6 +724,7 @@ EN = {
     "노르웨이 지질조사소": "Geological Survey of Norway",
     "핀란드 지질조사소": "Geological Survey of Finland",
     "추가 지역": "Add region",
+    "그 외": "More",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
     "<b>남극 지질도는 준비 중이다.</b> 남극점을 가운데 둔 평사도법 화면과 배경지도를 먼저 띄워 둔다. GeoMAP 레이어는 곧 붙인다.":

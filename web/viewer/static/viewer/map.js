@@ -461,6 +461,8 @@
     return Math.log2(MERC_RES0 * Math.cos(lat * Math.PI / 180) / resolution);
   }
   var addedRegions = ["korea"];
+  /** 탭 줄에 늘 서는 지역 — 나머지는 "그 외" 로 접는다 (wetherilli 214) */
+  var PINNED = ["korea", "arctic", "antarctica"];
 
   // ── 공유 링크 (wetherilli 189) ──
   // 주소의 해시(`share.js`)로 들어오면 그 지역·자리·레이어·배경을 덧층에 깔고 연다. 아래의 기억(지역·자리·레이어·배경)은 모두
@@ -6104,14 +6106,14 @@
         addedRegions = ["korea"].concat(added.filter(function (r) { return REGIONS[r] && r !== "korea"; }));
       }
       var saved = stored("gsm.region");
-      if (saved && addedRegions.indexOf(saved) >= 0) region = saved;
+      if (saved && REGIONS[saved] && (addedRegions.indexOf(saved) >= 0 || PINNED.indexOf(saved) >= 0)) region = saved;
     } catch (e) { /* 사생활 모드 */ }
     // 소개 화면의 "이 지도로" 가 지역을 주소로 넘긴다(`?region=`). 탭이 없으면 더하고, 주소에서는
     // 지운다 — 새로 고칠 때마다 그 지역으로 끌려가지 않게 (wetherilli 113)
     var params = new URLSearchParams(location.search);
     var wanted = params.get("region");
     if (wanted && REGIONS[wanted]) {
-      if (addedRegions.indexOf(wanted) < 0) addedRegions.push(wanted);
+      if (addedRegions.indexOf(wanted) < 0 && PINNED.indexOf(wanted) < 0) addedRegions.push(wanted);
       region = wanted;
       params.delete("region");
       var qs = params.toString();
@@ -6126,47 +6128,70 @@
     } catch (e) { /* 사생활 모드 */ }
   }
 
-  /** 지역 탭 — 더한 지역들과 "+ 추가 지역". */
+  /** 지역 탭 — 늘 보이는 셋(한국·북극·남극)과, 나머지를 접은 "그 외" 하나 (wetherilli 214).
+   *  지역이 서른을 넘어 탭 줄이 몇 줄로 늘어났다. 더한 지역은 "그 외" 의 위 칸에, 아직 안 더한 것은
+   *  그 밑의 "+ 추가 지역" 칸에 묶음째 선다. 접힌 지역을 보는 동안에는 "그 외" 단추가 그 지역 이름이 된다 */
+  var foldCloser = false;
   function renderRegions() {
     var host = document.getElementById("regions");
     host.innerHTML = "";
-    addedRegions.forEach(function (key) {
+    var pinned = PINNED.filter(function (k) { return REGIONS[k]; });
+    pinned.forEach(function (key) {
       var tab = document.createElement("button");
       tab.type = "button";
       tab.className = "region-tab" + (key === region ? " on" : "");
       tab.dataset.region = key;
       tab.textContent = T(REGIONS[key].title);
       tab.addEventListener("click", function () { switchRegion(key); });
-      if (key !== "korea") {
-        var x = document.createElement("span");
-        x.className = "region-x";
-        x.textContent = "×";
-        x.title = T("이 지역을 탭에서 뺀다");
-        x.addEventListener("click", function (e) {
-          e.stopPropagation();
-          addedRegions = addedRegions.filter(function (r) { return r !== key; });
-          if (region === key) switchRegion("korea"); else { saveRegions(); renderRegions(); }
-        });
-        tab.appendChild(x);
-      }
       host.appendChild(tab);
     });
-    var more = Object.keys(REGIONS).filter(function (k) { return addedRegions.indexOf(k) < 0; });
-    if (!more.length) return;
+    var folded = addedRegions.filter(function (k) { return pinned.indexOf(k) < 0; });
+    var more = Object.keys(REGIONS).filter(function (k) { return addedRegions.indexOf(k) < 0 && pinned.indexOf(k) < 0; });
+    if (!folded.length && !more.length) return;
+    var inFold = pinned.indexOf(region) < 0;
     var wrap = document.createElement("div");
     wrap.className = "region-more";
     var btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "region-add";
-    btn.textContent = "+ " + T("추가 지역");
+    btn.className = "region-tab region-fold" + (inFold ? " on" : "");
+    btn.dataset.region = inFold ? region : "";
+    btn.setAttribute("aria-haspopup", "true");
+    btn.textContent = (inFold ? T(REGIONS[region].title) : T("그 외")) + " ▾";
     var menu = document.createElement("ul");
     menu.className = "region-menu";
     menu.hidden = true;
+    function head(text) {
+      var li = document.createElement("li");
+      li.className = "head";
+      li.textContent = text;
+      menu.appendChild(li);
+    }
+    // 더한 지역 — 누르면 그리로, × 로 뺀다
+    folded.forEach(function (key) {
+      var li = document.createElement("li");
+      li.className = "added" + (key === region ? " on" : "");
+      li.dataset.region = key;
+      li.textContent = T(REGIONS[key].title);
+      li.addEventListener("click", function () { switchRegion(key); });
+      var x = document.createElement("span");
+      x.className = "region-x";
+      x.textContent = "×";
+      x.title = T("이 지역을 탭에서 뺀다");
+      x.addEventListener("click", function (e) {
+        e.stopPropagation();
+        addedRegions = addedRegions.filter(function (r) { return r !== key; });
+        if (region === key) switchRegion("korea"); else { saveRegions(); renderRegions(); }
+      });
+      li.appendChild(x);
+      menu.appendChild(li);
+    });
+    if (more.length) head("+ " + T("추가 지역"));
     // 묶음(`includes` — 동아시아·북극) 밑에 딸린 지역을 들여 세운다 (wetherilli 111). 묶음을 이미 더했으면 머리는
-    // 누를 수 없는 제목으로만 남는다. 어느 묶음에도 들지 않는 지역(남극)은 그대로
+    // 누를 수 없는 제목으로만 남는다. 어느 묶음에도 들지 않는 지역은 그대로
     function item(key, cls) {
       var li = document.createElement("li");
       li.className = cls || "";
+      li.dataset.region = key;
       li.textContent = T(REGIONS[key].title) + (REGIONS[key].pending ? " — " + T("준비 중") : "");
       if (more.indexOf(key) >= 0) {
         li.addEventListener("click", function () {
@@ -6187,8 +6212,27 @@
       item(key, kids.length ? "group" : "");
       kids.forEach(function (c) { item(c, "sub"); });
     });
-    btn.addEventListener("click", function (e) { e.stopPropagation(); menu.hidden = !menu.hidden; });
-    document.addEventListener("click", function () { menu.hidden = true; });
+    // 차림은 화면에 붙여(fixed) 단추 밑에 세운다 — 패널과 휴대폰의 탭 줄(가로 굴림)이 넘친 것을 잘라서다
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+      if (menu.hidden) return;
+      var r = btn.getBoundingClientRect();
+      menu.style.top = (r.bottom + 4) + "px";
+      menu.style.maxHeight = Math.min(560, Math.max(160, window.innerHeight - r.bottom - 12)) + "px";
+      menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+    });
+    menu.addEventListener("click", function (e) { e.stopPropagation(); });
+    if (!foldCloser) {
+      foldCloser = true;
+      var closeFold = function (e) {
+        var open = document.querySelector("#regions .region-menu");
+        if (open && !(e && e.type === "scroll" && open.contains(e.target))) open.hidden = true;
+      };
+      document.addEventListener("click", closeFold);
+      document.addEventListener("scroll", closeFold, true);
+      window.addEventListener("resize", closeFold);
+    }
     wrap.append(btn, menu);
     host.appendChild(wrap);
   }
