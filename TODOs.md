@@ -90,6 +90,9 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 ## 지역 — 극지 (016·017·018·019·021·022)
 
+- [ ] 그린란드 지구물리(wetherilli 259) — GEUS ArcGIS 의 방사능(`Geophysics_Radiometry`)은 국지 조사 몇 곳뿐이라, 공중 자력(`Geophysics_Aeromag_Magnetic`·
+      `_AWI`·`Aem_Magnetic`)·1:250만·1:10만 지질도(`Geological_map_2500k`·`_100k_SSW`·`_100k_Karrat`)는 같은 서버에 있어 더할 수 있다.
+      지도 화면의 광물 산지 v3(`mineral_occurrences_v3_external`)는 WMS 이름이 403 — 포털(grportal)의 광물 산지가 같은 뿌리다
 - [ ] **(사람)** 그린란드 50만 지질도는 GEUS 가 추린 판(`_search`)이다. 원본
       (`grl_g500_lithostr_units`)을 WMS 로 열어 주는지 GEUS 에 묻는다 —
       써 보고 빈 곳이 거슬리면 사람이 메일을 쓴다. 같은 메일에 정부 포털 시료가
@@ -114,6 +117,9 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
       항적이 따로 있는지 KPDC 에 묻는다. Midtre Lovénbreen 의 경도 부호(075 §5)와 같은 메일에 (076)
 - [ ] 암석 시료의 상세(암상·박편·3D 모델) — 상세 페이지가 로그인 없이는 비어 있다. 극지연구소에 묻는다 (053)
 - [ ] KPDC 의 다른 묶음 — PAMC 미생물 균주(2 만 2 천)·KVH 식물 표본(3 천 8 백). 지질과 거리가 있어 미뤘다 (053)
+- [ ] **(사람)** BAS 의 ArcGIS Online 피처 서비스 — 암석 표본 목록 `geology_collection`(14 만 3 천)·해양·호수·이탄 코어(966·…)·빙하 코어(84)·
+      SCAR 지명 사전 `SCAR_CGA_PLACE_NAMES_SIMPLIFIED`(남극 전체의 지명 찾기 — 지금은 드로닝모드랜드뿐). 열려 있고 CORS 도 되지만 항목에
+      **이용 조건 글이 없다**. BAS·SCAR 에 묻거나 UK PDC 의 원자료 조건을 읽고 정한다. 14 만 점은 한 덩이로 받기 무거워 극지연구소처럼 모아 둔다 (wetherilli 261)
 
 ## 지역 — 일본·동아시아 (024)
 
@@ -125,8 +131,8 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 - [ ] (사람) P04 §5 — 어디까지 자르나·어느 탭에 두나. Dropbox 묶음을 받을 때 안의 조건 글도 본다
 
 - [ ] GSJ 는 호출 제한 수치를 밝히지 않는다 — `upstream_stats` 의 `gsj` 를 지켜본다
-- [ ] GSJ 의 다른 WMS(wetherilli 255) — 지구화학도는 원소 53 가지 가운데 열하나만 실었다. 공중 자력도는 WMS 가 없다(지질도Navi 의 판으로만).
-      1:200만 지질도·중력은 누르면 기호 번호뿐 — 범례의 번호 → 이름 표를 뜨면 누르게 할 수 있다
+- [ ] GSJ 의 다른 WMS — 1:200만 지질도·중력은 누르면 기호 번호뿐(wetherilli 255). 범례의 번호 → 이름 표를 뜨면 누르게 할 수 있다.
+      지구화학도 53 원소·공중 자력 편집도 셋은 섰다(wetherilli 266)
 
 ## 달 (P05)
 
@@ -233,6 +239,8 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] (사람) 국토지반정보 시추공을 한국 레이어로 올릴지 — 공공데이터포털 지층 파일이 엑셀 행 한계에서 잘려 있다.
       검토는 [docs/국토지반정보_시추공.md](docs/국토지반정보_시추공.md) §6
 
+- [ ] 유럽 광물·지구물리 — BGS GeoIndex(영국)는 섰다(wetherilli 258). EGDI 의 광물 목록 MIN4EU 는 공개 WMS 를 찾지 못했다(뷰어가 안쪽 경로로만
+      부른다)이고 조건이 **CC BY-NC-ND 4.0** 이다. ProMine·EGDI 지구물리도 WMS 주소를 못 찾았다. BGS 의 지화학(G-BASE)·지하수는 같은 서버에 있다
 - [ ] 유럽 — EGDI 1:100만의 시대 판 속성이
       되살아나면(2026-10-04 에도 DB 오류, 지금은 암상 판에 묻는다 — wetherilli 177) 그쪽으로. BGS 1:62만 5천이 WMS 로 열리면 영국 탭의 넓은 줌을 그것으로. 독일의 줌 9 전은 EGDI·IGME5000(1:500만)이다 —
       그 사이 축척의 BGR 판(GÜK 2000?)이 있는지. **(사람)** BGR 판(GÜK·GK·IGME5000)을 정적 판에 실을지 — BGR 약관(AGB 3조)은 공중에 내놓을

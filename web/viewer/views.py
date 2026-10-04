@@ -32,8 +32,8 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
+from . import admap, arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -360,8 +360,8 @@ def map_view(request):
 
 
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
-MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsjows", "gsmma",
-             "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
+MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
+             "emodnet", "bgs", "bgsgi", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
              # 남미 SGC(wetherilli 188)·브라질 SGB(191)·아르헨티나 SEGEMAR·우루과이 DINAMIGE(196) — 3857 로 그린다
              "sgc", "sgb", "segemar", "dinamige",
              # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 가 3857 로 그린다
@@ -424,7 +424,7 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
-                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2329,6 +2329,10 @@ GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" ta
 def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
+    if layer.upstream == "geusarc" and geus.arc_knows(layer.name):
+        # 그린란드 GEUS ArcGIS(wetherilli 259) — 화면의 투영(3413)으로 REST export. 범례는 따로 받지 않고, 지질구만 누른다
+        return {"attribution": geus.ARC_ATTRIBUTION.get(layer.name, geus.GEUS_ATTRIBUTION), "projection": "EPSG:3413", "noLegend": True,
+                **({} if geus.ARC_LAYERS[layer.name][2] else {"queryable": False})}
     if layer.upstream == "vworld" and layer.name in vworld.MIN_ZOOM:
         # 가까이서만 그려 주는 VWorld 레이어(토양·산림·국가유산, wetherilli 084·193) — 멀리서는 묻지 않는다
         return {"minZoom": vworld.MIN_ZOOM[layer.name]}
@@ -2407,6 +2411,13 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
         return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
+    if layer.upstream == "bgsgi" and bgs.geoindex_knows(layer.name):
+        # 영국 GeoIndex(wetherilli 258) — 3857 로. 지구물리는 줌 9 까지(상류 1:62만 5천), 광산은 줌 10 부터. 범례는 상류 그림
+        first, last = bgs.GEOINDEX_ZOOMS.get(layer.name, (None, None))
+        return {"attribution": bgs.GEOINDEX_ATTRIBUTION, "projection": "EPSG:3857",
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
+                # 지구물리의 범례 그림은 "RGB 밴드" 세 줄뿐이라 두지 않는다
+                **({} if bgs.GEOINDEX_LAYERS[layer.name][2] else {"queryable": False, "noLegend": True})}
     if layer.upstream == "bgs":
         # 영국 BGS(wetherilli 143) — 1:5만은 줌 13 부터만 그린다. 그보다 멀면 화면이 묻지 않는다
         return {"attribution": bgs.ATTRIBUTION, "projection": "EPSG:3857", "minZoom": bgs.MIN_ZOOM}
@@ -2447,6 +2458,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, _ = nsgs.zooms(layer.name)
         return {"attribution": nsgs.ATTRIBUTION, "projection": "EPSG:3978", "noLegend": True,
                 **({"minZoom": first} if first else {}), **({} if nsgs.queryable(layer.name) else {"queryable": False})}
+    if layer.upstream == "bas" and bas.knows(layer.name):
+        # 남극 Bedmap3(wetherilli 261) — BAS 의 ArcGIS Online 타일을 화면이 곧장. Esri 극 격자라 원점·해상도를 행에 싣는다. 누르기는 없다
+        return {"attribution": bas.ATTRIBUTION, "tiles": bas.tile_url(layer.name), "grid": bas.grid(layer.name),
+                "queryable": False, "legend": "list", "legendUrl": "list/legend/"}
     if layer.upstream == "ags" and ags.knows(layer.name):
         # 앨버타(wetherilli 235) — 타일은 ArcGIS Online 의 3857 z/x/y 를 화면이 곧장(지리원 주제 타일과 같은 길), 누른 자리만 문이
         url, last = ags.LAYERS[layer.name]
@@ -2617,6 +2632,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsjows" and gsj.gsjows_tiles(layer.name):
+        # 공중 자력 편집도(wetherilli 266) — 지질도Navi 판을 카탈로그에 올린 것. 타일은 브라우저가 tiles.gsj.jp 를 곧장(Navi 칸과 같은 길),
+        # 범례는 문이 받아 준 범례 그림
+        return {"attribution": gsj.GEONAVI_ATTRIBUTION, "tiles": gsj.gsjows_tiles(layer.name),
+                "maxZoom": gsj.GSJOWS_NAVI[layer.name][1], "queryable": False}
     if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
         # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
         return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
@@ -2646,6 +2666,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
                 "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
+    if layer.upstream == "admap" and layer.name == admap.NAME:
+        # 남극 자력 이상 ADMAP-2(wetherilli 262) — 우리가 칠해 잘라 둔 3031 타일(GeoMAP 격자, 줌 4 까지). 범례는 갈래 표
+        return {"attribution": admap.ATTRIBUTION, "projection": "EPSG:3031", "maxZoom": admap.MAX_ZOOM,
+                "tiles": _versioned_url("admap/{z}/{x}/{y}.webp", _dir_version(admap.tiles_dir())),
+                "classLegend": admap.legend(lang)}
     if layer.upstream == "ibcso" and layer.name == ibcso.TID_LAYER:
         # IBCSO 자료 출처(071) — 우리가 잘라 둔 3031 타일. 격자는 GeoMAP 의 것이고 줌 6 까지다.
         # 범례는 갈래 표를 그대로 보낸다(그림이 아니라 — 컨테이너에 한글 글꼴이 없다)
@@ -2695,7 +2720,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, skgs.SkgsError, nsgs.NsgsError, ags.AgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
-                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError,
+                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError, bas.BasError,
                    geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError, ineter.IneterError, georep.GeorepError,
                    basemaps.BasemapError)
 
@@ -2724,7 +2749,7 @@ class _Door:
     판을 갈면 곧바로 새 것이 보인다.
     """
 
-    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
+    MODULES = {"kigam": kigam, "geus": geus, "geusarc": geus.ARC, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
                # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
                "pgc": elevation,
                # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
@@ -2739,6 +2764,8 @@ class _Door:
                "ngu": ngu, "gtk": gtk, "sgu": sgu,
                # 영국·프랑스·범유럽(wetherilli 143)
                "bgs": bgs, "brgm": brgm, "egdi": egdi,
+               # 영국 GeoIndex — 자력·중력·광산·광물 산지(wetherilli 258)
+               "bgsgi": bgs.GEOINDEX,
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
                "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI,
                # 남미·콜롬비아(wetherilli 188)·브라질(191)
@@ -2797,7 +2824,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3135,6 +3162,37 @@ def ibcso_tid_tile(request, z, x, y):
     data = ibcso.read_tid_tile(z, x, y)
     return _immutable(request, _tile(data if data is not None else tiles.blank_tile(256, 256)),
                       _dir_version(ibcso.tid_tiles_dir()))
+
+
+@require_GET
+def admap_tile(request, z, x, y):
+    """남극 자력 이상 타일 — `admap/<z>/<x>/<y>.webp` (wetherilli 262). `manage.py build_admap` 이 잘라 둔 것을 내주기만 한다.
+    잘라 두지 않았으면 안내 타일, 자료 밖은 빈 타일이다"""
+    z, x, y = int(z), int(x), int(y)
+    if not admap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not admap.available():
+        return _tile(tiles.notice_tile(256, 256, msg("자력 이상 자료(ADMAP-2)가 서버에 없다")), store=False)
+    data = admap.read_tile(z, x, y)
+    version = _dir_version(admap.tiles_dir())
+    if data is None:
+        return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
+    return _immutable(request, _tile(data, content_type="image/webp"), version)
+
+
+@require_GET
+@browser_cached
+def admap_info(request):
+    """누른 자리의 자력 이상 — `admap/info/?lat=&lon=` (wetherilli 262). `/featureinfo/` 의 꼴로 낸다"""
+    lang = i18n.lang_of(request)
+    ll = _latlon(request)
+    if ll is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    nt = admap.value_at(*ll)
+    if nt is None:
+        return JsonResponse({"features": []})
+    props = {"자력 이상 (nT)": nt}
+    return JsonResponse({"features": [{"props": i18n.props_en(props) if lang == "en" else props}]})
 
 
 def _latlon(request):
@@ -3606,7 +3664,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs, georep)
+LIST_LEGENDS = (jmg, dmr, calgs, georep, bas)
 
 
 @require_GET
@@ -4134,7 +4192,9 @@ def feature_info(request):
             continue
         seen.add(mark)
         props = {k: _split_links(v) for k, v in props.items()}
-        if door.name == "geus":
+        if door.name == "geusarc":
+            props = geus.arc_friendly(props, lang)     # 그린란드 지질구 (wetherilli 259)
+        elif door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
             # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다
@@ -4164,6 +4224,8 @@ def feature_info(request):
             props = natt.friendly(props, lang)       # 아이슬란드 — 1:60만의 부호를 범례 이름으로, 시대를 옮긴다 (wetherilli 216)
         elif door.name == "gtk":
             props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
+        elif door.name == "bgsgi":
+            props = bgs.geoindex_friendly(props, lang)   # 영국 광산·광물 산지 (wetherilli 258)
         elif door.name == "bgs":
             props = bgs.friendly(props, lang)        # LEX_D → 지층명 …, 시대를 옮긴다
         elif door.name == "brgm":

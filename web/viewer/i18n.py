@@ -1276,6 +1276,10 @@ EN = {
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    # 남극 자력 이상 ADMAP-2 (wetherilli 262)
+    "자력 이상": "Magnetic anomaly",
+    "자력 이상 자료(ADMAP-2)가 서버에 없다": "The magnetic anomaly data (ADMAP-2) is not on the server",
+    "영국 남극조사소": "British Antarctic Survey",
     # 대앤틸리스 — USGS SIM 3534 를 우리가 굽는다 (wetherilli 254)
     "대앤틸리스 지질도 파일이 서버에 없다": "The Greater Antilles geologic map file is not on the server",
     "덮인 단층": "Concealed fault",
@@ -1861,6 +1865,7 @@ PROP_EN = {
     # 제4기 고생태 산지 (wetherilli 139)
     "연구자": "Investigators",
     "지질시대": "Geologic age",
+    "자력 이상 (nT)": "Magnetic anomaly (nT)",
     "시대": "Age",
     "도폭": "Map sheet",
     "도폭명": "Sheet name",
@@ -2324,6 +2329,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "영국 격자": "British National Grid",
     # 남미 광물 자원 (wetherilli 265)
     "중요도": "Importance", "광산": "Mine status", "모암": "Host rock", "광체 형태": "Ore body form", "광화 지역": "Mineral province",
     "광화 양식": "Mineralization style", "광물 조합": "Mineral association", "모암 단위": "Host unit", "광상 규모": "Deposit size",
@@ -3000,9 +3006,12 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
+    "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
+    "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
@@ -3024,6 +3033,7 @@ GROUP_EN = {
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
     "카리브 지질도 (USGS 1:250만)": "Geology of the Caribbean (USGS 1:2.5M)",
+    "빙하 아래 (Bedmap3)": "Beneath the ice (Bedmap3)",
     "대앤틸리스 지질도 (USGS SIM 3534)": "Geology of the Greater Antilles (USGS SIM 3534)",
     "파나마 지질도 (STRI·MICI 1:25만)": "Geology of Panama (STRI · MICI 1:250k)",
     "파라과이 지질도 (VMME)": "Geology of Paraguay (VMME)",
@@ -3057,6 +3067,7 @@ GROUP_EN = {
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
     "지구물리이상도": "Geophysical anomaly maps",
+    "지구물리 (ADMAP-2)": "Geophysics (ADMAP-2)",
     "지화학도": "Geochemical maps",
     "좋은물지도": "Groundwater quality maps",
     "해저지질도": "Marine geological maps",
@@ -3135,6 +3146,12 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 영국 GeoIndex (wetherilli 258)
+    "bgsgi:magnetic": "Magnetic anomalies (colour shaded)", "bgsgi:gravity": "Gravity anomalies (colour shaded)",
+    "bgsgi:mines": "Mines and quarries (BritPits)", "bgsgi:occurrences": "Mineral occurrences (MINGOL)",
+    # GEUS ArcGIS (wetherilli 259)
+    "geusarc:magnetic": "Magnetic anomaly compilation", "geusarc:bouguer": "Bouguer gravity anomaly (DTU)",
+    "geusarc:provinces": "Geological provinces (1:2.5M)",
     # 남미 광물·지구물리 (wetherilli 265)
     "sgb:mineral_occurrences": "Mineral occurrences (SGB)",
     "sgc:met:11": "Mineral deposits (Metallogenic map 2022)", "sgc:met:10": "Metallogenic belts (2022)", "sgc:met:8": "Metallogenic districts (2022)",
@@ -3142,6 +3159,50 @@ LAYER_EN = {
     "segemar:e250K.DepositMetalif": "Metallic mineral deposits (1:250k)", "segemar:e250K.DepositMinIndust": "Industrial mineral deposits (1:250k)",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
+    "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
+    "gsjows:geochem:CaO": "Calcium (CaO) — geochemical map",
+    "gsjows:geochem:MgO": "Magnesium (MgO) — geochemical map",
+    "gsjows:geochem:MnO": "Manganese (MnO) — geochemical map",
+    "gsjows:geochem:Na2O": "Sodium (Na₂O) — geochemical map",
+    "gsjows:geochem:P2O5": "Phosphorus (P₂O₅) — geochemical map",
+    "gsjows:geochem:TiO2": "Titanium (TiO₂) — geochemical map",
+    "gsjows:geochem:Ba": "Barium — geochemical map",
+    "gsjows:geochem:Be": "Beryllium — geochemical map",
+    "gsjows:geochem:Bi": "Bismuth — geochemical map",
+    "gsjows:geochem:Cd": "Cadmium — geochemical map",
+    "gsjows:geochem:Ce": "Cerium — geochemical map",
+    "gsjows:geochem:Co": "Cobalt — geochemical map",
+    "gsjows:geochem:Cs": "Caesium — geochemical map",
+    "gsjows:geochem:Dy": "Dysprosium — geochemical map",
+    "gsjows:geochem:Er": "Erbium — geochemical map",
+    "gsjows:geochem:Eu": "Europium — geochemical map",
+    "gsjows:geochem:Ga": "Gallium — geochemical map",
+    "gsjows:geochem:Gd": "Gadolinium — geochemical map",
+    "gsjows:geochem:Hf": "Hafnium — geochemical map",
+    "gsjows:geochem:Ho": "Holmium — geochemical map",
+    "gsjows:geochem:La": "Lanthanum — geochemical map",
+    "gsjows:geochem:Li": "Lithium — geochemical map",
+    "gsjows:geochem:Lu": "Lutetium — geochemical map",
+    "gsjows:geochem:Mo": "Molybdenum — geochemical map",
+    "gsjows:geochem:Nb": "Niobium — geochemical map",
+    "gsjows:geochem:Nd": "Neodymium — geochemical map",
+    "gsjows:geochem:Pr": "Praseodymium — geochemical map",
+    "gsjows:geochem:Rb": "Rubidium — geochemical map",
+    "gsjows:geochem:Sb": "Antimony — geochemical map",
+    "gsjows:geochem:Sc": "Scandium — geochemical map",
+    "gsjows:geochem:Sm": "Samarium — geochemical map",
+    "gsjows:geochem:Sn": "Tin — geochemical map",
+    "gsjows:geochem:Sr": "Strontium — geochemical map",
+    "gsjows:geochem:Ta": "Tantalum — geochemical map",
+    "gsjows:geochem:Tb": "Terbium — geochemical map",
+    "gsjows:geochem:Tl": "Thallium — geochemical map",
+    "gsjows:geochem:Tm": "Thulium — geochemical map",
+    "gsjows:geochem:V": "Vanadium — geochemical map",
+    "gsjows:geochem:Y": "Yttrium — geochemical map",
+    "gsjows:geochem:Yb": "Ytterbium — geochemical map",
+    "gsjows:geochem:Zr": "Zirconium — geochemical map",
+    "gsjows:magnetic_japan": "Magnetic map of Japan (1:2M, 1992)", "gsjows:magnetic_eastasia_1994": "Magnetic anomaly map of East Asia (1:4M, 1994)",
+    "gsjows:magnetic_eastasia_2021": "Magnetic anomaly map of East and Southeast Asia (3rd ed., 2021)",
     "gsjows:geochem:Cu": "Copper — geochemical map",
     "gsjows:geochem:Pb": "Lead — geochemical map",
     "gsjows:geochem:Zn": "Zinc — geochemical map",
@@ -3192,6 +3253,8 @@ LAYER_EN = {
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
+    "admap:anomaly": "Magnetic anomaly",
+    "bas:bedmap3_bed": "Bed topography", "bas:bedmap3_thickness": "Ice thickness", "bas:bedmap3_surface": "Ice surface",
     "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
     "sim3534:units": "Geologic units",
     "sim3534:faults": "Faults",
