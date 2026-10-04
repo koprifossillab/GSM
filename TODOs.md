@@ -38,7 +38,9 @@
 ### 북미
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
-- [ ] 북미 묶음 — 미국 탭은 섰다(wetherilli 205). 캐나다 탭이 들어오면 `north_america` 묶음을 세우고, 알래스카를 그 투영에 맞춘다
+- [ ] 알래스카 SIM 3340 이 북위 51.5° 남짓에 하늘색 띠를 그린다 — 상류 MapServer 의 그림이다. 잘라 내 보다 되돌렸다(wetherilli 210)
+- [ ] 브리티시컬럼비아(BCGS) — 줌 12 남짓부터만 색이 들고 CORS 가 없고 첫 요청이 9.5 초라 미뤘다(wetherilli 210). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)도 아직
+- [ ] 퀘벡 시대(`Néoarchéen` 따위)는 프랑스어 그대로다 — 옮기려면 `i18n` 에 프랑스어 → ICS 표가 든다(wetherilli 210)
       (지금은 3857 이라 부푼다). 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 같은 서버에 있다
 - [ ] 멕시코 SGM 의 다른 서비스 — 같은 서버에 지질 연대(`SunEdadesGeocronologicas`)·고생물(`Paleontologia`)·광상이 있다. 탭은 섰다(wetherilli 206)
 - [ ] 퀘벡 SIGÉOM — CC BY 4.0, Macrostrat 의 빈 자리. Origin 헤더가 붙으면 403 이라 서버 문으로만. 반나절. 그다음 캘리포니아·유콘·BC
