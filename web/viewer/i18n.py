@@ -233,6 +233,12 @@ EN = {
     "보는 자리를 덮는 것만": "Only those covering this spot",
     "좁은 곳만 덮는 판": "Regional products",
     "맞는 판이 없다": "No matching products",
+    # 지질도Navi 판 (wetherilli 171)
+    "{series} · {sheet}": "{series} · {sheet}",
+    "지질도Navi 판": "GSJ Geomap Navi sheets",
+    "범례 그림을 새 창에서 크게 본다": "Open the legend image in a new window",
+    "판 목록을 받지 못했다": "Could not load the sheet list",
+    "{n} 판 가운데 앞의 {m} 판만 — 더 좁혀 거른다": "Showing the first {m} of {n} — narrow the filter",
     "판 목록이 아직 없다": "No product list yet",
     "범례가 없다": "No legend",
     "그런 레이어는 없다": "No such layer",
