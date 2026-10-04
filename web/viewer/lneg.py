@@ -18,6 +18,8 @@ from . import usage
 log = logging.getLogger(__name__)
 
 PREFIX = "lneg:500k:"
+#: 메타타일로 받는다 (wetherilli 287) — 512 px 4.1–4.6 초, 1 024 px 3.2 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"lneg:500k:": None}
 LAYERS = ("2", "1", "4", "3")
 ZOOMS = {"lneg:500k:1": (9, None), "lneg:500k:3": (9, None)}
 ATTRIBUTION = ('Carta Geológica de Portugal 1:500 000 — <a href="https://geoportal.lneg.pt/" target="_blank" rel="noopener">'
@@ -59,7 +61,7 @@ def _get(params: dict):
         usage.record("lneg", ok=False)
         raise LnegError(f"LNEG 에 닿지 못했다: {exc}") from exc
     log.info("LNEG %s -> %s", r.url, r.status_code)
-    usage.record("lneg", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("lneg", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

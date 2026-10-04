@@ -29,6 +29,10 @@ QUERY_LAYER = "GeologicUnitView_Lithology"
 QUERY_BUFFER = 1
 
 
+#: 메타타일로 받는다 (wetherilli 284) — 1 024 px 한 장이 10 초 남짓이고 예외(서비스 예외 XML)가 잦다. 큰 장이 실패하면 칸 하나로 되받는다
+#: (`metatile.serve` 의 `errors`). `metatile.limit` 의 표
+METATILE = {"egdi:": None}
+
 class EgdiError(RuntimeError):
     pass
 
@@ -49,7 +53,7 @@ def _get(params: dict):
         usage.record("egdi", ok=False)
         raise EgdiError(f"EGDI 에 닿지 못했다: {exc}") from exc
     log.info("EGDI %s -> %s", r.url, r.status_code)
-    usage.record("egdi", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("egdi", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

@@ -539,6 +539,19 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 충돌구·거대 화성암 지대 (wetherilli 283)
+    "충돌구·거대 화성암 지대": "Impact craters & large igneous provinces", "충돌구": "Impact craters",
+    "거대 화성암 지대 (LIP)": "Large igneous provinces (LIP)", "충돌구 — 원의 크기는 지름": "Impact crater — circle size shows diameter",
+    "이름 없는 화성암 지대": "Unnamed igneous province", "판 회전으로 옮긴다": "Moved with plate rotation",
+    "바다 밑이라 옮기지 않는다": "On the sea floor — not moved", "여기에는 없다": "Nothing here",
+    "색은 생긴 때. 대륙 위의 것은 판 회전으로 그때의 자리에 — 계산이지 관측이 아니다":
+        "Colour shows emplacement age. Continental ones move with plate rotation — computed, not observed",
+    "신생대 (66 Ma 안쪽)": "Cenozoic (under 66 Ma)", "데본기·실루리아기": "Devonian–Silurian", "오르도비스기·캄브리아기": "Ordovician–Cambrian",
+    "원생대": "Proterozoic",
+    # 세계 활성단층 GEM (wetherilli 279)
+    "활성단층 (GEM)": "Active faults (GEM)", "역단층·섭입": "Reverse / subduction", "주향이동·변환": "Strike-slip / transform",
+    "사교 (주향이동+경사이동)": "Oblique (strike-slip + dip-slip)", "확장 해령": "Spreading ridge", "습곡·갈래 모름": "Fold / unknown",
+    "이름 없는 단층": "Unnamed fault", "여기에는 활성단층이 없다": "No active fault here",
     # 세계 광상 USGS (wetherilli 276)
     "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
     "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
@@ -1852,6 +1865,11 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 충돌구·LIP (wetherilli 283)
+    "생긴 때 (Ma)": "Age (Ma)", "그때의 지구": "Past positions", "지름 (km)": "Diameter (km)",
+    # 세계 활성단층 (wetherilli 279)
+    "미끄럼 (원문)": "Slip type (source)", "레이크 (°)": "Rake (°)", "미끄럼 속도 (mm/yr)": "Slip rate (mm/yr)",
+    "지진 발생 깊이 (km)": "Seismogenic depth (km)", "원 목록": "Source catalogue",
     # 세계 광상 (wetherilli 276)
     "딸린 광종": "Secondary commodities", "생산 규모": "Production size", "광상 유형": "Deposit type",
     "광석 광물": "Ore minerals", "총 광량 (Mt)": "Tonnage (Mt)", "품위": "Grade",
@@ -3227,7 +3245,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
-    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)", "멕시코 지화학 (SGM)": "Mexico geochemistry (SGM)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)", "멕시코 지화학 (SGM)": "Mexico geochemistry (SGM)", "멕시코 지구물리 (SGM)": "Mexico geophysics (SGM)",
 }
 
 LAYER_EN = {
@@ -3543,6 +3561,7 @@ LAYER_EN = {
     "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
     "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
     # 멕시코 지화학·광상 나머지 (wetherilli 233)
+    "sgm:datos:7": "Magnetic field 1:250k (colour classes)",
     "sgm:geoq:0": "Stream-sediment geochemistry samples",
     "sgm:anom250:0": "Silver (Ag) anomalies (1:250k)", "sgm:anom250:1": "Cobalt (Co) anomalies (1:250k)", "sgm:anom250:2": "Copper (Cu) anomalies (1:250k)", "sgm:anom250:3": "Manganese (Mn) anomalies (1:250k)", "sgm:anom250:4": "Lead (Pb) anomalies (1:250k)", "sgm:anom250:5": "Zinc (Zn) anomalies (1:250k)",
     "sgm:anom50:0": "Silver (Ag) anomalies (1:50k)", "sgm:anom50:1": "Cobalt (Co) anomalies (1:50k)", "sgm:anom50:2": "Copper (Cu) anomalies (1:50k)", "sgm:anom50:3": "Manganese (Mn) anomalies (1:50k)", "sgm:anom50:4": "Lead (Pb) anomalies (1:50k)", "sgm:anom50:5": "Zinc (Zn) anomalies (1:50k)",

@@ -70,7 +70,7 @@ def _get(params: dict):
         usage.record("sigeom", ok=False)
         raise SigeomError(f"SIGÉOM 에 닿지 못했다: {exc}") from exc
     log.info("SIGÉOM %s -> %s", r.url, r.status_code)
-    usage.record("sigeom", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("sigeom", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

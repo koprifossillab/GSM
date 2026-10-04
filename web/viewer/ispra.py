@@ -26,6 +26,9 @@ LAYERS = {
 }
 #: 상류가 그리는 줌 (첫, 끝) — 1:10만 단위는 1:50만(3857 줌 10)부터, 지구조는 1:100만(줌 9)부터
 ZOOMS = {"ispra:100k:1": (10, None), "ispra:100k:2": (9, None)}
+#: 메타타일로 받는다 (wetherilli 287) — 1:100만 512 px 11.3–14.9 초, 1 024 px 19.1 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"ispra:1m:": None}
+
 ATTRIBUTION = ('Carta Geologica d\'Italia — <a href="https://www.isprambiente.gov.it/it/attivita/suolo-e-territorio/cartografia" '
                'target="_blank" rel="noopener">ISPRA – Servizio Geologico d\'Italia</a>')
 TIMEOUT = 45
@@ -68,7 +71,7 @@ def _get(url: str, params: dict):
         usage.record("ispra", ok=False)
         raise IspraError(f"ISPRA 에 닿지 못했다: {exc}") from exc
     log.info("ISPRA %s -> %s", r.url, r.status_code)
-    usage.record("ispra", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("ispra", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 
