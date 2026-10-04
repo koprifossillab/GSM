@@ -2352,6 +2352,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "영국 격자": "British National Grid",
     # 미국 광물·연대 (wetherilli 247)
     "개발 단계": "Development status", "지형도": "Topographic map", "상세": "Details",
     # 캐나다 핵심 광물 (wetherilli 250)
@@ -3025,6 +3026,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
@@ -3161,6 +3163,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 영국 GeoIndex (wetherilli 258)
+    "bgsgi:magnetic": "Magnetic anomalies (colour shaded)", "bgsgi:gravity": "Gravity anomalies (colour shaded)",
+    "bgsgi:mines": "Mines and quarries (BritPits)", "bgsgi:occurrences": "Mineral occurrences (MINGOL)",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
     "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
