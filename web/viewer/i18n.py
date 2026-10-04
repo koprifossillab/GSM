@@ -462,6 +462,8 @@ EN = {
         "When graphics memory runs out or the GPU restarts, the browser stops 3D drawing. Turn off some layers and reopen.",
     "새로고침": "Reload",
     "지형 세우기와 지구 속을 끄고 다시 연다": "Reopen with terrain and the Earth's interior turned off",
+    "지형 세우기를 끄고 다시 연다": "Reopen with terrain turned off",   # 달·화성·수성 (wetherilli 186)
+    "지각": "Crust",                                       # 온 지구 높이 그래프의 지각 두께 띠 (wetherilli 186)
     "가볍게 다시 연다": "Reopen lighter",
     "평면 지도는 구와 따로 돈다": "The flat map runs separately from the globe",
     "평면으로": "Go flat",
