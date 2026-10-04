@@ -447,7 +447,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   moonmap.py      달 지질도 원도 6 장 셰이프파일 -> sqlite(R*Tree) -> 달 경위도 타일. 문이 아니다
   peninsula.py    한반도 지질도 음영판·민판 — 좌표가 붙은 QGIS PDF·PNG -> EPSG:5179 타일(미리 잘라 둔다)
   kigamdata.py    KIGAM 오픈플랫폼의 자료(시료·분석·조사·주제도) 목록·상세를 모아 둔 JSON. 지도에 올리는 것은 아직(#153). 문이 아니다
-  kigam50k.py     KIGAM 5만 지질도의 층리·엽리·편리·절리·화석산지·시료·광산·도폭 틀 — 받아 둔 WFS 파일(<DB 옆>/kigam50k/raw/날짜/)에서 자리와 값, 장미도. 문이 아니다
+  kigam50k.py     KIGAM 5만 지질도의 층리·엽리·편리·절리·화석산지·시료·광산·광종·도폭 틀·단층·습곡·변질대 — 받아 둔 WFS 파일(<DB 옆>/kigam50k/raw/날짜/)에서 자리와 값, 장미도. 문이 아니다
   ibcso.py        남극 해저·빙저 지형 IBCSO v2 — 칠한 GeoTIFF(9354) -> 3031 타일(미리 잘라 둔다). 문이 아니다
   marscraters.py  화성 크레이터 38 만 개(Robbins 2012) -> sqlite(3 차원 R*Tree) -> 화성 경위도·극 타일. 문이 아니다
   marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다

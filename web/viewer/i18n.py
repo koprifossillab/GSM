@@ -76,6 +76,18 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
+    "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
+    "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
+    "단층": "Fault",
+    "배사": "Anticline", "향사": "Syncline", "역전 등사 배사": "Overturned isoclinal anticline",
+    "역전 등사 향사": "Overturned isoclinal syncline", "침강 배사": "Plunging anticline", "침강 향사": "Plunging syncline",
+    "그 밖의 습곡": "Other folds",
+    "금·은": "Gold and silver", "석탄": "Coal", "철": "Iron", "동·연·아연 따위": "Copper, lead, zinc and others",
+    "비금속·그 밖": "Non-metallic and other",
+    "열변성대": "Thermal metamorphic zone", "접촉변질대": "Contact alteration zone", "변질대": "Alteration zone",
+    "열수광화대": "Hydrothermal mineralized zone", "접촉변성대": "Contact metamorphic zone",
+    "그 밖의 변질·변성대": "Other alteration or metamorphic zones",
     # KIGAM 5만 구조 요소 레이어 (wetherilli 199)
     "유공충": "Foraminifera", "식물화석": "Plant fossils", "화석산지": "Fossil locality",
     "SHRIMP 연대": "SHRIMP dating", "K-Ar 연대": "K-Ar dating", "연대측정": "Dating", "지구화학 분석": "Geochemistry",
@@ -90,7 +102,6 @@ EN = {
     "장미도를 받지 못했다": "Could not load the rose diagram",
     "{name} 도폭 ({no}) — 자세 기호": "{name} sheet ({no}) — attitude symbols",
     "잡은 범위 — 자세 기호": "Selected extent — attitude symbols",
-    "자세 기호": "Attitude symbols",
     "이 자리에는 받아 둔 층리·엽리·절리가 없다": "No stored bedding, foliation or joints here",
     "받은 날 {date}": "Fetched {date}",
     "경사 미상 {n}": "Dip unknown {n}",
@@ -1701,6 +1712,7 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
     "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
@@ -2707,6 +2719,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
+    "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
+    "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
     # KIGAM 5만 구조 요소 (wetherilli 199). 열쇠는 레이어 이름이다
     "kigam50k:frame": "1:50k map sheet frames", "kigam50k:fossil": "Fossil localities (1:50k)",
     "kigam50k:sample": "Dating and geochemistry samples (1:50k)", "kigam50k:mine": "Mines (1:50k)",

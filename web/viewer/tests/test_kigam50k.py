@@ -287,3 +287,61 @@ class Layers(TestCase):
         self.assertEqual((group["region"], group["name"]), ("korea", "지질 구조 (5만)"))
         self.assertEqual((layer["kind"], layer["style"], layer["upstream"]), ("points", "class", "kigam50k"))
         self.assertIn("CC BY-NC", layer["sourceLabel"])
+
+
+def _line(*pts, **props):
+    return {"type": "Feature", "properties": props, "geometry": {"type": "MultiLineString", "coordinates": [list(pts)]}}
+
+
+class LinesAndZones(TestCase):
+    """단층·습곡·광종·변질대·변성대 (wetherilli 202)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.override = override_settings(KIGAM50K_DIR=str(self.root), TILE_CACHE_SECONDS=0)
+        self.override.enable()
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.override.disable)
+        day = self.root / "raw" / "20260930"
+        _write(day, "fault", [
+            _line([128.0, 36.0], [128.1234567, 36.1], type="추정단층", dipangle=0, dipazi=None, mapidx="HE01"),
+            _line([128.2, 36.0], [128.3, 36.1], type="드러스트", dipangle=40, dipazi=135, fault_kr="양산단층"),
+            _line([128.4, 36.0], [128.5, 36.1], type="소단층", dipangle=80),
+        ])
+        _write(day, "fold", [_line([127.0, 37.0], [127.1, 37.1], type="배사")])
+        _write(day, "oretype", [_pt(129.0, 36.0, type="금", **{"광종": "Au"}), _pt(129.1, 36.1, type="형석")])
+        _write(day, "alterationzone", [_poly(127.0, 36.0, 127.1, 36.1, type="열수광화대", lithoname="마동층", age="백악기")])
+        _write(day, "metamorphismzone", [_poly(127.2, 36.0, 127.3, 36.1, type="접촉변성대")])
+
+    def read(self, name):
+        return json.loads(kigam50k.layer_body(name))
+
+    def test_단층은_갈래마다_굵기와_끊김(self):
+        data = self.read("kigam50k:fault")
+        codes = [f["properties"]["code"] for f in data["features"]]
+        self.assertEqual(codes, ["fault_q", "thrust", "fault"])          # 소단층은 단층 칸
+        legend = {l["code"]: l for l in data["legend"]}
+        self.assertEqual(legend["fault_q"]["dash"], [5, 4])
+        self.assertEqual((legend["thrust"]["shape"], legend["thrust"]["width"]), ("stroke", 1.8))
+        first, second = data["features"][0]["properties"], data["features"][1]["properties"]
+        self.assertNotIn("dipangle", first)                               # 0 은 적지 않은 것
+        self.assertEqual((second["dipangle"], second["dipazi"], second["fault_kr"]), ("40", "135", "양산단층"))
+        self.assertEqual(data["features"][0]["geometry"]["coordinates"][0][1], [128.12346, 36.1])   # 소수 다섯 자리
+
+    def test_변질대와_변성대는_한_레이어(self):
+        data = self.read("kigam50k:zones")
+        self.assertEqual([f["properties"]["code"] for f in data["features"]], ["hydrothermal", "contact_meta"])
+        self.assertEqual(data["features"][0]["properties"]["lithoname"], "마동층")
+
+    def test_광종과_습곡(self):
+        self.assertEqual([f["properties"]["code"] for f in self.read("kigam50k:oretype")["features"]], ["precious", "other"])
+        self.assertEqual(self.read("kigam50k:fold")["legend"][0]["code"], "anticline")
+
+    def test_단층은_한_장으로_굽는다(self):
+        from django.core.management import call_command
+        from viewer import views
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        rows = {l["name"]: l for g in views._catalog("ko") for l in g["layers"]}
+        self.assertEqual(rows["kigam50k:fault"]["render"], "image")
+        self.assertNotIn("render", rows["kigam50k:oretype"])

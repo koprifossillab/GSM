@@ -2214,7 +2214,9 @@ def _point_fields(layer) -> dict:
     if layer.upstream == "kigam50k" and kigam50k.knows_file(layer.name):
         # 5만 지질도의 화석산지·시료·광산·도폭 틀(wetherilli 199) — 받아 둔 WFS 파일. 색은 서버의 표
         return {"kind": "points", "queryable": False, "style": "class", "source": "https://data.kigam.re.kr/",
-                "sourceLabel": str(msg("원본 자료 — KIGAM 5만 수치지질도, CC BY-NC")), "attribution": kigam50k.ATTRIBUTION}
+                "sourceLabel": str(msg("원본 자료 — KIGAM 5만 수치지질도, CC BY-NC")), "attribution": kigam50k.ATTRIBUTION,
+                # 단층 8 263·습곡 — 화면이 한 장으로 굽는다(끌 때 다시 칠하지 않는다, wetherilli 202)
+                **({"render": "image"} if layer.name in kigam50k.IMAGE else {})}
     if layer.upstream == "earth" and earthpoints.knows(layer.name):
         # 지구 자료 점(wetherilli 185) — 온 지구 화면의 화석 산지·화산·지진·고생태 산지를 지역의 네모만큼. 색은 서버의 표
         src = earthpoints.source_of(layer.name)

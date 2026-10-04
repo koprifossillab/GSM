@@ -4281,6 +4281,10 @@
       // 항적(아라온호, koprifossillab 006) — 범례가 선이라 적은 갈래는 굵게, 테두리를 둘러 바다 위에서 보이게
       style = [new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0," + 0.55 * fade + ")", width: 4.5 }) }),
                new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 2.5 }) })];
+    } else if (spec.shape === "stroke") {
+      // 5만 단층·습곡(wetherilli 202) — 굵기·끊김을 서버의 표가 준다. 선이 수천이라 테두리 없이 가늘게
+      style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: spec.width || 1.4,
+                                                                lineDash: spec.dash || undefined }) });
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 1.6, lineDash: [6, 4] }) });
@@ -4324,6 +4328,12 @@
         sw.className = "sw-line";
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.6) + '"' +
+          (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
+      } else if (row.style === "class" && r.shape === "stroke") {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
+          esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.4) + '"' +
           (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
       } else if (row.style === "class" && (r.shape === "line" || r.shape === "dash")) {
         sw = document.createElement("span");
