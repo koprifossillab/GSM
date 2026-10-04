@@ -29,10 +29,30 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
   }
+  // ── 공유 링크 (wetherilli 189) ──
+  // 주소의 해시(`share.js`)로 들어오면 그 카메라·켠 레이어·배경을 덧층에 깔고 연다. 기억은 모두 `saved`·`save` 를 거치므로,
+  // 링크로 연 동안에는 덧층에만 쓰고 그 사람의 localStorage 는 건드리지 않는다. 모르는 레이어·배경은 늘 하던 대로 건너뛴다
+  var SHARED = window.GSMShare ? GSMShare.read() : null;
+  var STATE = SHARED ? GSMShare.store(sharedSeed(SHARED)) : null;
+  function sharedSeed(q) {
+    var seed = { "gsm.mars.layers": JSON.stringify(GSMShare.layers(q.l)), "gsm.mars.mode": q.m === "flat" ? "flat" : "globe" };
+    var c = (q.c || "").split(",").map(Number), ok = c.length === 2 && isFinite(c[0]) && isFinite(c[1]);
+    if (ok && isFinite(+q.h)) {
+      seed["gsm.mars.view"] = JSON.stringify({ lon: c[0], lat: c[1], h: +q.h, heading: isFinite(+q.hd) ? +q.hd : 0,
+                                              pitch: isFinite(+q.pt) ? +q.pt : -Math.PI / 2 });
+    }
+    if (ok && isFinite(+q.res)) seed["gsm.mars.flat"] = JSON.stringify({ lon: c[0], lat: c[1], res: +q.res });
+    if (q.b) seed["gsm.mars.base"] = q.b;
+    return seed;
+  }
   function saved(key, fallback) {
-    try { var v = localStorage.getItem(key); return v == null ? fallback : v; } catch (e) { return fallback; }
+    var v;
+    if (STATE) v = STATE.get(key);
+    else try { v = localStorage.getItem(key); } catch (e) { return fallback; }
+    return v == null ? fallback : v;
   }
   function save(key, value) {
+    if (STATE) { STATE.set(key, value); return; }
     try { localStorage.setItem(key, String(value)); } catch (e) { /* 사생활 모드 */ }
   }
   function $(id) { return document.getElementById(id); }
@@ -2779,6 +2799,29 @@
       setMode("flat", { lon: f.lon, lat: f.lat, h: resToHeight(f.res) });
     }
   } catch (e) { flyGlobe(0, 0, HOME_H); }
+
+  // 공유 링크 (wetherilli 189) — 지금 보는 것(구면 카메라, 평면이면 가운데와 땅의 해상도)·켠 레이어·배경
+  function shareLink() {
+    var q = { m: mode, l: GSMShare.pack(active), b: look.base };
+    if (mode === "flat") {
+      var ll = toLL(flat.getView().getCenter());
+      q.c = ll[0].toFixed(5) + "," + ll[1].toFixed(5);
+      q.res = Math.round(groundRes());
+    } else {
+      var c = cameraLL();
+      if (c) {
+        q.c = c.lon.toFixed(5) + "," + c.lat.toFixed(5);
+        q.h = Math.round(c.h);
+        q.hd = viewer.camera.heading.toFixed(4);
+        q.pt = viewer.camera.pitch.toFixed(4);
+      }
+    }
+    return GSMShare.link(q);
+  }
+  if (window.GSMShare) {
+    GSMShare.wire($("tool-share"), shareLink, { done: T("복사했다"), ask: T("이 링크를 복사한다") });
+    if (SHARED) GSMShare.notice(T("링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다"), T("내 화면으로"));
+  }
 
   // ── 패널 접기 (jikhanjung 008) ────────────────────────────────────
   //
