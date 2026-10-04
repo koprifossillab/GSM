@@ -691,6 +691,12 @@ def mars_values_at(request):
 
 
 @require_GET
+def mercury_values_at(request):
+    """`?lon=&lat=&key=mercury_elev` — 수성의 켠 Trek 판의 값 (wetherilli 194). 꼴은 `moon_values` 와 같다. 수성도 표고뿐이다."""
+    return _trek_values(request, trek.MERCURY_VALUES, "수성")
+
+
+@require_GET
 def moon_values(request):
     """`?lon=&lat=&key=feo` — 켠 Trek 판의 값을 누른 자리 한 점에서 (wetherilli 103). `{"rows": [[이름, 값], …]}`.
     이름은 한국어판·영어판에 맞춘다. 값(숫자·단위)은 옮기지 않는다."""
@@ -1422,6 +1428,9 @@ def earth_view(request):
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
+                                   # 플라이스토세 화산 (wetherilli 194) — 따로 받은 것이 있을 때만 따로 레이어가 선다
+                                   "pleistocene": (volcanoes.legend(lang, "pleistocene")
+                                                   if volcanoes.available("pleistocene") else []),
                                    # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
                                    "quakes": quakes.legend(lang) if quakes.available() else [],
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
@@ -1940,20 +1949,21 @@ def earth_fossil_at(request):
 # ── 홀로세 화산 (wetherilli 134) ─────────────────────────────────────
 
 @require_GET
-def earth_volcano_tile(request, z, x, y):
-    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`)."""
+def earth_volcano_tile(request, z, x, y, kind="holocene"):
+    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`).
+    `earth/volcanoes/pleistocene/tiles/…` 는 플라이스토세 화산이다 (wetherilli 194)."""
     z, x, y = int(z), int(x), int(y)
     if not paleo.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    if not volcanoes.available():
+    if not volcanoes.available(kind):
         return _tile(tiles.blank_tile(), store=False)
     # 다시 받은 날과 파일의 판이 열쇠에 든다 — 판이 오르면 새로 그리고 주소도 바뀐다
-    version = volcanoes_version()
+    version = volcanoes_version(kind)
     key = tilecache.key_text("gvp", f"{version}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _immutable(request, _tile(hit, cached=True), version)
-    png = volcanoes.render_tile(z, x, y)
+    png = volcanoes.render_tile(z, x, y, kind)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -1962,19 +1972,22 @@ def earth_volcano_tile(request, z, x, y):
 
 @require_GET
 def earth_volcano_at(request):
-    """`?lon=&lat=&r=` — 누른 자리 둘레(`r`°)의 화산, 가까운 것부터 다섯."""
+    """`?lon=&lat=&r=&kinds=holocene,pleistocene` — 누른 자리 둘레(`r`°)의 화산, 켠 갈래에서 가까운 것부터 다섯."""
     lang = i18n.lang_of(request)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    kinds = [k for k in (request.GET.get("kinds") or "holocene").split(",") if k in volcanoes.FILES]
     if lat is None or lon is None:
         return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
     out = []
-    for v in volcanoes.near(lon, lat, r):
-        last = volcanoes.year_text(v["last"])
-        rows = [("화산", v["name"]), ("화산 종류", v["type"]), ("마지막 분화", i18n.t(last, lang) if last else ""),
-                ("근거", v["evidence"]), ("나라", v["country"]), ("지역", v["subregion"]),
-                ("표고 (m)", f"{v['elev']:,}" if v["elev"] is not None else ""), ("지구조 환경", v["tectonic"]),
-                ("주 암석", v["rock"]), ("지질 개요", v["summary"])]
+    for v in volcanoes.near(lon, lat, r, kinds=kinds):
+        last = volcanoes.year_text(v.get("last"))
+        epoch = i18n.t(msg("플라이스토세"), lang) if v["kind"] == "pleistocene" else ""
+        rows = [("화산", v["name"]), ("시대", epoch), ("화산 종류", v["type"]),
+                ("마지막 분화", i18n.t(last, lang) if last else ""),
+                ("근거", v.get("evidence")), ("나라", v["country"]), ("지역", v["subregion"]),
+                ("표고 (m)", f"{v['elev']:,}" if v.get("elev") is not None else ""), ("지구조 환경", v.get("tectonic")),
+                ("주 암석", v.get("rock")), ("지질 개요", v["summary"])]
         rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, str(val)] for k, val in rows if val]
         out.append({"no": v["no"], "name": v["name"], "rows": rows, "link": gvp.volcano_url(v["no"]),
                     "at": [v["lon"], v["lat"]]})
@@ -3134,7 +3147,7 @@ def tile_versions(page: str) -> dict:
                 for name, sheet in ibcso.SHEETS.items()}
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
-                "volcanoes": volcanoes_version(), "quakes": quakes_version(), "neotoma": neotoma_version(),
+                "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version()}
     return {}
 
@@ -3165,8 +3178,8 @@ def fossils_version() -> str:
     return _stamp(fossils.RENDERER, built, _file_stamp(fossils.path()))
 
 
-def volcanoes_version() -> str:
-    return _stamp(volcanoes.RENDERER, volcanoes.fetched(), _file_stamp(volcanoes.path()))
+def volcanoes_version(kind: str = "holocene") -> str:
+    return _stamp(volcanoes.RENDERER, volcanoes.fetched(kind), _file_stamp(volcanoes.path(kind)))
 
 
 def quakes_version() -> str:
