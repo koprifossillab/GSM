@@ -268,10 +268,10 @@ class IngemmetPlan:
         self.name = name
 
     def seconds(self, rate, meta):
-        return max(1 / rate, 2.0 if self.name in ingemmet.STRUCTURES else 1.5)   # 캐시 1.3–1.8 초, 단층·습곡 export 1.5–2 초 (2026-10-04)
+        return max(1 / rate, 2.0 if ingemmet.first_zoom(self.name) else 1.5)   # 캐시 1.3–1.8 초, 단층·습곡 export 1.5–2 초 (2026-10-04)
 
     def tiles_for(self, bbox, z):
-        first = ingemmet.STRUCTURES.get(self.name, {}).get("min")     # 단층·습곡은 화면이 그리는 줌부터 (wetherilli 222)
+        first = ingemmet.first_zoom(self.name)     # 단층·습곡은 화면이 그리는 줌부터 (wetherilli 222)
         if z > ingemmet.max_zoom(self.name) or (first and z < first):
             return iter(())
         return tilegrid.tiles_for(bbox, z)        # 칸 수(2^z)로 세므로 256 px z/x/y 에도 맞는다 — 일본과 같다

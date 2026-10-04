@@ -2481,6 +2481,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
                 "maxZoom": ingemmet.STRUCTURES_MAX, "noLegend": True, "queryable": False,
                 **({"minZoom": first} if first else {})}
+    if layer.upstream == "ingemmet" and layer.name in ingemmet.UNITS:
+        # 페루 1:5만 지질 단위만(wetherilli 234) — 암상 레이어만 export 로. 느려 줌 9 부터. 누른 자리·범례는 1:5만 통합판의 것
+        return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
+                "maxZoom": ingemmet.STRUCTURES_MAX, "minZoom": ingemmet.first_zoom(layer.name),
+                "legend": "extent", "legendUrl": "ingemmet/legend/"}
     if layer.upstream == "ingemmet" and ingemmet.knows(layer.name):
         # 페루 INGEMMET(wetherilli 195) — WMS 는 넓게 물으면 30 초를 넘겨 REST 타일 캐시(3857 z/x/y)를 우리 서버가 중계한다(일본과 같다).
         # 누른 자리는 위경도로(`ingemmet/info/`), 범례는 보는 범위의 것(`ingemmet/legend/`)
@@ -3373,7 +3378,7 @@ def ingemmet_tile(request, sheet, z, x, y):
 def ingemmet_info(request):
     """`?layer=ingemmet:50k&lat=-12.05&lon=-77.0` — 누른 자리의 속성 (wetherilli 195). 팝업이 받는 꼴은 `/featureinfo/` 와 같다."""
     lang = i18n.lang_of(request)
-    name = request.GET.get("layer", "")
+    name = ingemmet.base_of(request.GET.get("layer", ""))       # 지질 단위만의 판은 통합판에 묻는다 (wetherilli 234)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     if not ingemmet.knows(name) or lat is None or lon is None:
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []}, status=400)
@@ -3407,7 +3412,7 @@ def ingemmet_legend(request):
 
     범위 안의 단위는 통계 질의로, 색은 칠하기 규칙(`ingemmet.colors`, 한 번 받아 담는다)에서. 꼴은 브라질(`sgb_legend`)과 같다"""
     lang = i18n.lang_of(request)
-    name = request.GET.get("layer", "")
+    name = ingemmet.base_of(request.GET.get("layer", ""))       # 지질 단위만의 판은 통합판의 범례 (wetherilli 234)
     if not ingemmet.knows(name):
         return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
     parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
