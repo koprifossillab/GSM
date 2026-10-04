@@ -2662,6 +2662,10 @@ AGE_LOCAL_MODIFIERS = {
 }
 
 
+#: 붙여 쓰는 꾸밈말 — 긴 것부터 (wetherilli 239)
+_AGE_GLUED = ("mittel", "unter", "ober", "früh", "spät")
+
+
 def age_local(value: str) -> str:
     """독일어·네덜란드어·폴란드어·프랑스어 시대(`Perm - frühe Kreide`·`jura górna`·`Dévonien inférieur`·`Holoceen`) → ICS 영어
     (`Permian – Early Cretaceous`). 낱말 하나라도 모르면 빈 글 — 부르는 쪽이 원문을 보인다 (wetherilli 237)"""
@@ -2680,7 +2684,11 @@ def age_local(value: str) -> str:
             elif w in AGE_LOCAL_MODIFIERS and not mod:
                 mod = AGE_LOCAL_MODIFIERS[w]
             else:
-                return ""
+                # 독일어는 꾸밈말을 붙여 쓴다 — `Obertrias`·`Unterkreide`·`Mitteleozän` (wetherilli 239)
+                glued = next(((m, w[len(m):]) for m in _AGE_GLUED if w.startswith(m) and w[len(m):] in AGE_LOCAL_WORDS), None)
+                if glued is None or noun or mod:
+                    return ""
+                mod, noun = AGE_LOCAL_MODIFIERS[glued[0]], AGE_LOCAL_WORDS[glued[1]]
         if not noun:
             return ""
         parts.append(f"{mod} {noun}" if mod else noun)
@@ -2986,6 +2994,8 @@ GROUP_EN = {
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
     "오스트리아 지질도 (GeoSphere 1:100만)": "Geology of Austria (GeoSphere 1:1M)", "폴란드 지질도 (PIG-PIB 1:50만)": "Geology of Poland (PIG-PIB 1:500k)",
+    "오스트리아 지질도 1:5만 (GeoSphere)": "Geology of Austria 1:50k (GeoSphere)",
+    "폴란드 지질도 1:5만 (PIG-PIB SMGP)": "Geology of Poland 1:50k (PIG-PIB SMGP)",
     "네덜란드 지질도 (TNO)": "Geology of the Netherlands (TNO)", "플랑드르 지질도 (DOV)": "Geology of Flanders (DOV)",
     "왈로니아 지질도 (SPW 1:2.5만)": "Geology of Wallonia (SPW 1:25k)",
     "브리티시컬럼비아 지질도 (BCGS)": "Geology of British Columbia (BCGS)", "캘리포니아 지질도 (CGS 1:75만)": "Geologic Map of California (CGS 1:750k)",
@@ -3120,7 +3130,9 @@ LAYER_EN = {
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
     "geosphere:geology": "Geology (1:1M)", "geosphere:faults": "Faults and nappe boundaries (1:1M)",
-    "pig:mgp500k": "Geology (1:500k, 2022)", "pig:faults": "Faults (1:500k)", "tno:geology": "Surface geology",
+    "pig:mgp500k": "Geology (1:500k, 2022)", "pig:faults": "Faults (1:500k)",
+    "geosphere:units50k": "Geological units (1:50k)", "pig:smgp50k": "Detailed geology (1:50k)",
+    "pig:smgp50k_lines": "Boundaries and line symbols (1:50k)", "tno:geology": "Surface geology",
     "dov:tertiair_50k": "Tertiary geology (1:50k)", "dov:quartair_200k": "Quaternary profile-type map (1:200k)",
     "spw:geology": "Geology (1:25k compilation)", "spw:faults": "Faults",
     "bcgs:bedrock": "Bedrock (BC Digital Geology)", "calgs:geology": "Geologic map (1:750k)",
