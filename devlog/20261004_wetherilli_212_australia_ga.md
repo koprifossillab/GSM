@@ -33,7 +33,7 @@
 ## 4. 그 밖
 
 - 시대 — GeoSciML 의 `Cenozoic to Quaternary` 를 `Cenozoic - Quaternary` 로 이어 `i18n.age_ko`(신생대~제4기)
-- 지역 `australia`(마이그레이션 0030 — 캐나다 #192 가 먼저 들어가면 그 뒤로 옮긴다). 빛깔은 그레이트배리어리프의 산호빛
+- 지역 `australia`(마이그레이션 0031 — 캐나다 0030 뒤). 빛깔은 그레이트배리어리프의 산호빛
 - 3D 허용 목록·prewarm(`PROJECTED`)에 `ga`
 - **정적 판** — CC BY 4.0 이고 Origin 을 되비춰 `OPTIONAL` 에 `australia` 를 두었다(기본값 아님). `static-kinds.js` 의 `KINDS.ga` 는 `wmsKind`
   그대로이고 속성 꼴만 geo+json 이다. 보는 범위의 범례는 서버 길이라 정적 판에는 없다 — 지도 화면이 정적 판에서 범례 칸을 그릴 때 상류 손에

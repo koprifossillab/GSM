@@ -179,6 +179,10 @@ IIGE_URL = env("GSM_IIGE_URL", "https://capas.geoenergia.gob.ec/arcgis")
 MRDATA_URL = env("GSM_MRDATA_URL", "https://mrdata.usgs.gov/services")
 #: 멕시코 지질도 — SGM ArcGIS REST 서비스 주소 (wetherilli 206). WMS 는 400 이라 export·identify 를 쓴다. 열쇠가 없다
 SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM/SUNGeologiaContinuoMineDatosEs/MapServer")
+#: 캐나다 — NRCan 1:500만(Wheeler) WMS·온타리오 OGS ArcGIS 의 앞 주소 (wetherilli 204). 열쇠가 없다
+NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/server_serveur/services/NRCan/"
+                    "geological_map_canada_wheeler_en/MapServer/WMSServer")
+OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -434,6 +438,9 @@ IIGE_CATALOG_SEED = REPO_DIR / "data" / "iige_layers.json"
 MRDATA_CATALOG_SEED = REPO_DIR / "data" / "mrdata_layers.json"
 #: 멕시코 (wetherilli 206)
 SGM_CATALOG_SEED = REPO_DIR / "data" / "sgm_layers.json"
+#: 캐나다 (wetherilli 204)
+NRCAN_CATALOG_SEED = REPO_DIR / "data" / "nrcan_layers.json"
+OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
