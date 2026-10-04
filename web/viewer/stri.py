@@ -35,10 +35,10 @@ AGES = {
     "TOM": "Oligocene – Miocene", "TM": "Miocene", "TMPL": "Miocene – Pliocene", "TPL": "Pliocene",
     "PI/PS": "Pliocene – Pleistocene", "QPS": "Pleistocene", "QR": "Holocene",
 }
-#: 단층 레이어 → (칸 이름, 색, 굵기, 끊음)
-FAULT_LAYERS = {3: ("Fallas Normales", "#d7191c", 1.6, None),
-                4: ("Fallas Interpretadas", "#d7191c", 1.4, [6, 4]),
-                5: ("Fallas Corrimiento", "#1a1a1a", 2.0, None)}
+#: 단층 레이어 → (칸 이름, 색, 굵기, 끊음). 추정 단층이 1 839 개로 거의 전부라 가늘고 어둡게 — 굵으면 지질도를 덮는다
+FAULT_LAYERS = {3: ("Fallas Normales", "#d7191c", 1.4, None),
+                4: ("Fallas Interpretadas", "#8c2d24", 0.8, [4, 3]),
+                5: ("Fallas Corrimiento", "#1a1a1a", 1.6, None)}
 
 
 class StriError(RuntimeError):

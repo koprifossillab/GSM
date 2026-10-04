@@ -503,7 +503,7 @@
               home: [-9251000, 792000, -8583000, 1085000],
               basemap: "eox_terrain", example: "9.081, -79.593 · Panamá",
               base: ["stri:geology", "stri:faults"],
-              first: ["stri:geology", "stri:faults"] },
+              first: "stri:geology" },
     central_america: { title: "중미·카리브", proj: "EPSG:3857", center: [-77.0, 15.5], zoom: 5, vworld: false,
                        includes: ["nicaragua", "panama", "dominican_republic", "caribbean"],
                        borrow: { usa: ["mrdata:pr:"] },

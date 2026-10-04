@@ -43,7 +43,6 @@
 
 - [ ] 니카라과 INETER·도미니카공화국 SGN 1:25만은 섰다(wetherilli 242, 묶음 "중앙아메리카·카리브" — 푸에르토리코는 미국 탭의 것을 빌린다). **(사람)** INETER·SGN 의
       조건 문구가 없다(AccessConstraints NONE·빈 칸) — 밖에 열기 전에 읽는다
-- [ ] 파나마 STRI 1:25만(CC BY-SA 4.0) — FeatureServer 라 받아 우리가 그려야 한다(점·모양 레이어 꼴, 면 1 608). 시대는 `SIMBOLO` 앞머리 표가 든다. 하루
 - [ ] USGS 카리브 지질도(Caribbean_Geology, 1:250만)는 카리브 탭에 섰다(wetherilli 248 — 면 한 덩이). SIM 3534(Wilson & Labay 2025, 대앤틸리스 1:30만 급)는
       웹서비스가 없고 ScienceBase 가 403 이다. 옛 판 OFR 2019-1036 의 셰이프 zip(`pubs.usgs.gov/of/2019/1036/ofr20191036_spatialdata.zip`)은
       196 MB 다 — 쓰려면 받아 굽는 꼴(moonmap·geomap 틀: 파일 → sqlite → 타일)이 맞다. 이틀 남짓이라 두었다
