@@ -742,6 +742,8 @@ EN = {
     "영국 지질조사소 — 아프리카 지하수 지도책": "British Geological Survey — Africa Groundwater Atlas",
     "남아프리카공화국 지질조사소": "Council for Geoscience (South Africa)",
     "나미비아 지질조사소": "Geological Survey of Namibia",
+    "부르키나파소 지질광업국": "Bureau of Mines and Geology of Burkina Faso (BUMIGEB)",
+    "카메룬 지질광업연구소": "Institute for Geological and Mining Research of Cameroon (IRGM)",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
@@ -2986,6 +2988,8 @@ GROUP_EN = {
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
     "하와이 지질도 (USGS)": "Hawaii geology (USGS)", "푸에르토리코 지질도 (USGS)": "Puerto Rico geology (USGS)",
+    "호주 지질구 (GA)": "Australia geological provinces (GA)", "호주 핵심 광물 (GA 2025)": "Australia critical minerals (GA 2025)",
+    "호주 지구물리 (GA)": "Australia geophysics (GA)",
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
@@ -3090,6 +3094,7 @@ GROUP_EN = {
     "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
     "남아프리카공화국 지질도 (CGS 1:100만)": "South Africa geology (CGS 1:1M)",
     "나미비아 지질도 (GSN 1:100만)": "Namibia geology (GSN 1:1M)",
+    "부르키나파소 지질도 (BUMIGEB 1:100만)": "Burkina Faso geology (BUMIGEB 1:1M)", "카메룬 지질도 (IRGM 1:100만)": "Cameroon geology (IRGM 1:1M)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
@@ -3269,6 +3274,8 @@ LAYER_EN = {
     # 아프리카 나라 판 (wetherilli 209)
     "cgs:geology_1m": "Geology (1:1M)",
     "gsn:NAM_GSN_1M_BLS": "Lithostratigraphy (1:1M)",
+    "bumigeb:BFA_BUMIGEB_FR_1M_BLS": "Lithology (1:1M)", "bumigeb:BFA_BUMIGEB_FR_1M_MSF": "Major structures (1:1M)",
+    "irgm:CMR_IRGM_1M_UnitesGeologiques": "Geological units (1:1M)", "irgm:CMR_IRGM_1M_Failles": "Faults (1:1M)",
     "gsn:NAM_GSN_1M_BA": "Age (1:1M)",
     "iige:geologia_general": "General geological map",
     # 미국 (wetherilli 205)
@@ -3291,6 +3298,10 @@ LAYER_EN = {
     "ga:age": "Geologic units — age",
     "ga:lithology": "Geologic units — lithology",
     "ga:faults": "Faults",
+    # GA 의 다른 서비스 (wetherilli 241)
+    "ga:crustal": "Crustal elements", "ga:provinces": "Geological provinces (all)", "ga:mines": "Critical minerals mines",
+    "ga:deposits": "Critical minerals deposits", "ga:tmi": "Total magnetic intensity (2019)",
+    "ga:gravity": "Complete Bouguer gravity anomaly (2019)", "ga:radiometric": "Radiometric ternary (K·Th·U, 2019)",
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
