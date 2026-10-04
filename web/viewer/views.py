@@ -3356,7 +3356,7 @@ def wms(request):
     try:
         # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
         first = (params.get("layers") or "").split(",")[0].strip()
-        last = metatile.limit(METATILE, first)
+        last = metatile.limit(METATILE, first) if settings.METATILE else False      # 끄는 스위치(wetherilli 299)
         piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)),
                                 max_zoom=last, errors=UPSTREAM_ERRORS)
                  if last is not False else None)

@@ -111,6 +111,18 @@ class View(TestCase):
         rows = {l["name"]: l for g in views._catalog("ko") for l in g["layers"]}
         self.assertEqual((rows["sgm:datos:7"]["minZoom"], rows["sgm:datos:7"]["queryable"]), (8, False))
 
+    def test_끄는_스위치(self):
+        """`GSM_METATILE_OFF` 면 칸 하나씩 받던 앞의 길로 (wetherilli 299)"""
+        sent = []
+
+        def fake(url, params=None, **kw):
+            sent.append(params)
+            return mock.Mock(status_code=200, headers={"content-type": "image/png"}, content=quadrants(256), url=url)
+        with override_settings(METATILE=False), mock.patch.object(sgm.requests, "get", side_effect=fake), \
+             mock.patch.object(sgm.usage, "record"), mock.patch.object(sgm.usage, "paused", return_value=0):
+            self.client.get("/GSM/wms/", {k.upper(): v for k, v in wms(8, 56, 112).items()} | {"SERVICE": "WMS", "REQUEST": "GetMap"})
+        self.assertEqual(sent[0]["size"], "512,512")
+
     def test_다른_레이어는_그대로(self):
         sent = []
 
