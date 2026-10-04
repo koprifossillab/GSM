@@ -2821,6 +2821,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "skgs" and skgs.knows(layer.name):
         # 사스카치원(wetherilli 235) — ArcGIS WMS 를 3978 로 곧장(Capabilities 에 없지만 그린다)
         return {"attribution": skgs.ATTRIBUTION, "projection": "EPSG:3978",
+                # 광물 산지 SMDI·광산(wetherilli 288) — 다른 서비스의 REST, 범례를 두지 않는다. 넓게 보면 한 장에 10 초라 줌 6 부터
+                **({"noLegend": True, "minZoom": 6} if layer.name in skgs.RESOURCES else {}),
                 **({} if skgs.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "nsgs" and nsgs.knows(layer.name):
         # 노바스코샤(wetherilli 235) — WMS 가 없어 문이 REST export 로 옮긴다. 화면의 투영을 그대로 넘긴다
@@ -2854,6 +2856,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
         # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
+        if layer.name == "bcgs:minfile":
+            # MINFILE 광물 산지(wetherilli 288) — 같은 openmaps 의 점 레이어, 넓게 봐도 그린다
+            return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978"}
         return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978", "minZoom": bcgs.MIN_ZOOM}
     if layer.upstream == "calgs" and calgs.knows(layer.name):
         # 캘리포니아(wetherilli 231) — 문이 REST export 를 3978 로 받는다. 줌 12 너머는 상류가 그리지 않아 화면이 늘린다. 범례는 목록
