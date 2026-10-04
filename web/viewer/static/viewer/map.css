@@ -2487,3 +2487,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #2f2a10; --hi-deep: #1c1907; --on-hi: #fbfaf2; --hi-ink: #8a7428;
   --glass: rgba(253, 252, 246, .95); --glass-line: #e0d9bd;
 }
+
+/* ── 호주 (wetherilli 212) — 그레이트배리어리프의 산호빛: 산호해의 깊은 바다 바탕 ── */
+:root[data-region="australia"] {
+  --bg: #0c1218; --panel: #121a22; --panel-tint: #090e13; --raise: #1b2631;
+  --ink: #eef4f8; --ink-soft: #b3c3cf; --ink-faint: #71838f;
+  --line: #263442; --line-soft: #1b2631;
+  --gold: #f2836b; --gold-bright: #f9bcae; --gold-muted: #cf7360;
+  --gold-wash: rgba(242, 131, 107, .13); --gold-edge: rgba(242, 131, 107, .42);
+  --hi: #f2836b; --hi-deep: #f9bcae; --on-hi: #090e13; --hi-ink: #f9bcae;
+  --glass: rgba(9, 14, 19, .93); --glass-line: rgba(242, 131, 107, .35);
+}
+:root[data-region="australia"][data-theme="light"] {
+  --bg: #f9f1ee; --panel: #fefcfb; --panel-tint: #fbf5f3; --raise: #f0e2dd;
+  --ink: #1d1714; --ink-soft: #5b4a43; --ink-faint: #97847c;
+  --line: #e8d6cf; --line-soft: #f0e2dd;
+  --gold: #c2533b; --gold-bright: #993d2a; --gold-muted: #a8685a;
+  --gold-wash: #f9e2dc; --gold-edge: #edb3a6;
+  --hi: #3d1a12; --hi-deep: #250e09; --on-hi: #fdf6f4; --hi-ink: #c2533b;
+  --glass: rgba(254, 252, 251, .95); --glass-line: #e8d6cf;
+}

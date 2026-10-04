@@ -156,6 +156,9 @@ BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
 #: 아프리카(wetherilli 207) — CGMW–BRGM 1:1000만(BRGM 의 mapsref 서버)과 그 정적 범례, BGS 아프리카 지하수 지도책
 CGMW_AFRICA_URL = env("GSM_CGMW_AFRICA_URL", "https://mapsref.brgm.fr/wxs/1GG/IGC35_CGMW_BRGM_Africa_Geology")
 CGMW_LEGEND_URL = env("GSM_CGMW_LEGEND_URL", "https://mapsref.brgm.fr/legendes/ogg")
+#: 아프리카 나라 판(wetherilli 209) — 남아공 CGS(정부 DPME 사본 ArcGIS REST)·나미비아 GSN(BGS 가 대신 내주는 MapServer)
+CGS_REST_URL = env("GSM_CGS_REST_URL", "https://dpmegis.dpme.gov.za/arcgis/rest/services/Geology/MapServer")
+GSN_WMS_URL = env("GSM_GSN_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_GSN_Bedrock_Geology/wms")
 AGA_WMS_URL = env("GSM_AGA_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/AGA/BGS_Groundwater/MapServer/WMSServer")
 EGDI_WMS_URL = env("GSM_EGDI_WMS_URL", "https://geoserver.geo-zs.si/egdi-surface-geology/gsmlp/wms")
 #: 독일·스페인·아일랜드 지질도 — BGR·IGME·GSI ArcGIS WMS 의 판 앞 주소, GSNI 는 BGS 서버의 것 (wetherilli 147). 열쇠가 없다
@@ -186,6 +189,9 @@ OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 캐나다의 주 판 — 퀘벡 SIGÉOM(GeoServer 앞단, WMS 1.1.1)·유콘 YGS(ArcGIS WMS) (wetherilli 210). 열쇠가 없다
 SIGEOM_WMS_URL = env("GSM_SIGEOM_WMS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WMS/service.svc/get")
 YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/services/GeoYukon/GY_Geological/MapServer/WMSServer")
+#: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
+GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
+GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -424,6 +430,8 @@ GSI_CATALOG_SEED = REPO_DIR / "data" / "gsi_layers.json"
 GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 CGMW_CATALOG_SEED = REPO_DIR / "data" / "cgmw_layers.json"
 AGA_CATALOG_SEED = REPO_DIR / "data" / "aga_layers.json"
+CGS_CATALOG_SEED = REPO_DIR / "data" / "cgs_layers.json"
+GSN_CATALOG_SEED = REPO_DIR / "data" / "gsn_layers.json"
 #: 남미 (wetherilli 188)
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)
@@ -444,6 +452,8 @@ OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
 #: 캐나다의 주 판 — 퀘벡·유콘 (wetherilli 210)
 SIGEOM_CATALOG_SEED = REPO_DIR / "data" / "sigeom_layers.json"
 YGS_CATALOG_SEED = REPO_DIR / "data" / "ygs_layers.json"
+#: 호주 (wetherilli 212)
+GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)
