@@ -221,6 +221,7 @@
 | wetherilli 177 | 2026-10-04 | [유럽 — EGDI 1:100만의 속성을 암상 판으로 켠다](20261004_wetherilli_177_egdi_info.md) |
 | wetherilli 176 | 2026-10-04 | [유럽 바다 — EMODnet 의 제4기 퇴적층·지질 사건을 유럽 탭들에](20261004_wetherilli_176_europe_seafloor.md) |
 | wetherilli 181 | 2026-10-04 | [정적 판 — 판 이력을 떠 두고, 소개의 첫 장면에서 없는 화면을 뺀다](20261004_wetherilli_181_static_intro_history.md) |
+| wetherilli 178 | 2026-10-04 | [그린란드 — 다이아몬드 탐사 자료의 나머지: 지시광물 화학 넷·거둔 다이아몬드·관입 연대·산출지의 선과 면](20261004_wetherilli_178_greenland_ded_more.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
