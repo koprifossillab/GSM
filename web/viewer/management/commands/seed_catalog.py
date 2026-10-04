@@ -150,6 +150,8 @@ class Command(BaseCommand):
                 # 중앙아메리카·카리브 — 니카라과 INETER·도미니카공화국 SGN(IGME 서버) (wetherilli 242)
                 (settings.INETER_CATALOG_SEED, "니카라과 (INETER)", "nicaragua", "ineter"),
                 (settings.IGME_DR_CATALOG_SEED, "도미니카공화국 (SGN)", "dominican_republic", "igme"),
+                # 카리브 — USGS 카리브 지질도(French & Schenk 2004), 면을 한 덩이로 (wetherilli 248)
+                (settings.USGSCARIB_CATALOG_SEED, "카리브 (USGS)", "caribbean", "usgscarib"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),

@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, swisstopo, tno, usage, ygs
+from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, swisstopo, tno, usage, usgscarib, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2191,7 +2191,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2223,6 +2223,10 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
+    if layer.upstream == "usgscarib" and usgscarib.knows(layer.name):
+        # USGS 카리브 지질도(wetherilli 248) — 피처 서비스라 면(6 343)을 한 덩이로 받아 화면이 구워 그린다(geo3al 과 같은 꼴)
+        return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
+                "source": usgscarib.SOURCE_URL, "attribution": usgscarib.ATTRIBUTION, "opacity": 0.75}
     if layer.upstream == "geo3al" and geo3al.knows(layer.name):
         # 중국 지질도(USGS geo3al, 025) — 얀마옌처럼 면을 한 덩이로. 면이 1 만 2 천이라
         # 화면이 한 장으로 구워 그린다(`render: image`). 이용 조건은 범례 칸이 적는다
@@ -4366,6 +4370,8 @@ def point_layer(request):
         return _janmayen_layer(name, lang)
     if geo3al.knows(name):
         return _geo3al_layer(name, lang)
+    if usgscarib.knows(name):
+        return _usgscarib_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -4457,6 +4463,19 @@ def _janmayen_layer(name, lang):
         log.warning("얀마옌 지질도를 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("얀마옌 지질도 자료(NPI)를 읽지 못했다"), lang)},
                             status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _usgscarib_layer(name, lang):
+    """USGS 카리브 지질도 한 덩이 (wetherilli 248). 처음 한 번 상류에서 받아 캐시에 30 일 둔다(`usgscarib.features`)"""
+    try:
+        content = usgscarib.body(name, lang)
+    except usgscarib.UsgsCaribError as exc:
+        log.warning("USGS 카리브 지질도를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("USGS 카리브 지질도를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
