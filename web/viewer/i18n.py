@@ -1892,6 +1892,7 @@ PROP_EN = {
     "측정법": "Technique",
     "계산법": "Approach",
     "암상": "Lithology",
+    "제공 기관": "Provider",
     "암석 갈래": "Rock type",
     "지괴": "Terrane",
     "단위": "Unit",
