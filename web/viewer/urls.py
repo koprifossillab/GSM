@@ -157,6 +157,7 @@ urlpatterns = [
     # 주소만 적힌 CSV — 화면이 주소를 나눠 보내 좌표를 받는다 (wetherilli 152)
     path("pointsets/geocode/", views.pointset_geocode, name="pointset-geocode"),
     path("pointsets/<int:pk>/geojson/", views.pointset_geojson, name="pointset-geojson"),
+    path("pointsets/<int:pk>/csv/", views.pointset_csv, name="pointset-csv"),
     path("pointsets/deleted/", views.pointset_deleted, name="pointset-deleted"),
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),
