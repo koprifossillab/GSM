@@ -208,6 +208,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 **브라우저 캐시** (wetherilli 151) — 응답마다 ETag 가 붙어 하루(`TILE_CACHE_SECONDS`)가 지나면 304 로 되묻는다
 (`ConditionalGetMiddleware`). 주소에 판(`?v=`)이 든 우리 타일만 1 년 `immutable` 이다(`views._immutable`) — 판이 바뀌면 주소가
 바뀌기 때문이다. 상류에서 받은 것에는 판이 없으니 길게 두지 않는다. 그리는 법을 고쳐 `RENDERER` 를 올리면 주소의 판도 따라 오른다.
+화면(JS)이 주소를 짓는 타일(달·화성·수성 원도, 온 지구의 판 회전·화석·화산·지진·지각·지명 따위, IBCSO 배경)은 판을 페이지의
+`tile-versions` 로 받는다(`views.tile_versions`, wetherilli 183). 판은 서버 캐시 열쇠에 든 것과 같은 것(그리는 법과 파일의 판)이다 —
+새 우리 타일을 더하면 거기 한 줄 더한다.
 속성·범례 JSON 도 하루이고 언어(쿠키)로 가른다(`views.browser_cached`, wetherilli 158). 3D 의 `warp/` 는 원본의 판을 열쇠에 넣어
 디스크에 담는다 — 스캔판(phyloserver)만 빼고. 다시 펴는 법을 고치면 `views.WARP_RENDERER` 를 올린다.
 
