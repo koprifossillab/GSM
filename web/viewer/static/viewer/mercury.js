@@ -203,6 +203,8 @@
     baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
     navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
     infoBox: false, selectionIndicator: false,
+    // 그리기가 멈추면 Cesium 은 영어 오류 창을 띄우고 멈춘다 — 우리 안내로 바꾼다(아래 `renderFailed`, wetherilli 110·186)
+    showRenderLoopErrors: false,
   });
   viewer.imageryLayers.add(cBase, 1);
   var scene = viewer.scene;
@@ -220,6 +222,38 @@
   scene.backgroundColor = Cesium.Color.BLACK;
   scene.verticalExaggeration = look.exag / 10;
   window.__gsmMercury = viewer;
+
+  // ── 그리기가 멈추면 (온 지구의 것을 옮겼다, wetherilli 110·186) ──
+  //
+  // WebGL 문맥을 잃으면 Cesium 은 되살리지 못한다. 멈춘 자리에 까닭과 나갈 길 셋을 띄운다 — 새로고침, 가볍게 다시(지형 세우기를
+  // 끄고), 평면으로(평면은 OpenLayers 라 구와 따로 돈다). 가볍게 다시 연 것은 이 브라우저에 남는다
+  var failed = false;
+  function renderFailed(reason) {
+    if (failed) return;
+    failed = true;
+    viewer.useDefaultRenderLoop = false;
+    $("render-failed-why").textContent = reason ? String(reason).split("\n")[0].slice(0, 160) : "";
+    $("render-failed").hidden = false;
+  }
+  scene.renderError.addEventListener(function (s, err) {
+    renderFailed(err && (err.message || err));
+  });
+  scene.canvas.addEventListener("webglcontextlost", function (e) {
+    e.preventDefault();
+    renderFailed(T("WebGL 문맥을 잃었다"));
+  });
+  $("render-failed-reload").addEventListener("click", function () { location.reload(); });
+  $("render-failed-light").addEventListener("click", function () {
+    save("gsm.mercury.terrain", "off");
+    location.reload();
+  });
+  $("render-failed-flat").addEventListener("click", function () {
+    $("render-failed").hidden = true;
+    var c = cameraLL();                                  // 평면으로 열 자리 — 보던 가운데를 그대로
+    save("gsm.mercury.flat", JSON.stringify({ lon: c ? +c.lon.toFixed(4) : 0, lat: c ? +c.lat.toFixed(4) : 0, res: 2000 }));
+    save("gsm.mercury.mode", "flat");
+    location.reload();                                   // 멈춘 구를 두고 평면만 새로 연다
+  });
 
   var cGeo = {};
   GEO_NAMES.forEach(function (name) {
