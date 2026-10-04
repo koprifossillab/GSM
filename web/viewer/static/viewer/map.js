@@ -1776,7 +1776,7 @@
       // 아래 가장자리에는 좌표 막대가 덮여 있다. 여백을 주지 않으면 팝업
       // 아랫단이 막대 밑으로 들어간다. 여백은 사방에 걸려서 휴대폰(390 px)에서는 320 px 팝업 + 72 px 둘이 들지 않아
       // 팝업이 왼쪽 밖으로 밀렸다 — 좁은 화면은 12 px 로 (휴대폰 시험이 잡았다, wetherilli 193)
-      autoPan: { animation: { duration: 200 }, margin: window.innerWidth < 500 ? 12 : 72 },
+      autoPan: { animation: { duration: 200 }, margin: popupMargin() },
       offset: [0, -8],
       positioning: "bottom-center",
     });
@@ -4808,6 +4808,10 @@
     return "IBCSO · " + bits.join(" · ");
   }
 
+  /** 팝업을 화면 안으로 끌어올 때의 여백 — 사방에 걸린다. 넓은 화면은 좌표 막대를 비키는 72 px, 휴대폰은 320 px 팝업이 들게
+   *  12 px (wetherilli 193). 처음 띄울 때와 속성이 늦게 와 자랐을 때 두 곳이 같은 값을 쓴다 */
+  function popupMargin() { return window.innerWidth < 500 ? 12 : 72; }
+
   function showPopup(coordinate, parts, emptyText) {
     var body = document.getElementById("popup-body");
     body.innerHTML = "";
@@ -4919,7 +4923,7 @@
     popupOverlay.setPosition(coordinate);
     // 속성이 늦게 와서 팝업이 자라도 자리는 그대로라 OL 이 다시 끌어오지
     // 않는다. 채운 뒤에 한 번 더 화면 안으로 끌어온다.
-    popupOverlay.panIntoView({ animation: { duration: 200 }, margin: 72 });
+    popupOverlay.panIntoView({ animation: { duration: 200 }, margin: popupMargin() });
   }
 
   /** 평소에는 접어 두는 속성. 사람이 읽을 것이 아니거나 다른 줄과 겹친다.
