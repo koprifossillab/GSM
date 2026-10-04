@@ -26,8 +26,6 @@
       읽고 되면 정적 판에 싣는다(CORS 가 열려 있어 `static-kinds.js` 한 갈래)
 - [ ] (사람) 운영에서 `manage.py fetch_sgb_units` 를 한 번 — 브라질 범례에 단위 이름·시대가 붙는다(없으면 기호만). 1:100만은
       WFS 열 번 남짓·1 초 간격 (wetherilli 191)
-- [ ] 브라질 SGB 의 점 레이어 — 노두·연대측정·화석 산지(`geosgb:afloramentos`·`geocronologia`·`ocorrencias_fossiliferas`). 지역 탭의
-      점 레이어나 온 지구의 점 후보. 조건은 CC BY-NC 4.0 이라 정적 판에는 싣지 않는다
 - [ ] 페루 INGEMMET 의 단층·습곡을 따로 켜고 끄기 — 지금은 통합판 캐시 한 장에 구워져 있다(wetherilli 195). WMS 로 따로 받으려면
       넓은 줌이 30 초를 넘으니 가까운 줌에서만
 - [ ] (사람) 우루과이 DINAMIGE 1:50만의 이용 조건 — 탭은 섰다(wetherilli 196). Capabilities·MIEM 안내에 적힌 것이 없다. 밖에 열기 전에 읽는다

@@ -444,7 +444,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   iige.py         에콰도르 지질·에너지 연구소(IIGE)로 나가는 문 (일반 지질도 ArcGIS WMS 를 3857 로, 범례는 보는 범위의 REST 통계 질의)
   nrcan.py        캐나다 천연자원부(NRCan·GSC)로 나가는 문 (캐나다 지질도 1:500만 Wheeler ArcGIS WMS 를 3978 로, 속성은 GeoJSON)
   ogs.py          온타리오 지질조사소(OGS)로 나가는 문 (기반암 1:25만·제4기 ArcGIS WMS 를 3978 로, 속성은 REST identify — WMS 번호와 REST 번호가 다르다)
-  sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`)
+  sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`). 노두·연대측정·화석 산지 점도 같은 WMS 로
   segemar.py      아르헨티나 지질광업조사소(SEGEMAR)로 나가는 문 (SIGAM GeoServer — 1:250만 단위·구조선·화산, 1:25만 간행 도폭). 이름은 `segemar:<상류 이름>`. CORS 가 없다
   dinamige.py     우루과이 광업지질국(DINAMIGE, MIEM)으로 나가는 문 (1:50만 ArcGIS WMS, 3857 로). 이름은 WMS 번호 — REST 와 거꾸로다. 범례는 REST 를 목록으로
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
