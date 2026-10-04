@@ -24,6 +24,12 @@ from django.conf import settings
 #: 받아 둔 레이어 가운데 자세 기호. 차례가 화면에서 겹칠 때의 차례다
 KINDS = ("bedding", "foliation", "schistosity", "joint")
 
+#: `fetch_kigam50k` 가 받는 레이어 — 2026-09-30 에 손으로 받은 19 개와 같다(docs/KIGAM_5만_구조요소.md §3). 지질 경계(17 만)·
+#: 암상 면(7 만)은 받지 않는다 — 크고 WMS 그림으로 이미 보인다 (jikhanjung P01 §4·§8)
+FETCH = ("bedding", "foliation", "schistosity", "joint", "flowstructure", "cleavage", "lineation", "mineralarray",
+         "foldaxis", "fold", "fault", "fossil", "sample", "mine", "oretype", "mineralspring", "alterationzone",
+         "metamorphismzone", "frame")
+
 #: 한 번에 내주는 점의 수. 줌 11 의 한 화면(≈ 40 km)에 많아야 천 남짓이다
 LIMIT = 5000
 

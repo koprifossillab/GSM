@@ -139,3 +139,78 @@ class Rose(TestCase):
         kigam50k._cache.update(folder=None, rows=None)
         with override_settings(KIGAM50K_DIR=tempfile.mkdtemp()):
             self.assertEqual(self.client.get("/GSM/kigam50k/rose/", {"lat": 36.3, "lon": 127.3}).status_code, 503)
+
+
+class FetchCommand(TestCase):
+    """`fetch_kigam50k` (jikhanjung P01 §4, wetherilli 199) — 상류는 바꿔 끼운다."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.override = override_settings(KIGAM50K_DIR=str(self.root))
+        self.override.enable()
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.override.disable)
+        self.counts = {name: 1 for name in kigam50k.FETCH}
+        self.version = "a"
+
+    def body(self, name):
+        return json.dumps({"type": "FeatureCollection", "v": self.version,
+                           "features": [_pt(127.0, 36.0, mapidx="GF11", mapname="대전")] * self.counts[name]}).encode()
+
+    def run_at(self, day):
+        from unittest import mock
+        from django.core.management import call_command
+        from django.utils import timezone
+        import datetime
+        when = timezone.make_aware(datetime.datetime.fromisoformat(day + "T09:00:00"))
+        with mock.patch("viewer.kigam.wfs_count", side_effect=lambda n: 1), \
+                mock.patch("viewer.kigam.wfs_features", side_effect=lambda n: (self.body(n), f"https://x/wfs?{n}")), \
+                mock.patch("viewer.management.commands.fetch_kigam50k.timezone.localtime", return_value=when), \
+                mock.patch("viewer.management.commands.fetch_kigam50k.time.sleep"):
+            call_command("fetch_kigam50k", stdout=open("/dev/null", "w"))
+
+    def days(self):
+        return sorted(p.name for p in (self.root / "raw").iterdir())
+
+    def test_받아_적고_같으면_새_폴더를_만들지_않는다(self):
+        self.run_at("2026-11-02")
+        self.assertEqual(self.days(), ["20261102"])
+        manifest = json.loads((self.root / "raw/20261102/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(manifest["layers"]), set(kigam50k.FETCH))
+        self.assertEqual(manifest["layers"]["frame"]["received"], 1)
+        with gzip.open(self.root / "raw/20261102/frame.geojson.gz", "rt", encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["v"], "a")
+        self.run_at("2026-12-07")
+        self.assertEqual(self.days(), ["20261102"])
+        manifest = json.loads((self.root / "raw/20261102/manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(manifest["checked"]), 1)
+
+    def test_바뀌면_새_폴더_옛것은_남긴다(self):
+        self.run_at("2026-11-02")
+        self.version = "b"
+        self.run_at("2026-12-07")
+        self.assertEqual(self.days(), ["20261102", "20261207"])
+        self.assertEqual(kigam50k.latest().name, "20261207")
+
+    def test_받은_수가_모자라면_아무것도_적지_않는다(self):
+        from django.core.management.base import CommandError
+        self.counts["fault"] = 0
+        with self.assertRaises(CommandError):
+            self.run_at("2026-11-02")
+        self.assertFalse((self.root / "raw").exists() and self.days())
+
+
+class WfsDoor(TestCase):
+    @override_settings(KIGAM_KEY="SECRET")
+    def test_센_수를_읽고_키는_싣지_않는다(self):
+        from unittest import mock
+        from viewer import kigam
+        xml = b'<wfs:FeatureCollection numberMatched="196" numberReturned="0" xmlns:wfs="x"/>'
+        resp = mock.Mock(status_code=200, content=xml, url="https://data.kigam.re.kr/mgeo/geoserver/wfs?x")
+        with mock.patch("viewer.kigam.requests.get", return_value=resp) as get:
+            self.assertEqual(kigam.wfs_count("fossil"), 196)
+        url, params = get.call_args[0][0], get.call_args[1]["params"]
+        self.assertTrue(url.endswith("/mgeo/geoserver/wfs"))
+        self.assertEqual(params["typeNames"], "Geology_map:l_50k_geology_fossil_latest")
+        self.assertNotIn("key", params)
