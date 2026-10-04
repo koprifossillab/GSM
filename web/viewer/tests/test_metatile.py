@@ -117,3 +117,70 @@ class View(TestCase):
              mock.patch.object(sgm.usage, "record"), mock.patch.object(sgm.usage, "paused", return_value=0):
             self.client.get("/GSM/wms/", {k.upper(): v for k, v in wms(8, 56, 112, layer="sgm:8").items()} | {"SERVICE": "WMS", "REQUEST": "GetMap"})
         self.assertEqual(sent[0]["size"], "512,512")
+
+
+class Wider(TestCase):
+    """메타타일 넓히기 (wetherilli 284) — SGC 넓은 줌, EGDI 의 되받기, prewarm 의 메타타일 블록"""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-meta-wide-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_표(self):
+        self.assertIsNone(metatile.limit(views.METATILE, "sgm:datos:7"))
+        self.assertEqual(metatile.limit(views.METATILE, "sgc:sa:8"), 6)
+        self.assertIsNone(metatile.limit(views.METATILE, "egdi:GeologicUnitView_Age"))
+        self.assertIs(metatile.limit(views.METATILE, "sgm:8"), False)
+
+    def test_줌_끝_너머와_실패는_칸_하나로(self):
+        calls = []
+
+        def fetch(bbox, w, h):
+            calls.append(w)
+            return quadrants(512), "image/png"
+        self.assertIsNone(metatile.serve("sgc:sa:8", wms(7, 40, 60, layer="sgc:sa:8"), fetch, max_zoom=6))
+        self.assertEqual(calls, [])                                                   # 깊은 줌은 메타타일을 받지 않는다
+
+        def broken(bbox, w, h):
+            raise sgm.SgmError("서비스 예외")
+        self.assertIsNone(metatile.serve("L", wms(5, 3, 4), broken, errors=(sgm.SgmError,)))
+        with self.assertRaises(sgm.SgmError):                                          # 적지 않은 오류는 그대로 올린다
+            metatile.serve("L", wms(5, 3, 4), broken)
+
+    def test_EGDI_가_실패하면_칸을_되받는다(self):
+        from viewer import egdi
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        sizes = []
+
+        def fake(url, params=None, **kw):
+            sizes.append(params["width"])
+            if params["width"] == 1024:
+                return mock.Mock(status_code=200, headers={"content-type": "application/vnd.ogc.se_xml"}, content=b"<x/>", url=url)
+            return mock.Mock(status_code=200, headers={"content-type": "image/png"}, content=quadrants(256), url=url)
+        with mock.patch.object(egdi.requests, "get", side_effect=fake), \
+             mock.patch.object(egdi.usage, "record"), mock.patch.object(egdi.usage, "paused", return_value=0):
+            got = self.client.get("/GSM/wms/", {k.upper(): v for k, v in wms(5, 16, 10, layer="egdi:GeologicUnitView_Lithology").items()}
+                                  | {"SERVICE": "WMS", "REQUEST": "GetMap"})
+        self.assertEqual(got.status_code, 200)
+        self.assertEqual(sizes, [1024, "512"])                                        # 큰 장이 실패하고 칸 하나를 받았다
+
+    def test_prewarm_은_화면과_같은_블록으로(self):
+        from viewer.management.commands import prewarm
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        plan = prewarm.plan_for("sgm:datos:7", "sgm")
+        self.assertIsInstance(plan, prewarm.MetaPlan)
+        self.assertEqual(plan.block(4), 2)                                            # --meta 를 따르지 않는다
+        sent = []
+
+        def fake(url, params=None, **kw):
+            sent.append(params["size"])
+            return mock.Mock(status_code=200, headers={"content-type": "image/png"}, content=quadrants(512), url=url)
+        with mock.patch.object(sgm.requests, "get", side_effect=fake), \
+             mock.patch.object(sgm.usage, "record"), mock.patch.object(sgm.usage, "paused", return_value=0):
+            self.assertEqual(plan.fetch_block(8, 28, 56, plan.block(4)), 4)
+            # 화면이 이웃 칸을 부르면 prewarm 이 담은 것이 나온다 — 상류를 타지 않는다
+            got = self.client.get("/GSM/wms/", {k.upper(): v for k, v in wms(8, 57, 113).items()} | {"SERVICE": "WMS", "REQUEST": "GetMap"})
+        self.assertEqual(sent, ["1024,1024"])
+        self.assertEqual(got.status_code, 200)
+        self.assertEqual(Image.open(io.BytesIO(got.content)).convert("RGBA").getpixel((5, 5)), (140, 140, 0, 255))

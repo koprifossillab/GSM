@@ -3116,6 +3116,10 @@ class _Door:
         return msg("인증키가 없다")
 
 
+#: 메타타일로 받는 레이어 — 문마다의 표를 모은다(이름 또는 `:` 로 끝나는 앞머리 → 가장 깊은 격자 줌, None 은 모든 줌) (wetherilli 282·284)
+METATILE = {**sgm.METATILE, **sgc.METATILE, **egdi.METATILE}
+
+
 def map_cache_key(params: dict) -> str:
     """타일의 캐시 열쇠. 받은 그림을 문이 고쳐 내는 레이어(알래스카의 물 면, wetherilli 224)는 고침의 판이 든다 — 미리 데우기도 이것을 쓴다"""
     key = tilecache.key_for("map", params)
@@ -3159,8 +3163,10 @@ def wms(request):
     try:
         # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
         first = (params.get("layers") or "").split(",")[0].strip()
-        piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)))
-                 if first in sgm.METATILE else None)
+        last = metatile.limit(METATILE, first)
+        piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)),
+                                max_zoom=last, errors=UPSTREAM_ERRORS)
+                 if last is not False else None)
         if piece is not None:
             content, ctype = piece, "image/png"
         else:

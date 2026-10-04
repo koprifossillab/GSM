@@ -30,6 +30,17 @@ MAX_PX = 1024
 TOLERANCE = 1e-6
 
 
+def limit(table: dict, name: str):
+    """메타타일 표(문마다 둔다 — 레이어 이름 또는 `:` 로 끝나는 앞머리 → 메타타일로 받는 가장 깊은 격자 줌, None 이면 모든 줌)에서
+    그 레이어의 줌 끝. 표에 없으면 False (wetherilli 284)"""
+    if name in table:
+        return table[name]
+    for prefix, last in table.items():
+        if prefix.endswith(":") and name.startswith(prefix):
+            return last
+    return False
+
+
 def tile_of(params: dict):
     """WMS 변수 → (z, x, y, 칸 px). 3857·정사각·격자에 맞는 칸이 아니면 None"""
     crs = str(params.get("crs") or params.get("srs") or "").upper()
@@ -74,17 +85,20 @@ def _lock_path(layer: str, px: int, z: int, mx: int, my: int) -> Path:
     return root / f"{tilecache.key_text('meta-lock', f'{layer}/{px}/{z}/{mx}/{my}')}.lock"
 
 
-def serve(layer: str, params: dict, fetch):
+def serve(layer: str, params: dict, fetch, *, max_zoom=None, errors=()):
     """칸 하나의 PNG — 잘라 둔 조각이 있으면 그것, 없으면 메타타일을 받아 잘라 담고 그 칸을 낸다.
 
-    `fetch(bbox, width, height)` 는 큰 장의 (바이트, content-type) 를 주는 문의 함수다. 격자에 맞지 않는 칸이면 None —
-    부르는 쪽이 하던 대로 받는다. 문의 오류는 그대로 올린다(부르는 쪽이 늙은 캐시를 찾는다)."""
+    `fetch(bbox, width, height)` 는 큰 장의 (바이트, content-type) 를 주는 문의 함수다. 격자에 맞지 않는 칸, `max_zoom` 보다 깊은 칸이면 None —
+    부르는 쪽이 하던 대로 받는다. **큰 장이 `errors` 로 실패하면 None** — 부르는 쪽이 칸 하나로 되받는다(EGDI 처럼 예외가 잦은 상류, wetherilli 284).
+    그 밖의 문의 오류는 그대로 올린다."""
     from PIL import Image
 
     tile = tile_of(params) if tilecache.enabled() else None     # 담을 곳이 없으면 자를 까닭이 없다
     if tile is None:
         return None
     z, x, y, px = tile
+    if max_zoom is not None and z > max_zoom:
+        return None
     key = piece_key(layer, px, z, x, y)
     hit = tilecache.get(key)
     if hit is not None:
@@ -97,7 +111,11 @@ def serve(layer: str, params: dict, fetch):
             hit = tilecache.get(key)
             if hit is not None:
                 return hit
-            content, _ = fetch(_bbox(z, mx, my, count), px * count, px * count)
+            try:
+                content, _ = fetch(_bbox(z, mx, my, count), px * count, px * count)
+            except errors as exc:
+                log.info("메타타일 %s z%d (%d,%d) 을 받지 못해 칸 하나로 되받는다: %s", layer, z, mx, my, exc)
+                return None
             big = Image.open(io.BytesIO(content)).convert("RGBA")
             if big.size != (px * count, px * count):
                 big = big.resize((px * count, px * count))
