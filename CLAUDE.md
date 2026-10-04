@@ -445,11 +445,13 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   ga.py           Geoscience Australia 로 나가는 문 (호주 지표 지질 1:250만·1:100만 ArcGIS WMS — 두 판을 함께 물어 상류가 축척에 맞는 판을 그린다, 범례는 보는 범위)
   gns.py          GNS Science(뉴질랜드)로 나가는 문 (QMAP 1:25만 합본·1:100만 GeoServer WMS, 3857 로. 같은 서버의 남극 남빅토리아랜드 1:25만은 3031 로. 속성은 열을 골라 묻는다)
   sgm.py          멕시코 지질조사소(SGM)로 나가는 문 (1:25만·1:5만 ArcGIS REST — WMS 가 400 이라 WMS 변수를 export·identify 로 옮긴다, 범례는 보는 범위)
-  mrdata.py       USGS mrdata 로 나가는 문 (미국 본토 SGMC·알래스카 SIM 3340 MapServer WMS. 본토의 속성은 WFS 1.0, 알래스카는 WMS text/plain)
+  mrdata.py       USGS mrdata 로 나가는 문 (미국 본토 SGMC·알래스카 SIM 3340 MapServer WMS. 본토의 속성은 WFS 1.0, 알래스카는 WMS text/plain.
+                  알래스카의 물 면은 받은 그림에서 지운다 — 고침의 판이 캐시 열쇠에 든다 `views.map_cache_key`, wetherilli 224)
   iige.py         에콰도르 지질·에너지 연구소(IIGE)로 나가는 문 (일반 지질도 ArcGIS WMS 를 3857 로, 범례는 보는 범위의 REST 통계 질의)
   nrcan.py        캐나다 천연자원부(NRCan·GSC)로 나가는 문 (캐나다 지질도 1:500만 Wheeler ArcGIS WMS 를 3978 로, 속성은 GeoJSON)
   ogs.py          온타리오 지질조사소(OGS)로 나가는 문 (기반암 1:25만·제4기 ArcGIS WMS 를 3978 로, 속성은 REST identify — WMS 번호와 REST 번호가 다르다)
-  sigeom.py       퀘벡 SIGÉOM 으로 나가는 문 (일반·지역 지질 GeoServer WMS 1.1.1 만, 3978 로. Origin 이 붙으면 403 이라 문으로만, 속성은 text/plain)
+  sigeom.py       퀘벡 SIGÉOM 으로 나가는 문 (일반·지역 지질 GeoServer WMS 1.1.1 만, 3978 로. Origin 이 붙으면 403 이라 문으로만, 속성은 text/plain —
+                  시대는 프랑스어라 `i18n.age_fr` 로 옮긴다, wetherilli 224)
   ygs.py          유콘 지질조사소(YGS)로 나가는 문 (기반암 1:25만 ArcGIS WMS 를 3978 로, 넓게 보면 느려 줌 7 부터, 속성은 geo+json — 시대는 ICS 영어)
   sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`). 노두·연대측정·화석 산지 점도 같은 WMS 로
   segemar.py      아르헨티나 지질광업조사소(SEGEMAR)로 나가는 문 (SIGAM GeoServer — 1:250만 단위·구조선·화산, 1:25만 간행 도폭, 지역 판 1:100만·주별 1:75만·국경 1:50만·포클랜드(말비나스), 제4기 변형·화산 위험도). 이름은 `segemar:<상류 이름>`. CORS 가 없다

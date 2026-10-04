@@ -227,7 +227,7 @@ class WmsPlan:
         return (self.grid.tiles_for if self.grid else tilegrid.tiles_for)(bbox, z)
 
     def key(self, z, x, y):
-        return tilecache.key_for("map", kigam.clean_params(self.params(z, x, y)))
+        return views.map_cache_key(kigam.clean_params(self.params(z, x, y)))
 
     def _last(self, z):
         return self.grid.last(z) if self.grid else (2 ** z - 1, 2 ** z - 1)
