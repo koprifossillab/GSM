@@ -97,3 +97,26 @@ class Build(SimpleTestCase):
         self.assertEqual(caribmap.fault_kind("Concealed fault of uncertain displacement"), "concealed")
         self.assertEqual(caribmap.fault_kind("Left lateral fault, location approximate"), "strike")
         self.assertIsNone(caribmap.fault_kind("Shoreline or riverbank"))
+
+    def test_주소(self):
+        from django.test import Client
+        c = Client()
+        r = c.get("/GSM/sim3534/units/10/323/459.png")
+        self.assertEqual((r.status_code, r["Content-Type"]), (200, "image/png"))
+        self.assertEqual(c.get("/GSM/sim3534/units/3/9/9.png").status_code, 404)
+        d = c.get("/GSM/sim3534/info/", {"layer": "sim3534:units", "lat": 18.2, "lon": -66.4}).json()
+        self.assertEqual(d["features"][0]["props"]["기호"], "Ksv")
+        self.assertEqual(c.get("/GSM/sim3534/info/", {"layer": "sim3534:faults", "lat": 18.2, "lon": -66.4}).status_code, 400)
+        rows = c.get("/GSM/sim3534/legend/", {"layer": "sim3534:units", "bbox": "-67,17.9,-66,18.5"}).json()["rows"]
+        self.assertEqual(rows[0]["symbol"], "Ksv")
+        self.assertEqual(c.get("/GSM/sim3534/legend/", {"layer": "sim3534:units", "bbox": "-85,10,-60,25"}).status_code, 422)
+        self.assertEqual(len(c.get("/GSM/sim3534/legend/", {"layer": "sim3534:faults"}).json()["rows"]), 5)
+
+
+class Missing(SimpleTestCase):
+    def test_파일이_없어도_돈다(self):
+        from django.test import Client
+        with tempfile.TemporaryDirectory() as tmp, override_settings(CARIBBEAN_DIR=tmp):
+            r = Client().get("/GSM/sim3534/units/10/323/459.png")
+            self.assertEqual(r.status_code, 200)                       # 안내 타일
+            self.assertEqual(Client().get("/GSM/sim3534/info/", {"layer": "sim3534:units", "lat": 18, "lon": -66}).status_code, 503)

@@ -29,6 +29,7 @@ from django.conf import settings
 from PIL import Image, ImageDraw
 
 from . import crs, geo3al, geomap
+from .i18n import msg
 from .moonmap import pack, unpack
 
 PREFIX = "sim3534:"
@@ -46,6 +47,9 @@ LCC = {"lon0": -73.5, "lat1": 17.5, "lat2": 22.5, "lat0": 17.5, "fe": 500000.0, 
 WATER = {"102"}
 #: 단층의 갈래 — `LINE_TYPE` 에 이 말이 들면. 차례대로 먼저 맞는 것
 FAULTS = (("thrust", "Thrust"), ("normal", "Normal"), ("strike", "lateral"), ("concealed", "Concealed"), ("fault", "ault"))
+#: 단층 갈래의 이름 — 범례
+FAULT_NAMES = {"thrust": msg("드러스트"), "normal": msg("정단층"), "strike": msg("주향이동단층"), "concealed": msg("덮인 단층"),
+               "fault": msg("단층 (변위 모름)")}
 LINE_STYLES = {
     "thrust": {"color": "#b2182b", "width": 1.6},
     "normal": {"color": "#2166ac", "width": 1.4},
@@ -142,6 +146,13 @@ def fault_kind(line_type: str) -> str | None:
     if "ault" not in text:
         return None
     return next(kind for kind, word in FAULTS if word in text)
+
+
+def fault_legend(lang: str = "ko") -> list:
+    """단층 범례 — 갈래 다섯, 선 색을 견본 칸으로"""
+    from . import i18n
+    return [{"color": LINE_STYLES[k]["color"], "symbol": "", "swatch": "", "age": "",
+             "lithology": i18n.t(FAULT_NAMES[k], lang)} for k in LINE_STYLES]
 
 
 # ── 굽기 (한 번) ────────────────────────────────────────────────────

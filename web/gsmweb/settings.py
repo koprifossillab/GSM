@@ -521,6 +521,7 @@ SPW_CATALOG_SEED = REPO_DIR / "data" / "spw_layers.json"
 INETER_CATALOG_SEED = REPO_DIR / "data" / "ineter_layers.json"
 #: 카리브 — USGS 카리브 지질도 (wetherilli 248)
 USGSCARIB_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_layers.json"
+SIM3534_CATALOG_SEED = REPO_DIR / "data" / "sim3534_layers.json"
 IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
