@@ -1068,6 +1068,12 @@ EN = {
     "지오빅데이터 오픈플랫폼에서 받기": "Get one from the Geo Big Data Open Platform",
     "VWorld 에서 받기": "Get one from VWorld",
     "인증키 둘을 넣었다 — 이 브라우저에만 있다": "Both API keys are set — kept only in this browser",
+    "KIGAM 에 키를 물어 보는 중…": "Checking the key with KIGAM…",
+    "그래도 연다": "Open anyway",
+    "KIGAM 이 이 키로 지질도를 주지 않았다. 키를 다시 붙여 넣어 본다 — 휴대폰에서 손으로 옮겨 적으면 한 글자만 틀려도 안 된다. 키를 받을 때 쓸 곳(IP·주소)을 적었다면 이 기기가 그 밖인지도 본다.":
+        "KIGAM did not return a map for this key. Try pasting the key again — one wrong character typed by hand on a phone is enough to fail. If you gave a place of use (IP or address) when you got the key, check whether this device is outside it.",
+    "KIGAM(data.kigam.re.kr)에 닿지 못했다. 이 망(회사·학교 Wi-Fi, VPN, 광고 차단)이 막거나 기기가 인증서를 받지 않는다 — 다른 망(모바일 데이터)에서 열어 본다.":
+        "Could not reach KIGAM (data.kigam.re.kr). This network (office or school Wi-Fi, a VPN, an ad blocker) may block it, or the device may not accept its certificate — try another network such as mobile data.",
     "{name} 만 넣었다": "Only the {name} is set",
     "인증키를 넣어야 한국 지질도와 배경지도가 보인다": "Enter API keys to see Korean geological maps and basemaps",
     "키 바꾸기": "Change keys",

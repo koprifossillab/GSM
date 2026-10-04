@@ -2209,5 +2209,8 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .key-row input { grid-column: 1 / -1; font: inherit; padding: 6px 8px; min-width: 0; }
 .key-row a { grid-row: 1; grid-column: 2; font-size: 12px; align-self: center; }
 .key-card .key-note { font-size: 12px; color: var(--ink-faint); }
+/* 키가 받히는지 물어 본 결과 (wetherilli 179) */
+.key-check { font-size: 12px; }
+.key-check.bad { color: var(--direct-ink); font-weight: 600; }
 .key-forget { display: flex; gap: 6px; align-items: center; font-size: 12px; margin: 0 0 12px; }
 .key-buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
