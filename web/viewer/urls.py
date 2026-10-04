@@ -129,6 +129,9 @@ urlpatterns = [
     # 남극 해저·빙저 지형 IBCSO v2 — 우리가 잘라 둔 EPSG:3031 타일 (ibcso.py, devlog 047)
     re_path(r"^ibcso/(?P<layer>bed|ice)/(?P<z>\d{1,2})/(?P<x>\d{1,3})/(?P<y>\d{1,3})\.webp$",
             views.ibcso_tile, name="ibcso-tile"),
+    # 남극 자력 이상 ADMAP-2 — 우리가 칠해 잘라 둔 3031 타일과 누른 자리의 nT (admap.py, wetherilli 262)
+    re_path(r"^admap/(?P<z>\d{1,2})/(?P<x>\d{1,3})/(?P<y>\d{1,3})\.webp$", views.admap_tile, name="admap-tile"),
+    path("admap/info/", views.admap_info, name="admap-info"),
     # IBCSO 자료 출처(TID) 타일과 속성, 누른 자리의 수심·표고 (ibcso.py, devlog 070·071)
     re_path(r"^ibcso/tid/(?P<z>\d{1,2})/(?P<x>\d{1,3})/(?P<y>\d{1,3})\.png$",
             views.ibcso_tid_tile, name="ibcso-tid-tile"),
