@@ -70,6 +70,7 @@ class Command(BaseCommand):
                 # 노르웨이·핀란드 — NGU·GTK 기반암 지질도. 북극 묶음에도 든다 (wetherilli 140)
                 (settings.NGU_CATALOG_SEED, "노르웨이 (NGU)", "fennoscandia", "ngu"),
                 (settings.GTK_CATALOG_SEED, "핀란드 (GTK)", "fennoscandia", "gtk"),
+                (settings.SGU_CATALOG_SEED, "스웨덴 (SGU)", "fennoscandia", "sgu"),   # wetherilli 213
                 # 영국·프랑스 — BGS·BRGM, 그리고 넓게 볼 때 까는 EGDI 1:100만(영국에 두고 프랑스가 빌린다) (wetherilli 143)
                 (settings.EGDI_CATALOG_SEED, "유럽 (EGDI)", "uk", "egdi"),
                 (settings.BGS_CATALOG_SEED, "영국 (BGS)", "uk", "bgs"),

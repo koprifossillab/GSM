@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, swisstopo, usage
+from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, swisstopo, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -377,7 +377,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다
              "ga",
              # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
-             "ispra", "lneg", "swisstopo")
+             "ispra", "lneg", "swisstopo",
+             # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
+             "sgu")
 
 
 @require_GET
@@ -385,7 +387,7 @@ def map3d_view(request):
     """3D (devlog 015, 059 에서 실험을 벗었다). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
     # 3D 는 3857 타일만 얹는다 — 대개 `wms/` 의 WMS(`map3d.js` 의 `wmsTiles`), 일본은 z/x/y. 모양·점 레이어와, 우리가
-    # 굽거나(음영판) 극지 투영으로만 받는 것(NGU·GTK·phyloserver)은 뺀다 — 목록에 두면 골라도 빈 화면이다
+    # 굽거나(음영판) 극지 투영으로만 받는 것(NGU·GTK·phyloserver)은 뺀다. SGU 는 3857 도 그려 얹는다 — 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
     # 대만(GSMMA)은 상류가 4326 만 받아 문이 4326 으로 받아 3857 로 편다(`gsmma.mercator_map`, wetherilli 141)
@@ -2313,6 +2315,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "ngu":
         # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
         return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+    if layer.upstream == "sgu" and sgu.knows(layer.name):
+        # 스웨덴 SGU(wetherilli 213) — GeoServer 가 3413 도 그려 준다. 레이어 하나가 1:100만·5만 판을 함께 부른다
+        return {"attribution": sgu.ATTRIBUTION, "projection": "EPSG:3413",
+                **({} if layer.name in sgu.QUERYABLE else {"queryable": False})}
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
         return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
@@ -2485,7 +2491,7 @@ def catalog_json(request):
 
 UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geomap.GeomapError,
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
-                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
+                   gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError, sgu.SguError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, ga.GaError,
@@ -2527,7 +2533,7 @@ class _Door:
                # EMODnet 해저 지질(wetherilli 135) — 북극해. NPI 처럼 3413 으로 곧장 받는다
                "emodnet": emodnet,
                # 노르웨이·핀란드 기반암(wetherilli 140)
-               "ngu": ngu, "gtk": gtk,
+               "ngu": ngu, "gtk": gtk, "sgu": sgu,
                # 영국·프랑스·범유럽(wetherilli 143)
                "bgs": bgs, "brgm": brgm, "egdi": egdi,
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
@@ -2562,7 +2568,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "ga", "ispra", "lneg", "swisstopo"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "ga", "ispra", "lneg", "swisstopo", "sgu"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3685,6 +3691,8 @@ def feature_info(request):
             props = emodnet.friendly(props, lang)    # 마흔 남짓한 열에서 추린다. 시대를 옮긴다
         elif door.name == "ngu":
             props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
+        elif door.name == "sgu":
+            props = sgu.friendly(props, lang)        # 스웨덴 — 1:100만은 영어 열, 5만은 스웨덴어 그대로 (wetherilli 213)
         elif door.name == "gtk":
             props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
         elif door.name == "bgs":

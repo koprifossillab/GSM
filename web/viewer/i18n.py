@@ -672,8 +672,9 @@ EN = {
     "대만": "Taiwan",
     # 북극해 — 스발바르·그린란드 밖의 북극 (devlog 076)
     "북극해": "Arctic Ocean",
-    # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
+    # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140). 스웨덴 SGU 가 들어 탭 이름이 셋이 됐다 (213)
     "노르웨이·핀란드": "Norway & Finland",
+    "노르웨이·스웨덴·핀란드": "Norway, Sweden & Finland",
     # 영국·프랑스·유럽 — BGS·BRGM·EGDI 지질도 (wetherilli 143)
     "영국": "United Kingdom",
     "프랑스": "France",
@@ -721,6 +722,7 @@ EN = {
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
     "노르웨이 지질조사소": "Geological Survey of Norway",
     "핀란드 지질조사소": "Geological Survey of Finland",
+    "스웨덴 지질조사소": "Geological Survey of Sweden",
     "추가 지역": "Add region",
     "그 외": "More",
     "준비 중": "coming soon",
@@ -2246,6 +2248,11 @@ PROP_EN = {
     "변성 연대": "Age of metamorphism",
     "지구조 구분": "Tectonic division",
     "지구조 단위": "Tectonic unit",
+    # 스웨덴 SGU (wetherilli 213)
+    "암층서 단위": "Lithostratigraphic unit",
+    "하위 단위": "Subunit",
+    "광물 조성": "Mineral composition",
+    "생성": "Genesis",
     "원 이름": "Original name",
     "층": "Formation",
     "층군": "Group",
@@ -2768,6 +2775,7 @@ GROUP_EN = {
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
     "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
     "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
+    "스웨덴 기반암 (SGU)": "Sweden bedrock (SGU)",
     "영국 지질 (BGS)": "Great Britain geology (BGS)",
     "프랑스 지질 (BRGM)": "France geology (BRGM)",
     "유럽 지질 (EGDI 1:100만)": "Europe geology (EGDI 1:1M)",
@@ -2902,6 +2910,9 @@ LAYER_EN = {
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
+    # 스웨덴 기반암 (wetherilli 213)
+    "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
+    "sgu:deformation": "Deformation zones (1:1M)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
