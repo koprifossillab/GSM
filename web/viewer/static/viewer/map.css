@@ -2573,3 +2573,65 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #3d1a12; --hi-deep: #250e09; --on-hi: #fdf6f4; --hi-ink: #c2533b;
   --glass: rgba(254, 252, 251, .95); --glass-line: #e8d6cf;
 }
+
+/* ── 아이슬란드 (wetherilli 216) — 용암밭을 덮는 루피너스 꽃의 보랏빛 파랑: 현무암의 짙은 청회 바탕 ──
+   이웃한 북극 탭들(빙하 청·오로라 청록·용암 주황·노르웨이 남색)과 겹치지 않게, 여름 아이슬란드를 덮는 꽃에서 땄다 */
+:root[data-region="iceland"] {
+  --bg: #121318; --panel: #181a21; --panel-tint: #0e0f13; --raise: #23252f;
+  --ink: #f1f1f6; --ink-soft: #c0c1cf; --ink-faint: #80818f;
+  --line: #2f3140; --line-soft: #23252f;
+  --gold: #7c7cf0; --gold-bright: #b4b4fa; --gold-muted: #6a6ad0;
+  --gold-wash: rgba(124, 124, 240, .13); --gold-edge: rgba(124, 124, 240, .42);
+  --hi: #7c7cf0; --hi-deep: #b4b4fa; --on-hi: #0e0f13; --hi-ink: #b4b4fa;
+  --glass: rgba(14, 15, 19, .93); --glass-line: rgba(124, 124, 240, .35);
+}
+:root[data-region="iceland"][data-theme="light"] {
+  --bg: #f2f2f8; --panel: #fcfcfe; --panel-tint: #f6f6fa; --raise: #e4e4ef;
+  --ink: #1b1b24; --ink-soft: #4d4d5e; --ink-faint: #868697;
+  --line: #d9d9e6; --line-soft: #e4e4ef;
+  --gold: #4747c2; --gold-bright: #35359a; --gold-muted: #5f5f9e;
+  --gold-wash: #e4e4f8; --gold-edge: #b3b3e8;
+  --hi: #1c1c4a; --hi-deep: #101030; --on-hi: #fcfcfe; --hi-ink: #4747c2;
+  --glass: rgba(252, 252, 254, .95); --glass-line: #d9d9e6;
+}
+
+/* ── 뉴질랜드 (wetherilli 218) — 크리스마스에 해안을 붉히는 포후투카와 꽃의 진홍: 그레이와케의 짙은 회청 바탕 ──
+   캐나다의 단풍(주홍 쪽)과 가르려고 자줏빛을 섞었다 */
+:root[data-region="new_zealand"] {
+  --bg: #141316; --panel: #1b191e; --panel-tint: #100f12; --raise: #27242b;
+  --ink: #f5f0f2; --ink-soft: #c9bcc2; --ink-faint: #8a7d84;
+  --line: #372f36; --line-soft: #27242b;
+  --gold: #d6406a; --gold-bright: #f08aa6; --gold-muted: #b23a5a;
+  --gold-wash: rgba(214, 64, 106, .13); --gold-edge: rgba(214, 64, 106, .42);
+  --hi: #d6406a; --hi-deep: #f08aa6; --on-hi: #100f12; --hi-ink: #f08aa6;
+  --glass: rgba(16, 15, 18, .93); --glass-line: rgba(214, 64, 106, .35);
+}
+:root[data-region="new_zealand"][data-theme="light"] {
+  --bg: #f8f1f3; --panel: #fefbfc; --panel-tint: #fbf5f7; --raise: #efe2e6;
+  --ink: #221a1d; --ink-soft: #594950; --ink-faint: #93818a;
+  --line: #e6d6dc; --line-soft: #efe2e6;
+  --gold: #b0244c; --gold-bright: #8a1a3a; --gold-muted: #9a4d63;
+  --gold-wash: #f8e0e7; --gold-edge: #e8adbe;
+  --hi: #3d0f1d; --hi-deep: #260810; --on-hi: #fef6f8; --hi-ink: #b0244c;
+  --glass: rgba(254, 251, 252, .95); --glass-line: #e6d6dc;
+}
+
+/* ── 오세아니아 (wetherilli 218) — 남태평양 석호의 청록: 깊은 바다의 남색 바탕 ── */
+:root[data-region="oceania"] {
+  --bg: #0b1417; --panel: #101b1f; --panel-tint: #081013; --raise: #192a30;
+  --ink: #eef6f6; --ink-soft: #b2c8c9; --ink-faint: #6f8889;
+  --line: #22383d; --line-soft: #192a30;
+  --gold: #26b8a8; --gold-bright: #84e0d5; --gold-muted: #23998c;
+  --gold-wash: rgba(38, 184, 168, .13); --gold-edge: rgba(38, 184, 168, .42);
+  --hi: #26b8a8; --hi-deep: #84e0d5; --on-hi: #081013; --hi-ink: #84e0d5;
+  --glass: rgba(8, 16, 19, .93); --glass-line: rgba(38, 184, 168, .35);
+}
+:root[data-region="oceania"][data-theme="light"] {
+  --bg: #eff7f6; --panel: #fbfefe; --panel-tint: #f4faf9; --raise: #dceeec;
+  --ink: #142022; --ink-soft: #435a5c; --ink-faint: #7d9395;
+  --line: #cfe3e1; --line-soft: #dceeec;
+  --gold: #12857a; --gold-bright: #0c665d; --gold-muted: #3f8a82;
+  --gold-wash: #d8f1ee; --gold-edge: #9ed8d1;
+  --hi: #08332f; --hi-deep: #04211e; --on-hi: #fbfefe; --hi-ink: #12857a;
+  --glass: rgba(251, 254, 254, .95); --glass-line: #cfe3e1;
+}
