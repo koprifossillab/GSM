@@ -85,6 +85,8 @@ class Command(BaseCommand):
                 (settings.SGC_CATALOG_SEED, "남미 (SGC)", "colombia", "sgc"),
                 # 브라질 — SGB 1:250만(2025)·1:100만·1:25만 (wetherilli 191)
                 (settings.SGB_CATALOG_SEED, "브라질 (SGB)", "brazil", "sgb"),
+                # 페루 — INGEMMET 1:5만·1:10만 통합판 (wetherilli 195)
+                (settings.INGEMMET_CATALOG_SEED, "페루 (INGEMMET)", "peru", "ingemmet"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)

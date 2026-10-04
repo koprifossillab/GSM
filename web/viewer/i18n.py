@@ -653,6 +653,9 @@ EN = {
     "콜롬비아": "Colombia",
     "브라질": "Brazil",
     "브라질 지질조사소": "Geological Survey of Brazil (SGB)",
+    # 페루 (wetherilli 195)
+    "페루": "Peru",
+    "페루 지질광업야금연구소": "INGEMMET (Geological, Mining and Metallurgical Institute of Peru)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -2669,6 +2672,7 @@ GROUP_EN = {
     "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
     "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
+    "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
 }
 
 LAYER_EN = {
@@ -2725,6 +2729,9 @@ LAYER_EN = {
     "sgb:2500k_structures": "Structures (1:2.5M, 2025)",
     "sgb:1m": "Lithostratigraphic units (1:1M)",
     "sgb:250k": "Lithostratigraphic units (1:250k, published sheets)",
+    # 페루 (wetherilli 195)
+    "ingemmet:50k": "Geological map 1:50k (integrated)",
+    "ingemmet:100k": "Geological map 1:100k (integrated)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

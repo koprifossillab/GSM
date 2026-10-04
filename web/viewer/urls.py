@@ -146,6 +146,11 @@ urlpatterns = [
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
     # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
     path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
+    # 페루 — REST 타일 캐시 중계·누른 자리·보는 범위의 범례 (ingemmet.py, wetherilli 195)
+    re_path(r"^ingemmet/(?P<sheet>50k|100k)/(?P<z>\d{1,2})/(?P<x>\d{1,6})/(?P<y>\d{1,6})\.png$",
+            views.ingemmet_tile, name="ingemmet-tile"),
+    path("ingemmet/info/", views.ingemmet_info, name="ingemmet-info"),
+    path("ingemmet/legend/", views.ingemmet_legend, name="ingemmet-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다

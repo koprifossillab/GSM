@@ -2292,3 +2292,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #23300f; --hi-deep: #141d07; --on-hi: #fbfcf2; --hi-ink: #8f7400;
   --glass: rgba(253, 253, 248, .95); --glass-line: #dcdfc6;
 }
+
+/* ── 페루 (wetherilli 195) — 티티카카 호수의 쪽빛: 알티플라노의 밤 ── */
+:root[data-region="peru"] {
+  --bg: #0e1118; --panel: #151a24; --panel-tint: #0a0d13; --raise: #1f2633;
+  --ink: #edf1f9; --ink-soft: #b5c0d6; --ink-faint: #74809a;
+  --line: #2a3345; --line-soft: #1f2633;
+  --gold: #5b8ce6; --gold-bright: #a7c2f3; --gold-muted: #4f78c2;
+  --gold-wash: rgba(91, 140, 230, .13); --gold-edge: rgba(91, 140, 230, .42);
+  --hi: #5b8ce6; --hi-deep: #a7c2f3; --on-hi: #0a0d13; --hi-ink: #a7c2f3;
+  --glass: rgba(10, 13, 19, .93); --glass-line: rgba(91, 140, 230, .35);
+}
+:root[data-region="peru"][data-theme="light"] {
+  --bg: #eff2f8; --panel: #fbfcfe; --panel-tint: #f4f6fb; --raise: #e1e7f1;
+  --ink: #121a2b; --ink-soft: #46526b; --ink-faint: #7f8aa1;
+  --line: #d3dbe9; --line-soft: #e1e7f1;
+  --gold: #2d5bb5; --gold-bright: #1f4389; --gold-muted: #4f6896;
+  --gold-wash: #e1e9f8; --gold-edge: #a9c0ea;
+  --hi: #15264a; --hi-deep: #0b162e; --on-hi: #f5f8fd; --hi-ink: #2d5bb5;
+  --glass: rgba(251, 252, 254, .95); --glass-line: #d3dbe9;
+}
