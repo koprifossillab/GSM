@@ -448,6 +448,21 @@ def _dev_direct_wms() -> bool:
 DEV_DIRECT_WMS = _dev_direct_wms()
 
 
+def _metatile() -> bool:
+    """메타타일(wetherilli 282)을 쓰는가. 기본은 쓴다. **되돌리는 스위치다** — 운영에서 이상하면 판을 다시 붙이지 않고 끈다 (wetherilli 299).
+
+    환경변수 `GSM_METATILE_OFF=1` 이나 파일 `<DB 옆>/metatile_off`(첫 줄 `1`). 파일을 보는 까닭은 `dev_direct_wms` 와 같다 — 배포한 자리의
+    `.env` 는 root 의 것이다. 뜰 때 한 번 읽으므로 켜고 끈 뒤 컨테이너를 다시 띄운다. 끄면 칸을 하나씩 받던 앞의 길로 돌아가고,
+    담아 둔 조각은 쓰이지 않을 뿐 지우지 않는다"""
+    if env_bool("GSM_METATILE_OFF", False):
+        return False
+    flag = _lines_from("GSM_METATILE_OFF_FILE", "metatile_off")
+    return not (bool(flag) and flag[0].lower() in ("1", "true", "yes", "on"))
+
+
+METATILE = _metatile()
+
+
 def _public() -> bool:
     """켜면 **밖에 연 뷰어**로 돈다 — 연구실 안에서만 볼 레이어를 내린다.
 
