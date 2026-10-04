@@ -76,6 +76,14 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # KIGAM 5만 구조 요소 레이어 (wetherilli 199)
+    "유공충": "Foraminifera", "식물화석": "Plant fossils", "화석산지": "Fossil locality",
+    "SHRIMP 연대": "SHRIMP dating", "K-Ar 연대": "K-Ar dating", "연대측정": "Dating", "지구화학 분석": "Geochemistry",
+    "그 밖의 시료": "Other samples", "광산·채굴지": "Mines and workings", "갱도·갱구": "Adits and shafts",
+    "폐광·휴광": "Closed or idle mines", "5만 도폭": "1:50k map sheet",
+    "5만 구조 요소를 아직 받지 않았다 (fetch_kigam50k)": "The 1:50k structural data have not been fetched yet (fetch_kigam50k)",
+    "원본 자료 — KIGAM 5만 수치지질도, CC BY-NC": "Source — KIGAM 1:50k digital geological map, CC BY-NC",
+    "한국지질자원연구원 5만 수치지질도": "KIGAM 1:50k digital geological map",
     # 층리·엽리 장미도 (wetherilli 197)
     "이 범위의 층리·엽리 장미도": "Rose diagram of bedding and foliation in this extent",
     "이 도폭의 층리·엽리 장미도": "Rose diagram of bedding and foliation on this map sheet",
@@ -1688,6 +1696,7 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
     "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
@@ -2620,6 +2629,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
@@ -2689,9 +2699,14 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
-    # 지구 자료 점 (wetherilli 185)
-    "화석 산지 (PBDB)": "Fossil collections (PBDB)", "홀로세 화산 (GVP)": "Holocene volcanoes (GVP)",
-    "지진 M5 이상 (USGS)": "Earthquakes M5+ (USGS)", "제4기 고생태 산지 (Neotoma)": "Quaternary paleoecology sites (Neotoma)",
+    # KIGAM 5만 구조 요소 (wetherilli 199). 열쇠는 레이어 이름이다
+    "kigam50k:frame": "1:50k map sheet frames", "kigam50k:fossil": "Fossil localities (1:50k)",
+    "kigam50k:sample": "Dating and geochemistry samples (1:50k)", "kigam50k:mine": "Mines (1:50k)",
+    # 지구 자료 점 (wetherilli 185) — 처음에 제목을 열쇠로 적어 영어판에 한국어가 나왔다(199 에서 이름으로 고쳤다)
+    "earth:pbdb_korea": "Fossil collections (PBDB)", "earth:pbdb_antarctica": "Fossil collections (PBDB)", "earth:pbdb_arctic": "Fossil collections (PBDB)",
+    "earth:gvp_korea": "Holocene volcanoes (GVP)", "earth:gvp_antarctica": "Holocene volcanoes (GVP)", "earth:gvp_arctic": "Holocene volcanoes (GVP)",
+    "earth:quakes_korea": "Earthquakes M5+ (USGS)", "earth:quakes_antarctica": "Earthquakes M5+ (USGS)", "earth:quakes_arctic": "Earthquakes M5+ (USGS)",
+    "earth:neotoma_korea": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_antarctica": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_arctic": "Quaternary paleoecology sites (Neotoma)",
     # 국토지리원 주제 타일 (wetherilli 172)
     "gsitile:afm": "Active fault map (urban areas)",
     "gsitile:vlcd": "Volcanic land condition map",

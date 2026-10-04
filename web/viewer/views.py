@@ -2211,6 +2211,10 @@ def _point_fields(layer) -> dict:
             # 아라온호 항적 — 고를 기간(날수, 앞의 것이 기본). 화면이 이 안의 조각만 옅어지게 그린다 (koprifossillab 017)
             spec["periods"] = list(kopri.ARAON_PERIODS)
         return spec
+    if layer.upstream == "kigam50k" and kigam50k.knows_file(layer.name):
+        # 5만 지질도의 화석산지·시료·광산·도폭 틀(wetherilli 199) — 받아 둔 WFS 파일. 색은 서버의 표
+        return {"kind": "points", "queryable": False, "style": "class", "source": "https://data.kigam.re.kr/",
+                "sourceLabel": str(msg("원본 자료 — KIGAM 5만 수치지질도, CC BY-NC")), "attribution": kigam50k.ATTRIBUTION}
     if layer.upstream == "earth" and earthpoints.knows(layer.name):
         # 지구 자료 점(wetherilli 185) — 온 지구 화면의 화석 산지·화산·지진·고생태 산지를 지역의 네모만큼. 색은 서버의 표
         src = earthpoints.source_of(layer.name)
@@ -3702,6 +3706,8 @@ def point_layer(request):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
         return _earth_points_layer(request, name, lang)
+    if kigam50k.knows_file(name):
+        return _kigam50k_layer(name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name in PLACE_FIELDS:
@@ -3826,6 +3832,22 @@ def _kopri_layer(name, lang):
         # 아라온호 항적은 매시간 자란다 (koprifossillab 006)
         response["Cache-Control"] = f"public, max-age={kopri.ARAON_MAX_AGE}"
     elif settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _kigam50k_layer(name, lang):
+    """5만 지질도의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01 §5) — 받아 둔 WFS 파일에서. 꼴과 까닭은
+    `_kopri_layer` 와 같다. 파일은 `manage.py fetch_kigam50k` 가 쓴다."""
+    try:
+        content = kigam50k.layer_body(name)
+    except FileNotFoundError:
+        return JsonResponse({"error": i18n.t(msg("5만 구조 요소를 아직 받지 않았다 (fetch_kigam50k)"), lang)}, status=503)
+    except (OSError, ValueError) as exc:
+        log.warning("5만 구조 요소를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("모아 둔 자료를 읽지 못했다"), lang)}, status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
 

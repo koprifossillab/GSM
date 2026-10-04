@@ -21,6 +21,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from .i18n import msg
+
 #: 받아 둔 레이어 가운데 자세 기호. 차례가 화면에서 겹칠 때의 차례다
 KINDS = ("bedding", "foliation", "schistosity", "joint")
 
@@ -136,8 +138,11 @@ SHEET_REACH = 0.25
 
 
 def sheet_at(lon: float, lat: float):
-    """누른 자리의 도폭 `(번호, 이름)` — 가장 가까운 자세 기호의 도폭이다. 둘레에 기호가 없으면 None.
-    도폭 틀이 아직 레이어로 서지 않아(P01 §5 의 3 단계) 기호에 적힌 도폭으로 정한다."""
+    """누른 자리의 도폭 `(번호, 이름)` — 그 자리를 덮는 **도폭 틀**(wetherilli 199)이다. 틀 파일이 없으면 가장 가까운 자세
+    기호에 적힌 도폭으로 정한다(197). 둘 다 없으면 None."""
+    framed = frame_at(lon, lat)
+    if framed:
+        return framed
     best, best_d = None, SHEET_REACH ** 2
     cos = max(0.2, math.cos(math.radians(lat)))
     for row in load():
@@ -173,3 +178,123 @@ def rose(rows: list) -> dict:
         out["strike"][kind], out["dipdir"][kind], out["dip"][kind] = strike, dipdir, dip
         out["nodip"][kind] = nodip
     return out
+
+
+# ── 레이어 — 화석산지·시료·광산·도폭 틀 (jikhanjung P01 §5 의 3·4 단계, wetherilli 199) ─────────
+#
+# 받아 둔 파일에서 점·면을 극지연구소 파일 레이어와 같은 꼴(`style: class` · `legend` · `labels` · `links`)로 낸다. 레이어군은
+# 한국 탭의 "지질 구조 (5만)"(P01 §2·§8 의 기본안 — 사람이 고친다). 단층·습곡·변질대는 다음이다
+
+#: 레이어 → (파일, 팝업 열, 갈래 표). 갈래 표는 (코드, `type` 값들, 범례 글, 색, 모양). 값이 어디에도 없으면 마지막 갈래
+LAYERS = {
+    "kigam50k:fossil": ("fossil", (("type", "갈래"), ("comt", "설명"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("foram", ("유공충",), msg("유공충"), "#2c7fb8", "diamond"),
+        ("plant", ("식물화석",), msg("식물화석"), "#31a354", "diamond"),
+        ("fossil", (), msg("화석산지"), "#8c510a", "diamond"),
+    )),
+    "kigam50k:sample": ("sample", (("type", "갈래"), ("comt", "시료"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("shrimp", ("SHRIMP",), msg("SHRIMP 연대"), "#d7301f", "square"),
+        ("kar", ("K-Ar",), msg("K-Ar 연대"), "#fc8d59", "square"),
+        ("age", ("연대측정", "연대측정시료", "암석연대측정시료위치", "지질연대"), msg("연대측정"), "#7a0177", "square"),
+        ("geochem", ("지구화학분",), msg("지구화학 분석"), "#1d91c0", "square"),
+        ("other", (), msg("그 밖의 시료"), "#969696", "square"),
+    )),
+    "kigam50k:mine": ("mine", (("type", "갈래"), ("comt", "설명"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("mine", ("광산", "채굴지"), msg("광산·채굴지"), "#636363", "dot"),
+        ("adit", ("갱도", "갱구"), msg("갱도·갱구"), "#252525", "dot"),
+        ("closed", (), msg("폐광·휴광"), "#bdbdbd", "dot"),
+    )),
+    "kigam50k:frame": ("frame", (("mapname", "도폭"), ("mapidx", "도폭 번호"), ("surveyor", "조사자"),
+                                 ("suryear", "조사연도"), ("comt", "비고"), ("doi", "DOI")), (
+        ("frame", (), msg("5만 도폭"), "#8a6d3b", "square"),
+    )),
+}
+LINKS = ("doi",)
+ATTRIBUTION = "KIGAM 1:50,000 digital geological map (CC BY-NC) · data.kigam.re.kr"
+DIGITS = 6
+
+
+def knows_file(name: str) -> bool:
+    return name in LAYERS
+
+
+def file_available(name: str) -> bool:
+    folder = latest()
+    return bool(folder) and (folder / f"{LAYERS[name][0]}.geojson.gz").exists()
+
+
+def _features(kind: str) -> list:
+    folder = latest()
+    with gzip.open(folder / f"{kind}.geojson.gz", "rt", encoding="utf-8") as fh:
+        return json.load(fh).get("features") or []
+
+
+def _round(coords):
+    if coords and isinstance(coords[0], (int, float)):
+        return [round(float(coords[0]), DIGITS), round(float(coords[1]), DIGITS)]
+    return [_round(c) for c in coords]
+
+
+def _code(table, value) -> str:
+    for code, values, *_ in table:
+        if value in values:
+            return code
+    return table[-1][0]
+
+
+def layer_body(name: str) -> bytes:
+    """레이어 하나의 GeoJSON. 파일이 없으면 FileNotFoundError."""
+    if not file_available(name):
+        raise FileNotFoundError(name)
+    kind, cols, table = LAYERS[name]
+    out, counts = [], {}
+    for i, f in enumerate(_features(kind)):
+        geom = f.get("geometry") or {}
+        coords = geom.get("coordinates")
+        if not coords:
+            continue
+        if geom.get("type") == "MultiPoint":
+            geom = {"type": "Point", "coordinates": _round(coords[0])}
+        else:
+            geom = {"type": geom.get("type"), "coordinates": _round(coords)}
+        p = f.get("properties") or {}
+        props = {key: str(p[key]).strip() for key, _ in cols if p.get(key) not in (None, "")}
+        if "doi" in props and not props["doi"].lower().startswith(("http://", "https://")):
+            del props["doi"]
+        props["code"] = _code(table, p.get("type"))
+        counts[props["code"]] = counts.get(props["code"], 0) + 1
+        out.append({"type": "Feature", "id": i, "geometry": geom, "properties": props})
+    legend = [{"code": code, "label": str(label), "color": color, "shape": shape, "count": counts[code]}
+              for code, _, label, color, shape in table if counts.get(code)]
+    return json.dumps({"type": "FeatureCollection", "style": "class", "labels": dict(cols), "links": list(LINKS),
+                       "legend": legend, "features": out}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def frame_at(lon: float, lat: float):
+    """누른 자리를 덮는 도폭 틀 `(번호, 이름)` — 틀 파일이 없거나 틀 밖이면 None (wetherilli 199)."""
+    from .geomap import polygon_contains
+    folder = latest()
+    if folder is None or not (folder / "frame.geojson.gz").exists():
+        return None
+    for f in _frames(folder):
+        geom = f.get("geometry") or {}
+        polys = geom.get("coordinates") or []
+        if geom.get("type") == "Polygon":
+            polys = [polys]
+        for poly in polys:
+            rings = [[v for pt in ring for v in pt[:2]] for ring in poly]
+            if polygon_contains(rings, lon, lat):
+                p = f.get("properties") or {}
+                if p.get("mapidx"):
+                    return p["mapidx"], p.get("mapname") or ""
+    return None
+
+
+_frame_cache = {"folder": None, "rows": None}
+
+
+def _frames(folder) -> list:
+    with _lock:
+        if _frame_cache["folder"] != folder:
+            _frame_cache.update(folder=folder, rows=_features("frame"))
+        return _frame_cache["rows"]

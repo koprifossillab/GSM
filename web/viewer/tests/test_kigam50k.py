@@ -214,3 +214,76 @@ class WfsDoor(TestCase):
         self.assertTrue(url.endswith("/mgeo/geoserver/wfs"))
         self.assertEqual(params["typeNames"], "Geology_map:l_50k_geology_fossil_latest")
         self.assertNotIn("key", params)
+
+
+def _poly(w, s, e, n, **props):
+    return {"type": "Feature", "properties": props,
+            "geometry": {"type": "MultiPolygon", "coordinates": [[[[w, s], [e, s], [e, n], [w, n], [w, s]]]]}}
+
+
+class Layers(TestCase):
+    """화석산지·시료·광산·도폭 틀 레이어 (wetherilli 199, jikhanjung P01 §5 의 3·4 단계)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.override = override_settings(KIGAM50K_DIR=str(self.root), TILE_CACHE_SECONDS=0)
+        self.override.enable()
+        kigam50k._cache.update(folder=None, rows=None)
+        kigam50k._frame_cache.update(folder=None, rows=None)
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.override.disable)
+        self.day = self.root / "raw" / "20260930"
+        _write(self.day, "fossil", [_pt(129.4, 35.8, type="유공충", comt="채집지", mapname="감포", mapidx="IE14"),
+                                    _pt(129.0, 36.0, type="화석산지", comt=None, mapname="대율", mapidx="HF20")])
+        _write(self.day, "frame", [
+            _poly(127.25, 36.25, 127.5, 36.5, mapidx="GF12", mapname="유성", surveyor="홍길동", suryear="1979",
+                  doi="https://doi.org/10.22747/data.1"),
+            _poly(127.0, 36.25, 127.25, 36.5, mapidx="GF11", mapname="대전", doi="javascript:alert(1)"),
+        ])
+        # 유성 틀 안이지만 가장 가까운 기호는 대전 도폭의 것
+        _write(self.day, "bedding", [_pt(127.26, 36.30, roangle=90, dipangle=20, mapname="대전", mapidx="GF11"),
+                                     _pt(127.45, 36.45, roangle=180, dipangle=30, mapname="유성", mapidx="GF12")])
+
+    def read(self, name):
+        return json.loads(kigam50k.layer_body(name))
+
+    def test_화석산지는_갈래의_색으로(self):
+        data = self.read("kigam50k:fossil")
+        self.assertEqual([f["properties"]["code"] for f in data["features"]], ["foram", "fossil"])
+        self.assertEqual(data["features"][0]["geometry"], {"type": "Point", "coordinates": [129.4, 35.8]})
+        self.assertEqual(data["features"][0]["properties"]["mapname"], "감포")
+        self.assertNotIn("comt", data["features"][1]["properties"])
+        self.assertEqual([l["code"] for l in data["legend"]], ["foram", "fossil"])
+
+    def test_도폭_틀은_DOI_링크만_http(self):
+        data = self.read("kigam50k:frame")
+        first, second = (f["properties"] for f in data["features"])
+        self.assertEqual((first["surveyor"], first["suryear"], first["doi"]), ("홍길동", "1979", "https://doi.org/10.22747/data.1"))
+        self.assertNotIn("doi", second)
+        self.assertEqual(data["links"], ["doi"])
+        self.assertEqual(data["features"][0]["geometry"]["type"], "MultiPolygon")
+
+    def test_점_레이어_길과_파일이_없을_때(self):
+        r = self.client.get("/GSM/points/", {"layer": "kigam50k:fossil"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()["features"]), 2)
+        r = self.client.get("/GSM/points/", {"layer": "kigam50k:mine"})
+        self.assertEqual(r.status_code, 503)
+        self.assertIn("fetch_kigam50k", r.json()["error"])
+
+    def test_장미도의_도폭은_틀로_고른다(self):
+        self.assertEqual(kigam50k.sheet_at(127.27, 36.30), ("GF12", "유성"))      # 가장 가까운 기호는 대전이다
+        data = self.client.get("/GSM/kigam50k/rose/", {"lat": 36.30, "lon": 127.27}).json()
+        self.assertEqual(data["sheet"]["no"], "GF12")
+        self.assertEqual(data["n"], {"bedding": 1})
+
+    def test_카탈로그에_선다(self):
+        from django.core.management import call_command
+        from viewer import views
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        rows = {l["name"]: (g, l) for g in views._catalog("ko") for l in g["layers"]}
+        group, layer = rows["kigam50k:frame"]
+        self.assertEqual((group["region"], group["name"]), ("korea", "지질 구조 (5만)"))
+        self.assertEqual((layer["kind"], layer["style"], layer["upstream"]), ("points", "class", "kigam50k"))
+        self.assertIn("CC BY-NC", layer["sourceLabel"])

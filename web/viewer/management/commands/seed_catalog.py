@@ -89,6 +89,8 @@ class Command(BaseCommand):
                 (settings.INGEMMET_CATALOG_SEED, "페루 (INGEMMET)", "peru", "ingemmet"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
+                # KIGAM 5만 구조 요소 — 받아 둔 WFS 파일의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)
+                (settings.KIGAM50K_CATALOG_SEED, "KIGAM 5만 구조 요소", "korea", "kigam50k"),
                 # 연구실의 암맥 기록 — phyloserver (026)
                 (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver"),
                 # 한반도 지질도 음영판 — 우리 디스크의 PDF 를 잘라 둔 타일 (027)
