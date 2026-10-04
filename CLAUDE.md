@@ -439,7 +439,9 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
   ngu.py          노르웨이 지질조사소(NGU)로 나가는 문 (본토 기반암 1:135만·25만·5만 MapServer WMS). 3413 을 안 그려 북극 람베르트(3575)로
   gtk.py          핀란드 지질조사소(GTK)로 나가는 문 (기반암 1:100만·20만 ArcGIS WMS). 3413 으로 곧장
+                  항공 자력·방사능(GTK_Geofysiikka_WMS)과 북유럽 광상 FODD(kokoavaWMS)도 — 레이어가 주소를 고른다 (wetherilli 270)
   sgu.py          스웨덴 지질조사소(SGU)로 나가는 문 (기반암 1:100만·5만–25만 GeoServer WMS, CC0). 3413 으로 곧장. 레이어 하나가 두 판을 함께 부른다
+                  뿌리 주소(`/geoserver/ows`)에 워크스페이스를 붙여 묻는다 — 광물·암석 산지(`berg:`)·자력 이상(`fysik:`)도 (wetherilli 270)
   natt.py         아이슬란드 자연사연구소(NÍ)로 나가는 문 (1:60만 기반암·1:10만 GeoServer WMS). 3413 으로 곧장, 1:60만의 부호는 범례 이름으로 푼다
   bgs.py          영국 지질조사소(BGS)로 나가는 문 (그레이트브리튼 1:5만 ArcGIS WMS, 줌 13 부터). 같은 서버의 북아일랜드 GSNI 1:25만도,
                   아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
