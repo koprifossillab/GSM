@@ -108,6 +108,10 @@ class Command(BaseCommand):
                 # 뉴질랜드 GNS QMAP 1:25만·1:100만, 같은 서버의 남극 남빅토리아랜드 1:25만 (wetherilli 218)
                 (settings.GNS_CATALOG_SEED, "뉴질랜드 (GNS)", "new_zealand", "gns"),
                 (settings.GNS_ANTARCTICA_CATALOG_SEED, "남빅토리아랜드 (GNS)", "antarctica", "gns"),
+                # 몽골 — 국가지질도첩 지질도·단층 1:50만 (MonGeoCat, wetherilli 221)
+                (settings.MRIS_CATALOG_SEED, "몽골 (MonGeoCat)", "mongolia", "mris"),
+                # 인도 — GSI 1:200만, 그림은 BGS(OneGeology) (wetherilli 226)
+                (settings.GSIINDIA_CATALOG_SEED, "인도 (GSI)", "india", "gsiindia"),
                 # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
                 (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
                 (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),
