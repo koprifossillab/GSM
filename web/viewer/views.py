@@ -2336,15 +2336,18 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
     if layer.upstream in ("esdm", "jmg", "mgb", "dmr"):
         # 동남아(wetherilli 228) — 3857 로 그린다. 인도네시아는 상류가 줌 10 너머를 그리지 않아(`maxZoom` — 그 위는 화면이 늘린다)
-        # 범례가 1 403 칸이라 두지 않는다.
+        # 범례는 1 403 칸이라 보는 범위의 것이다(wetherilli 243).
         # 말레이시아 암상·태국은 REST 범례를 목록으로(`list/legend/`), 말레이시아 연대는 범례가 없다. 필리핀은 WMS 그림 그대로
         mod = {"esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr}[layer.upstream]
         if mod.knows(layer.name):
             extra = {"attribution": mod.ATTRIBUTION, "projection": "EPSG:3857"}
             if layer.name in getattr(mod, "LEGEND_LAYERS", ()):
                 extra.update({"legend": "list", "legendUrl": "list/legend/"})
-            elif mod in (esdm, jmg):
+            elif mod is jmg:
                 extra["noLegend"] = True
+            elif mod is esdm:
+                # 인도네시아 — 보는 범위의 범례(`esdm/legend/`, wetherilli 243). 전체 범례는 1 403 칸이다
+                extra.update(legend="extent", legendUrl="esdm/legend/")
             if mod is esdm:
                 extra["maxZoom"] = esdm.LAST_ZOOM
             return extra
@@ -3534,6 +3537,36 @@ def list_legend(request):
     if lang == "ko":
         rows = [dict(r, age=i18n.age_ko(r["age"]) if r.get("age") else "") for r in rows]
     return JsonResponse({"rows": rows})
+
+
+@require_GET
+@browser_cached
+def esdm_legend(request):
+    """`?layer=esdm:geology&bbox=서,남,동,북` — 인도네시아 지질도의 보는 범위 범례 (wetherilli 243). REST 통계로 범위 안의 단위를 세고
+    색은 칠하기 규칙에서 찾는다(`esdm.extent_legend`·`esdm.colors`). 꼴은 사우디(`sgs_legend`)와 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in esdm.LAYERS:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    if bbox[2] - bbox[0] > esdm.SPAN or bbox[3] - bbox[1] > esdm.SPAN:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("esdm-legend", f"{name}/{bbox}")
+    held = _cached_json(key)
+    try:
+        if held is None:
+            held = {"rows": esdm.extent_legend(tuple(bbox))}
+            tilecache.put(key, json.dumps(held, ensure_ascii=False).encode("utf-8"), ".json")
+        table = esdm.colors()
+    except esdm.EsdmError as exc:
+        log.info("인도네시아 범례를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+    shown = [esdm.legend_row(r, table, lang) for r in held["rows"][:esdm.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(held["rows"]) - len(shown))})
 
 
 @require_GET
