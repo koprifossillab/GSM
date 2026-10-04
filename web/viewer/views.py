@@ -683,13 +683,23 @@ def profile_band(request):
 
 
 @require_GET
+def mars_values_at(request):
+    """`?lon=&lat=&key=mars_elev` — 화성의 켠 Trek 판의 값 (wetherilli 192). 꼴은 `moon_values` 와 같다. 화성은 표고뿐이다."""
+    return _trek_values(request, trek.MARS_VALUES, "화성")
+
+
+@require_GET
 def moon_values(request):
     """`?lon=&lat=&key=feo` — 켠 Trek 판의 값을 누른 자리 한 점에서 (wetherilli 103). `{"rows": [[이름, 값], …]}`.
     이름은 한국어판·영어판에 맞춘다. 값(숫자·단위)은 옮기지 않는다."""
+    return _trek_values(request, trek.VALUES, "달")
+
+
+def _trek_values(request, table, body):
     lang = i18n.lang_of(request)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     key = request.GET.get("key") or ""
-    if key not in trek.VALUES or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+    if key not in table or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
     cache = tilecache.key_text("trek-value", f"{key}/{lon:.4f},{lat:.4f}")
     data = _cached_json(cache)
@@ -697,7 +707,7 @@ def moon_values(request):
         try:
             data = trek.value_at(key, lon, lat)
         except trek.TrekError as exc:
-            log.warning("달 값을 읽지 못했다 (%s): %s", key, exc)
+            log.warning("%s 값을 읽지 못했다 (%s): %s", body, key, exc)
             return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "rows": []}, status=502)
         tilecache.put(cache, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
     rows = [[i18n.PROP_EN.get(name, name) if lang == "en" else name, value] for name, value in data["rows"]]
@@ -857,13 +867,13 @@ def trek_map_tile(request, body, label, z, x, y):
 
 @require_GET
 def trek_map_polar_tile(request, body, label, pole, z, x, y):
-    """`trek/moon/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
-    극 격자는 달의 것이라 화성은 받지 않는다."""
+    """`trek/<moon|mars>/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
+    화성은 화성 극 격자(065)이고, 짝이 없는 MapServer 판도 Trek 이 화성 극 투영으로 옮겨 그린다 (wetherilli 192)."""
     z, x, y = int(z), int(x), int(y)
-    ms = trek.polar_map(body, label, pole) if body == "moon" else ""
+    ms = trek.polar_map(body, label, pole)
     if not ms:
         return JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), i18n.lang_of(request))}, status=404)
-    if not trek.polar_valid(z, x, y):
+    if not trek.polar_valid(z, x, y) or (body == "mars" and z > trek.MARS_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     key = tilecache.key_text("trek-map-polar", f"{body}/{label}/{pole}/{z}/{x}/{y}")
     hit = tilecache.get(key)
