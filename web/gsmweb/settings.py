@@ -178,6 +178,9 @@ CGMW_LEGEND_URL = env("GSM_CGMW_LEGEND_URL", "https://mapsref.brgm.fr/legendes/o
 #: 아프리카 나라 판(wetherilli 209) — 남아공 CGS(정부 DPME 사본 ArcGIS REST)·나미비아 GSN(BGS 가 대신 내주는 MapServer)
 CGS_REST_URL = env("GSM_CGS_REST_URL", "https://dpmegis.dpme.gov.za/arcgis/rest/services/Geology/MapServer")
 GSN_WMS_URL = env("GSM_GSN_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_GSN_Bedrock_Geology/wms")
+#: 부르키나파소 BUMIGEB(BGS)·카메룬 IRGM(BRGM) 1:100만 (wetherilli 246). 열쇠가 없다
+BUMIGEB_WMS_URL = env("GSM_BUMIGEB_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_BUMIGEB_FR_Bedrock_Geology/wms")
+IRGM_WMS_URL = env("GSM_IRGM_WMS_URL", "https://mapsref.brgm.fr/wxs/1GG/IRGM_Formations_et_Geologie_Structurale")
 AGA_WMS_URL = env("GSM_AGA_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/AGA/BGS_Groundwater/MapServer/WMSServer")
 EGDI_WMS_URL = env("GSM_EGDI_WMS_URL", "https://geoserver.geo-zs.si/egdi-surface-geology/gsmlp/wms")
 #: 독일·스페인·아일랜드 지질도 — BGR·IGME·GSI ArcGIS WMS 의 판 앞 주소, GSNI 는 BGS 서버의 것 (wetherilli 147). 열쇠가 없다
@@ -478,6 +481,8 @@ CGMW_CATALOG_SEED = REPO_DIR / "data" / "cgmw_layers.json"
 AGA_CATALOG_SEED = REPO_DIR / "data" / "aga_layers.json"
 CGS_CATALOG_SEED = REPO_DIR / "data" / "cgs_layers.json"
 GSN_CATALOG_SEED = REPO_DIR / "data" / "gsn_layers.json"
+BUMIGEB_CATALOG_SEED = REPO_DIR / "data" / "bumigeb_layers.json"
+IRGM_CATALOG_SEED = REPO_DIR / "data" / "irgm_layers.json"
 #: 남미 (wetherilli 188)
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)

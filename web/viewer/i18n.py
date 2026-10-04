@@ -742,6 +742,8 @@ EN = {
     "영국 지질조사소 — 아프리카 지하수 지도책": "British Geological Survey — Africa Groundwater Atlas",
     "남아프리카공화국 지질조사소": "Council for Geoscience (South Africa)",
     "나미비아 지질조사소": "Geological Survey of Namibia",
+    "부르키나파소 지질광업국": "Bureau of Mines and Geology of Burkina Faso (BUMIGEB)",
+    "카메룬 지질광업연구소": "Institute for Geological and Mining Research of Cameroon (IRGM)",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
@@ -3080,6 +3082,7 @@ GROUP_EN = {
     "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
     "남아프리카공화국 지질도 (CGS 1:100만)": "South Africa geology (CGS 1:1M)",
     "나미비아 지질도 (GSN 1:100만)": "Namibia geology (GSN 1:1M)",
+    "부르키나파소 지질도 (BUMIGEB 1:100만)": "Burkina Faso geology (BUMIGEB 1:1M)", "카메룬 지질도 (IRGM 1:100만)": "Cameroon geology (IRGM 1:1M)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
@@ -3256,6 +3259,8 @@ LAYER_EN = {
     # 아프리카 나라 판 (wetherilli 209)
     "cgs:geology_1m": "Geology (1:1M)",
     "gsn:NAM_GSN_1M_BLS": "Lithostratigraphy (1:1M)",
+    "bumigeb:BFA_BUMIGEB_FR_1M_BLS": "Lithology (1:1M)", "bumigeb:BFA_BUMIGEB_FR_1M_MSF": "Major structures (1:1M)",
+    "irgm:CMR_IRGM_1M_UnitesGeologiques": "Geological units (1:1M)", "irgm:CMR_IRGM_1M_Failles": "Faults (1:1M)",
     "gsn:NAM_GSN_1M_BA": "Age (1:1M)",
     "iige:geologia_general": "General geological map",
     # 미국 (wetherilli 205)

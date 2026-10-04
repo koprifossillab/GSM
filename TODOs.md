@@ -49,6 +49,11 @@
 - [ ] **(사람) 아프리카 1:1000만의 CGMW 이용 조건** — 아프리카 탭은 CGMW–BRGM 1:1000만과 BGS 지하수 지도책으로 섰다(wetherilli 207).
       CGMW 는 인쇄판을 판다 — 정적 판·밖에 열기 전에 읽는다(남미 1:500만과 같다). CORS 가 `*` 라 되면 `static-kinds.js` 한 갈래
 - [ ] 아프리카 지하수 지도책의 수리지질(`<ISO3>_BGS_5M_Hydrogeology`) — 같은 서버·같은 조건(CC BY-SA). 지질 탭에 둘지 사람이 본다
+- [ ] **(사람) 콩고민주공화국·르완다·부룬디 — 벨기에 RMCA GeoServer**(`edit.africamuseum.be/geoserver`) — DRC 1:200만(`COD_RMCA_2M_*`)·르완다·부룬디
+      1:25만(`RWABDI_RMCA_250K_*`)·카탕가 1:20만(`geco_geology`)·PROMINES 2015 DRC 지질도(`METAFRO_RDC_Mining`)가 3857·CORS `*` 로 열려 있다
+      (wetherilli 246). 조건이 "© RMCA, Other restrictions" 이고 PROMINES 판은 "공개 자료가 아니다" 라는 글도 있다 — maps@africamuseum.be 에 묻고 정한다.
+      이집트 웨스턴미시간대 Nubian 사업 서버(EGSMA 1:200만)도 조건 미상이라 함께 둔다. 보츠와나·잠비아·짐바브웨·케냐·우간다·가나·에티오피아·
+      말리·세네갈·마다가스카르는 지도 서비스를 찾지 못했다(정부 지질조사소 포털이 없거나 닿지 않는다 — BGS AGA·CGMW 가 덮는다)
 - [ ] **(사람) 탄자니아 GMIS 1:150만** — 서버(`gmis-tanzania.com`)가 중간 인증서를 빼먹어 바깥에서도 TLS 검증이 실패하고, 연구소 망은
       "UNTRUSTED CERT ALERT" 로 다시 서명한다(2026-10-04, wetherilli 209). TLS 검증을 끄지 않고는 받을 수 없다 — 끌지(그 호스트만), 서버가
       고칠 때까지 둘지 사람이 정한다(#153). 남아공 CGS·나미비아 GSN 은 섰다(209)
