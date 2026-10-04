@@ -228,6 +228,14 @@
                       "gsni:5"],
                first: "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM",
                borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    // ── 남미 (wetherilli 188) ──
+    // SGC 가 내는 남미 1:500만(CGMW 2019)이 대륙 바탕이고 콜롬비아 1:50만(2023)을 얹는다. 나라 판(브라질·페루 …)이 늘면
+    // 나라 탭과 묶음으로 가른다 — 유럽처럼
+    south_america: { title: "남미", proj: "EPSG:3857", center: [-60.0, -15.0], zoom: 3, vworld: false,
+                     home: [-9128198, -7558416, -3784863, 1516914],
+                     basemap: "eox_terrain", example: "4.711, -74.072 · Bogotá",
+                     base: ["sgc:sa:8", "sgc:co:3"],
+                     first: "sgc:sa:8" },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
               includes: ["uk", "ireland", "france", "germany", "spain"],
               home: [-1225000, 4232000, 1781000, 8626000],
@@ -291,7 +299,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "south_america"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -673,6 +681,8 @@
     igme: { source: npolarSource, info: wmsInfoUrl },
     gsi: { source: npolarSource, info: wmsInfoUrl },
     gsni: { source: npolarSource, info: wmsInfoUrl },
+    // 남미·콜롬비아 SGC(wetherilli 188) — ArcGIS WMS 를 3857 로
+    sgc: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -1141,14 +1151,14 @@
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland"],
+              "germany", "spain", "ireland", "south_america"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland"],
+              "germany", "spain", "ireland", "south_america"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2140,7 +2150,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
@@ -2151,6 +2161,7 @@
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
+    sgc: T("콜롬비아 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),

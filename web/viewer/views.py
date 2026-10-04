@@ -31,7 +31,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
+from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgc, usage
 from . import profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2222,9 +2222,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": brgm.ATTRIBUTION, "projection": "EPSG:3857",
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
                 **({"queryable": False} if brgm.upstream_name(layer.name) in brgm.SCANS else {})}
-    if layer.upstream in ("bgr", "igme", "gsi"):
-        # 독일·스페인·아일랜드(wetherilli 147) — 판마다 받는 투영과 그리는 줌이 다르다
-        door = {"bgr": bgr, "igme": igme, "gsi": gsi}[layer.upstream]
+    if layer.upstream in ("bgr", "igme", "gsi", "sgc"):
+        # 독일·스페인·아일랜드(wetherilli 147)·남미(188) — 판마다 받는 투영과 그리는 줌이 다르다
+        door = {"bgr": bgr, "igme": igme, "gsi": gsi, "sgc": sgc}[layer.upstream]
         try:
             sheet = door.split(layer.name)[0]
         except RuntimeError:
@@ -2310,7 +2310,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, basemaps.BasemapError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2347,14 +2347,16 @@ class _Door:
                # 영국·프랑스·범유럽(wetherilli 143)
                "bgs": bgs, "brgm": brgm, "egdi": egdi,
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
-               "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI}
+               "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI,
+               # 남미·콜롬비아(wetherilli 188)
+               "sgc": sgc}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3183,6 +3185,8 @@ def feature_info(request):
             props = egdi.friendly(props, lang)       # 암상 판의 INSPIRE 열 → 암상·지질시대·제공 기관 (wetherilli 177)
         elif door.name in ("bgr", "igme", "gsi"):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
+        elif door.name == "sgc":
+            props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)

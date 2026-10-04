@@ -157,6 +157,8 @@ BGR_WMS_URL = env("GSM_BGR_WMS_URL", "https://services.bgr.de/wms/geologie")
 IGME_WMS_URL = env("GSM_IGME_WMS_URL", "https://mapas.igme.es/gis/services/Cartografia_Geologica")
 GSI_WMS_URL = env("GSM_GSI_WMS_URL", "https://gsi.geodata.gov.ie/server/services/Bedrock")
 GSNI_WMS_URL = env("GSM_GSNI_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/GeoIndex_GSNI/GSNI_Geology_Landsat_WMS/MapServer/WmsServer")
+#: 남미 지질도 — SGC ArcGIS WMS 의 판 앞 주소 (wetherilli 188). 열쇠가 없다
+SGC_WMS_URL = env("GSM_SGC_WMS_URL", "https://srvags.sgc.gov.co/arcgis/services")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -391,6 +393,8 @@ BGR_CATALOG_SEED = REPO_DIR / "data" / "bgr_layers.json"
 IGME_CATALOG_SEED = REPO_DIR / "data" / "igme_layers.json"
 GSI_CATALOG_SEED = REPO_DIR / "data" / "gsi_layers.json"
 GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
+#: 남미 (wetherilli 188)
+SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)
