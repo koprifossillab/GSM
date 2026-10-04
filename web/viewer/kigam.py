@@ -302,8 +302,8 @@ def fetch_capabilities() -> str:
 # ── 5만 지질도 구조 요소 — GeoServer WFS (jikhanjung P01 §4, wetherilli 199) ─────────
 #
 # 층리·엽리·화석산지·도폭 틀 따위를 통째로 받는다. **문서에 없는 주소다** — 속성(`DIRECT_REQUESTS`)과 같은 GeoServer 길이라
-# 여기 적는다. 키는 붙이지 않는다(묻지 않는 곳이다). 제품이 도는 길에서는 부르지 않고 `manage.py fetch_kigam50k` 가 한 달에 한 번
-# 부른다 — 받은 것은 `kigam50k.py` 가 디스크에서 읽는다
+# 여기 적는다. 키는 붙이지 않는다(묻지 않는 곳이다). 제품이 도는 길에서는 부르지 않고 사람이 `manage.py fetch_kigam50k` 를 가끔
+# 부른다(주간 백업에서 뺐다, wetherilli 208) — 받은 것은 `kigam50k.py` 가 디스크에서 읽는다
 
 WFS_WORKSPACE = "Geology_map"
 
