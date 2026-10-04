@@ -175,6 +175,17 @@
                  legendTitle: "고생태 산지 (Neotoma)", src: NEO_SRC };
       }) });
   }
+  // 바다 밑 — 해양 지각 연대(Seton 2020)·퇴적층 두께(GlobSed v3). 구워 둔 것이 있을 때만, 오늘의 레이어다. 누르면 값이 뜬다 (wetherilli 264)
+  var SEA = THEN.seafloor || {};
+  if (SEA.age || SEA.sediment) {
+    var SEA_LAYERS = [];
+    if (SEA.age) SEA_LAYERS.push({ name: "seaage", title: "해양 지각 연대", grid: "ll", info: "seafloor", legend: "seaage", max: 6,
+                                   src: "Seton et al. 2020 · EarthByte · CC BY 4.0" });
+    if (SEA.sediment) SEA_LAYERS.push({ name: "sediment", title: "해저 퇴적층 두께", grid: "ll", info: "seafloor", legend: "sediment", max: 6,
+                                        src: "GlobSed v3 (Straume et al. 2019) · NOAA NCEI" });
+    CATALOG.splice(CATALOG.findIndex(function (g) { return g.layers[0].name === "crust"; }) + 1, 0,
+      { group: "바다 밑 (Seton 2020 · GlobSed)", layers: SEA_LAYERS });
+  }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
@@ -188,6 +199,7 @@
     if (name === "plates") return paleoUrl("edge", 0);
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
     if (name === "crust") return BASE + "earth/crust/tiles/{z}/{x}/{y}.png" + vq("crust");
+    if (name === "seaage" || name === "sediment") return BASE + "earth/seafloor/" + name + "/{z}/{x}/{y}.png" + vq(name);
     if (name === "icemargins") return BASE + "earth/icemargins/tiles/" + Math.min(1000, Math.round(age * 1000)) + "/{z}/{x}/{y}.png" + vq("icemargins");
     if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png" + vq("ne");
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png" + vq("fossils");
@@ -202,6 +214,8 @@
   var COAST_CREDIT = "PaleoCoastlines v7.1 (CC BY 4.0) · Kocsis & Scotese 2021, Earth-Science Reviews";
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
+  var SEAAGE_CREDIT = "Seton et al. 2020, G-cubed · EarthByte (CC BY 4.0)";
+  var SEDIMENT_CREDIT = "GlobSed v3 · Straume et al. 2019, G-cubed · NOAA NCEI";
   var GVP_CREDIT = "Global Volcanism Program, Smithsonian Institution · Volcanoes of the World";
   var QUAKE_CREDIT = "U.S. Geological Survey · ANSS ComCat";
   var NEO_CREDIT = "Neotoma Paleoecology Database (CC BY 4.0)";
@@ -210,7 +224,7 @@
   var MANTLE_CREDIT = "Müller et al. (2022) OPT1, Solid Earth (CC BY 4.0)";
   function creditOf(name) {
     if (LAYER[name] && LAYER[name].neo) return NEO_CREDIT;
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT,
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT, seaage: SEAAGE_CREDIT, sediment: SEDIMENT_CREDIT,
              names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
@@ -2163,16 +2177,16 @@
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
     var at = "?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&z=" + hereZoom();
-    var ASK = { geology: "earth/info/", crust: "earth/crust/at/" };
+    var ASK = { geology: "earth/info/", crust: "earth/crust/at/", seafloor: "earth/seafloor/at/" };
     Promise.all(layers.map(function (l) {
-      return fetch(BASE + ASK[l.info] + at).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
+      return fetch(BASE + ASK[l.info] + at + (l.info === "seafloor" ? "&layer=" + l.name : "")).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
       if (mine !== asked) return;
       var html = head;
       all.forEach(function (data, i) {
         html += "<h3>" + esc(T(layers[i].title)) + "</h3>";
         if (data.error) { html += '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>"; return; }
-        if (layers[i].info === "crust") { html += '<p class="none">' + esc(data.text) + "</p>"; return; }
+        if (layers[i].info === "crust" || layers[i].info === "seafloor") { html += '<p class="none">' + esc(data.text) + "</p>"; return; }
         if (!data.units || !data.units.length) {
           html += '<p class="none">' + esc(T("여기에는 지질 단위가 없다")) + "</p>";
           return;
@@ -2284,6 +2298,12 @@
     }
     if (kind === "pleistocene") {
       legends[kind] = THEN.pleistocene.map(function (row) {
+        return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+      }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "seaage" || kind === "sediment") {
+      legends[kind] = (SEA[kind === "seaage" ? "age" : "sediment"] || []).map(function (row) {
         return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
       }).join("");
       return Promise.resolve(legends[kind]);

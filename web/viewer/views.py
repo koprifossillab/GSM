@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, seafloor, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1479,6 +1479,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 해양 지각 연대·퇴적층 두께 (wetherilli 264) — 구운 것이 있을 때만 레이어가 선다. 범례도 함께
+                                   "seafloor": {k: seafloor.legend(k) for k in seafloor.KINDS if seafloor.available(k)},
                                    "icemargins": icemargins.stops(),
                                    # 해류 (koprifossillab 014) — 구워 둔 날이 있을 때만 목록에 선다
                                    "ocean": bool(ocean.read_index("ecco2")["times"]),
@@ -1910,6 +1912,48 @@ def earth_crust_tile(request, z, x, y):
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
     return _immutable(request, response, version)
+
+
+#: 온 지구 화면의 레이어 이름 → 판 (wetherilli 264)
+SEAFLOOR_LAYERS = {"seaage": "age", "sediment": "sediment"}
+
+
+@require_GET
+def earth_seafloor_tile(request, layer, z, x, y):
+    """`earth/seafloor/<seaage|sediment>/<z>/<x>/<y>.png` — 해양 지각 연대·퇴적층 두께, 경위도 격자 (`seafloor.render_tile`)"""
+    kind, z, x, y = SEAFLOOR_LAYERS.get(layer), int(z), int(x), int(y)
+    if kind is None or not seafloor.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not seafloor.available(kind):
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    version = seafloor_version(kind)
+    key = tilecache.key_text("seafloor", f"{kind}/{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = seafloor.render_tile(kind, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_seafloor_at(request):
+    """`?layer=seaage|sediment&lon=&lat=` — 누른 자리의 해양 지각 연대(Ma)·퇴적층 두께(m)"""
+    lang = i18n.lang_of(request)
+    kind = SEAFLOOR_LAYERS.get(request.GET.get("layer", ""))
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if kind is None or lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang)}, status=400)
+    value = seafloor.at(kind, lon, lat)
+    if value is None:
+        text = i18n.t(msg("여기는 바다 지각이 아니거나 값이 없다"), lang)
+    elif kind == "age":
+        text = i18n.t(msg("약 {ma} Ma — Seton 외 2020, 해령에서 굳은 때", ma=f"{value:.1f}"), lang)
+    else:
+        text = i18n.t(msg("약 {m} m — GlobSed v3, 해저면에서 음향 기반암까지", m=f"{value:,.0f}"), lang)
+    return JsonResponse({"value": value, "text": text, "credit": seafloor.KINDS[kind][4]})
 
 
 @require_GET
@@ -3972,7 +4016,8 @@ def tile_versions(page: str) -> dict:
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
-                "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version()}
+                "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "seaage": seafloor_version("age"), "sediment": seafloor_version("sediment")}
     return {}
 
 
@@ -4012,6 +4057,10 @@ def quakes_version() -> str:
 
 def neotoma_version() -> str:
     return _stamp(paleoeco.RENDERER, paleoeco.built(), _file_stamp(paleoeco.path()))
+
+
+def seafloor_version(kind: str) -> str:
+    return _stamp(seafloor.RENDERER, *(_content_stamp(p) for p in seafloor.files(kind)[::2]))
 
 
 def crust_version() -> str:

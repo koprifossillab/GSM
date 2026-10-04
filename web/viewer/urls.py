@@ -84,6 +84,10 @@ urlpatterns = [
     re_path(r"^earth/crust/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_crust_tile,
             name="earth-crust-tile"),
     path("earth/crust/at/", views.earth_crust_at, name="earth-crust-at"),
+    # 해양 지각 연대·퇴적층 두께 (seafloor.py, wetherilli 264)
+    re_path(r"^earth/seafloor/(?P<layer>seaage|sediment)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+            views.earth_seafloor_tile, name="earth-seafloor-tile"),
+    path("earth/seafloor/at/", views.earth_seafloor_at, name="earth-seafloor-at"),
     re_path(r"^earth/ne/tiles/(?P<style>water|ice)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_ne_tile, name="earth-ne-tile"),
     re_path(r"^earth/icemargins/tiles/(?P<ka>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
