@@ -157,6 +157,8 @@ Jarðfeingi 는 조건을 묻고 나서. 막힌 것: 인도 Bhukosh·러시아 V
 ### 달 — Trek ImageServer
 
 - [ ] 누른 자리의 값 — 남은 것. 켠 판만(wetherilli 103), 다누리 KGRS 다섯(상대값·단위 미확인)·북극 FeO·얼음 깊이 둘은 섰다(150).
+      값을 주는 판이 있는 보이는 판은 다 읽는다(236) — 뜻을 모르는 Diviner 짝 셋(`c3_c7`·`c4_c7`·`c6_c8`)과 NAC DEM(Site D)만 남겼다.
+      SMFe 의 단위가 밝혀지면 `VALUES["smfe"]` 를 고친다.
       **남극 짝(`sp_feo_mlemelin_031417`·`sp_ice_depth_*`)은 2026-09-30·10-02 둘 다 답이 없다** — 살아나면 `EXTRA_ITEMS` 에 북극 셋처럼.
       KGRS 의 단위가 밝혀지면 `VALUES` 의 이름·단위를 고친다. 점묶음 열(새 JSONField, 이주)은 아직. Kaguya 는 JAXA 조건(043)
 - [ ] 고운 지형 — 남은 것. 극 5 m·남극 30 m·NAC 41 곳(107·150). 아폴로 15 PanCam 셋은 256 ppd 와 평균 ±15 m·흩어짐 23–52 m 라

@@ -741,7 +741,8 @@ def _trek_values(request, table, body):
     lang = i18n.lang_of(request)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     key = request.GET.get("key") or ""
-    if key not in table or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+    known = trek.value_spec(key) if table is trek.VALUES else table.get(key)     # 달은 판이 여럿인 갈래도 안다 (wetherilli 236)
+    if not known or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
     cache = tilecache.key_text("trek-value", f"{key}/{lon:.4f},{lat:.4f}")
     data = _cached_json(cache)
