@@ -314,6 +314,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   (`gsmma.extent_legend`, `gsmma/legend/`, wetherilli 142) — 일본처럼 화면이 HTML 로 그린다
 - 카탈로그 씨앗은 상류마다 `data/*_layers.json` 이다. KIGAM 씨앗처럼 사람이
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
+- **공유 링크는 해시(`#r=…&c=…&z=…&l=…&b=…`)다** (wetherilli 189, `share.js`) — 지역 지도·온 지구·달·화성·수성이 "링크" 단추로 짓고,
+  들어올 때 읽어 지운다. 링크로 연 동안에는 기억을 메모리 덧층에만 쓴다 — 그 사람의 localStorage 를 덮지 않는다. 그래서 **화면의 기억은
+  `map.js` 의 `stored`·`store`, 구 화면의 `saved`·`save` 를 거친다** — localStorage 를 곧장 부르지 않는다. 점묶음·개인 레이어는 싣지 않는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
 - 극지 배경(EOX·PGC·NPI 타일·Esri 남극 위성)과 일본 배경·주제도 겹침(국토지리원 지리원 타일 — 활단층도·화산토지조건도는

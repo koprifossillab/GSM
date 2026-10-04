@@ -340,6 +340,49 @@
   }
   var addedRegions = ["korea"];
 
+  // ── 공유 링크 (wetherilli 189) ──
+  // 주소의 해시(`share.js`)로 들어오면 그 지역·자리·레이어·배경을 덧층에 깔고 연다. 아래의 기억(지역·자리·레이어·배경)은 모두
+  // `STATE` 를 거친다 — 링크로 연 동안에는 덧층에만 쓰고 그 사람의 localStorage 는 건드리지 않는다. 실리지 않은 지역(정적 판)은
+  // 링크를 버리고 늘 하던 대로 연다. 레이어·배경은 되살릴 때 카탈로그에 없으면 조용히 건너뛴다(`restoreState`·`savedBasemap`)
+  var SHARED = window.GSMShare ? GSMShare.read() : null;
+  if (SHARED && !(SHARED.r && REGIONS[SHARED.r])) SHARED = null;
+  var STATE = window.GSMShare ? GSMShare.store(SHARED && sharedSeed(SHARED)) : null;
+  function sharedSeed(q) {
+    var r = q.r, key = function (name) { return r === "korea" ? name : name + "." + r; };
+    var seed = { "gsm.region": r };
+    try {
+      var kept = JSON.parse(localStorage.getItem("gsm.regions") || "[]") || [];
+      seed["gsm.regions"] = JSON.stringify(kept.indexOf(r) >= 0 || r === "korea" ? kept : kept.concat([r]));
+    } catch (e) { seed["gsm.regions"] = JSON.stringify(r === "korea" ? [] : [r]); }
+    var c = (q.c || "").split(",").map(Number);
+    if (c.length === 2 && isFinite(c[0]) && isFinite(c[1]) && isFinite(+q.z)) {
+      seed[key("gsm.view")] = JSON.stringify({ lon: c[0], lat: c[1], zoom: +q.z, proj: "EPSG:" + (q.p || "3857") });
+    }
+    seed[key("gsm.layers")] = JSON.stringify(GSMShare.layers(q.l));
+    if (q.b) seed[key("gsm.basemap")] = q.b;
+    return seed;
+  }
+  function stored(key) {
+    if (STATE) return STATE.get(key);
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function store(key, value) {
+    if (STATE) return STATE.set(key, value);
+    try { localStorage.setItem(key, value); } catch (e) { /* 사생활 모드 */ }
+  }
+  function unstore(key) {
+    if (STATE) return STATE.remove(key);
+    try { localStorage.removeItem(key); } catch (e) { /* 사생활 모드 */ }
+  }
+  /** 지금 보는 것의 링크 — 지역·가운데·줌·투영·켠 레이어(위가 앞)·배경. 점묶음·개인 레이어는 그 브라우저의 것이라 싣지 않는다 */
+  function shareLink() {
+    var view = map.getView(), center = toLL(view.getCenter());
+    var rows = active.filter(function (e) { return byName[e.name] && byName[e.name].upstream !== "geonavi"; });
+    return GSMShare.link({ r: region, c: center[0].toFixed(5) + "," + center[1].toFixed(5), z: view.getZoom().toFixed(2),
+                           p: view.getProjection().getCode().replace("EPSG:", ""), l: GSMShare.pack(rows),
+                           b: document.getElementById("basemap").value });
+  }
+
   function stateKey(name) {
     // 한국은 예전 열쇠 그대로 — 이 판 전에 기억해 둔 것을 잃지 않는다
     return region === "korea" ? name : name + "." + region;
@@ -1664,7 +1707,7 @@
       map.getLayers().insertAt(0, baseLayer);
     }
     // 배경도 지역마다 따로 기억한다 — 한국의 VWorld 는 그린란드에 없다
-    try { localStorage.setItem(stateKey("gsm.basemap"), key); } catch (e) { /* 사생활 모드 */ }
+    store(stateKey("gsm.basemap"), key);
   }
 
   function labelsOn() {
@@ -1684,7 +1727,7 @@
 
   function savedBasemap() {
     try {
-      var key = localStorage.getItem(stateKey("gsm.basemap"));
+      var key = stored(stateKey("gsm.basemap"));
       if (key && BASEMAPS[key]) return key;
     } catch (e) { /* 사생활 모드 */ }
     // 극지는 지역이 고른 배경으로 시작한다. 상류 지질도가 한국처럼 지명·
@@ -1967,7 +2010,7 @@
       if (byName[e.name] && byName[e.name].upstream === "geonavi") out.row = geonaviSaved(byName[e.name]);
       return out;
     });
-    try { localStorage.setItem(stateKey("gsm.layers"), JSON.stringify(rows)); } catch (e) { /* 사생활 모드 */ }
+    store(stateKey("gsm.layers"), JSON.stringify(rows));
   }
 
   /** 보던 자리는 **위경도와 줌, 그리고 그 줌을 잰 투영**으로 둔다. 줌은
@@ -1977,11 +2020,11 @@
     var center = toLL(view.getCenter());
     var state = { lon: +center[0].toFixed(5), lat: +center[1].toFixed(5),
                   zoom: +view.getZoom().toFixed(2), proj: view.getProjection().getCode() };
-    try { localStorage.setItem(stateKey("gsm.view"), JSON.stringify(state)); } catch (e) { /* 사생활 모드 */ }
+    store(stateKey("gsm.view"), JSON.stringify(state));
   }
 
   function readJson(key) {
-    try { return JSON.parse(localStorage.getItem(key) || "null"); } catch (e) { return null; }
+    try { return JSON.parse(stored(key) || "null"); } catch (e) { return null; }
   }
 
   /** 기억한 것이 있으면 되살리고 true. 처음 온 사람이면 false. */
@@ -1992,10 +2035,8 @@
     var savedProj = view && view.proj || "EPSG:3857";
     if (view && savedProj !== code && !view.proj && REGIONS[region].forgetOldView) {
       // 처음 온 것처럼 연다 — 기억을 지워야 대표 레이어도 켜진다
-      try {
-        localStorage.removeItem(stateKey("gsm.view"));
-        localStorage.removeItem(stateKey("gsm.layers"));
-      } catch (e) { /* 사생활 모드 */ }
+      unstore(stateKey("gsm.view"));
+      unstore(stateKey("gsm.layers"));
       return false;
     }
     if (view && isFinite(view.lon) && isFinite(view.lat) && isFinite(view.zoom)) {
@@ -5731,11 +5772,11 @@
 
   function readRegions() {
     try {
-      var added = JSON.parse(localStorage.getItem("gsm.regions") || "null");
+      var added = JSON.parse(stored("gsm.regions") || "null");
       if (Array.isArray(added)) {
         addedRegions = ["korea"].concat(added.filter(function (r) { return REGIONS[r] && r !== "korea"; }));
       }
-      var saved = localStorage.getItem("gsm.region");
+      var saved = stored("gsm.region");
       if (saved && addedRegions.indexOf(saved) >= 0) region = saved;
     } catch (e) { /* 사생활 모드 */ }
     // 소개 화면의 "이 지도로" 가 지역을 주소로 넘긴다(`?region=`). 탭이 없으면 더하고, 주소에서는
@@ -5753,8 +5794,8 @@
 
   function saveRegions() {
     try {
-      localStorage.setItem("gsm.regions", JSON.stringify(addedRegions.slice(1)));
-      localStorage.setItem("gsm.region", region);
+      store("gsm.regions", JSON.stringify(addedRegions.slice(1)));
+      store("gsm.region", region);
     } catch (e) { /* 사생활 모드 */ }
   }
 
@@ -7083,6 +7124,12 @@
   // 무엇이든 보이는 편이 낫고, **5만이 실제로 가장 많이 보는 축척이다.**
   // 기억한 것이 있으면 그것을 따른다 — 다 끄고 떠났으면 다 꺼진 채로 연다.
   if (!active.length && !readJson(stateKey("gsm.layers"))) openFirstLayer();
+  // 공유 링크 (wetherilli 189) — 단추와, 링크로 열었다는 띠
+  if (window.GSMShare) {
+    GSMShare.wire(document.getElementById("tool-share"), shareLink,
+                  { done: T("복사했다"), ask: T("이 링크를 복사한다") });
+    if (SHARED) GSMShare.notice(T("링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다"), T("내 화면으로"));
+  }
 
   // ── 대기 화면 ────────────────────────────────────────────────────
   //

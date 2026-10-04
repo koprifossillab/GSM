@@ -257,3 +257,16 @@ class StaticSiteTests(TestCase):
         html = self.client.get("/GSM/map/").content.decode()
         self.assertNotIn('class="static-site"', html)
         self.assertNotIn("static-config", html)
+
+
+class ShareLinkTests(TestCase):
+    """공유 링크 (wetherilli 189) — 다섯 화면이 `share.js` 를 화면의 스크립트보다 먼저 싣고 "링크" 단추를 둔다.
+    링크를 읽고 지우는 것·기억을 덮지 않는 것은 브라우저 시험(`test_mobile`)이 본다"""
+
+    def test_다섯_화면에_단추와_스크립트(self):
+        for name, script in (("map", "map.js"), ("earth", "earth.js"), ("moon", "moon.js"), ("mars", "mars.js"),
+                             ("mercury", "mercury.js")):
+            with self.subTest(name=name):
+                html = self.client.get(f"/GSM/{name}/").content.decode()
+                self.assertIn('id="tool-share"', html)
+                self.assertLess(html.index("viewer/share.js"), html.index(f"viewer/{script}"))
