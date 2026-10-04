@@ -144,6 +144,9 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 (2026-09-30 운영 `/srv/GSM/db/earth/` 에 옛 해안선·화석 산지·맨틀을 두었다. 화석 산지는 가끔 `fetch_pbdb` 로 새로 받는다)
 
+- [ ] **(사람)** 전 지구 변형률 GSRM v2.1(Kreemer 외 2014, `geodesy.unr.edu/GSRM/` — 0.1° 격자 87 MB·셀 평균 3.7 MB, 압축 `.Z`)은
+      README 가 "인용해 달라" 고만 하고 **이용 조건을 적지 않는다**. 저자(UNR)에게 묻거나 조건이 적힌 판을 찾으면 지각 두께 꼴의 격자로 둔다 (wetherilli 273)
+
 
 ## 인증키 뒤에 남은 것
 
