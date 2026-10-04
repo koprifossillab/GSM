@@ -2467,3 +2467,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #3b0f0a; --hi-deep: #250805; --on-hi: #fdf8f7; --hi-ink: #b22a1e;
   --glass: rgba(253, 251, 251, .95); --glass-line: #e4d9d7;
 }
+
+/* ── 북미(묶음, wetherilli 210) — 대평원의 밀빛: 프레리의 밤 바탕 ── */
+:root[data-region="north_america"] {
+  --bg: #12110c; --panel: #1a1912; --panel-tint: #0d0c08; --raise: #25231a;
+  --ink: #f5f2e6; --ink-soft: #cdc6a8; --ink-faint: #8a8468;
+  --line: #36321f; --line-soft: #25231a;
+  --gold: #c9b05a; --gold-bright: #e6d496; --gold-muted: #a8924c;
+  --gold-wash: rgba(201, 176, 90, .13); --gold-edge: rgba(201, 176, 90, .42);
+  --hi: #c9b05a; --hi-deep: #e6d496; --on-hi: #0d0c08; --hi-ink: #e6d496;
+  --glass: rgba(13, 12, 8, .93); --glass-line: rgba(201, 176, 90, .35);
+}
+:root[data-region="north_america"][data-theme="light"] {
+  --bg: #f6f3e7; --panel: #fdfcf6; --panel-tint: #f9f7ee; --raise: #ebe5cf;
+  --ink: #1f1c10; --ink-soft: #565036; --ink-faint: #8d876a;
+  --line: #e0d9bd; --line-soft: #ebe5cf;
+  --gold: #8a7428; --gold-bright: #6a591c; --gold-muted: #857647;
+  --gold-wash: #f3ecd0; --gold-edge: #ddcd8f;
+  --hi: #2f2a10; --hi-deep: #1c1907; --on-hi: #fbfaf2; --hi-ink: #8a7428;
+  --glass: rgba(253, 252, 246, .95); --glass-line: #e0d9bd;
+}

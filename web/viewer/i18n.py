@@ -79,6 +79,9 @@ EN = {
     # 캐나다 (wetherilli 204)
     "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
     "캐나다 람베르트": "Canada Atlas Lambert",
+    # 북미 묶음·퀘벡·유콘 (wetherilli 210)
+    "북미": "North America", "퀘벡 지질 광업 정보 체계": "SIGÉOM (Québec geomining information system)",
+    "유콘 지질조사소": "Yukon Geological Survey", "지구조 요소": "Tectonic element",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -705,7 +708,6 @@ EN = {
     "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
     # 미국 (wetherilli 205)
     "미국": "United States",
-    "캐나다 람베르트": "Canada Atlas Lambert",          # 미국 탭의 화면 투영 (wetherilli 210 — 캐나다 204 와 같은 줄)
     # 멕시코 (wetherilli 206)
     "멕시코": "Mexico",
     "멕시코 지질조사소": "Mexican Geological Survey (SGM)",
@@ -2696,6 +2698,8 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
+    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
+    "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2778,7 +2782,9 @@ GROUP_EN = {
 LAYER_EN = {
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
-    "ogs:1": "Ontario Quaternary geology", "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
+    "ogs:1": "Ontario Quaternary geology",
+    "sigeom:generale": "General geology (Québec)", "sigeom:regionale": "Regional geology (Québec, 1:20k–1:250k)",
+    "sigeom:failles": "Faults (Québec)", "ygs:47": "Bedrock (Yukon 1:250k)", "ygs:50": "Faults (Yukon)", "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",

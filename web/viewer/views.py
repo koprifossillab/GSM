@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sigeom, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -373,7 +373,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
              "cgmw", "aga",
              # 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
-             "nrcan", "ogs")
+             "nrcan", "ogs",
+             # 퀘벡 SIGÉOM·유콘 YGS(wetherilli 210) — 둘 다 3857 도 그린다
+             "sigeom", "ygs")
 
 
 @require_GET
@@ -2331,6 +2333,16 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream in ("sigeom", "ygs"):
+        # 퀘벡·유콘(wetherilli 210) — 캐나다 탭처럼 3978 로 곧장(Capabilities 에 없지만 그린다). 가까이서만 그린다 — 퀘벡은 상류가
+        # 축척으로 판을 끄고, 유콘은 넓게 보면 한 장이 13 초다. 범례는 없다(퀘벡 28×18 한 칸), 유콘은 그림 범례
+        door = {"sigeom": sigeom, "ygs": ygs}[layer.upstream]
+        if not door.knows(layer.name):
+            return {}
+        first, _ = door.zooms(layer.name)
+        return {"attribution": door.ATTRIBUTION, "projection": "EPSG:3978", **({"minZoom": first} if first else {}),
+                **({} if door.queryable(layer.name) else {"queryable": False}),
+                **({"noLegend": True} if layer.upstream == "sigeom" else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):
         # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
         return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
@@ -2463,7 +2475,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError,
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError,
                    basemaps.BasemapError)
 
 
@@ -2517,14 +2529,16 @@ class _Door:
                # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
                "cgmw": brgm.CGMW, "aga": bgs.AGA,
                # 캐나다(wetherilli 204)
-               "nrcan": nrcan, "ogs": ogs}
+               "nrcan": nrcan, "ogs": ogs,
+               # 퀘벡·유콘(wetherilli 210)
+               "sigeom": sigeom, "ygs": ygs}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "nrcan", "ogs"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "nrcan", "ogs", "sigeom", "ygs"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3618,6 +3632,9 @@ def feature_info(request):
             props = mrdata.friendly(props, lang)     # 미국 — 값은 영어 그대로, 알래스카의 시대만 옮긴다 (wetherilli 205)
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
+        elif door.name in ("sigeom", "ygs"):
+            # 퀘벡(프랑스어 값 그대로)·유콘(ICS 영어 시대는 옮긴다) (wetherilli 210)
+            props = {"sigeom": sigeom, "ygs": ygs}[door.name].friendly(props, lang)
         elif door.name in ("nrcan", "ogs"):
             # 캐나다(wetherilli 204) — 열 이름은 한국어로, 지질시대(ICS 영어)는 한국어판에서 옮긴다. 암상·층서는 영어 그대로
             props = {"nrcan": nrcan, "ogs": ogs}[door.name].friendly(props, lang)
