@@ -35,8 +35,8 @@
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
 - [ ] 브리티시컬럼비아(BCGS) — 줌 12 남짓부터만 색이 들고 CORS 가 없고 첫 요청이 9.5 초라 미뤘다(wetherilli 210). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)도 아직
 - [ ] 미국 — 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 USGS mrdata 같은 서버에 있다
-- [ ] 멕시코 SGM — 지질 연대·고생물·광상 1:25만은 섰다(wetherilli 219). 남은 것: 같은 서버의 지화학(`SUNGeoquimica`)·자기 이상
-      (`SUNAnomalias250`)·광산 1:5만(`SUNYacimientosMinerales`, 4 만 6 천 점). 고생물·광산 점은 그림 기호라 범례가 없다
+- [ ] 멕시코 SGM — 지질 연대·고생물·광상(219), 지화학·원소 이상·광산 1:5만(233)이 섰다. 남은 것: 지자기(`DatosAbiertos` 7 — 나라 한 장이
+      16 초, 면이 조각나 미뤘다). 고생물·광산 점은 그림 기호라 범례가 없다
 - 막힌 것: USGS 북미 지질도 GMNA(403), ScienceBase(503), NGMDB(지도 API 없음)
 
 ### 아프리카

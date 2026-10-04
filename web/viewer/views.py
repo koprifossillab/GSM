@@ -3512,6 +3512,13 @@ def sgm_legend(request):
     name = request.GET.get("layer", "")
     if name not in sgm.legend_layers():
         return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    if name in sgm.BREAKS:
+        # 원소 이상 지점(wetherilli 233) — 범례는 칠하기 구간이라 보는 범위와 무관하다
+        try:
+            return JsonResponse({"rows": sgm.breaks(name), "more": 0, "fixed": True})
+        except sgm.SgmError as exc:
+            log.info("멕시코 범례를 받지 못했다 (%s): %s", name, exc)
+            return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
     parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
     if len(parts) != 4 or None in parts:
         return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
