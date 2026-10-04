@@ -562,10 +562,6 @@
   if (window.proj4 && ol.proj.proj4) {
     proj4.defs("EPSG:3413", "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
     proj4.defs("EPSG:3031", "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs");
-    ol.proj.proj4.register(proj4);
-    // 3413 의 범위는 NASA GIBS 의 극지 격자와 같게 — 배경의 줌이 화면과 맞는다
-    ol.proj.get("EPSG:3413").setExtent([-4194304, -4194304, 4194304, 4194304]);
-    ol.proj.get("EPSG:3031").setExtent(GEOMAP_GRID.extent);
     // UTM 33N — 스발바르 배경(NPI 의 위성·지형도 타일)이 이 격자로 구워져 있다.
     // OpenLayers 가 3413 화면에 옮겨 그린다 (devlog 021)
     proj4.defs("EPSG:25833", "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
@@ -576,12 +572,16 @@
     proj4.defs("EPSG:5181", "+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     // UTM-K(GRS80) — 한반도 지질도 음영판을 이 격자로 잘라 둔다 (devlog 027)
     proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
-    ol.proj.proj4.register(proj4);
-    ol.proj.get("EPSG:3575").setExtent([-9009964.76, -9009964.76, 9009964.76, 9009964.76]);
     // 캐나다 람베르트(NAD83 / Canada Atlas Lambert, wetherilli 204) — 캐나다 탭의 화면. 3857 은 북극 섬을 크게 부풀리고 3413 은
     // 서경 45° 가 위라 캐나다가 50° 기운다. 범위는 3857 과 같은 너비로 — 줌 번호가 같은 해상도다(서버의 `tilegrid.EXTENT` 와 같다)
     proj4.defs("EPSG:3978", "+proj=lcc +lat_0=49 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    // **알리기는 한 번만** (wetherilli 271) — `register` 는 아는 투영의 모든 짝에 변환을 다시 짓는다. 정의마다 불렀더니(세 번)
+    // 첫 화면의 스크립트 시간에서 proj4 가 가장 컸다
     ol.proj.proj4.register(proj4);
+    // 3413 의 범위는 NASA GIBS 의 극지 격자와 같게 — 배경의 줌이 화면과 맞는다
+    ol.proj.get("EPSG:3413").setExtent([-4194304, -4194304, 4194304, 4194304]);
+    ol.proj.get("EPSG:3031").setExtent(GEOMAP_GRID.extent);
+    ol.proj.get("EPSG:3575").setExtent([-9009964.76, -9009964.76, 9009964.76, 9009964.76]);
     ol.proj.get("EPSG:3978").setExtent([-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244]);
   }
 

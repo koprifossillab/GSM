@@ -20,7 +20,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.utils.cache import patch_vary_headers
 from django.shortcuts import get_object_or_404, render
@@ -420,20 +420,21 @@ def map3d_view(request):
     # 유럽 상류(wetherilli 187)도 2D 처럼 `wms/` 로 3857 을 받는다. IGME 1:100만은 2D 가 4326 으로 받지만 문(1.1.1)으로 3857 을
     # 물어도 그려 준다(2026-10-04 마드리드). EMODnet 의 GeoServer 는 어느 투영이든 그린다. 일본 GSJ·지리원 주제 타일은 3857 z/x/y 라
     # 카탈로그 행의 `tiles` 를 MapLibre 가 그대로 받는다
+    catalog = _catalog(lang)          # 한 번만 짓는다 — 아래 둘이 같은 것을 훑는다 (wetherilli 271)
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
                                    or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
-              for g in _catalog(lang)]
+              for g in catalog]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
     custom = [{"name": l["name"], "title": l["title"], "kind": l.get("kind"), "group": g["name"]}
-              for g in _catalog(lang) for l in g["layers"] if l.get("upstream") in ("peninsula", "phyloserver")]
+              for g in catalog for l in g["layers"] if l.get("upstream") in ("peninsula", "phyloserver")]
     return render(request, "viewer/map3d.html", {
         "lang": lang,
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
-        "catalog_groups": [g for g in groups if g["layers"]],
+        "catalog_groups": [dict(g, options=_options_3d(g["layers"])) for g in groups if g["layers"]],
         "custom_layers": _script_json(custom),
         # 점묶음 요약 — 2D 와 같은 것이다. 모양은 `pointsets/<번호>/geojson/` 으로 받는다 (P02)
         "pointsets": _script_json(_pointset_list()),
@@ -2226,11 +2227,32 @@ def _lab_only(name: str) -> bool:
     return settings.PUBLIC and str(name).split(":", 1)[0] in LAB_ONLY
 
 
+def _options_3d(layers: list):
+    """3D 의 레이어 고르개 `<option>` 들(wetherilli 271). 템플릿 루프와 한 글자까지 같은 것을 파이썬이 짓는다 — 레이어가 오백을 넘어
+    템플릿이 `{% if %}` 를 오천 번 남짓 돌리는 데 이 화면 시간의 절반이 들었다. 이스케이프는 템플릿과 같은 `conditional_escape`"""
+    from django.utils.html import conditional_escape as esc
+    from django.utils.safestring import mark_safe
+    out = []
+    for l in layers:
+        attrs = f' data-upstream="{esc(l.get("upstream"))}"'
+        for key, data in (("attribution", "attribution"), ("tiles", "tiles"), ("minZoom", "min"), ("maxZoom", "max"),
+                          ("lastZoom", "last")):
+            if l.get(key):
+                attrs += f' data-{data}="{esc(l[key])}"'
+        if l.get("bbox"):
+            attrs += f' data-bbox="{esc(",".join(str(v) for v in l["bbox"]))}"'
+        out.append(f'<option value="{esc(l["name"])}"{attrs}>{esc(l["title"])}</option>')
+    return mark_safe("".join(out))
+
+
 def _catalog(lang="ko"):
     """레이어 패널의 목록. 영어판이면 제목만 `i18n.LAYER_EN` 으로 바꾼다."""
     en = lang == "en"
     groups = []
-    for group in LayerGroup.objects.prefetch_related("layers").all():
+    # 켠 레이어만 한 번에 받아 둔다(wetherilli 271) — 예전에는 `prefetch_related("layers")` 뒤에 레이어군마다 `.filter(enabled=True)` 를
+    # 다시 불러 미리 받은 것을 버리고 레이어군 수(160)만큼 물었다. 차례는 Layer 의 기본 차례(레이어군 안에서 order·title) 그대로다
+    enabled = Prefetch("layers", queryset=Layer.objects.filter(enabled=True), to_attr="enabled_layers")
+    for group in LayerGroup.objects.prefetch_related(enabled).all():
         layers = [{
             "name": l.name,
             "title": i18n.LAYER_EN.get(l.name, l.title) if en else l.title,
@@ -2249,7 +2271,7 @@ def _catalog(lang="ko"):
                if l.kind == "vector" else {}),
             **_point_fields(l),
             **_layer_extra(l, lang),
-        } for l in group.layers.filter(enabled=True)
+        } for l in group.enabled_layers
             # VWorld 열쇠가 없으면 "지질 참고" 는 그릴 길이 없다 — 목록에서 뺀다
             if (l.upstream != "vworld" or vworld.enabled()) and not _lab_only(l.name)]
         if layers:
