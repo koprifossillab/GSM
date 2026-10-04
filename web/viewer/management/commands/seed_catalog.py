@@ -63,6 +63,7 @@ class Command(BaseCommand):
                 (settings.GSITILE_CATALOG_SEED, "일본 (국토지리원)", "japan", "gsitile"),
                 # 동·동남아시아 — CCOP 200만 지질도, GSJ 새 호스트의 WMS (wetherilli 108)
                 (settings.CCOP_CATALOG_SEED, "동아시아 (CCOP)", "china", "ccop"),
+                (settings.GSJOWS_CATALOG_SEED, "일본 (GSJ WMS)", "japan", "gsjows"),
                 # 대만 — 경제부 지질조사·광업관리중심(GSMMA) 지질도 (wetherilli 136)
                 (settings.GSMMA_CATALOG_SEED, "대만 (GSMMA)", "taiwan", "gsmma"),
                 # 북극해 — EMODnet 해저 퇴적물·해저 지질. 스발바르 탭도 빌려 보인다 (wetherilli 135)
@@ -153,6 +154,8 @@ class Command(BaseCommand):
                 (settings.IGME_DR_CATALOG_SEED, "도미니카공화국 (SGN)", "dominican_republic", "igme"),
                 # 카리브 — USGS 카리브 지질도(French & Schenk 2004), 면을 한 덩이로 (wetherilli 248)
                 (settings.USGSCARIB_CATALOG_SEED, "카리브 (USGS)", "caribbean", "usgscarib"),
+                # 대앤틸리스 — USGS SIM 3534(옛 판 OFR 2019-1036), 우리가 구운 sqlite (wetherilli 254)
+                (settings.SIM3534_CATALOG_SEED, "대앤틸리스 (USGS)", "caribbean", "sim3534"),
                 # 파나마 — STRI 의 MICI 1990 1:25만, 면·단층을 한 덩이로 (wetherilli 253)
                 (settings.STRI_CATALOG_SEED, "파나마 (STRI)", "panama", "stri"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
