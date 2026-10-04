@@ -2415,6 +2415,9 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "생산량": "Production", "잠재량": "Potential", "채굴 형태": "Working type", "쓰임": "Uses", "지질시대 (원문)": "Age (original)",
+    "원료": "Raw material", "원료 갈래": "Raw material group", "딸린 원료": "Secondary raw material", "중력 이상 (mGal)": "Gravity anomaly (mGal)",
+    "총 감마선": "Total gamma",
     "광종 (태국어)": "Commodity (Thai)", "군": "District", "탐사 단계": "Exploration status", "광종 갈래": "Commodity group", "조사 단계": "Survey stage",
     "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
     "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
@@ -3097,6 +3100,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "프랑스 광상 (BRGM)": "France mineral deposits (BRGM)", "스페인 광물 (IGME)": "Spain minerals (IGME)",
+    "독일 원료 (BGR)": "Germany raw materials (BGR)", "포르투갈 광상·지구물리 (LNEG)": "Portugal deposits and geophysics (LNEG)",
     "인도네시아 광물 자원 (ESDM)": "Indonesia mineral resources (ESDM)", "필리핀 광물 자원 (MGB)": "Philippines mineral resources (MGB)",
     "태국 광물 (DMR)": "Thailand minerals (DMR)", "사우디 광물 (SGS)": "Saudi Arabia minerals (SGS)", "몽골 광물 (MRIS)": "Mongolia minerals (MRIS)",
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
@@ -3246,6 +3251,13 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 유럽 광물 (wetherilli 296)
+    "brgm:GITES_PT": "Deposits and showings (BD Gîtes)", "brgm:MINES_PT": "Mines (main commodities)",
+    "igme:bdmin:0+1": "Mineral occurrences (BDMIN)", "igme:bdminexp:0+1": "Industrial rock and mineral workings (BDMIN)",
+    "bgr:kor250:2+3+4": "Deposits and workings (KOR250 1:250k)", "bgr:kor250:0+1": "Raw material occurrences and prospective areas (KOR250)",
+    "bgr:bsk1000:0+1+2+3+4": "Mineral resources (BSK1000 1:1M)",
+    "lneg:dep200k:4": "Mineral deposits (1:200k)", "lneg:mag:0": "Magnetic anomaly", "lneg:grav:0": "Gravity anomaly (southern part)",
+    "lneg:rad:Radiometria": "Radiometry (total gamma)",
     # 아시아 광물 (wetherilli 280)
     "esdm:metal": "Metallic mineral potential", "esdm:nonmetal": "Non-metallic mineral and rock potential",
     "mgb:metallic": "Metallic mineral resources", "mgb:nonmetallic": "Non-metallic mineral resources",
