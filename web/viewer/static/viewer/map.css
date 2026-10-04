@@ -1513,6 +1513,12 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
                list-style: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
                box-shadow: var(--shadow); }
 .region-menu[hidden] { display: none; }
+/* 지역이 서른을 넘어 "그 외" 의 차림이 길다 — 화면에 붙여 세우고 그 안에서 굴린다 (wetherilli 214) */
+#regions .region-menu { position: fixed; z-index: 60; max-width: calc(100vw - 16px);
+                        overflow-y: auto; }
+.region-fold { white-space: nowrap; }
+.region-menu li.added { display: flex; justify-content: space-between; align-items: center; }
+.region-menu li.on { color: var(--on-hi); background: var(--hi); font-weight: 600; }
 .region-menu li { padding: 7px 10px; font-size: 12.5px; border-radius: calc(var(--radius) - 2px); cursor: pointer; }
 .region-menu li:hover { color: var(--on-hi); background: var(--hi); }
 /* 묶음 밑의 지역은 들여 세운다. 이미 더한 묶음은 누를 수 없는 제목으로만 (wetherilli 111) */
