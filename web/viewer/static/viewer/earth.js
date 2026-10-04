@@ -43,14 +43,15 @@
   var M_PER_DEG = Math.PI * 6378137 / 180;           // 평면(4326)의 1° — 적도 반지름으로. 축척 막대는 OpenLayers 가 잰다
   // 배경 — NASA GIBS 의 Blue Marble(500 m). 셋 다 4326·3413·3031 판이 있어 구·평면·극 평면이 같은 영상이다.
   // 구는 WMS(4326)로, 평면은 WMTS 로 받는다 — GIBS 의 4326 WMTS 는 줌 0 이 288° 한 장이라 Cesium 의 격자와 맞지 않는다
-  var GIBS_WMS = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi";
-  var GIBS_WMTS = "https://gibs.earthdata.nasa.gov/wmts/epsg{e}/best/{name}/default/500m/{z}/{y}/{x}.jpeg";
+  // 서버가 브라우저가 부르던 주소 그대로 받아 담는다(`basemaps.py`, wetherilli 184) — 상류가 한 장에 1–3 초라 두 번째부터 빠르다
+  var GIBS_WMS = BASE + "gibs/wms/";
+  var GIBS_WMTS = BASE + "gibs/{e}/{name}/{z}/{y}/{x}.jpeg";
   var BASES = {
     bm: { name: "BlueMarble_ShadedRelief_Bathymetry", credit: "Blue Marble shaded relief & bathymetry · NASA EOSDIS GIBS" },
     bmng: { name: "BlueMarble_NextGeneration", credit: "Blue Marble Next Generation · NASA EOSDIS GIBS" },
     relief: { name: "BlueMarble_ShadedRelief", credit: "Blue Marble shaded relief · NASA EOSDIS GIBS" },
     // GEBCO 해저 지형(공공 도메인, wetherilli 135) — GIBS 가 아니라 GEBCO 의 WMS 다. 4326 뿐이라 극 평면은 Blue Marble 로 갈음한다
-    gebco: { name: "GEBCO_LATEST", wms: "https://wms.gebco.net/mapserv", format: "image/png", max: 8,
+    gebco: { name: "GEBCO_LATEST", wms: BASE + "gebco/wms/", format: "image/png", max: 8,
              credit: "GEBCO Compilation Group (2026) GEBCO 2026 Grid" },
   };
   // 지질 레이어 목록 — 달·화성과 같은 꼴이다. 이름은 서버 `earth/tiles/<이름>` 의 것

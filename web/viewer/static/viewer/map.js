@@ -1284,7 +1284,8 @@
   // ── 해저 지형 — GEBCO (wetherilli 135) ──
   //
   // 온 바다의 수심과 땅의 높이를 한 장에 칠한 음영(15″ 격자, 약 450 m). 공공 도메인이고 출처만 밝힌다.
-  // 극지 배경처럼 **브라우저가 곧장 부른다** — 열쇠가 없고 CORS 가 열려 있다. 지역마다 두므로 `regions` 가 없다.
+  // **서버가 받아 담는다**(`gebco/wms/`, wetherilli 184) — 한 장에 2 초 남짓이라 두 번째부터 빠르다. 정적 판은 서버가 없어
+  // 곧장 부른다 — 열쇠가 없고 CORS 가 열려 있다. 지역마다 두므로 `regions` 가 없다.
   // 상류가 3857·4326 만 그려 주어, 극 평사도법 탭은 4326 을 받아 OpenLayers 가 옮겨 그린다(3857 은 극에서 끊긴다).
   // 한 장에 2 초 남짓 걸리고 격자가 450 m 라, 줌 9 보다 가까우면 더 묻지 않고 늘려 그린다
   var GEBCO = 'GEBCO Compilation Group (2026) <a href="https://www.gebco.net/data-products/gridded-bathymetry-data" target="_blank" rel="noopener">GEBCO 2026 Grid</a>';
@@ -1305,7 +1306,7 @@
     return new ol.layer.Tile({
       opacity: 0.9,
       source: new ol.source.TileWMS({
-        url: "https://wms.gebco.net/mapserv",
+        url: STATIC ? "https://wms.gebco.net/mapserv" : BASE + "gebco/wms/",
         // 1.1.1 이면 4326 도 경도가 먼저다
         params: { LAYERS: name, VERSION: "1.1.1", FORMAT: "image/png", TILED: true },
         projection: code,
@@ -1466,13 +1467,15 @@
   }
 
   /** NASA GIBS 극지 WMTS. 격자는 3413·3031 이 같다 — 원점 (-4194304, 4194304),
-   *  512 픽셀, 줌 0 이 8192 m. `500m` 격자는 줌 4 까지다. */
+   *  512 픽셀, 줌 0 이 8192 m. `500m` 격자는 줌 4 까지다. 서버가 같은 경로를 받아 담는다(`gibs/`, wetherilli 184) —
+   *  정적 판만 곧장 부른다 */
   function gibsLayer(epsg, name, maxZoom) {
     var resolutions = [];
     for (var z = 0; z <= maxZoom; z++) resolutions.push(8192 / Math.pow(2, z));
     return new ol.layer.Tile({
       source: new ol.source.XYZ({
-        url: "https://gibs.earthdata.nasa.gov/wmts/epsg" + epsg + "/best/" + name + "/default/500m/{z}/{y}/{x}.jpeg",
+        url: STATIC ? "https://gibs.earthdata.nasa.gov/wmts/epsg" + epsg + "/best/" + name + "/default/500m/{z}/{y}/{x}.jpeg"
+                    : BASE + "gibs/" + epsg + "/" + name + "/{z}/{y}/{x}.jpeg",
         projection: "EPSG:" + epsg,
         tileGrid: new ol.tilegrid.TileGrid({
           extent: [-4194304, -4194304, 4194304, 4194304],
