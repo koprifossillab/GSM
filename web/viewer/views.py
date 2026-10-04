@@ -3,9 +3,11 @@
 프록시가 있는 까닭은 인증키다 — 브라우저는 키를 모른 채 `/wms/` 를 부르고,
 여기서 키를 붙여 상류로 넘긴다. CLAUDE.md 의 "인증키" 를 볼 것.
 """
+import csv
 import datetime
 import functools
 import hashlib
+import io
 import json
 import logging
 import math
@@ -31,8 +33,8 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgc, usage
-from . import earthpoints, profileband, static_tables
+from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgb, sgc, usage
+from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -360,8 +362,8 @@ def map_view(request):
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
 MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
-             # 남미 SGC(wetherilli 188) — 3857 로 그린다
-             "sgc")
+             # 남미 SGC(wetherilli 188)·브라질 SGB(191) — 3857 로 그린다
+             "sgc", "sgb")
 
 
 @require_GET
@@ -683,13 +685,29 @@ def profile_band(request):
 
 
 @require_GET
+def mars_values_at(request):
+    """`?lon=&lat=&key=mars_elev` — 화성의 켠 Trek 판의 값 (wetherilli 192). 꼴은 `moon_values` 와 같다. 화성은 표고뿐이다."""
+    return _trek_values(request, trek.MARS_VALUES, "화성")
+
+
+@require_GET
+def mercury_values_at(request):
+    """`?lon=&lat=&key=mercury_elev` — 수성의 켠 Trek 판의 값 (wetherilli 194). 꼴은 `moon_values` 와 같다. 수성도 표고뿐이다."""
+    return _trek_values(request, trek.MERCURY_VALUES, "수성")
+
+
+@require_GET
 def moon_values(request):
     """`?lon=&lat=&key=feo` — 켠 Trek 판의 값을 누른 자리 한 점에서 (wetherilli 103). `{"rows": [[이름, 값], …]}`.
     이름은 한국어판·영어판에 맞춘다. 값(숫자·단위)은 옮기지 않는다."""
+    return _trek_values(request, trek.VALUES, "달")
+
+
+def _trek_values(request, table, body):
     lang = i18n.lang_of(request)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     key = request.GET.get("key") or ""
-    if key not in trek.VALUES or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+    if key not in table or lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "rows": []}, status=400)
     cache = tilecache.key_text("trek-value", f"{key}/{lon:.4f},{lat:.4f}")
     data = _cached_json(cache)
@@ -697,7 +715,7 @@ def moon_values(request):
         try:
             data = trek.value_at(key, lon, lat)
         except trek.TrekError as exc:
-            log.warning("달 값을 읽지 못했다 (%s): %s", key, exc)
+            log.warning("%s 값을 읽지 못했다 (%s): %s", body, key, exc)
             return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang), "rows": []}, status=502)
         tilecache.put(cache, json.dumps(data, ensure_ascii=False).encode("utf-8"), ".json")
     rows = [[i18n.PROP_EN.get(name, name) if lang == "en" else name, value] for name, value in data["rows"]]
@@ -857,13 +875,13 @@ def trek_map_tile(request, body, label, z, x, y):
 
 @require_GET
 def trek_map_polar_tile(request, body, label, pole, z, x, y):
-    """`trek/moon/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
-    극 격자는 달의 것이라 화성은 받지 않는다."""
+    """`trek/<moon|mars>/map/<판>/p/<n|s>/<z>/<x>/<y>.png` — 극지 MapServer 짝의 극 격자 타일 (wetherilli 085).
+    화성은 화성 극 격자(065)이고, 짝이 없는 MapServer 판도 Trek 이 화성 극 투영으로 옮겨 그린다 (wetherilli 192)."""
     z, x, y = int(z), int(x), int(y)
-    ms = trek.polar_map(body, label, pole) if body == "moon" else ""
+    ms = trek.polar_map(body, label, pole)
     if not ms:
         return JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), i18n.lang_of(request))}, status=404)
-    if not trek.polar_valid(z, x, y):
+    if not trek.polar_valid(z, x, y) or (body == "mars" and z > trek.MARS_MAX_ZOOM):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     key = tilecache.key_text("trek-map-polar", f"{body}/{label}/{pole}/{z}/{x}/{y}")
     hit = tilecache.get(key)
@@ -1410,6 +1428,9 @@ def earth_view(request):
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
+                                   # 플라이스토세 화산 (wetherilli 194) — 따로 받은 것이 있을 때만 따로 레이어가 선다
+                                   "pleistocene": (volcanoes.legend(lang, "pleistocene")
+                                                   if volcanoes.available("pleistocene") else []),
                                    # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
                                    "quakes": quakes.legend(lang) if quakes.available() else [],
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
@@ -1928,20 +1949,21 @@ def earth_fossil_at(request):
 # ── 홀로세 화산 (wetherilli 134) ─────────────────────────────────────
 
 @require_GET
-def earth_volcano_tile(request, z, x, y):
-    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`)."""
+def earth_volcano_tile(request, z, x, y, kind="holocene"):
+    """`earth/volcanoes/tiles/<z>/<x>/<y>.png` — GVP 의 홀로세 화산. 오늘의 레이어라 연대가 없다(`volcanoes.py`).
+    `earth/volcanoes/pleistocene/tiles/…` 는 플라이스토세 화산이다 (wetherilli 194)."""
     z, x, y = int(z), int(x), int(y)
     if not paleo.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    if not volcanoes.available():
+    if not volcanoes.available(kind):
         return _tile(tiles.blank_tile(), store=False)
     # 다시 받은 날과 파일의 판이 열쇠에 든다 — 판이 오르면 새로 그리고 주소도 바뀐다
-    version = volcanoes_version()
+    version = volcanoes_version(kind)
     key = tilecache.key_text("gvp", f"{version}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
         return _immutable(request, _tile(hit, cached=True), version)
-    png = volcanoes.render_tile(z, x, y)
+    png = volcanoes.render_tile(z, x, y, kind)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -1950,19 +1972,22 @@ def earth_volcano_tile(request, z, x, y):
 
 @require_GET
 def earth_volcano_at(request):
-    """`?lon=&lat=&r=` — 누른 자리 둘레(`r`°)의 화산, 가까운 것부터 다섯."""
+    """`?lon=&lat=&r=&kinds=holocene,pleistocene` — 누른 자리 둘레(`r`°)의 화산, 켠 갈래에서 가까운 것부터 다섯."""
     lang = i18n.lang_of(request)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
     r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    kinds = [k for k in (request.GET.get("kinds") or "holocene").split(",") if k in volcanoes.FILES]
     if lat is None or lon is None:
         return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
     out = []
-    for v in volcanoes.near(lon, lat, r):
-        last = volcanoes.year_text(v["last"])
-        rows = [("화산", v["name"]), ("화산 종류", v["type"]), ("마지막 분화", i18n.t(last, lang) if last else ""),
-                ("근거", v["evidence"]), ("나라", v["country"]), ("지역", v["subregion"]),
-                ("표고 (m)", f"{v['elev']:,}" if v["elev"] is not None else ""), ("지구조 환경", v["tectonic"]),
-                ("주 암석", v["rock"]), ("지질 개요", v["summary"])]
+    for v in volcanoes.near(lon, lat, r, kinds=kinds):
+        last = volcanoes.year_text(v.get("last"))
+        epoch = i18n.t(msg("플라이스토세"), lang) if v["kind"] == "pleistocene" else ""
+        rows = [("화산", v["name"]), ("시대", epoch), ("화산 종류", v["type"]),
+                ("마지막 분화", i18n.t(last, lang) if last else ""),
+                ("근거", v.get("evidence")), ("나라", v["country"]), ("지역", v["subregion"]),
+                ("표고 (m)", f"{v['elev']:,}" if v.get("elev") is not None else ""), ("지구조 환경", v.get("tectonic")),
+                ("주 암석", v.get("rock")), ("지질 개요", v["summary"])]
         rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, str(val)] for k, val in rows if val]
         out.append({"no": v["no"], "name": v["name"], "rows": rows, "link": gvp.volcano_url(v["no"]),
                     "at": [v["lon"], v["lat"]]})
@@ -2288,6 +2313,14 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "sgb" and sgb.knows(layer.name):
+        # 브라질 SGB(wetherilli 191) — GeoServer 라 3857 을 그대로. 1:100만·1:25만은 가까이서만 그린다. 범례 그림이 225×46 700 이라
+        # 보는 범위의 범례를 뜬다(`sgb/legend/`) — 대만과 같은 꼴이다. 구조선은 범례가 없다
+        first, last = sgb.zooms(layer.name)
+        legend = ({"legend": "extent", "legendUrl": "sgb/legend/"} if layer.name in sgb.legend_layers()
+                  else {"noLegend": True})
+        return {"attribution": sgb.ATTRIBUTION, "projection": "EPSG:3857", **legend,
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
     if layer.upstream == "gsni":
         return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
@@ -2366,7 +2399,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, basemaps.BasemapError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2404,15 +2437,15 @@ class _Door:
                "bgs": bgs, "brgm": brgm, "egdi": egdi,
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
                "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI,
-               # 남미·콜롬비아(wetherilli 188)
-               "sgc": sgc}
+               # 남미·콜롬비아(wetherilli 188)·브라질(191)
+               "sgc": sgc, "sgb": sgb}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3006,6 +3039,44 @@ def gsmma_legend(request):
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 
+@require_GET
+@browser_cached
+def sgb_legend(request):
+    """`?layer=sgb:1m&bbox=서,남,동,북` — 브라질 지질도의 보는 범위 범례 (wetherilli 191).
+
+    범례 그림이 225×46 700 이라 GeoServer 에 그 범위에 칠해진 칸만 묻는다(`sgb.extent_legend`). 이름·시대는 모아 둔
+    이름표(`fetch_sgb_units`)가 있으면 붙는다. 범위는 대만(`gsmma_legend`)처럼 소수 둘째 자리로 잘라 캐시가 맞게 한다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in sgb.legend_layers():
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    span = sgb.legend_span(name)
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("sgb-legend", f"{name}/{bbox}")
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        west, south = tilegrid.lonlat_to_3857(bbox[0], bbox[1])
+        east, north = tilegrid.lonlat_to_3857(bbox[2], bbox[3])
+        try:
+            rows = sgb.extent_legend(name, (west, south, east, north))
+        except sgb.SgbError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("브라질 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    units = sgb.load_units().get(name) or {}
+    shown = [sgb.legend_row(r, units, lang) for r in rows[:sgb.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
 def _immutable(request, response, version: str):
     """주소의 판(`?v=`)이 지금 판과 같으면 브라우저가 오래 들고 있게 한다 (wetherilli 151).
 
@@ -3079,7 +3150,7 @@ def tile_versions(page: str) -> dict:
                 for name, sheet in ibcso.SHEETS.items()}
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
-                "volcanoes": volcanoes_version(), "quakes": quakes_version(), "neotoma": neotoma_version(),
+                "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version()}
     return {}
 
@@ -3110,8 +3181,8 @@ def fossils_version() -> str:
     return _stamp(fossils.RENDERER, built, _file_stamp(fossils.path()))
 
 
-def volcanoes_version() -> str:
-    return _stamp(volcanoes.RENDERER, volcanoes.fetched(), _file_stamp(volcanoes.path()))
+def volcanoes_version(kind: str = "holocene") -> str:
+    return _stamp(volcanoes.RENDERER, volcanoes.fetched(kind), _file_stamp(volcanoes.path(kind)))
 
 
 def quakes_version() -> str:
@@ -3243,6 +3314,8 @@ def feature_info(request):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
+        elif door.name == "sgb":
+            props = sgb.friendly(props, lang)        # 브라질 — 포르투갈어 시대만 옮기고 이름·설명은 그대로 (wetherilli 191)
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
@@ -3932,6 +4005,60 @@ def pointset_geojson(request, pk):
         response["Content-Disposition"] = (
             f'attachment; filename="pointset-{pk}.geojson"; '
             f"filename*=UTF-8''{quote(stem + '.geojson')}")
+    return response
+
+
+@require_GET
+def pointset_csv(request, pk):
+    """점묶음의 점을 CSV 로 내려받는다 (wetherilli 190). 엑셀이 한글을 알아보게 BOM 붙인 UTF-8 이다.
+
+    열은 이름표·위도·경도, 올린 속성(표고·VWorld 둘레·IBCSO 수심을 붙인 GeoJSON 의 속성 그대로), 그리고 **우리 파일에서 읽는
+    값**(`pointvalues`) — 지구는 GeoMAP 단위·지각 두께·가까운 화석 산지, 달·화성·수성은 그 몸의 지질도 단위다. `?extras=` 로
+    갈래를 고른다(쉼표, `none` 이면 붙이지 않는다). 점이 `pointvalues.LIMIT` 를 넘으면 붙일 값을 읽지 않고 413 으로 까닭을 말한다 —
+    화면은 점 수를 알고 미리 `none` 으로 부른다. 선·면(모양)은 CSV 에 담지 않는다 — GeoJSON 으로 받는다."""
+    lang = i18n.lang_of(request)
+    pointset = get_object_or_404(PointSet, pk=pk)
+    asked = (request.GET.get("extras") or "all").strip()
+    wanted = None if asked == "all" else set() if asked == "none" else set(asked.split(","))
+    kinds = pointvalues.kinds(pointset.body, wanted)
+    points = list(pointset.points.all())
+    if kinds and len(points) > pointvalues.LIMIT:
+        return JsonResponse({"error": i18n.t(msg("점이 {n} 개라 붙일 값을 읽지 않는다 — {limit} 개까지다. extras=none 으로 부른다",
+                                                 n=len(points), limit=pointvalues.LIMIT), lang)}, status=413)
+    depths = {}
+    if pointset.body == "earth":
+        depths = ibcso.depths({p.id: (p.lat, p.lon) for p in points if p.lat <= ibcso.NORTH})
+    rows, keys = [], {}
+    for p in points:
+        props = _point_props(p, depths.get(p.id))
+        label = props.pop("이름표", "")
+        for k in props:
+            keys.setdefault(k, None)
+        rows.append((p, label, props, pointvalues.values(pointset.body, kinds, p.lat, p.lon, lang) if kinds else {}))
+    extra = pointvalues.columns(pointset.body, kinds)
+
+    # 영어판은 우리가 붙인 열만 옮긴다 — 올린 열의 이름은 그 사람의 자료다
+    ours = {"이름표", "위도", "경도", ELEV_PROP, ELEV_SOURCE_PROP, IBCSO_BED_PROP, IBCSO_ICE_PROP, FAULT_PROP,
+            PLACENAME_PROP, *(label for _, label in PLACE_PROPS), *extra}
+
+    def head(name):
+        return i18n.PROP_EN.get(name, name) if lang == "en" and name in ours else name
+
+    def cell(value):
+        if value is None:
+            return ""
+        return json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value
+    out = io.StringIO()
+    out.write("\ufeff")
+    writer = csv.writer(out)
+    writer.writerow([head(c) for c in ["이름표", "위도", "경도", *keys, *extra]])
+    for p, label, props, values in rows:
+        writer.writerow([label, p.lat, p.lon, *(cell(props.get(k)) for k in keys), *(cell(values.get(c)) for c in extra)])
+    from urllib.parse import quote
+    stem = re.sub(r'[\\/:*?"<>|]+', "_", pointset.name).strip() or f"pointset-{pk}"
+    response = HttpResponse(out.getvalue().encode("utf-8"), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (f'attachment; filename="pointset-{pk}.csv"; '
+                                       f"filename*=UTF-8''{quote(stem + '.csv')}")
     return response
 
 
