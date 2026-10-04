@@ -484,6 +484,8 @@ EN = {
         "This piece does not survive to the present — 'today' is where its plate would be",
     # 옛 해안선 (wetherilli 097)
     "그때의 지구": "The Earth then",
+    "구조·판": "Tectonics", "화산·지진": "Volcanoes and earthquakes", "화석·고생태": "Fossils and palaeoecology", "지리": "Geography",
+    "지구물리": "Geophysics",
     "옛 해안선": "Palaeocoastlines",
     "옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)":
         "No palaeocoastline for this age (0–535 Ma, nearest within 10 Myr)",
