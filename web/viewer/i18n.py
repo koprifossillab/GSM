@@ -1267,6 +1267,7 @@ EN = {
     "화성 화면 — 둥근 화성 위의 USGS 지질도": "Mars view — USGS geology on the globe",
     "수성 화면 — 둥근 수성 위의 USGS 지질도": "Mercury view — USGS geology on the globe",
     "둥근 지구와 달, 화성, 수성": "The Earth, the Moon, Mars and Mercury as globes",
+    "둥근 지구": "The Earth as a globe",
     "해에 가장 가까운 행성의 지질도.": "A geologic map of the planet nearest the Sun.",
     "마리너 10 시절의 USGS 1:500만 지질도 아홉 장을 MESSENGER 영상 위에. <b>엽상 급사면</b>과 칼로리스 분지의 고리까지.":
         "Nine USGS 1:5M geologic maps from the Mariner 10 era over MESSENGER imagery — down to <b>lobate scarps</b> and the rings of the Caloris basin.",

@@ -6160,7 +6160,8 @@
       renderDeleted();
       if (loaded) return;
       loaded = true;
-      fetch(BASE + "patchnotes/")
+      // 정적 판은 굽을 때 떠 둔 판 이력(`patchnotes.json`, deploy/static_site.py)을 읽는다 — 서버가 없다
+      fetch(BASE + (STATIC ? "patchnotes.json" : "patchnotes/"))
         .then(function (r) { return r.json(); })
         .then(function (d) { renderNotes(d.notes || []); })
         .catch(function () {
