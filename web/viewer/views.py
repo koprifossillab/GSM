@@ -32,8 +32,8 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
+from . import admap, arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -424,7 +424,7 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
-                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2454,6 +2454,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, _ = nsgs.zooms(layer.name)
         return {"attribution": nsgs.ATTRIBUTION, "projection": "EPSG:3978", "noLegend": True,
                 **({"minZoom": first} if first else {}), **({} if nsgs.queryable(layer.name) else {"queryable": False})}
+    if layer.upstream == "bas" and bas.knows(layer.name):
+        # 남극 Bedmap3(wetherilli 261) — BAS 의 ArcGIS Online 타일을 화면이 곧장. Esri 극 격자라 원점·해상도를 행에 싣는다. 누르기는 없다
+        return {"attribution": bas.ATTRIBUTION, "tiles": bas.tile_url(layer.name), "grid": bas.grid(layer.name),
+                "queryable": False, "legend": "list", "legendUrl": "list/legend/"}
     if layer.upstream == "ags" and ags.knows(layer.name):
         # 앨버타(wetherilli 235) — 타일은 ArcGIS Online 의 3857 z/x/y 를 화면이 곧장(지리원 주제 타일과 같은 길), 누른 자리만 문이
         url, last = ags.LAYERS[layer.name]
@@ -2624,6 +2628,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsjows" and gsj.gsjows_tiles(layer.name):
+        # 공중 자력 편집도(wetherilli 266) — 지질도Navi 판을 카탈로그에 올린 것. 타일은 브라우저가 tiles.gsj.jp 를 곧장(Navi 칸과 같은 길),
+        # 범례는 문이 받아 준 범례 그림
+        return {"attribution": gsj.GEONAVI_ATTRIBUTION, "tiles": gsj.gsjows_tiles(layer.name),
+                "maxZoom": gsj.GSJOWS_NAVI[layer.name][1], "queryable": False}
     if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
         # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
         return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
@@ -2653,6 +2662,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 한반도 지질도(026) — phyloserver 의 카카오 격자 타일. 5181 격자를 화면이 옮겨 그린다
         return {"attribution": phyloserver.ATTRIBUTION, "queryable": False, "noLegend": True,
                 "tiles": f"phyloserver/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}_{{y}}.png"}
+    if layer.upstream == "admap" and layer.name == admap.NAME:
+        # 남극 자력 이상 ADMAP-2(wetherilli 262) — 우리가 칠해 잘라 둔 3031 타일(GeoMAP 격자, 줌 4 까지). 범례는 갈래 표
+        return {"attribution": admap.ATTRIBUTION, "projection": "EPSG:3031", "maxZoom": admap.MAX_ZOOM,
+                "tiles": _versioned_url("admap/{z}/{x}/{y}.webp", _dir_version(admap.tiles_dir())),
+                "classLegend": admap.legend(lang)}
     if layer.upstream == "ibcso" and layer.name == ibcso.TID_LAYER:
         # IBCSO 자료 출처(071) — 우리가 잘라 둔 3031 타일. 격자는 GeoMAP 의 것이고 줌 6 까지다.
         # 범례는 갈래 표를 그대로 보낸다(그림이 아니라 — 컨테이너에 한글 글꼴이 없다)
@@ -2702,7 +2716,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, skgs.SkgsError, nsgs.NsgsError, ags.AgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
-                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError,
+                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError, bas.BasError,
                    geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError, ineter.IneterError, georep.GeorepError,
                    basemaps.BasemapError)
 
@@ -3144,6 +3158,37 @@ def ibcso_tid_tile(request, z, x, y):
     data = ibcso.read_tid_tile(z, x, y)
     return _immutable(request, _tile(data if data is not None else tiles.blank_tile(256, 256)),
                       _dir_version(ibcso.tid_tiles_dir()))
+
+
+@require_GET
+def admap_tile(request, z, x, y):
+    """남극 자력 이상 타일 — `admap/<z>/<x>/<y>.webp` (wetherilli 262). `manage.py build_admap` 이 잘라 둔 것을 내주기만 한다.
+    잘라 두지 않았으면 안내 타일, 자료 밖은 빈 타일이다"""
+    z, x, y = int(z), int(x), int(y)
+    if not admap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not admap.available():
+        return _tile(tiles.notice_tile(256, 256, msg("자력 이상 자료(ADMAP-2)가 서버에 없다")), store=False)
+    data = admap.read_tile(z, x, y)
+    version = _dir_version(admap.tiles_dir())
+    if data is None:
+        return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
+    return _immutable(request, _tile(data, content_type="image/webp"), version)
+
+
+@require_GET
+@browser_cached
+def admap_info(request):
+    """누른 자리의 자력 이상 — `admap/info/?lat=&lon=` (wetherilli 262). `/featureinfo/` 의 꼴로 낸다"""
+    lang = i18n.lang_of(request)
+    ll = _latlon(request)
+    if ll is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    nt = admap.value_at(*ll)
+    if nt is None:
+        return JsonResponse({"features": []})
+    props = {"자력 이상 (nT)": nt}
+    return JsonResponse({"features": [{"props": i18n.props_en(props) if lang == "en" else props}]})
 
 
 def _latlon(request):
@@ -3615,7 +3660,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs, georep)
+LIST_LEGENDS = (jmg, dmr, calgs, georep, bas)
 
 
 @require_GET
