@@ -289,3 +289,25 @@ class Polar(TestCase):
         self.assertEqual(len(sent), 1)                                                # 이웃 칸은 상류를 타지 않는다
         self.assertEqual((sent[0]["size"], sent[0]["bboxSR"]), ("1024,1024", "3413"))
 
+    def test_prewarm_도_3413_블록으로(self):
+        """미리 데우기의 메타타일 계획이 극지 격자에서도 화면과 같은 블록을 받고, 화면 길이 찾는 조각 열쇠에 담는다 (wetherilli 309)"""
+        from viewer import geus, tilegrid
+        from viewer.management.commands import prewarm
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        plan = prewarm.plan_for("geusarc:g100k_ssw", "geusarc")
+        self.assertIsInstance(plan, prewarm.MetaPlan)
+        self.assertEqual(plan.grid.crs, "EPSG:3413")
+        sent = []
+
+        def fake(url, params=None, **kw):
+            sent.append((params["size"], params["bboxSR"]))
+            return mock.Mock(status_code=200, headers={"content-type": "image/png"}, content=quadrants(512), url=url, elapsed=None)
+        with mock.patch.object(geus.requests, "get", side_effect=fake), mock.patch.object(geus.usage, "paused", return_value=0):
+            self.assertEqual(plan.fetch_block(5, 4, 7, plan.block(4)), 4)
+        self.assertEqual(sent, [("1024,1024", "3413")])
+        for x, y in ((8, 14), (9, 14), (8, 15), (9, 15)):
+            self.assertIsNotNone(metatile.tilecache.get(metatile.piece_key("geusarc:g100k_ssw", 512, 5, x, y, "EPSG:3413")))
+        # 화면 길이 그 블록의 칸을 셈하면 같은 조각 열쇠다
+        cell = metatile.cell(tilegrid.Grid("EPSG:3413").wms_params("geusarc:g100k_ssw", 5, 9, 15))
+        self.assertEqual(cell, ("EPSG:3413", 5, 9, 15, 512))
+
