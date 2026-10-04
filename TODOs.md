@@ -111,11 +111,6 @@
   - 일본 주소 찾기 [실측] `msearch.gsi.go.jp/address-search/AddressSearch?q=` — 스발바르 지명 분기(`searchNames`)를 본떠 1–2시간.
     CORS 확인, 동아시아 탭은 VWorld 로 가므로 가르는 분기. 좌표→주소(`mreversegeocoder`)는 시군구 코드만 줘 표가 들고 문도 든다(반나절)
 
-### 그린란드 포털 — 남은 것
-
-- [ ] 다이아몬드 탐사 자료(DED)의 나머지 — 단사휘석·티탄철석·첨정석·사방휘석 분류(`DED_GL_thm_BA_ind_chem*`), 거둔 다이아몬드
-      (`_macro`·`_micro`), 연대(`OCCURRENCES_AGES`), 산출지의 선·면. 석류석·농도·시추공·탐사 구역은 섰다(wetherilli 157)
-
 ### 달 — Trek ImageServer
 
 - [ ] 누른 자리의 값 — 남은 것. 켠 판만(wetherilli 103), 다누리 KGRS 다섯(상대값·단위 미확인)·북극 FeO·얼음 깊이 둘은 섰다(150).
