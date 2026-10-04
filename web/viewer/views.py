@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, ygs
+from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -403,7 +403,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsjows", "gsmma",
              # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 3857 로 그린다
              "geosphere", "pig", "tno", "dov", "spw",
              # 니카라과 INETER(wetherilli 242) — GeoServer 라 3857 로 그린다
-             "ineter")
+             "ineter",
+             # 누벨칼레도니 Géorep(wetherilli 260) — 3857 로 다시 그려 준다
+             "georep")
 
 
 @require_GET
@@ -2191,7 +2193,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2230,8 +2232,14 @@ def _point_fields(layer) -> dict:
                 "opacity": 0.75 if layer.name == stri.GEOLOGY else 1}
     if layer.upstream == "usgscarib" and usgscarib.knows(layer.name):
         # USGS 카리브 지질도(wetherilli 248) — 피처 서비스라 면(6 343)을 한 덩이로 받아 화면이 구워 그린다(geo3al 과 같은 꼴)
+        sa = layer.name == usgscarib.SA_NAME                  # 남미(wetherilli 256)도 같은 문
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
-                "source": usgscarib.SOURCE_URL, "attribution": usgscarib.ATTRIBUTION, "opacity": 0.75}
+                "source": usgscarib.SA_SOURCE_URL if sa else usgscarib.SOURCE_URL,
+                "attribution": usgscarib.SA_ATTRIBUTION if sa else usgscarib.ATTRIBUTION, "opacity": 0.75}
+    if layer.upstream == "vmme" and vmme.knows(layer.name):
+        # 파라과이 VMME(wetherilli 256) — 카리브와 같은 꼴, 면 61 을 한 덩이로
+        return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
+                "source": vmme.SOURCE_URL, "attribution": vmme.ATTRIBUTION, "opacity": 0.75}
     if layer.upstream == "geo3al" and geo3al.knows(layer.name):
         # 중국 지질도(USGS geo3al, 025) — 얀마옌처럼 면을 한 덩이로. 면이 1 만 2 천이라
         # 화면이 한 장으로 구워 그린다(`render: image`). 이용 조건은 범례 칸이 적는다
@@ -2430,6 +2438,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({"noLegend": True} if sheet in getattr(door, "NO_LEGEND", ()) else {}),
                 # IGME5000 의 단층·연대 기호(wetherilli 217)는 누를 것이 없다
                 **({} if getattr(door, "queryable", lambda n: True)(layer.name) else {"queryable": False})}
+    if layer.upstream == "georep" and georep.knows(layer.name):
+        # 누벨칼레도니 Géorep(wetherilli 260) — 축척마다 상류가 판을 바꿔 그린다. 속성은 REST identify(문이 WMS 꼴을 바꾼다)
+        return {"attribution": georep.ATTRIBUTION, "projection": "EPSG:3857", "legend": "list", "legendUrl": "list/legend/"}
     if layer.upstream == "ineter" and ineter.knows(layer.name):
         # 니카라과 INETER(wetherilli 242) — GeoServer 를 3857 로. 단층은 값의 글자가 깨져 누르지 않는다
         return {"attribution": ineter.ATTRIBUTION, "projection": "EPSG:3857",
@@ -2692,7 +2703,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, skgs.SkgsError, nsgs.NsgsError, ags.AgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
                    esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError,
-                   geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError, ineter.IneterError,
+                   geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError, ineter.IneterError, georep.GeorepError,
                    basemaps.BasemapError)
 
 
@@ -2786,7 +2797,7 @@ class _Door:
                # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237)
                "geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw,
                # 니카라과(wetherilli 242)
-               "ineter": ineter}
+               "ineter": ineter, "georep": georep}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2795,7 +2806,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3604,7 +3615,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs)
+LIST_LEGENDS = (jmg, dmr, calgs, georep)
 
 
 @require_GET
@@ -4201,6 +4212,8 @@ def feature_info(request):
             props = mrdata.friendly(props, lang)     # 미국 — 값은 영어 그대로, 알래스카의 시대만 옮긴다 (wetherilli 205)
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
+        elif door.name == "georep":
+            props = georep.friendly(props, lang)     # 누벨칼레도니 — 값은 프랑스어 그대로, 1:5만의 기·절만 옮긴다 (wetherilli 260)
         elif door.name == "ineter":
             props = ineter.friendly(props, lang)     # 니카라과 — 값은 스페인어 그대로, 시대만 옮긴다 (wetherilli 242)
         elif door.name in ("skgs", "nsgs", "ags"):
@@ -4478,6 +4491,8 @@ def point_layer(request):
         return _usgscarib_layer(name, lang)
     if stri.knows(name):
         return _stri_layer(name, lang)
+    if vmme.knows(name):
+        return _vmme_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -4582,6 +4597,19 @@ def _usgscarib_layer(name, lang):
     except usgscarib.UsgsCaribError as exc:
         log.warning("USGS 카리브 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("USGS 카리브 지질도를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _vmme_layer(name, lang):
+    """파라과이 VMME 지질도 한 덩이 (wetherilli 256). 꼴은 `_usgscarib_layer` 와 같다"""
+    try:
+        content = vmme.body(name, lang)
+    except vmme.VmmeError as exc:
+        log.warning("파라과이 지질도를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("파라과이 지질도(VMME)를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
