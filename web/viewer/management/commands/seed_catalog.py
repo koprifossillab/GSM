@@ -49,6 +49,7 @@ class Command(BaseCommand):
                 # KIGAM 낱레이어를 엮은 것(층리 뺀 5만 지질도) — 같은 "지질도" 레이어군에 든다
                 (settings.KIGAM_COMPOSED_CATALOG_SEED, "KIGAM 엮은 레이어", "korea", "kigam"),
                 (settings.GEUS_CATALOG_SEED, "그린란드", "greenland", "geus"),
+                (settings.GEUSARC_CATALOG_SEED, "그린란드 (GEUS ArcGIS)", "greenland", "geusarc"),
                 (settings.VWORLD_CATALOG_SEED, "VWorld", "korea", "vworld"),
                 (settings.GRPORTAL_CATALOG_SEED, "그린란드 정부 포털", "greenland", "grportal"),
                 (settings.GEOMAP_CATALOG_SEED, "남극", "antarctica", "geomap"),

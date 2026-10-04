@@ -2994,6 +2994,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
@@ -3119,6 +3120,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # GEUS ArcGIS (wetherilli 259)
+    "geusarc:magnetic": "Magnetic anomaly compilation", "geusarc:bouguer": "Bouguer gravity anomaly (DTU)",
+    "geusarc:provinces": "Geological provinces (1:2.5M)",
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
     # NRCan 의 다른 서비스 (wetherilli 250)

@@ -78,6 +78,9 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 ## 지역 — 극지 (016·017·018·019·021·022)
 
+- [ ] 그린란드 지구물리(wetherilli 259) — GEUS ArcGIS 의 방사능(`Geophysics_Radiometry`)은 국지 조사 몇 곳뿐이라, 공중 자력(`Geophysics_Aeromag_Magnetic`·
+      `_AWI`·`Aem_Magnetic`)·1:250만·1:10만 지질도(`Geological_map_2500k`·`_100k_SSW`·`_100k_Karrat`)는 같은 서버에 있어 더할 수 있다.
+      지도 화면의 광물 산지 v3(`mineral_occurrences_v3_external`)는 WMS 이름이 403 — 포털(grportal)의 광물 산지가 같은 뿌리다
 - [ ] **(사람)** 그린란드 50만 지질도는 GEUS 가 추린 판(`_search`)이다. 원본
       (`grl_g500_lithostr_units`)을 WMS 로 열어 주는지 GEUS 에 묻는다 —
       써 보고 빈 곳이 거슬리면 사람이 메일을 쓴다. 같은 메일에 정부 포털 시료가

@@ -360,7 +360,7 @@ def map_view(request):
 
 
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
-MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
+MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsmma",
              "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
              # 남미 SGC(wetherilli 188)·브라질 SGB(191)·아르헨티나 SEGEMAR·우루과이 DINAMIGE(196) — 3857 로 그린다
              "sgc", "sgb", "segemar", "dinamige",
@@ -2319,6 +2319,10 @@ GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" ta
 def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
+    if layer.upstream == "geusarc" and geus.arc_knows(layer.name):
+        # 그린란드 GEUS ArcGIS(wetherilli 259) — 화면의 투영(3413)으로 REST export. 범례는 따로 받지 않고, 지질구만 누른다
+        return {"attribution": geus.ARC_ATTRIBUTION.get(layer.name, geus.GEUS_ATTRIBUTION), "projection": "EPSG:3413", "noLegend": True,
+                **({} if geus.ARC_LAYERS[layer.name][2] else {"queryable": False})}
     if layer.upstream == "vworld" and layer.name in vworld.MIN_ZOOM:
         # 가까이서만 그려 주는 VWorld 레이어(토양·산림·국가유산, wetherilli 084·193) — 멀리서는 묻지 않는다
         return {"minZoom": vworld.MIN_ZOOM[layer.name]}
@@ -2708,7 +2712,7 @@ class _Door:
     판을 갈면 곧바로 새 것이 보인다.
     """
 
-    MODULES = {"kigam": kigam, "geus": geus, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
+    MODULES = {"kigam": kigam, "geus": geus, "geusarc": geus.ARC, "vworld": vworld, "geomap": geomap, "npolar": npolar, "kopri": kopri,
                # PGC 경사·등고선(wetherilli 099) — 문은 표고와 같은 elevation.py 다
                "pgc": elevation,
                # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
@@ -2779,7 +2783,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -4116,7 +4120,9 @@ def feature_info(request):
             continue
         seen.add(mark)
         props = {k: _split_links(v) for k, v in props.items()}
-        if door.name == "geus":
+        if door.name == "geusarc":
+            props = geus.arc_friendly(props, lang)     # 그린란드 지질구 (wetherilli 259)
+        elif door.name == "geus":
             props = geus.friendly(props)          # gu_name → 지질 단위 …
         elif door.name == "vworld":
             # riv_nm → 하천명 …. 토양도처럼 레이어마다 뜻이 다른 열이 있어 레이어를 넘긴다

@@ -1004,6 +1004,8 @@
   var LAYER_KINDS = {
     kigam: { source: wmsSource, info: wmsInfoUrl },
     geus: { source: wmsSource, info: wmsInfoUrl },
+    // GEUS 의 ArcGIS — 자력 편찬·DTU 부게 중력·지질구(wetherilli 259). 카탈로그 행의 투영(3413)으로
+    geusarc: { source: npolarSource, info: wmsInfoUrl },
     vworld: { source: wmsSource, info: wmsInfoUrl },
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
@@ -2598,7 +2600,7 @@
 
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
-    kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
+    kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", geusarc: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
     gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
@@ -2606,7 +2608,7 @@
     kigam50k: "KIGAM",
   };
   var UPSTREAM_NAMES = {
-    kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
+    kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), geusarc: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
