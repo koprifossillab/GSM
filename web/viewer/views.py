@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gns, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
+from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gns, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, mris, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -385,7 +385,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 아이슬란드 NÍ(wetherilli 216) — 2D 는 3413 이지만 GeoServer 라 3857 도 그린다
              "natt",
              # 뉴질랜드·남빅토리아랜드 GNS(wetherilli 218) — GeoServer 라 3857 도 그린다
-             "gns")
+             "gns",
+             # 몽골 MonGeoCat(wetherilli 221) — ArcGIS WMS 가 3857 로 그린다
+             "mris")
 
 
 @require_GET
@@ -2321,6 +2323,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "ngu":
         # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
         return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+    if layer.upstream == "mris" and mris.knows(layer.name):
+        # 몽골 MonGeoCat(wetherilli 221) — ArcGIS WMS 를 3857 로. 그림 범례는 칸이 255 라 REST 범례를 목록으로(`mris/legend/`)
+        legend = ({"legend": "list", "legendUrl": "mris/legend/"} if layer.name in mris.LEGEND_LAYERS
+                  else {"noLegend": True})
+        return {"attribution": mris.ATTRIBUTION, "projection": "EPSG:3857", **legend,
+                **({} if layer.name in mris.QUERYABLE else {"queryable": False})}
     if layer.upstream == "gns" and gns.knows(layer.name):
         # 뉴질랜드·남빅토리아랜드 GNS(wetherilli 218) — 뉴질랜드는 3857, 남극은 3031 로 곧장. QMAP 합본은 넓게 보면 느려 줌 7 부터
         spec = gns.LAYERS[layer.name]
@@ -2532,7 +2540,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError,
-                   ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError,
+                   ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError,
                    basemaps.BasemapError)
 
 
@@ -2602,7 +2610,9 @@ class _Door:
                # 아이슬란드(wetherilli 216)
                "natt": natt,
                # 뉴질랜드·남빅토리아랜드(wetherilli 218)
-               "gns": gns}
+               "gns": gns,
+               # 몽골(wetherilli 221)
+               "mris": mris}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2611,7 +2621,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3388,6 +3398,32 @@ def dinamige_legend(request):
 
 @require_GET
 @browser_cached
+def mris_legend(request):
+    """`?layer=mris:geology:1` — 몽골 지질도의 범례 목록 (wetherilli 221). 그림 범례는 칸이 255 라 ArcGIS REST 의 `legend` 를 받아
+    칸마다 지수·풀린 시대·견본으로 낸다. 꼴과 캐시는 우루과이(`dinamige_legend`)와 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in mris.LEGEND_LAYERS:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    key = tilecache.key_text("mris-legend", name)
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = mris.legend_rows(name)
+        except mris.MrisError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("몽골 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    if lang == "ko":
+        rows = [dict(r, age=i18n.age_ko(r["age"]) if r.get("age") else "") for r in rows]
+    return JsonResponse({"rows": rows})
+
+
+@require_GET
+@browser_cached
 def ga_legend(request):
     """`?layer=ga:lithostratigraphy&bbox=서,남,동,북` — 호주 지질도의 보는 범위 범례 (wetherilli 212). 범위가 넓으면 1:250만 판,
     좁으면 1:100만 판의 단위를 센다 — 상류가 그 축척에 그리는 판과 같게. 꼴은 페루(`ingemmet_legend`)와 같다"""
@@ -3735,6 +3771,8 @@ def feature_info(request):
             props = emodnet.friendly(props, lang)    # 마흔 남짓한 열에서 추린다. 시대를 옮긴다
         elif door.name == "ngu":
             props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
+        elif door.name == "mris":
+            props = mris.friendly(props, lang)       # 몽골 — 영어 열을 쓰고 시대는 층서 지수에서 푼다 (wetherilli 221)
         elif door.name == "gns":
             props = gns.friendly(props, lang)        # 뉴질랜드 — 이름·암석은 영어 그대로, 시대는 숫자 나이에서 고른다 (wetherilli 218)
         elif door.name == "sgu":

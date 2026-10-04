@@ -2635,3 +2635,24 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #08332f; --hi-deep: #04211e; --on-hi: #fbfefe; --hi-ink: #12857a;
   --glass: rgba(251, 254, 254, .95); --glass-line: #cfe3e1;
 }
+
+/* ── 몽골 (wetherilli 221) — 고비 바얀작 "불타는 절벽"의 주황: 사막 모래의 짙은 갈색 바탕 ──
+   공룡 알이 나온 백악기 사암의 빛이다. 미국(모뉴먼트밸리 사암, 붉은 쪽)보다 노랗다 */
+:root[data-region="mongolia"] {
+  --bg: #171410; --panel: #1e1a15; --panel-tint: #120f0c; --raise: #2a241d;
+  --ink: #f6efe6; --ink-soft: #cdbfae; --ink-faint: #8f806f;
+  --line: #3b3228; --line-soft: #2a241d;
+  --gold: #ec7b3a; --gold-bright: #f6ad80; --gold-muted: #c66a35;
+  --gold-wash: rgba(236, 123, 58, .13); --gold-edge: rgba(236, 123, 58, .42);
+  --hi: #ec7b3a; --hi-deep: #f6ad80; --on-hi: #120f0c; --hi-ink: #f6ad80;
+  --glass: rgba(18, 15, 12, .93); --glass-line: rgba(236, 123, 58, .35);
+}
+:root[data-region="mongolia"][data-theme="light"] {
+  --bg: #f9f3ec; --panel: #fefcf9; --panel-tint: #fbf7f1; --raise: #f0e5d8;
+  --ink: #221b14; --ink-soft: #5b4c3d; --ink-faint: #958473;
+  --line: #e8dacb; --line-soft: #f0e5d8;
+  --gold: #c2531a; --gold-bright: #973f12; --gold-muted: #a8683f;
+  --gold-wash: #f9e4d6; --gold-edge: #efb995;
+  --hi: #3d1a08; --hi-deep: #260f04; --on-hi: #fef7f2; --hi-ink: #c2531a;
+  --glass: rgba(254, 252, 249, .95); --glass-line: #e8dacb;
+}
