@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, usage
+from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -370,8 +370,8 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "mrdata",
              # 멕시코 SGM(wetherilli 206) — 문이 WMS 변수를 REST export 로 옮긴다
              "sgm",
-             # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
-             "cgmw", "aga",
+             # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207), 남아공 CGS·나미비아 GSN(209) — 서버 캐시에 담지 않는 둘도 3D 는 그때그때 받는다
+             "cgmw", "aga", "cgs", "gsn",
              # 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
              "nrcan", "ogs",
              # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다
@@ -2389,6 +2389,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "cgmw":
         # 아프리카 1:1000만(wetherilli 207) — BRGM 의 mapsref 서버, 3857 그대로. 범례는 Capabilities 의 정적 PNG(`brgm.cgmw_get_legend`)
         return {"attribution": brgm.CGMW_ATTRIBUTION, "projection": "EPSG:3857"}
+    if layer.upstream == "cgs" and cgs.knows(layer.name):
+        # 남아공 CGS 1:100만(wetherilli 209) — 문이 WMS 변수를 ArcGIS REST export·identify 로 옮긴다. 범례는 REST 를 목록으로(`cgs/legend/`)
+        return {"attribution": cgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "list", "legendUrl": "cgs/legend/"}
+    if layer.upstream == "gsn":
+        # 나미비아 GSN 1:100만(wetherilli 209) — BGS 의 MapServer, 3857 그대로
+        return {"attribution": bgs.GSN_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "aga":
         # 아프리카 지하수 지도책의 나라별 지질(wetherilli 207) — 38 나라 레이어를 문이 이어 묻는다. 3857 그대로
         return {"attribution": bgs.AGA_ATTRIBUTION, "projection": "EPSG:3857"}
@@ -2470,7 +2476,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, ga.GaError,
                    basemaps.BasemapError)
 
@@ -2485,6 +2491,10 @@ def _upstream_of(layers: str) -> str:
     except Exception:                  # 카탈로그를 못 읽어도 한국 지도는 돌아야 한다
         row = None
     return row or "kigam"
+
+
+#: 받은 것을 서버 캐시에 담지 않는 상류 — 자료를 파는 곳이라 다시 내주지 않는다. 남아공 CGS(정부 사본)·나미비아 GSN (wetherilli 209)
+NO_STORE = ("cgs", "gsn")
 
 
 class _Door:
@@ -2524,6 +2534,8 @@ class _Door:
                "sgm": sgm,
                # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
                "cgmw": brgm.CGMW, "aga": bgs.AGA,
+               # 아프리카 나라 판(wetherilli 209) — 남아공은 새 문, 나미비아는 BGS 가 내주어 bgs.py 안에
+               "cgs": cgs, "gsn": bgs.GSN,
                # 캐나다(wetherilli 204)
                "nrcan": nrcan, "ogs": ogs,
                # 호주(wetherilli 212)
@@ -2534,7 +2546,9 @@ class _Door:
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "nrcan", "ogs", "ga"):    # 열쇠가 없는 공개 서비스다
+        #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
+        self.nostore = self.local or self.name in NO_STORE
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "ga"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -2594,7 +2608,9 @@ def wms(request):
         return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
 
     # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
-    tilecache.put(cache_key, content)
+    # 자료를 파는 상류(`NO_STORE`)도 담지 않는다 — 그때그때 받아 보여 주기만 한다 (wetherilli 209)
+    if not door.nostore:
+        tilecache.put(cache_key, content)
 
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
@@ -3263,6 +3279,27 @@ def ingemmet_legend(request):
 
 @require_GET
 @browser_cached
+def cgs_legend(request):
+    """`?layer=cgs:geology_1m` — 남아공 1:100만의 범례 목록 (wetherilli 209). WMS 가 꺼져 REST `legend` 를 칸마다 이름·견본으로 낸다.
+    범례는 지도 자료가 아니라 칸 이름이라 캐시에 담는다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if not cgs.knows(name):
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    key = tilecache.key_text("cgs-legend", name)
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = cgs.legend_rows(name)
+        except cgs.CgsError as exc:
+            log.info("남아공 범례를 받지 못했다 (%s): %s", name, exc)
+            return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse({"rows": rows})
+
+
+@require_GET
+@browser_cached
 def dinamige_legend(request):
     """`?layer=dinamige:2` — 우루과이 지질도의 범례 목록 (wetherilli 196). WMS 의 그림 범례가 비어(18×18) ArcGIS REST 의
     `legend` 를 받아 칸마다 이름·시대·견본으로 낸다. 화면은 일본·대만의 범례와 같은 꼴로 그린다. 받은 것은 캐시에 담는다"""
@@ -3584,10 +3621,10 @@ def feature_info(request):
     # 지도 범위와 누른 픽셀이 같아야 맞으므로 타일만큼 자주 맞지는 않는다
     cache_key = tilecache.key_for("info", params)
     door = _Door(_upstream_of(params.get("query_layers") or params.get("layers")))
-    data = None if door.local else _cached_json(cache_key)
+    data = None if door.nostore else _cached_json(cache_key)
     if data is None:
         if not door.ready:
-            data = None if door.local else _cached_json(cache_key, stale=True)
+            data = None if door.nostore else _cached_json(cache_key, stale=True)
             if data is None:
                 return JsonResponse({"error": i18n.t(door.not_ready_message(), lang), "features": []},
                                     status=503)
@@ -3602,7 +3639,7 @@ def feature_info(request):
                     return JsonResponse({"error": error, "features": []},
                                         status=502)
             else:
-                if not door.local:
+                if not door.nostore:
                     _store_json(cache_key, data)
 
     # 같은 것이 여러 번 온다. 지질도는 폴리곤이 겹쳐 놓인 자리가 많고,
@@ -3642,6 +3679,10 @@ def feature_info(request):
             props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
         elif door.name == "cgmw":
             props = brgm.cgmw_friendly(props, lang)   # 아프리카 1:1000만 — ICS 시대는 옮기고 암석은 영어 그대로 (wetherilli 207)
+        elif door.name == "cgs":
+            props = cgs.friendly(props, lang)         # 남아공 — 층서·시대·암석, 값은 영어 그대로 (wetherilli 209)
+        elif door.name == "gsn":
+            props = bgs.gsn_friendly(props, lang)     # 나미비아 — 연대·층서·암석 (wetherilli 209)
         elif door.name == "aga":
             props = bgs.aga_friendly(props, lang)     # 나라마다 다른 `…GLG` 열이 암상이다 (wetherilli 207)
         elif door.name == "gsni":
@@ -3741,7 +3782,8 @@ def legend(request):
         log.info("범례를 받지 못했다 (%s): %s", layer, exc)
         return JsonResponse({"error": str(exc)},
                             status=503 if not door.ready else 502)
-    tilecache.put(cache_key, content)
+    if door.name not in NO_STORE:
+        tilecache.put(cache_key, content)
     response = HttpResponse(content, content_type=ctype)
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

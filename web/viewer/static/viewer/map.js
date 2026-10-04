@@ -299,8 +299,11 @@
     africa: { title: "아프리카", proj: "EPSG:3857", center: [20.0, 2.0], zoom: 3, vworld: false,
               home: [-2900000, -4300000, 6000000, 4600000],
               basemap: "eox_terrain", example: "-1.29, 36.82 · Nairobi",
-              base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology"],
-              first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits" },
+              base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology", "cgs:geology_1m",
+                     "gsn:NAM_GSN_1M_BLS"],
+              first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits",
+              // 나라 판(남아공·나미비아, wetherilli 209)은 제 나라만 덮는다 — 묶음 탭처럼 범위 밖 타일을 묻지 않는다
+              clip: true },
     // 호주(wetherilli 212) — Geoscience Australia 지표 지질도. 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가 축척에 맞는 판을
     // 그린다. 화면은 3857 — GA 가 3577(호주 알베르스)을 그려 주지 않고 남위 10–44° 라 많이 부풀지 않는다
     australia: { title: "호주", proj: "EPSG:3857", center: [134.0, -26.0], zoom: 4, vworld: false,
@@ -853,6 +856,9 @@
     // 아프리카(wetherilli 207) — 카탈로그 행의 투영(3857)으로 서버 문을 거쳐 받는다
     cgmw: { source: npolarSource, info: wmsInfoUrl },
     aga: { source: npolarSource, info: wmsInfoUrl },
+    // 아프리카 나라 판(wetherilli 209) — 남아공 CGS(서버가 REST export 로 옮긴다)·나미비아 GSN
+    cgs: { source: npolarSource, info: wmsInfoUrl },
+    gsn: { source: npolarSource, info: wmsInfoUrl },
     // 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. OGS 속성은 문이 REST identify 로 바꾼다
     nrcan: { source: npolarSource, info: wmsInfoUrl },
     ogs: { source: npolarSource, info: wmsInfoUrl },
@@ -1049,7 +1055,8 @@
     // KIGAM 에 일본·바다 자리를 묻지 않게(호출 제한, 010). 상류가 적은 범위가 빠듯할
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
     // 지질도Navi 판은 도폭 하나라 좁다 — 어느 탭에서든 범위 밖을 묻지 않는다 (wetherilli 171)
-    if (row && row.bbox && (REGIONS[region].includes || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()) {
+    // 나라 판을 대륙 탭 하나에 얹은 아프리카(`clip`, wetherilli 209)도 같다
+    if (row && row.bbox && (REGIONS[region].includes || REGIONS[region].clip || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()) {
       // 지질도Navi 판은 Capabilities 의 범위가 판 그대로라 넉넉히 두지 않는다 — 둘레의 없는 타일(404)을 묻지 않게
       var b = row.bbox, pad = row.upstream === "geonavi" ? 0 : 0.5;
       tile.setExtent(ol.proj.transformExtent([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad],
@@ -2327,7 +2334,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", ga: "GA", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", ga: "GA", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2344,7 +2351,8 @@
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
-    cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"), ga: "Geoscience Australia",
+    cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
+    cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
