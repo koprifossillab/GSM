@@ -676,8 +676,9 @@ EN = {
     "대만": "Taiwan",
     # 북극해 — 스발바르·그린란드 밖의 북극 (devlog 076)
     "북극해": "Arctic Ocean",
-    # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
+    # 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140). 스웨덴 SGU 가 들어 탭 이름이 셋이 됐다 (213)
     "노르웨이·핀란드": "Norway & Finland",
+    "노르웨이·스웨덴·핀란드": "Norway, Sweden & Finland",
     # 영국·프랑스·유럽 — BGS·BRGM·EGDI 지질도 (wetherilli 143)
     "영국": "United Kingdom",
     "프랑스": "France",
@@ -725,6 +726,7 @@ EN = {
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
     "노르웨이 지질조사소": "Geological Survey of Norway",
     "핀란드 지질조사소": "Geological Survey of Finland",
+    "스웨덴 지질조사소": "Geological Survey of Sweden",
     "추가 지역": "Add region",
     "그 외": "More",
     "준비 중": "coming soon",
@@ -2083,6 +2085,10 @@ PROP_EN = {
     "해석": "Interpretation",
     "광물": "Mineral",
     "측정법": "Technique",
+    # 브라질 SGB 의 노두·연대측정·화석 산지 (wetherilli 215)
+    "야외 번호": "Field number", "과제": "Project", "분석 재료": "Material analysed", "자료 공개": "Access level",
+    "분류": "Systematics", "분류군": "Taxon", "재료": "Material", "암층서 단위": "Lithostratigraphic unit",
+    "층서 시대": "Chronostratigraphy", "산출 양상": "Mode of occurrence",
     "계산법": "Approach",
     "암상": "Lithology",
     # 남아공 CGS·나미비아 GSN (wetherilli 209)
@@ -2252,6 +2258,11 @@ PROP_EN = {
     "변성 연대": "Age of metamorphism",
     "지구조 구분": "Tectonic division",
     "지구조 단위": "Tectonic unit",
+    # 스웨덴 SGU (wetherilli 213)
+    "암층서 단위": "Lithostratigraphic unit",
+    "하위 단위": "Subunit",
+    "광물 조성": "Mineral composition",
+    "생성": "Genesis",
     "원 이름": "Original name",
     "층": "Formation",
     "층군": "Group",
@@ -2777,6 +2788,7 @@ GROUP_EN = {
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
     "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
     "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
+    "스웨덴 기반암 (SGU)": "Sweden bedrock (SGU)",
     "영국 지질 (BGS)": "Great Britain geology (BGS)",
     "프랑스 지질 (BRGM)": "France geology (BRGM)",
     "유럽 지질 (EGDI 1:100만)": "Europe geology (EGDI 1:1M)",
@@ -2787,6 +2799,7 @@ GROUP_EN = {
     "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
     "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
+    "브라질 지질 자료 점 (SGB)": "Brazil geological data points (SGB)",
     "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
@@ -2887,6 +2900,9 @@ LAYER_EN = {
     "sgb:2500k_structures": "Structures (1:2.5M, 2025)",
     "sgb:1m": "Lithostratigraphic units (1:1M)",
     "sgb:250k": "Lithostratigraphic units (1:250k, published sheets)",
+    "sgb:outcrops": "Outcrops (close zooms only)",
+    "sgb:geochronology": "Geochronology samples",
+    "sgb:fossils": "Fossil occurrences",
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
@@ -2924,6 +2940,9 @@ LAYER_EN = {
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
+    # 스웨덴 기반암 (wetherilli 213)
+    "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
+    "sgu:deformation": "Deformation zones (1:1M)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

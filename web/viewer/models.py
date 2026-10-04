@@ -113,7 +113,7 @@ class Layer(models.Model):
     #: phyloserver → `phyloserver.py` (연구실 암맥 기록·한반도 지질도 — devlog 026),
     #: peninsula → `peninsula.py` (한반도 지질도 음영판 PDF 를 잘라 둔 타일 — devlog 027),
     #: gsmma → `gsmma.py` (대만 지질도 — 4326 WMS 를 받고 속성은 지질운 GeoJSON, wetherilli 136),
-    #: ngu → `ngu.py`·gtk → `gtk.py` (노르웨이·핀란드 기반암 지질도 — 3575·3413 으로 곧장, wetherilli 140),
+    #: ngu → `ngu.py`·gtk → `gtk.py` (노르웨이·핀란드 기반암 지질도 — 3575·3413 으로 곧장, wetherilli 140), sgu → `sgu.py` (스웨덴, 3413 으로 곧장, wetherilli 213),
     #: bgs → `bgs.py`·brgm → `brgm.py`·egdi → `egdi.py` (영국·프랑스·범유럽 1:100만 지질도, wetherilli 143),
     #: bgr → `bgr.py`·igme → `igme.py`·gsi → `gsi.py`·gsni → `bgs.py` 의 GSNI (독일·스페인·아일랜드, wetherilli 147),
     #: sgc → `sgc.py` (남미·콜롬비아 지질도, wetherilli 188), sgb → `sgb.py` (브라질 지질도, wetherilli 191),
