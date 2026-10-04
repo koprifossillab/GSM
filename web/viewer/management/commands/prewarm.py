@@ -427,7 +427,7 @@ NOT_LAYERS = {
 
 #: 화면이 카탈로그 행의 투영으로 받는 유럽·북극 상류(`map.js` 의 `npolarSource`) — 투영과 그리는 줌은 `views._layer_extra` 가 정한다
 #: (wetherilli 182). 같은 상류도 판마다(IGME 1:100만 4326·MAGNA 3857), 레이어군마다(EMODnet 북극해 3413·유럽 바다 3857) 다르다
-PROJECTED = ("emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb")
+PROJECTED = ("emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "segemar", "dinamige")
 
 
 def _projected_plan(name, upstream):

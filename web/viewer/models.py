@@ -37,7 +37,10 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            ("colombia", "콜롬비아"),
            ("brazil", "브라질"),
            # 페루 — INGEMMET 1:5만·1:10만 (wetherilli 195). 남미 1:500만은 브라질처럼 콜롬비아 지역의 것을 빌린다
-           ("peru", "페루"))
+           ("peru", "페루"),
+           # 아르헨티나 SEGEMAR·우루과이 DINAMIGE (wetherilli 196). 남미 1:500만은 콜롬비아의 것을 빌린다
+           ("argentina", "아르헨티나"),
+           ("uruguay", "우루과이"))
 
 
 class LayerGroup(models.Model):
@@ -95,6 +98,7 @@ class Layer(models.Model):
     #: bgr → `bgr.py`·igme → `igme.py`·gsi → `gsi.py`·gsni → `bgs.py` 의 GSNI (독일·스페인·아일랜드, wetherilli 147),
     #: sgc → `sgc.py` (남미·콜롬비아 지질도, wetherilli 188), sgb → `sgb.py` (브라질 지질도, wetherilli 191),
     #: ingemmet → `ingemmet.py` (페루 지질도 — REST 타일 캐시, wetherilli 195)
+    #: segemar → `segemar.py` (아르헨티나 지질도), dinamige → `dinamige.py` (우루과이 지질도, wetherilli 196)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
