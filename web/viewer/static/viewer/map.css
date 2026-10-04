@@ -2635,3 +2635,45 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #08332f; --hi-deep: #04211e; --on-hi: #fbfefe; --hi-ink: #12857a;
   --glass: rgba(251, 254, 254, .95); --glass-line: #cfe3e1;
 }
+
+/* ── 몽골 (wetherilli 221) — 고비 바얀작 "불타는 절벽"의 주황: 사막 모래의 짙은 갈색 바탕 ──
+   공룡 알이 나온 백악기 사암의 빛이다. 미국(모뉴먼트밸리 사암, 붉은 쪽)보다 노랗다 */
+:root[data-region="mongolia"] {
+  --bg: #171410; --panel: #1e1a15; --panel-tint: #120f0c; --raise: #2a241d;
+  --ink: #f6efe6; --ink-soft: #cdbfae; --ink-faint: #8f806f;
+  --line: #3b3228; --line-soft: #2a241d;
+  --gold: #ec7b3a; --gold-bright: #f6ad80; --gold-muted: #c66a35;
+  --gold-wash: rgba(236, 123, 58, .13); --gold-edge: rgba(236, 123, 58, .42);
+  --hi: #ec7b3a; --hi-deep: #f6ad80; --on-hi: #120f0c; --hi-ink: #f6ad80;
+  --glass: rgba(18, 15, 12, .93); --glass-line: rgba(236, 123, 58, .35);
+}
+:root[data-region="mongolia"][data-theme="light"] {
+  --bg: #f9f3ec; --panel: #fefcf9; --panel-tint: #fbf7f1; --raise: #f0e5d8;
+  --ink: #221b14; --ink-soft: #5b4c3d; --ink-faint: #958473;
+  --line: #e8dacb; --line-soft: #f0e5d8;
+  --gold: #c2531a; --gold-bright: #973f12; --gold-muted: #a8683f;
+  --gold-wash: #f9e4d6; --gold-edge: #efb995;
+  --hi: #3d1a08; --hi-deep: #260f04; --on-hi: #fef7f2; --hi-ink: #c2531a;
+  --glass: rgba(254, 252, 249, .95); --glass-line: #e8dacb;
+}
+
+/* ── 인도 (wetherilli 226) — 사프란의 주황: 데칸 트랩 현무암의 짙은 적갈 바탕 ──
+   아프리카(사바나 황토)보다 붉고 몽골(바얀작 절벽)보다 노랗다 — 바탕의 붉은 기로 가른다 */
+:root[data-region="india"] {
+  --bg: #1a1112; --panel: #221718; --panel-tint: #140d0e; --raise: #2e2021;
+  --ink: #f8efea; --ink-soft: #d2bdb4; --ink-faint: #94807a;
+  --line: #3f2c2c; --line-soft: #2e2021;
+  --gold: #f59a2a; --gold-bright: #fbc27a; --gold-muted: #cf8226;
+  --gold-wash: rgba(245, 154, 42, .13); --gold-edge: rgba(245, 154, 42, .42);
+  --hi: #f59a2a; --hi-deep: #fbc27a; --on-hi: #140d0e; --hi-ink: #fbc27a;
+  --glass: rgba(20, 13, 14, .93); --glass-line: rgba(245, 154, 42, .35);
+}
+:root[data-region="india"][data-theme="light"] {
+  --bg: #faf3ee; --panel: #fffcfa; --panel-tint: #fcf7f3; --raise: #f2e4da;
+  --ink: #241819; --ink-soft: #5d4644; --ink-faint: #98807b;
+  --line: #ead8cd; --line-soft: #f2e4da;
+  --gold: #c26a0d; --gold-bright: #96510a; --gold-muted: #a8713c;
+  --gold-wash: #fbe8d2; --gold-edge: #f0c08c;
+  --hi: #3f1d06; --hi-deep: #281103; --on-hi: #fff8f1; --hi-ink: #c26a0d;
+  --glass: rgba(255, 252, 250, .95); --glass-line: #ead8cd;
+}
