@@ -2683,14 +2683,20 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 extra.update({"legend": "list", "legendUrl": "list/legend/"})
             elif mod is jmg:
                 extra["noLegend"] = True
+            elif mod is esdm and layer.name in esdm.RESOURCES:
+                # 인도네시아 광물 잠재력(wetherilli 280) — REST export·identify. 광종이 수십 가지라 범례는 두지 않고 누르면 뜬다
+                extra["noLegend"] = True
             elif mod is esdm:
                 # 인도네시아 — 보는 범위의 범례(`esdm/legend/`, wetherilli 243). 전체 범례는 1 403 칸이다
                 extra.update(legend="extent", legendUrl="esdm/legend/")
-            if mod is esdm:
+            if mod is esdm and layer.name not in esdm.RESOURCES:
                 extra["maxZoom"] = esdm.LAST_ZOOM
             return extra
     if layer.upstream == "sgs" and sgs.knows(layer.name):
-        # 사우디 SGS(wetherilli 227) — ArcGIS WMS(원본 3857). 범례는 1 337 칸이라 보는 범위의 것(`sgs/legend/`)
+        # 사우디 SGS(wetherilli 227) — ArcGIS WMS(원본 3857). 범례는 1 337 칸이라 보는 범위의 것(`sgs/legend/`).
+        # 광물 산지 MODS·광화대(wetherilli 280)는 다른 서비스의 WMS 이고 범례도 그 그림이다
+        if layer.name in sgs.RESOURCES:
+            return {"attribution": sgs.ATTRIBUTION, "projection": "EPSG:3857"}
         return {"attribution": sgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "sgs/legend/"}
     if layer.upstream == "gsiindia" and gsiindia.knows(layer.name):
         # 인도 GSI(wetherilli 226) — 그림은 BGS WMS 를 3857 로, 속성은 GSI 피처 서비스(문이 바꾼다). BGS 범례는 번호뿐이라 두지 않는다

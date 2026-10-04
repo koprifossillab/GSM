@@ -473,12 +473,17 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   gns.py          GNS Science(뉴질랜드)로 나가는 문 (QMAP 1:25만 합본·1:100만 GeoServer WMS, 3857 로. 같은 서버의 남극 남빅토리아랜드 1:25만은 3031 로. 속성은 열을 골라 묻는다)
                   중력 이상은 GNS 전체 서비스(`/gns/wms`, `GNS_ALL_WMS_URL`)에서 (wetherilli 269)
   mris.py         몽골 국가지질조사소 MonGeoCat 으로 나가는 문 (국가지질도첩 지질도·1:50만 단층 ArcGIS WMS, 3857 로. 문서에 없는 주소, WMS·REST 번호가 거꾸로, 시대는 러시아식 층서 지수에서 푼다)
+                  희토류(Atlas 12_REE — WMS 가 없어 REST export·identify, wetherilli 280)
   gsiindia.py     인도 지질조사소(GSI) 1:200만으로 나가는 문 (그림은 BGS 의 OneGeology WMS, 누른 자리는 GSI 의 ArcGIS Online 피처 서비스 — Bhukosh 가 나라 밖에서 닿지 않아 둘을 엮는다)
   sgs.py          사우디 지질조사소(SGS) 국가 지질 자료로 나가는 문 (1:25만 합본 ArcGIS WMS, 원본 3857. 범례는 1 337 칸이라 보는 범위의 것 — REST 통계 질의)
+                  광물 산지 MODS 5 751·광화대(다른 서비스의 WMS, wetherilli 280)
   esdm.py         인도네시아 지질청(ESDM)으로 나가는 문 (1:10만 편집 2018 ArcGIS WMS, 3857 로. 줌 10 너머는 상류가 그리지 않아 화면이 늘린다. 속성은 ESRI XML, 범례는 보는 범위의 REST 통계 — wetherilli 243)
+                  금속·비금속 광물 잠재력(BGD_TU 폴더, WMS 가 없어 REST export·identify — `arcwms.rest_*`, wetherilli 280)
   jmg.py          말레이시아 광물지구과학국(JMG MyGEMS)으로 나가는 문 (주별 암상·연대 ArcGIS REST — WMS 가 꺼져 있어 export·identify 로 옮긴다, 주 열다섯을 한 장에)
   mgb.py          필리핀 광산지질국(MGB)으로 나가는 문 (지역 지질도 ArcGIS WMS, 공개 폴더만. 속성은 ESRI XML)
+                  금속·비금속 광물 자원(같은 공개 폴더의 다른 서비스, 문을 하나씩, wetherilli 280)
   dmr.py          태국 광물자원국(DMR)으로 나가는 문 (암석 단위 1:25만 ArcGIS WMS. 속성이 기호뿐이라 REST 범례에서 이름을 찾아 붙이고, 시대는 기호에서 푼다)
+                  광물 산지·핵심 광물(MINERAL 폴더 WMS, 산지의 열은 태국어 별칭, wetherilli 280)
   sgm.py          멕시코 지질조사소(SGM)로 나가는 문 (1:25만·1:5만 ArcGIS REST — WMS 가 400 이라 WMS 변수를 export·identify 로 옮긴다, 범례는 보는 범위)
                   같은 서버의 지질 연대 측정·고생물 산지·광상 1:25만도(`sgm:<서비스>:<번호>`, `SERVICES`, wetherilli 219), 지화학·원소 이상·광산 1:5만도
                   (원소 이상의 범례는 REST 범례의 기호 그림 — 함량 구간, wetherilli 233)
@@ -526,7 +531,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   zhurong.py      주룽 로버 경로 파일(data/mars_zhurong.json) -> 착륙지·경로. Trek 에 없는 것을 덧붙인다. 문이 아니다
   elevation.py    표고로 나가는 문 — AWS 표고 타일·국토지리원 표고 타일·PGC(ArcticDEM·REMA). 시료 고도, 3D 의 일본 지형
   arcpoints.py    ArcGIS 점을 받아 담는 틀. grportal·npolar 가 함께 쓴다. 칠하기 규칙 → 색 표(`renderer_colors`, ingemmet·iige). requests 없음
-  arcwms.py       ArcGIS WMS 를 중계하는 문들의 틀 — 문이 제 `_get` 을 넘기고 이것은 변수를 고치고 응답(geojson·ESRI XML)·REST 범례를 읽는다(esdm·mgb·dmr). requests 없음
+  arcwms.py       ArcGIS WMS 를 중계하는 문들의 틀 — 문이 제 `_get` 을 넘기고 이것은 변수를 고치고 응답(geojson·ESRI XML)·REST 범례를 읽는다(esdm·mgb·dmr). requests 없음. WMS 를 켜지 않은 서비스는 WMS 꼴 변수를 REST export·identify 로 옮긴다(`rest_export_params`·`rest_identify_params`)
   geomap.py       남극 GeoMAP 파일을 sqlite3·struct·Pillow 로 그린다. 3031 타일 격자
   janmayen.py     얀마옌 지질도 파일(NPI) -> 위경도 GeoJSON
   geo3al.py       중국 USGS geo3al 셰이프파일(람베르트) -> 위경도 GeoJSON. 연구실 내부용
