@@ -2396,8 +2396,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         except RuntimeError:
             return {}
         first, last = door.ZOOMS.get(sheet, (None, None))
-        return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
-                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+        return {"attribution": getattr(door, "ATTRIBUTIONS", {}).get(sheet, door.ATTRIBUTION),
+                "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
+                # IGME5000 의 단층·연대 기호(wetherilli 217)는 누를 것이 없다
+                **({} if getattr(door, "queryable", lambda n: True)(layer.name) else {"queryable": False})}
     if layer.upstream in ("geosphere", "pig", "tno", "dov", "spw"):
         # 유럽(wetherilli 237) — 3857 로 그린다. 오스트리아·폴란드는 상류가 가까이서 그리지 않아 그 줌 위는 화면이 늘리고(`maxZoom`),
         # 폴란드 단층은 줌 10·왈로니아는 줌 9(단층 13)부터. 왈로니아 범례는 395 칸 약호뿐이라 두지 않는다
@@ -3976,8 +3979,10 @@ def feature_info(request):
             props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
         elif door.name == "egdi":
             props = egdi.friendly(props, lang)       # 암상 판의 INSPIRE 열 → 암상·지질시대·제공 기관 (wetherilli 177)
-        elif door.name in ("bgr", "igme", "gsi"):
-            props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
+        elif door.name == "bgr":
+            props = bgr.friendly(props, lang)        # 독일 판은 독일어 그대로, IGME5000 은 시대만 옮긴다 (wetherilli 217)
+        elif door.name in ("igme", "gsi"):
+            props = {"igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":

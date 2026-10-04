@@ -440,7 +440,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
                   CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)도
   egdi.py         EGDI(EuroGeoSurveys)로 나가는 문 (범유럽 1:100만 지표 지질 GeoServer WMS). 느리다. 속성은 두 판 모두 암상 판에 묻는다(wetherilli 177)
-  bgr.py          독일 연방 지구과학·자원청(BGR)으로 나가는 문 (GK1000·GÜK250 ArcGIS WMS). 이름은 `bgr:<판>:<번호>`
+  bgr.py          독일 연방 지구과학·자원청(BGR)으로 나가는 문 (GK1000·GÜK250 ArcGIS WMS). 이름은 `bgr:<판>:<번호>`. 유럽 1:500만 IGME5000 도
+                  (축척마다 갈린 상류 레이어는 `+` 로 잇는다, 독일 탭에 두고 유럽 나라 탭이 빌린다, wetherilli 217)
   igme.py         스페인 지질광물연구소(IGME)로 나가는 문 (1:100만은 4326, MAGNA 1:5만은 3857 ArcGIS WMS). 이름은 `igme:<판>:<번호>`
   gsi.py          아일랜드 지질조사소(GSI)로 나가는 문 (섬 전체 1:100만·공화국 1:10만 ArcGIS WMS)
   sgc.py          콜롬비아 지질조사소(SGC)로 나가는 문 (남미 1:500만 CGMW 2019·콜롬비아 1:50만 2023 ArcGIS WMS, 3857 로). 이름은 `sgc:<판>:<번호>`
