@@ -222,6 +222,9 @@
 | wetherilli 176 | 2026-10-04 | [유럽 바다 — EMODnet 의 제4기 퇴적층·지질 사건을 유럽 탭들에](20261004_wetherilli_176_europe_seafloor.md) |
 | wetherilli 181 | 2026-10-04 | [정적 판 — 판 이력을 떠 두고, 소개의 첫 장면에서 없는 화면을 뺀다](20261004_wetherilli_181_static_intro_history.md) |
 | wetherilli 178 | 2026-10-04 | [그린란드 — 다이아몬드 탐사 자료의 나머지: 지시광물 화학 넷·거둔 다이아몬드·관입 연대·산출지의 선과 면](20261004_wetherilli_178_greenland_ded_more.md) |
+| wetherilli 179 | 2026-10-04 | [정적 판 — 휴대폰에서 KIGAM 지질도가 안 뜬다는 제보, 후보를 지우고 키가 받히는지 묻는다](20261004_wetherilli_179_static_mobile_kigam.md) |
+| wetherilli 180 | 2026-10-04 | [높이 그래프 밑에 지질 띠 — 우리 파일로 그리는 레이어만](20261004_wetherilli_180_profile_geology_band.md) |
+| wetherilli 182 | 2026-10-04 | [prewarm 이 유럽·북극의 새 상류를 안다](20261004_wetherilli_182_prewarm_europe.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |

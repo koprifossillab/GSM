@@ -764,6 +764,12 @@ EN = {
     "MESSENGER 665 m · 수성 기준구 2439.4 km 에서 잰 높이": "MESSENGER 665 m · height above the 2,439.4 km Mercury sphere",
     "거리 {d} · 높이 {h}": "distance {d} · elevation {h}",
     "선이 없다": "No line given",
+    # 높이 그래프 밑의 지질 띠 (wetherilli 180)
+    "거리 {d} · 높이 {h} · {unit}": "distance {d} · elevation {h} · {unit}",
+    "{read} · 지질 띠 — {layer}": "{read} · geology strip — {layer}",
+    "띠를 그리지 않는 레이어다": "This layer has no geology strip",
+    "지질 띠를 그릴 자료가 서버에 없다": "The data for the geology strip is not on the server",
+    "지질 띠를 읽지 못했다": "Could not read the geology strip",
     "지도 오른쪽 위 <b>점</b> 도구로 찍는다": "Use the <b>Point</b> tool at the top right of the map",
     "점묶음으로 저장": "Save as point set",
     "찍은 점과 잰 것을 모두 지운다": "Clear all points and measurements",
@@ -1068,6 +1074,12 @@ EN = {
     "지오빅데이터 오픈플랫폼에서 받기": "Get one from the Geo Big Data Open Platform",
     "VWorld 에서 받기": "Get one from VWorld",
     "인증키 둘을 넣었다 — 이 브라우저에만 있다": "Both API keys are set — kept only in this browser",
+    "KIGAM 에 키를 물어 보는 중…": "Checking the key with KIGAM…",
+    "그래도 연다": "Open anyway",
+    "KIGAM 이 이 키로 지질도를 주지 않았다. 키를 다시 붙여 넣어 본다 — 휴대폰에서 손으로 옮겨 적으면 한 글자만 틀려도 안 된다. 키를 받을 때 쓸 곳(IP·주소)을 적었다면 이 기기가 그 밖인지도 본다.":
+        "KIGAM did not return a map for this key. Try pasting the key again — one wrong character typed by hand on a phone is enough to fail. If you gave a place of use (IP or address) when you got the key, check whether this device is outside it.",
+    "KIGAM(data.kigam.re.kr)에 닿지 못했다. 이 망(회사·학교 Wi-Fi, VPN, 광고 차단)이 막거나 기기가 인증서를 받지 않는다 — 다른 망(모바일 데이터)에서 열어 본다.":
+        "Could not reach KIGAM (data.kigam.re.kr). This network (office or school Wi-Fi, a VPN, an ad blocker) may block it, or the device may not accept its certificate — try another network such as mobile data.",
     "{name} 만 넣었다": "Only the {name} is set",
     "인증키를 넣어야 한국 지질도와 배경지도가 보인다": "Enter API keys to see Korean geological maps and basemaps",
     "키 바꾸기": "Change keys",

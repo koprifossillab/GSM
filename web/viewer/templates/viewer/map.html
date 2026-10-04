@@ -396,6 +396,7 @@
 </main>
 
 <script id="i18n-data" type="application/json">{{ i18n_json|safe }}</script>
+<script id="tile-versions" type="application/json">{{ tile_versions|safe }}</script>
 <script id="vworld-key" type="application/json">"{{ vworld_key|escapejs }}"</script>
 <script id="catalog-data" type="application/json">{{ catalog|safe }}</script>
 {% if static_site %}<script id="static-config" type="application/json">{{ static_site|safe }}</script>
@@ -406,6 +407,7 @@
 <script src="{% static 'viewer/personal.js' %}?v={{ stamp|default:version }}"></script>
 {% if static_site %}{% comment %}정적 판의 상류를 브라우저가 곧장 부르는 소스(wetherilli P11·161) — map.js 보다 먼저{% endcomment %}
 <script src="{% static 'viewer/static-kinds.js' %}?v={{ stamp|default:version }}"></script>{% endif %}
+{% if not static_site %}<script src="{% static 'viewer/profile-band.js' %}?v={{ stamp|default:version }}"></script>{% endif %}
 <script src="{% static 'viewer/map.js' %}?v={{ stamp|default:version }}"></script>
 </body>
 </html>

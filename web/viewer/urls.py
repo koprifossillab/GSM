@@ -22,6 +22,7 @@ urlpatterns = [
     path("moon/info/", views.moon_info, name="moon-info"),
     path("moon/profile/", views.moon_profile, name="moon-profile"),
     path("elevation/profile/", views.elevation_profile, name="elevation-profile"),
+    path("profile/band/", views.profile_band, name="profile-band"),
     path("moon/values/", views.moon_values, name="moon-values"),
     path("moon/legend/", views.moon_legend, name="moon-legend"),
     path("moon/places/", views.moon_places, name="moon-places"),

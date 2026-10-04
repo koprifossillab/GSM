@@ -208,6 +208,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 **브라우저 캐시** (wetherilli 151) — 응답마다 ETag 가 붙어 하루(`TILE_CACHE_SECONDS`)가 지나면 304 로 되묻는다
 (`ConditionalGetMiddleware`). 주소에 판(`?v=`)이 든 우리 타일만 1 년 `immutable` 이다(`views._immutable`) — 판이 바뀌면 주소가
 바뀌기 때문이다. 상류에서 받은 것에는 판이 없으니 길게 두지 않는다. 그리는 법을 고쳐 `RENDERER` 를 올리면 주소의 판도 따라 오른다.
+화면(JS)이 주소를 짓는 타일(달·화성·수성 원도, 온 지구의 판 회전·화석·화산·지진·지각·지명 따위, IBCSO 배경)은 판을 페이지의
+`tile-versions` 로 받는다(`views.tile_versions`, wetherilli 183). 판은 서버 캐시 열쇠에 든 것과 같은 것(그리는 법과 파일의 판)이다 —
+새 우리 타일을 더하면 거기 한 줄 더한다.
 속성·범례 JSON 도 하루이고 언어(쿠키)로 가른다(`views.browser_cached`, wetherilli 158). 3D 의 `warp/` 는 원본의 판을 열쇠에 넣어
 디스크에 담는다 — 스캔판(phyloserver)만 빼고. 다시 펴는 법을 고치면 `views.WARP_RENDERER` 를 올린다.
 
@@ -442,6 +445,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   ocean.py        해류 u·v 표층 -> PNG 텍스처(R=u·G=v·B=바다), 목록. 유속 파일의 밀린 경도를 바로잡는다. 굽기는 호스트에서만(numpy). 문이 아니다
   wind.py         바람 u·v 격자 -> PNG 텍스처(R=u·G=v), 구름량 -> 회색 PNG, 그리고 목록. 굽기는 호스트에서만(numpy). 문이 아니다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
+  profileband.py  높이 그래프 밑의 지질 띠 — 잰 선의 점마다 GeoMAP·geo3al·달·화성·수성 파일의 단위. 상류뿐인 레이어는 띠가 없다. 문이 아니다
   static_tables.py 정적 판(GitHub Pages)이 극지 상류를 곧장 부를 때 쓸 표 — 문의 명세·이름 표를 JSON 으로 뜬다. `static-kinds.js` 가 읽는다. 문이 아니다
   basemaps.py     조건이 열린 배경으로 나가는 문 (NASA GIBS Blue Marble WMTS·WMS, GEBCO 해저 지형 WMS). 받아 캐시에 담는다
   linked.py       연결 레이어로 나가는 문 — 사람이 준 주소(남의 API)를 대신 부른다. 사설망·낮은 포트를 막고 검사한 IP 로만 붙는다

@@ -22,6 +22,9 @@
   // 자리표로 두고 넘긴다 — 영어는 말 차례가 달라 이어 붙이면 어색하다.
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  // 화면이 주소를 짓는 우리 타일의 판 (wetherilli 183) — `?v=` 를 붙이면 서버가 길게(immutable) 캐시하게 한다. 판이 바뀌면 주소가 바뀐다
+  var TILE_V = JSON.parse((document.getElementById("tile-versions") || {}).textContent || "{}");
+  function vq(kind) { return TILE_V[kind] ? "?v=" + TILE_V[kind] : ""; }
 
   function T(text, vars) {
     var out = (LANG === "en" && I18N[text]) || text;
@@ -1518,7 +1521,7 @@
     for (var z = 0; z <= 6; z++) resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
     return new ol.layer.Tile({
       source: new ol.source.XYZ({
-        url: BASE + "ibcso/" + which + "/{z}/{x}/{y}.webp",
+        url: BASE + "ibcso/" + which + "/{z}/{x}/{y}.webp" + vq(which),
         projection: "EPSG:3031",
         tileGrid: new ol.tilegrid.TileGrid({
           extent: GEOMAP_GRID.extent,
@@ -3373,7 +3376,13 @@
   // 아래 가운데 판에 그린다. 표고는 타일로만 읽는다 — 일본은 국토지리원, 나머지(극지도)는 AWS Terrarium. 점 사이에 맞춘 줌이라
   // 긴 선은 거칠다. 그래프 위를 훑으면 그 자리를 지도에 찍는다
   var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
-  var profileSeq = 0, profileData = null, profileSource = null;
+  var profileSeq = 0, profileData = null, profileSource = null, profileBand = null;
+  // 지질 띠 (wetherilli 180) — 켠 레이어 가운데 맨 위의, 우리 파일로 그리는 것(`band`)만. 상류뿐인 곳은 띠가 없다
+  function bandLayer() {
+    if (STATIC || !window.GSMBand) return null;
+    var top = active.filter(function (e) { return e.layer.getVisible() && byName[e.name] && byName[e.name].band; })[0];
+    return top ? top.name : null;
+  }
   function profileMark(ll) {
     if (!profileSource) {
       profileSource = new ol.source.Vector();
@@ -3394,8 +3403,10 @@
   function showProfile(coords) {
     var seq = ++profileSeq, box = document.getElementById("profile");
     profileData = null;
+    profileBand = null;
     box.hidden = false;
     document.getElementById("profile-svg").innerHTML = "";
+    if (window.GSMBand) GSMBand.reset(document.getElementById("profile-svg"), PROFILE);
     document.getElementById("profile-sum").textContent = "";
     document.getElementById("profile-read").textContent = T("높이를 읽는 중…");
     var length = ol.sphere.getLength(new ol.geom.LineString(coords), { projection: "EPSG:4326" });
@@ -3404,7 +3415,19 @@
     var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
     fetch(BASE + "elevation/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { if (seq === profileSeq) drawProfile(d); })
+      .then(function (d) {
+        if (seq !== profileSeq) return;
+        drawProfile(d);
+        var layer = bandLayer();
+        if (!layer || !profileData) return;
+        GSMBand.load(BASE, layer, line, n).then(function (band) {
+          if (seq !== profileSeq || !band || !profileData) return;
+          profileBand = band;
+          GSMBand.draw(document.getElementById("profile-svg"), PROFILE, profileData.X, d, band, T("지질"));
+          profileData.read = T("{read} · 지질 띠 — {layer}", { read: profileData.read, layer: layerTitle(layer) });
+          document.getElementById("profile-read").textContent = profileData.read;
+        });
+      })
       .catch(function () { if (seq === profileSeq) document.getElementById("profile-read").textContent = T("높이를 읽지 못했다"); });
   }
   function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
@@ -3475,8 +3498,9 @@
         dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
         dot.setAttribute("visibility", "visible");
       } else dot.setAttribute("visibility", "hidden");
-      document.getElementById("profile-read").textContent = T("거리 {d} · 높이 {h}", {
-        d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]) });
+      var unit = window.GSMBand ? GSMBand.unitAt(profileBand, best) : "";
+      var at = { d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]), unit: unit };
+      document.getElementById("profile-read").textContent = unit ? T("거리 {d} · 높이 {h} · {unit}", at) : T("거리 {d} · 높이 {h}", at);
       profileMark([d.lon[best], d.lat[best]]);
     });
     svg.addEventListener("mouseleave", function () {
@@ -6837,9 +6861,56 @@
     var later = false;
     try { later = sessionStorage.getItem("gsm.key.later") === "1"; } catch (e) { /* 사생활 모드 */ }
     if (!later && STATIC_KEYS.some(function (k) { return !readKey(k.name); })) openKeyDialog();
+    // 넣어 둔 KIGAM 키가 받히는지 한 장 물어 본다. 휴대폰에서는 알림 줄이 접힌 패널 안이라, 안 받히면 키 창을 띄워 까닭을 보인다
+    var kigam = readKey("kigam");
+    if (kigam) probeKigam(kigam).then(function (result) {
+      if (result === "ok") return;
+      if (box) {
+        var why = document.createElement("span");
+        why.className = "key-check";
+        box.appendChild(why);
+        showVerdict(why, result);
+      }
+      var shown = document.querySelector("#key-dialog .key-check");
+      if (shown) showVerdict(shown, result);
+      else openKeyDialog({ verdict: result });
+    });
   }
 
-  function openKeyDialog() {
+  /** KIGAM 이 이 키로 타일을 주는지 (wetherilli 179) — 한국 한가운데 512 타일 한 장을 화면이 묻는 것과 같은 꼴로 묻는다
+   *  (브라우저 캐시가 맞게). `<img>` 는 까닭을 말해 주지 않아, 안 받히면 같은 주소를 `no-cors` fetch 로 한 번 더 묻는다 —
+   *  응답이 오면(내용은 못 읽는다) 서버가 키를 거절한 것이고(KIGAM 은 틀린 키에 500 HTML 을 준다), 오지 않으면 망·인증서에서
+   *  끊긴 것이다. 결과는 "ok"·"refused"·"unreached" */
+  function probeKigam(key) {
+    var url = KIGAM_OPENAPI + "?" + new URLSearchParams({
+      REQUEST: "GetMap", SERVICE: "WMS", VERSION: "1.3.0", FORMAT: "image/png", STYLES: "", TRANSPARENT: "true",
+      LAYERS: "L_50K_Geology_Map", TILED: "true", key: key, WIDTH: "512", HEIGHT: "512", CRS: "EPSG:3857",
+      BBOX: "13775786.985667605,4383204.9499851465,14401959.121379768,5009377.08569731",
+    });
+    return new Promise(function (resolve) {
+      var img = new Image();
+      var timer = setTimeout(function () { img.onload = img.onerror = null; resolve("unreached"); }, 20000);
+      img.onload = function () { clearTimeout(timer); resolve("ok"); };
+      img.onerror = function () {
+        clearTimeout(timer);
+        if (!window.fetch) { resolve("refused"); return; }
+        fetch(url, { mode: "no-cors", cache: "no-store", referrerPolicy: "no-referrer" })
+          .then(function () { resolve("refused"); }, function () { resolve("unreached"); });
+      };
+      img.src = url;
+    });
+  }
+
+  function showVerdict(el, result) {
+    el.hidden = false;
+    el.classList.add("bad");
+    el.textContent = result === "refused"
+      ? T("KIGAM 이 이 키로 지질도를 주지 않았다. 키를 다시 붙여 넣어 본다 — 휴대폰에서 손으로 옮겨 적으면 한 글자만 틀려도 안 된다. 키를 받을 때 쓸 곳(IP·주소)을 적었다면 이 기기가 그 밖인지도 본다.")
+      : T("KIGAM(data.kigam.re.kr)에 닿지 못했다. 이 망(회사·학교 Wi-Fi, VPN, 광고 차단)이 막거나 기기가 인증서를 받지 않는다 — 다른 망(모바일 데이터)에서 열어 본다.");
+  }
+
+  function openKeyDialog(opts) {
+    if (opts && opts.type) opts = null;          // 단추에서 불리면 이벤트가 온다
     if (document.getElementById("key-dialog")) return;
     var back = document.createElement("div");
     back.id = "key-dialog";
@@ -6905,17 +6976,35 @@
     save.type = "button";
     save.className = "btn";
     save.textContent = T("저장");
+    var verdict = document.createElement("p");
+    verdict.className = "key-check";
+    verdict.hidden = true;
     save.addEventListener("click", function () {
       var changed = false;
+      var kigam = "";
       STATIC_KEYS.forEach(function (k) {
-        var value = inputs[k.name].value.trim();
+        // 휴대폰에서 붙여 넣으면 앞뒤 빈칸·줄바꿈·폭 없는 문자가 끼기도 한다 — 키에는 빈칸이 없다 (wetherilli 179)
+        var value = inputs[k.name].value.replace(/[\s\u200B-\u200D\uFEFF]+/g, "");
         if (value) { writeKey(k.name, value, !check.checked); changed = true; }
+        if (value && k.name === "kigam") kigam = value;
       });
-      if (changed) location.reload();          // 배경·찾기·타일이 처음부터 그 키로 서게
-      else back.remove();
+      if (!changed) { back.remove(); return; }
+      if (!kigam) { location.reload(); return; }   // 배경·찾기·타일이 처음부터 그 키로 서게
+      // KIGAM 키는 다시 열기 전에 한 장 물어 본다 — 안 받히면 까닭을 이 창에 띄우고 머문다
+      save.disabled = true;
+      verdict.hidden = false;
+      verdict.textContent = T("KIGAM 에 키를 물어 보는 중…");
+      probeKigam(kigam).then(function (result) {
+        if (result === "ok") { location.reload(); return; }
+        save.disabled = false;
+        save.textContent = T("그래도 연다");
+        save.onclick = function () { location.reload(); };
+        showVerdict(verdict, result);
+      });
     });
     buttons.append(clear, later, save);
-    card.append(note, forget, buttons);
+    card.append(note, forget, verdict, buttons);
+    if (opts && opts.verdict) showVerdict(verdict, opts.verdict);
     back.appendChild(card);
     document.body.appendChild(back);
     var first = STATIC_KEYS.filter(function (k) { return !readKey(k.name); })[0] || STATIC_KEYS[0];

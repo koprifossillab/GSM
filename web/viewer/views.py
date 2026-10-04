@@ -32,7 +32,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
-from . import static_tables
+from . import profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -344,6 +344,8 @@ def map_view(request):
         "static_site": _script_json(settings.STATIC_SITE) if settings.STATIC_SITE else "",
         # 정적 판의 극지 상류 표(wetherilli 161) — 문의 명세·이름 표를 떠서 `static-kinds.js` 가 읽는다. 서버 판에는 싣지 않는다
         "static_tables": _script_json(static_tables.tables()) if settings.STATIC_SITE else "",
+        # 화면이 주소를 짓는 우리 타일(IBCSO 배경)의 판 (wetherilli 183). 정적 판은 구운 파일이라 싣지 않는다
+        "tile_versions": "{}" if settings.STATIC_SITE else _script_json(tile_versions("map")),
         "has_key": kigam.has_key(),
         "dev_direct": settings.DEV_DIRECT_WMS,
         # 브라우저가 직접 VWorld 를 부른다. 까닭은 settings.VWORLD_KEY.
@@ -402,6 +404,8 @@ def moon_view(request):
         # 가까이서 쓰는 고운 표고 판의 범위·줌 끝 — 화면이 그 자리에서만 깊은 줌을 묻는다 (wetherilli 107)
         "dem_parts": _script_json([[*part[1], part[2]] for part in trek.DEM_PARTS]),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        # 화면이 주소를 짓는 우리 타일의 판 — `?v=` 로 붙여 길게 캐시한다 (wetherilli 183)
+        "tile_versions": _script_json(tile_versions("moon")),
         "base": request.path.rsplit("moon", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
@@ -477,11 +481,12 @@ def _moon_original_tile(request, layer, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if not moonmap.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MOON), store=False)
-    # 그리는 법(`RENDERER`)이 열쇠에 든다 — 올리면 옛 그림을 버린다
-    key = tilecache.key_text("moonmap", f"{moonmap.RENDERER}/{layer}/{z}/{x}/{y}")
+    # 그리는 법(`RENDERER`)과 파일의 판이 열쇠에 든다 — 올리거나 다시 구우면 옛 그림을 버리고 주소도 바뀐다 (wetherilli 183)
+    version = moonmap_version()
+    key = tilecache.key_text("moonmap", f"{version}/{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     try:
         png = moonmap.render_tile(layer, z, x, y)
     except (moonmap.MoonMapError, OSError) as exc:
@@ -490,7 +495,7 @@ def _moon_original_tile(request, layer, z, x, y):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -506,16 +511,18 @@ def moon_polar_tile(request, pole, layer, z, x, y):
     if moonmap.knows(layer):
         if not moonmap.available():
             return _tile(tiles.notice_tile(256, 256, tiles.NO_MOON), store=False)
-        key = tilecache.key_text("moonmap", f"{moonmap.RENDERER}/{pole}p/{layer}/{z}/{x}/{y}")
+        version = moonmap_version()     # 원도만 판이 있다 — Trek 에서 받은 것은 판이 없어 길게 두지 않는다 (wetherilli 183)
+        key = tilecache.key_text("moonmap", f"{version}/{pole}p/{layer}/{z}/{x}/{y}")
         fetch = lambda: moonmap.render_polar_tile(layer, pole, z, x, y)     # noqa: E731
         errors = (moonmap.MoonMapError, OSError)
     else:
+        version = ""
         key = tilecache.key_text("trek", f"{pole}p/{layer}/{z}/{x}/{y}")
         fetch = lambda: trek.get_polar_tile(layer, pole, z, x, y)           # noqa: E731
         errors = (trek.TrekError,)
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     try:
         png = fetch()
     except errors as exc:
@@ -527,7 +534,7 @@ def moon_polar_tile(request, pole, layer, z, x, y):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -634,6 +641,34 @@ def elevation_profile(request):
             return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
         if any(v is not None for v in data["elev"]):
             tilecache.put(key, json.dumps(data).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
+@require_GET
+def profile_band(request):
+    """`?layer=geomap_simple_geology&line=경도,위도;…&n=256` — 높이 그래프 밑의 지질 띠 (wetherilli 180, `profileband.band`).
+    점은 높이 그래프와 같은 셈으로 찍는다. 우리 파일로 그리는 레이어만 받는다 — 상류에 점마다 묻지 않는다."""
+    lang = i18n.lang_of(request)
+    layer = request.GET.get("layer") or ""
+    if not profileband.knows(layer) or _lab_only(layer):
+        return JsonResponse({"error": i18n.t(msg("띠를 그리지 않는 레이어다"), lang)}, status=404)
+    vertices = []
+    for part in (request.GET.get("line") or "").split(";"):
+        lon, _, lat = part.partition(",")
+        lon, lat = _float(lon), _float(lat)
+        if lon is None or lat is None or not (-90 <= lat <= 90 and -540 <= lon <= 540):
+            vertices = []
+            break
+        vertices.append((lon, lat))
+    if not 2 <= len(vertices) <= profileband.MAX_VERTICES:
+        return JsonResponse({"error": i18n.t(msg("선이 없다"), lang)}, status=400)
+    if not profileband.available(layer):
+        return JsonResponse({"error": i18n.t(msg("지질 띠를 그릴 자료가 서버에 없다"), lang)}, status=503)
+    try:
+        data = profileband.band(layer, vertices, int(_float(request.GET.get("n")) or 256), lang)
+    except profileband.BandError as exc:
+        log.warning("지질 띠를 읽지 못했다 (%s): %s", layer, exc)
+        return JsonResponse({"error": i18n.t(msg("지질 띠를 읽지 못했다"), lang)}, status=500)
     return JsonResponse(data)
 
 
@@ -950,6 +985,8 @@ def mars_view(request):
         "pointsets": _script_json(_pointset_list("mars")),
         "trek_catalog": _script_json(trek.client_catalog("mars")),   # Trek 판 목록 (060)
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        # 화면이 주소를 짓는 우리 타일의 판 — `?v=` 로 붙여 길게 캐시한다 (wetherilli 183)
+        "tile_versions": _script_json(tile_versions("mars")),
         "base": request.path.rsplit("mars", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
@@ -965,7 +1002,7 @@ def mars_tile(request, layer, z, x, y):
     if layer == "craters":
         return _mars_crater_tile(lambda: marscraters.render_tile(z, x, y))
     if marsmap.knows(layer):
-        return _mars_original_tile(f"{layer}/{z}/{x}/{y}", lambda: marsmap.render_tile(layer, z, x, y))
+        return _mars_original_tile(request, f"{layer}/{z}/{x}/{y}", lambda: marsmap.render_tile(layer, z, x, y))
     key = mars_tile_key(layer, z, x, y)
     hit = tilecache.get(key)
     if hit is not None:
@@ -997,7 +1034,7 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     if layer == "craters":
         return _mars_crater_tile(lambda: marscraters.render_polar_tile(pole, z, x, y))
     if marsmap.knows(layer):
-        return _mars_original_tile(f"{pole}p/{layer}/{z}/{x}/{y}",
+        return _mars_original_tile(request, f"{pole}p/{layer}/{z}/{x}/{y}",
                                    lambda: marsmap.render_polar_tile(layer, pole, z, x, y))
     key = tilecache.key_text("trek-mars", f"{pole}p/{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
@@ -1017,14 +1054,15 @@ def mars_polar_tile(request, pole, layer, z, x, y):
     return response
 
 
-def _mars_original_tile(path, render):
+def _mars_original_tile(request, path, render):
     """화성 옛 지질도 타일 (068) — 달 원도(039)처럼 구운 것을 캐시에 담는다. 파일이 없으면 안내."""
     if not marsmap.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MARS_ORIGINALS), store=False)
-    key = tilecache.key_text("marsmap", f"{marsmap.RENDERER}/{path}")
+    version = marsmap_version()
+    key = tilecache.key_text("marsmap", f"{version}/{path}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     try:
         png = render()
     except (marsmap.MarsMapError, sqlite3.Error, OSError) as exc:
@@ -1033,7 +1071,7 @@ def _mars_original_tile(path, render):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 def _mars_crater_tile(render):
@@ -1245,6 +1283,8 @@ def mercury_view(request):
         "pointsets": _script_json(_pointset_list("mercury")),
         "trek_catalog": _script_json(trek.client_catalog("mercury")),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        # 화면이 주소를 짓는 우리 타일의 판 — `?v=` 로 붙여 길게 캐시한다 (wetherilli 183)
+        "tile_versions": _script_json(tile_versions("mercury")),
         "base": request.path.rsplit("mercury", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
@@ -1284,10 +1324,11 @@ def mercury_tile(request, layer, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if not mercurymap.available():
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MERCURY_GEOLOGY), store=False)
-    key = tilecache.key_text("mercurymap", f"{mercurymap.RENDERER}/{layer}/{z}/{x}/{y}")
+    version = mercurymap_version()
+    key = tilecache.key_text("mercurymap", f"{version}/{layer}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     try:
         png = mercurymap.render_tile(layer, z, x, y)
     except (mercurymap.MercuryMapError, sqlite3.Error, OSError) as exc:
@@ -1296,7 +1337,7 @@ def mercury_tile(request, layer, z, x, y):
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1374,6 +1415,8 @@ def earth_view(request):
                                    "mantle": {f["frame"]: {k: v["points"] for k, v in f["layers"].items()}
                                               for f in (mantle.catalogue() or {}).get("frames", [])}}),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
+        # 화면이 주소를 짓는 우리 타일의 판 — `?v=` 로 붙여 길게 캐시한다 (wetherilli 183)
+        "tile_versions": _script_json(tile_versions("earth")),
         "base": request.path.rsplit("earth", 1)[0],
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
@@ -1523,34 +1566,36 @@ def earth_paleo_tile(request, style, age, z, x, y):
     if style not in paleo.STYLES + ("coast",) or not paleo.valid_tile(z, x, y) or age > 1100:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if style == "coast":
-        return _coast_tile(age, z, x, y)
+        return _coast_tile(request, age, z, x, y)
     if paleo.model() is None:
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
-    key = tilecache.key_text("paleomap", f"{paleo.RENDERER}/{style}/{age}/{z}/{x}/{y}")
+    version = paleo_version()
+    key = tilecache.key_text("paleomap", f"{version}/{style}/{age}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = paleo.render_tile(float(age), style, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
-def _coast_tile(age, z, x, y):
+def _coast_tile(request, age, z, x, y):
     """옛 해안선 한 장. 10 Myr 안에 시점이 없거나 파일이 없으면 빈 타일 — 판 조각만 보인다."""
     at = paleocoast.stop(age)
     if at is None:
         return _tile(tiles.blank_tile(), store=False)
-    key = tilecache.key_text("paleocoast", f"{paleocoast.RENDERER}/{at:g}/{z}/{x}/{y}")
+    version = paleocoast_version()
+    key = tilecache.key_text("paleocoast", f"{version}/{at:g}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = paleocoast.render_tile(at, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1611,15 +1656,16 @@ def earth_ne_tile(request, style, z, x, y):
     z, x, y = int(z), int(x), int(y)
     if style not in naturalearth.STYLES or not naturalearth.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
-    key = tilecache.key_text("naturalearth", f"{naturalearth.RENDERER}/{style}/{z}/{x}/{y}")
+    version = ne_version()
+    key = tilecache.key_text("naturalearth", f"{version}/{style}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = naturalearth.render_tile(style, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1701,15 +1747,16 @@ def earth_icemargin_tile(request, ka, z, x, y):
     if not picked:
         return _tile(tiles.blank_tile(), store=False)
     tag = "-".join(f"{k}{v:g}" for k, v in sorted(picked.items()))
-    key = tilecache.key_text("icemargins", f"{icemargins.RENDERER}/{tag}/{z}/{x}/{y}")
+    version = icemargins_version()
+    key = tilecache.key_text("icemargins", f"{version}/{tag}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = icemargins.render_tile(float(ka), z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 # ── 맨틀 슬랩 (wetherilli 106) ───────────────────────────────────────
@@ -1742,15 +1789,16 @@ def earth_crust_tile(request, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if crust.grid() is None:
         return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
-    key = tilecache.key_text("crust", f"{crust.RENDERER}/{z}/{x}/{y}")
+    version = crust_version()
+    key = tilecache.key_text("crust", f"{version}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = crust.render_tile(z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1781,17 +1829,17 @@ def earth_fossil_tile(request, ka, z, x, y):
     age = ka / 1000.0
     if age >= fossils.PALEO_FROM:
         age = float(round(age))
-    built = conn.execute("SELECT v FROM meta WHERE k = 'built'").fetchone()[0]
-    # 다시 구운 날이 열쇠에 든다 — 산지가 늘면 새로 그린다
-    key = tilecache.key_text("pbdb", f"{fossils.RENDERER}/{built}/{age:g}/{z}/{x}/{y}")
+    # 다시 구운 날과 파일의 판이 열쇠에 든다 — 산지가 늘면 새로 그리고 주소도 바뀐다 (wetherilli 183)
+    version = fossils_version()
+    key = tilecache.key_text("pbdb", f"{version}/{age:g}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = fossils.render_tile(age, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1840,16 +1888,17 @@ def earth_volcano_tile(request, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if not volcanoes.available():
         return _tile(tiles.blank_tile(), store=False)
-    # 다시 받은 날이 열쇠에 든다 — 판이 오르면 새로 그린다
-    key = tilecache.key_text("gvp", f"{volcanoes.RENDERER}/{volcanoes.fetched()}/{z}/{x}/{y}")
+    # 다시 받은 날과 파일의 판이 열쇠에 든다 — 판이 오르면 새로 그리고 주소도 바뀐다
+    version = volcanoes_version()
+    key = tilecache.key_text("gvp", f"{version}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = volcanoes.render_tile(z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1883,16 +1932,17 @@ def earth_quake_tile(request, band, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if not quakes.available():
         return _tile(tiles.blank_tile(), store=False)
-    # 다시 구운 날이 열쇠에 든다 — 새 지진이 쌓이면 새로 그린다
-    key = tilecache.key_text("usgs", f"{quakes.RENDERER}/{quakes.built()}/{band}/{z}/{x}/{y}")
+    # 다시 구운 날과 파일의 판이 열쇠에 든다 — 새 지진이 쌓이면 새로 그리고 주소도 바뀐다
+    version = quakes_version()
+    key = tilecache.key_text("usgs", f"{version}/{band}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = quakes.render_tile(band, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -1926,15 +1976,16 @@ def earth_neotoma_tile(request, band, ka, z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     if not paleoeco.available():
         return _tile(tiles.blank_tile(), store=False)
-    key = tilecache.key_text("neotoma", f"{paleoeco.RENDERER}/{paleoeco.built()}/{band}/{ka}/{z}/{x}/{y}")
+    version = neotoma_version()
+    key = tilecache.key_text("neotoma", f"{version}/{band}/{ka}/{z}/{x}/{y}")
     hit = tilecache.get(key)
     if hit is not None:
-        return _tile(hit, cached=True)
+        return _immutable(request, _tile(hit, cached=True), version)
     png = paleoeco.render_tile(band, ka / 1000.0, z, x, y)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
-    return response
+    return _immutable(request, response, version)
 
 
 @require_GET
@@ -2065,7 +2116,7 @@ def _point_fields(layer) -> dict:
         spec = geo3al.LAYERS[layer.name]
         return {"kind": "points", "queryable": False, "style": spec["style"], "render": "image",
                 "source": geo3al.SOURCE_URL, "attribution": geo3al.ATTRIBUTION,
-                "opacity": spec["opacity"]}
+                "opacity": spec["opacity"], "band": True}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         spec = {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
@@ -2136,7 +2187,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": geomap.ATTRIBUTION,
                 # 판을 주소에 넣는다 — 브라우저가 오래 들고 있어도 판이 바뀌면 새 주소다 (wetherilli 151)
                 "tiles": _versioned_url(f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png", geomap_version()),
-                "projection": "EPSG:3031"}
+                "projection": "EPSG:3031",
+                # 높이 그래프 밑에 지질 띠를 그릴 수 있다 (wetherilli 180)
+                **({"band": True} if layer.name in geomap.BAND_LAYERS else {})}
     if layer.upstream == "npolar" and npolar.knows(layer.name):
         spec = npolar.TILES[layer.name]
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
@@ -2913,6 +2966,114 @@ def _dir_version(path) -> str:
         return format(int(Path(path).stat().st_mtime), "x")
     except (OSError, TypeError, ValueError):
         return ""
+
+
+def _stamp(*parts) -> str:
+    """판을 이루는 것들(그리는 법·파일의 판·구운 날) → 주소에 넣을 짧은 판. 하나라도 비면(파일이 없다) 빈 판이다."""
+    if any(p in (None, "") for p in parts):
+        return ""
+    return hashlib.sha1("|".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:10]
+
+
+def _file_stamp(path) -> str:
+    """우리 디스크(`/srv/GSM/db/…`)에 구워 둔 파일의 판 — 크기와 고친 때. 다시 구우면 바뀐다."""
+    try:
+        st = Path(path).stat()
+    except (OSError, TypeError, ValueError):
+        return ""
+    return f"{st.st_size:x}-{int(st.st_mtime):x}"
+
+
+_content_stamps = {}
+
+
+def _content_stamp(path) -> str:
+    """저장소에 든 자료 파일(`data/*.json`)의 판 — 내용의 해시. 이미지를 새로 구울 때마다 고친 때가 바뀌므로
+    고친 때를 쓰면 판마다 주소와 캐시가 다 바뀐다. 해시는 고친 때가 바뀔 때만 다시 센다."""
+    try:
+        st = Path(path).stat()
+    except (OSError, TypeError, ValueError):
+        return ""
+    key = (str(path), st.st_size, st.st_mtime_ns)
+    hit = _content_stamps.get(key)
+    if hit is None:
+        try:
+            hit = hashlib.sha1(Path(path).read_bytes()).hexdigest()[:10]
+        except OSError:
+            return ""
+        _content_stamps[key] = hit
+    return hit
+
+
+def tile_versions(page: str) -> dict:
+    """화면(JS)이 주소를 짓는 타일의 판 — 레이어 갈래 → 판 (wetherilli 183). 화면이 `?v=` 로 붙여 `_immutable` 을 탄다.
+
+    판은 **그 타일의 서버 캐시 열쇠에 든 것과 같은 것**으로 센다 — 그리는 법(`RENDERER`)과 파일의 판. 그래야 파일을 다시
+    굽거나 그리는 법을 고치면 주소도 캐시도 함께 바뀐다. 상류에서 받은 것(Trek·Macrostrat …)은 싣지 않는다 — 판이 없다."""
+    if page == "moon":
+        return {"orig": moonmap_version()}
+    if page == "mars":
+        return {"orig": marsmap_version()}
+    if page == "mercury":
+        return {"geology": mercurymap_version()}
+    if page == "map":
+        return {name.split(":", 1)[1]: _dir_version(sheet.tiles_dir()) if sheet.available() else ""
+                for name, sheet in ibcso.SHEETS.items()}
+    if page == "earth":
+        return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
+                "volcanoes": volcanoes_version(), "quakes": quakes_version(), "neotoma": neotoma_version(),
+                "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version()}
+    return {}
+
+
+def moonmap_version() -> str:
+    return _stamp(moonmap.RENDERER, _file_stamp(moonmap.data_file()))
+
+
+def marsmap_version() -> str:
+    return _stamp(marsmap.RENDERER, _file_stamp(marsmap.data_file()))
+
+
+def mercurymap_version() -> str:
+    return _stamp(mercurymap.RENDERER, _file_stamp(mercurymap.data_file()))
+
+
+def paleo_version() -> str:
+    return _stamp(paleo.RENDERER, _content_stamp(settings.PALEOMAP_FILE))
+
+
+def paleocoast_version() -> str:
+    return _stamp(paleocoast.RENDERER, _file_stamp(paleocoast.path()))
+
+
+def fossils_version() -> str:
+    conn = fossils.db()
+    built = conn.execute("SELECT v FROM meta WHERE k = 'built'").fetchone()[0] if conn is not None else ""
+    return _stamp(fossils.RENDERER, built, _file_stamp(fossils.path()))
+
+
+def volcanoes_version() -> str:
+    return _stamp(volcanoes.RENDERER, volcanoes.fetched(), _file_stamp(volcanoes.path()))
+
+
+def quakes_version() -> str:
+    return _stamp(quakes.RENDERER, quakes.built(), _file_stamp(quakes.path()))
+
+
+def neotoma_version() -> str:
+    return _stamp(paleoeco.RENDERER, paleoeco.built(), _file_stamp(paleoeco.path()))
+
+
+def crust_version() -> str:
+    return _stamp(crust.RENDERER, _content_stamp(settings.CRUST_FILE))
+
+
+def ne_version() -> str:
+    return _stamp(naturalearth.RENDERER, _content_stamp(settings.EARTH_WATER_FILE), _content_stamp(settings.EARTH_ICE_FILE))
+
+
+def icemargins_version() -> str:
+    return _stamp(icemargins.RENDERER, _content_stamp(settings.ICE_MARGINS_FILE))
 
 
 def _versioned_url(url: str, version: str) -> str:
