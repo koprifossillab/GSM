@@ -26,8 +26,6 @@
       읽고 되면 정적 판에 싣는다(CORS 가 열려 있어 `static-kinds.js` 한 갈래)
 - [ ] (사람) 운영에서 `manage.py fetch_sgb_units` 를 한 번 — 브라질 범례에 단위 이름·시대가 붙는다(없으면 기호만). 1:100만은
       WFS 열 번 남짓·1 초 간격 (wetherilli 191)
-- [ ] 브라질 SGB 의 점 레이어 — 노두·연대측정·화석 산지(`geosgb:afloramentos`·`geocronologia`·`ocorrencias_fossiliferas`). 지역 탭의
-      점 레이어나 온 지구의 점 후보. 조건은 CC BY-NC 4.0 이라 정적 판에는 싣지 않는다
 - [ ] 페루 INGEMMET 의 단층·습곡을 따로 켜고 끄기 — 지금은 통합판 캐시 한 장에 구워져 있다(wetherilli 195). WMS 로 따로 받으려면
       넓은 줌이 30 초를 넘으니 가까운 줌에서만
 - [ ] (사람) 우루과이 DINAMIGE 1:50만의 이용 조건 — 탭은 섰다(wetherilli 196). Capabilities·MIEM 안내에 적힌 것이 없다. 밖에 열기 전에 읽는다
@@ -221,9 +219,9 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 
 - [ ] 유럽 — 영국·프랑스(143)·독일·스페인·아일랜드(147) 탭과 유럽 묶음이 섰다. 남은 것: EGDI 1:100만의 시대 판 속성이
       되살아나면(2026-10-04 에도 DB 오류, 지금은 암상 판에 묻는다 — wetherilli 177) 그쪽으로. BGS 1:62만 5천이 WMS 로 열리면 영국 탭의 넓은 줌을 그것으로. 독일은 줌 9 전에 EGDI 뿐이다 —
-      BGR GÜK1000 보다 넓은 판(GÜK 2000?)이 있는지. 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 같은 묶음에
-- [ ] 다른 나라 지질도 — 호주 GA 탭은 섰다(wetherilli 212 — 주 지질조사소 판·GA 의 다른 서비스는 다음). 스웨덴(SGU)이 오면
-      노르웨이·핀란드 탭에 더한다.
+      BGR GÜK1000 보다 넓은 판(GÜK 2000?)이 있는지. 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 섰다(wetherilli 211) — 밖에 열기 전에 LNEG 의 조건(적힌 것이 없다)과 ISPRA 의 "열람 자유" 를 사람이 읽는다
+- [ ] 다른 나라 지질도 — 호주 GA 탭은 섰다(wetherilli 212 — 주 지질조사소 판·GA 의 다른 서비스는 다음). 스웨덴 SGU 는
+      노르웨이·스웨덴·핀란드 탭에 섰다(wetherilli 213).
       **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
       VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 
