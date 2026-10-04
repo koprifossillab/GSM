@@ -100,6 +100,9 @@ class Command(BaseCommand):
                 # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
                 (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
                 (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),
+                # 아프리카 나라 판 — 남아공 CGS·나미비아 GSN 1:100만 (wetherilli 209). 탭은 아프리카 하나에 얹는다
+                (settings.CGS_CATALOG_SEED, "남아공 (CGS)", "africa", "cgs"),
+                (settings.GSN_CATALOG_SEED, "나미비아 (GSN)", "africa", "gsn"),
                 # 캐나다 — NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 (wetherilli 204)
                 (settings.NRCAN_CATALOG_SEED, "캐나다 (NRCan)", "canada", "nrcan"),
                 (settings.OGS_CATALOG_SEED, "온타리오 (OGS)", "canada", "ogs"),

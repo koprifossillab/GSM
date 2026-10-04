@@ -297,7 +297,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
   상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·페루·에콰도르·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·195·196·198)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·sgu·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·nrcan·ogs·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·sgu·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·cgs·gsn·nrcan·ogs·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -337,7 +337,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   CC 아르헨티나 라이선스로 쓸 때 저작자를 밝힌다", **우루과이 DINAMIGE** 는 적힌 조건이 없다 — 둘 다 CORS 가 없어 서버 문으로만 가고 정적 판에 싣지 않는다 (wetherilli 196) **에콰도르 IIGE 도 팔지 못하게 한다**(비상업) (wetherilli 198) **캐나다 NRCan·온타리오 OGS 는
   열린 정부 라이선스**(OGL–Canada·OGL–Ontario)이고 CORS 를 되비춘다 — 정적 판에 실을 수 있지만 기본값에는 넣지 않았다(#153, wetherilli 204)
 - **아프리카 1:1000만도 CGMW 의 지도다**(CGMW–BRGM 2016) — 서버의 조건 칸은 비었지만 CGMW 가 인쇄판을 판다. 정적 판에 싣지 않고
-  밖에 열기 전에 사람이 읽는다(TODOs). **BGS 아프리카 지하수 지도책은 CC BY-SA 4.0** 이다 (wetherilli 207)
+  밖에 열기 전에 사람이 읽는다(TODOs). **BGS 아프리카 지하수 지도책은 CC BY-SA 4.0** 이다 (wetherilli 207).
+  **남아공 CGS(정부 DPME 사본)·나미비아 GSN 은 자료를 판다** — 보기는 열려 있지만 받은 것을 **서버 캐시에 담지 않는다**(`views.NO_STORE`) —
+  그때그때 받아 보여 주기만 한다. 정적 판에 싣지 않는다 (wetherilli 209)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
   재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025).
@@ -421,7 +423,9 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   gtk.py          핀란드 지질조사소(GTK)로 나가는 문 (기반암 1:100만·20만 ArcGIS WMS). 3413 으로 곧장
   sgu.py          스웨덴 지질조사소(SGU)로 나가는 문 (기반암 1:100만·5만–25만 GeoServer WMS, CC0). 3413 으로 곧장. 레이어 하나가 두 판을 함께 부른다
   bgs.py          영국 지질조사소(BGS)로 나가는 문 (그레이트브리튼 1:5만 ArcGIS WMS, 줌 13 부터). 같은 서버의 북아일랜드 GSNI 1:25만도,
-                  아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도
+                  아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
+                  (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)도
+  cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
                   CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)도
   egdi.py         EGDI(EuroGeoSurveys)로 나가는 문 (범유럽 1:100만 지표 지질 GeoServer WMS). 느리다. 속성은 두 판 모두 암상 판에 묻는다(wetherilli 177)
@@ -498,8 +502,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`sgu.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`ingemmet.py`·`iige.py`·`mrdata.py`·`sgm.py`·`segemar.py`·`dinamige.py`·`nrcan.py`·`ogs.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 마흔둘 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`sgu.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`cgs.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`ingemmet.py`·`iige.py`·`mrdata.py`·`sgm.py`·`segemar.py`·`dinamige.py`·`nrcan.py`·`ogs.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 마흔셋 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는
