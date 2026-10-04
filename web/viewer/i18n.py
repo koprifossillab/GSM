@@ -764,6 +764,12 @@ EN = {
     "MESSENGER 665 m · 수성 기준구 2439.4 km 에서 잰 높이": "MESSENGER 665 m · height above the 2,439.4 km Mercury sphere",
     "거리 {d} · 높이 {h}": "distance {d} · elevation {h}",
     "선이 없다": "No line given",
+    # 공유 링크 (wetherilli 189)
+    "링크 복사 — 보던 자리·켠 레이어·배경을 주소에 담는다": "Copy link — puts the view, the layers you have on and the basemap in the address",
+    "링크": "Link",
+    "이 링크를 복사한다": "Copy this link",
+    "링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다": "Opened from a link — changes here are not remembered in this browser",
+    "내 화면으로": "Back to my view",
     # 높이 그래프 밑의 지질 띠 (wetherilli 180)
     "거리 {d} · 높이 {h} · {unit}": "distance {d} · elevation {h} · {unit}",
     "{read} · 지질 띠 — {layer}": "{read} · geology strip — {layer}",
