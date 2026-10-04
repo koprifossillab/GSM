@@ -2406,10 +2406,13 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
             extra = {"attribution": mod.ATTRIBUTION, "projection": "EPSG:3857"}
             spec = {"geosphere:geology": {"maxZoom": geosphere.MAX_ZOOM}, "geosphere:faults": {"maxZoom": geosphere.MAX_ZOOM},
                     "pig:mgp500k": {"maxZoom": pig.MAX_ZOOM}, "pig:faults": {"minZoom": pig.FAULTS_MIN_ZOOM},
+                    # 1:5만 둘 — 가까이서만 그린다(wetherilli 239)
+                    "geosphere:units50k": {"minZoom": geosphere.UNITS50_MIN_ZOOM, "noLegend": True},
+                    "pig:smgp50k": {"minZoom": pig.SMGP_MIN_ZOOM}, "pig:smgp50k_lines": {"minZoom": pig.SMGP_MIN_ZOOM},
                     "spw:geology": {"minZoom": spw.MIN_ZOOM, "noLegend": True},
                     "spw:faults": {"minZoom": spw.FAULTS_MIN_ZOOM, "noLegend": True}}.get(layer.name, {})
             extra.update(spec)
-            if layer.name in ("geosphere:faults", "pig:faults", "spw:faults"):
+            if layer.name in ("geosphere:faults", "pig:faults", "spw:faults", "pig:smgp50k_lines"):
                 extra["queryable"] = False
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
