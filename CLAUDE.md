@@ -456,7 +456,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   mris.py         몽골 국가지질조사소 MonGeoCat 으로 나가는 문 (국가지질도첩 지질도·1:50만 단층 ArcGIS WMS, 3857 로. 문서에 없는 주소, WMS·REST 번호가 거꾸로, 시대는 러시아식 층서 지수에서 푼다)
   gsiindia.py     인도 지질조사소(GSI) 1:200만으로 나가는 문 (그림은 BGS 의 OneGeology WMS, 누른 자리는 GSI 의 ArcGIS Online 피처 서비스 — Bhukosh 가 나라 밖에서 닿지 않아 둘을 엮는다)
   sgs.py          사우디 지질조사소(SGS) 국가 지질 자료로 나가는 문 (1:25만 합본 ArcGIS WMS, 원본 3857. 범례는 1 337 칸이라 보는 범위의 것 — REST 통계 질의)
-  esdm.py         인도네시아 지질청(ESDM)으로 나가는 문 (1:10만 편집 2018 ArcGIS WMS, 3857 로. 줌 10 너머는 상류가 그리지 않아 화면이 늘린다. 속성은 ESRI XML)
+  esdm.py         인도네시아 지질청(ESDM)으로 나가는 문 (1:10만 편집 2018 ArcGIS WMS, 3857 로. 줌 10 너머는 상류가 그리지 않아 화면이 늘린다. 속성은 ESRI XML, 범례는 보는 범위의 REST 통계 — wetherilli 243)
   jmg.py          말레이시아 광물지구과학국(JMG MyGEMS)으로 나가는 문 (주별 암상·연대 ArcGIS REST — WMS 가 꺼져 있어 export·identify 로 옮긴다, 주 열다섯을 한 장에)
   mgb.py          필리핀 광산지질국(MGB)으로 나가는 문 (지역 지질도 ArcGIS WMS, 공개 폴더만. 속성은 ESRI XML)
   dmr.py          태국 광물자원국(DMR)으로 나가는 문 (암석 단위 1:25만 ArcGIS WMS. 속성이 기호뿐이라 REST 범례에서 이름을 찾아 붙이고, 시대는 기호에서 푼다)
