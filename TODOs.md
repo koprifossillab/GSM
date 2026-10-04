@@ -61,6 +61,9 @@
       `SERV_OCURRENCIA_MINERAL`·`SERV_METALOGENETICO`(MapServer, 4326)·`SERV_AEROMAGNETIICO`(ImageServer) — 페루 문은 타일 칸 기계(`ingemmet/<판>/z/x/y`)라
       서비스를 하나 더 얹는 손이 든다. 브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다)
 
+- [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
+      가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
+
 ### 아프리카
 
 - [ ] **(사람) 아프리카 1:1000만의 CGMW 이용 조건** — 아프리카 탭은 CGMW–BRGM 1:1000만과 BGS 지하수 지도책으로 섰다(wetherilli 207).
