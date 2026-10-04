@@ -88,8 +88,8 @@ class Views(TestCase):
             self.assertEqual((layer.group.region, layer.upstream), ("australia", upstream))
         self.assertEqual(self.layers["gsq:detailed"]["minZoom"], 9)
         self.assertNotIn("minZoom", self.layers["gsq:state"])
-        self.assertEqual((self.layers["gsv:250k"]["legend"], self.layers["gsv:250k"]["legendUrl"]), ("extent", "gsv/legend/"))
-        self.assertIs(self.layers["gssa:units"]["noLegend"], True)
+        self.assertEqual((self.layers["gsv:250k"]["legend"], self.layers["gsv:250k"]["legendUrl"]), ("extent", "austates/legend/"))
+        self.assertEqual(self.layers["gssa:units"]["legendUrl"], "austates/legend/")
         self.assertIn("CC BY 4.0", self.layers["gssa:units"]["attribution"])
 
     def test_퀸즐랜드는_REST_export(self):
@@ -126,12 +126,81 @@ class Views(TestCase):
 
     def test_빅토리아_범례는_보는_범위의_칸(self):
         with mock.patch.object(austates.requests, "get", return_value=answer(json=lambda: LEGEND)) as get:
-            first = self.client.get(reverse("viewer:gsv-legend"), {"layer": "gsv:250k", "bbox": "144.1,-37.7,144.5,-37.3"}).json()
-            self.client.get(reverse("viewer:gsv-legend"), {"layer": "gsv:250k", "bbox": "144.1,-37.7,144.5,-37.3"})
+            first = self.client.get(reverse("viewer:austates-legend"), {"layer": "gsv:250k", "bbox": "144.1,-37.7,144.5,-37.3"}).json()
+            self.client.get(reverse("viewer:austates-legend"), {"layer": "gsv:250k", "bbox": "144.1,-37.7,144.5,-37.3"})
         get.assert_called_once()                                                  # 두 번째는 담아 둔 것
         self.assertEqual(get.call_args.kwargs["params"]["legend_options"], "countMatched:true;hideEmptyRules:true")
         self.assertEqual([(r["lithology"], r["color"]) for r in first["rows"]],
                          [("Bacchus Marsh Formation (Pxb)", "#92D0FE"), ("Bullengarook Gravel (Nxu)", "#FEEF00")])
-        wide = self.client.get(reverse("viewer:gsv-legend"), {"layer": "gsv:250k", "bbox": "141,-39,150,-34"})
+        wide = self.client.get(reverse("viewer:austates-legend"), {"layer": "gsv:250k", "bbox": "141,-39,150,-34"})
         self.assertEqual(wide.status_code, 422)
-        self.assertEqual(self.client.get(reverse("viewer:gsv-legend"), {"layer": "gssa:units", "bbox": "1,1,2,2"}).status_code, 400)
+        self.assertEqual(self.client.get(reverse("viewer:austates-legend"), {"layer": "gssa:faults", "bbox": "1,1,2,2"}).status_code, 400)
+
+
+QLD_RENDERER = {"drawingInfo": {"renderer": {"type": "uniqueValue", "field1": "RU_NAME", "field2": "MAP_SYMBOL", "fieldDelimiter": ":",
+    "uniqueValueInfos": [{"value": "Quaternary alluvium and lacustrine deposits:Qa",
+                          "symbol": {"type": "esriSFS", "color": [255, 255, 230, 255]}}]}}}
+QLD_STATS = {"features": [
+    {"attributes": {"ru_name": "Quaternary alluvium and lacustrine deposits", "map_symbol": "Qa", "age": "QUATERNARY", "n": 12}},
+    {"attributes": {"ru_name": "Bunya Phyllite, Neranleigh-Fernvale beds", "map_symbol": "DCn", "age": "DEVONIAN - CARBONIFEROUS", "n": 30}}]}
+SA_SLD = """<sld:StyledLayerDescriptor><sld:Rule><sld:Name>GSSA GL Colour 244</sld:Name><ogc:Filter><ogc:PropertyIsEqualTo>
+<ogc:PropertyName>gsmlp:genericSymbolizer</ogc:PropertyName>
+<ogc:Literal>244</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter><sld:PolygonSymbolizer><sld:Fill>
+<sld:CssParameter name="fill">#F7E39B</sld:CssParameter></sld:Fill></sld:PolygonSymbolizer></sld:Rule></sld:StyledLayerDescriptor>"""
+SA_WFS = {"type": "FeatureCollection", "features": [
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [0, 0]}, "properties": {"name": "Fulham Sand", "genericSymbolizer": "244"}},
+    {"type": "Feature", "geometry": None, "properties": {"name": "Fulham Sand", "genericSymbolizer": "244"}},
+    {"type": "Feature", "geometry": None, "properties": {"name": "Hindmarsh Clay", "genericSymbolizer": "9"}}]}
+
+
+class LegendsAndStructures(TestCase):
+    """퀸즐랜드·남호주의 범례와 구조선 (wetherilli 232)."""
+
+    def setUp(self):
+        patch = override_settings(TILE_CACHE_DIR=tempfile.mkdtemp(prefix="gsm-austates2-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+        call_command("seed_catalog", stdout=io.StringIO())
+        for name, value in (("record", None), ("paused", 0)):
+            p = mock.patch.object(austates.usage, name, return_value=value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.layers = {l["name"]: l for g in self.client.get(reverse("viewer:catalog")).json()["groups"]
+                       for l in g["layers"]}
+
+    def test_구조선은_누르지_않고_범례가_없다(self):
+        for name, first in (("gsq:state_structure", 7), ("gsq:faults", 9), ("gsq:folds", 9), ("gssa:faults", 10)):
+            row = self.layers[name]
+            self.assertEqual((row["queryable"], row["noLegend"], row["minZoom"]), (False, True, first))
+        with mock.patch.object(austates.requests, "get", return_value=answer()) as get:
+            self.client.get(reverse("viewer:wms"), {"layers": "gsq:state_structure", "version": "1.3.0", "request": "GetMap", **MERC})
+        self.assertTrue(get.call_args.args[0].endswith("/GeologyState/MapServer/export"))
+        self.assertEqual(get.call_args.kwargs["params"]["layers"], "show:3,4")
+
+    def test_퀸즐랜드_범례는_통계와_칠하기_규칙(self):
+        def get(url, params=None, **kw):
+            return answer(json=lambda: QLD_STATS if url.endswith("/query") else QLD_RENDERER)
+        with mock.patch.object(austates.requests, "get", side_effect=get) as called:
+            rows = self.client.get(reverse("viewer:austates-legend"), {"layer": "gsq:state", "bbox": "150,-29,154,-25"}).json()["rows"]
+        stats = [c for c in called.call_args_list if c.args[0].endswith("/query")][0].kwargs["params"]
+        self.assertEqual(stats["groupByFieldsForStatistics"], "ru_name,map_symbol,age")
+        self.assertEqual([r["lithology"] for r in rows], ["DCn Bunya Phyllite, Neranleigh-Fernvale beds",
+                                                          "Qa Quaternary alluvium and lacustrine deposits"])
+        self.assertEqual((rows[1]["color"], rows[0]["color"]), ("#ffffe6", "#cccccc"))       # 규칙에 없는 값은 회색
+        self.assertEqual(rows[0]["age"], "데본기~석탄기")
+
+    def test_남호주_범례는_WFS_와_SLD(self):
+        def get(url, params=None, **kw):
+            if params.get("request") == "GetStyles":
+                return answer(text=SA_SLD, content=SA_SLD.encode())
+            return answer(json=lambda: SA_WFS)
+        with mock.patch.object(austates.requests, "get", side_effect=get) as called:
+            rows = self.client.get(reverse("viewer:austates-legend"), {"layer": "gssa:units", "bbox": "138.5,-35.0,138.7,-34.8"}).json()["rows"]
+        wfs = [c for c in called.call_args_list if c.kwargs["params"].get("service") == "WFS"][0]
+        self.assertTrue(wfs.args[0].endswith("/geoserver/wfs"))
+        self.assertEqual((wfs.kwargs["params"]["bbox"], wfs.kwargs["params"]["propertyName"]),
+                         ("138.5,-35.0,138.7,-34.8,EPSG:4326", "gsmlp:name,gsmlp:genericSymbolizer"))
+        self.assertEqual([(r["lithology"], r["color"], r["count"]) for r in rows],
+                         [("Fulham Sand", "#F7E39B", 2), ("Hindmarsh Clay", "#cccccc", 1)])
+        wide = self.client.get(reverse("viewer:austates-legend"), {"layer": "gssa:units", "bbox": "138,-35,139,-34"})
+        self.assertEqual(wide.status_code, 422)
