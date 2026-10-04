@@ -22,7 +22,7 @@ import unicodedata
 import requests
 from django.conf import settings
 
-from . import i18n, tilecache, usage
+from . import arcpoints, i18n, tilecache, usage
 
 log = logging.getLogger(__name__)
 
@@ -127,10 +127,6 @@ def point_attributes(name: str, lat: float, lon: float):
     return (feats[0].get("attributes") or {}) if feats else None
 
 
-def _hex(rgba) -> str:
-    return "#" + "".join(f"{int(v):02x}" for v in list(rgba)[:3])
-
-
 def colors(name: str) -> dict:
     """색을 가르는 열의 값 → `#rrggbb`. 레이어 정보의 칠하기 규칙에서 뜬다. 한 번 받아 담는다."""
     key = tilecache.key_text("ingemmet-colors", name)
@@ -145,8 +141,7 @@ def colors(name: str) -> dict:
         if stale is not None:
             return json.loads(stale)
         raise IngemmetError("칠하기 규칙을 읽지 못했다") from exc
-    table = {str(u.get("value")).strip(): _hex(u["symbol"]["color"])
-             for u in renderer.get("uniqueValueInfos") or [] if (u.get("symbol") or {}).get("color")}
+    table = arcpoints.renderer_colors(renderer)
     tilecache.put(key, json.dumps(table).encode("utf-8"), ".json")
     return table
 
