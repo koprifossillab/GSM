@@ -22,6 +22,9 @@
   // 자리표로 두고 넘긴다 — 영어는 말 차례가 달라 이어 붙이면 어색하다.
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  // 화면이 주소를 짓는 우리 타일의 판 (wetherilli 183) — `?v=` 를 붙이면 서버가 길게(immutable) 캐시하게 한다. 판이 바뀌면 주소가 바뀐다
+  var TILE_V = JSON.parse((document.getElementById("tile-versions") || {}).textContent || "{}");
+  function vq(kind) { return TILE_V[kind] ? "?v=" + TILE_V[kind] : ""; }
 
   function T(text, vars) {
     var out = (LANG === "en" && I18N[text]) || text;
@@ -1515,7 +1518,7 @@
     for (var z = 0; z <= 6; z++) resolutions.push(width / GEOMAP_GRID.tileSize / Math.pow(2, z));
     return new ol.layer.Tile({
       source: new ol.source.XYZ({
-        url: BASE + "ibcso/" + which + "/{z}/{x}/{y}.webp",
+        url: BASE + "ibcso/" + which + "/{z}/{x}/{y}.webp" + vq(which),
         projection: "EPSG:3031",
         tileGrid: new ol.tilegrid.TileGrid({
           extent: GEOMAP_GRID.extent,

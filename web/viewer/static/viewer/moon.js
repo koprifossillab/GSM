@@ -19,6 +19,9 @@
   var BASE = location.pathname.replace(/moon\/?$/, "");
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  // 화면이 주소를 짓는 우리 타일의 판 (wetherilli 183) — `?v=` 를 붙이면 서버가 길게(immutable) 캐시하게 한다. 판이 바뀌면 주소가 바뀐다
+  var TILE_V = JSON.parse((document.getElementById("tile-versions") || {}).textContent || "{}");
+  function vq(kind) { return TILE_V[kind] ? "?v=" + TILE_V[kind] : ""; }
   function T(text, vars) {
     var out = (LANG === "en" && I18N[text]) || text;
     if (vars) out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
@@ -102,7 +105,7 @@
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
   var GEO_MAX = 12;
-  function geoUrl(name) { return BASE + "moon/tiles/" + name + "/{z}/{x}/{y}.png"; }
+  function geoUrl(name) { return BASE + "moon/tiles/" + name + "/{z}/{x}/{y}.png" + (/^orig-/.test(name) ? vq("orig") : ""); }
   var GEO_CREDIT = "Unified Geologic Map of the Moon 1:5M (Fortezzo et al., 2020, USGS) via NASA Moon Trek";
   var ORIG_CREDIT = "USGS 1:5M lunar geologic maps 1971–1979 (renovated by Fortezzo & Hare, 2013); colors after E. Lutz";
   function creditOf(name) { return name === "units" ? GEO_CREDIT : name === "orig-units" ? ORIG_CREDIT : undefined; }
@@ -432,7 +435,7 @@
   function polarGeoSource(pole, name) {
     return new ol.source.TileImage({
       projection: pole === "n" ? NPS : SPS, tileGrid: polarGrid(GEO_MAX), attributions: creditOf(name),
-      url: BASE + "moon/ptiles/" + pole + "/" + name + "/{z}/{x}/{y}.png",
+      url: BASE + "moon/ptiles/" + pole + "/" + name + "/{z}/{x}/{y}.png" + (/^orig-/.test(name) ? vq("orig") : ""),
     });
   }
   function baseSource(key) {

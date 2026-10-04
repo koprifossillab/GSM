@@ -19,6 +19,9 @@
   var BASE = location.pathname.replace(/mercury\/?$/, "");
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  // 화면이 주소를 짓는 우리 타일의 판 (wetherilli 183) — `?v=` 를 붙이면 서버가 길게(immutable) 캐시하게 한다. 판이 바뀌면 주소가 바뀐다
+  var TILE_V = JSON.parse((document.getElementById("tile-versions") || {}).textContent || "{}");
+  function vq(kind) { return TILE_V[kind] ? "?v=" + TILE_V[kind] : ""; }
   function T(text, vars) {
     var out = (LANG === "en" && I18N[text]) || text;
     if (vars) out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
@@ -90,7 +93,7 @@
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
   var GEO_MAX = 10;            // 서버의 `mercurymap.MAX_ZOOM`
-  function geoUrl(name) { return BASE + "mercury/tiles/" + name + "/{z}/{x}/{y}.png"; }
+  function geoUrl(name) { return BASE + "mercury/tiles/" + name + "/{z}/{x}/{y}.png" + vq("geology"); }
   var GEO_CREDIT = "USGS Atlas of Mercury 1:5M geologic series (1980–1990), digital merge Frigeri et al. 2008";
   function creditOf(name) { return GEO_CREDIT; }
 

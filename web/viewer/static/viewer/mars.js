@@ -16,6 +16,9 @@
   var BASE = location.pathname.replace(/mars\/?$/, "");
   var LANG = document.documentElement.lang === "en" ? "en" : "ko";
   var I18N = JSON.parse((document.getElementById("i18n-data") || {}).textContent || "{}");
+  // 화면이 주소를 짓는 우리 타일의 판 (wetherilli 183) — `?v=` 를 붙이면 서버가 길게(immutable) 캐시하게 한다. 판이 바뀌면 주소가 바뀐다
+  var TILE_V = JSON.parse((document.getElementById("tile-versions") || {}).textContent || "{}");
+  function vq(kind) { return TILE_V[kind] ? "?v=" + TILE_V[kind] : ""; }
   function T(text, vars) {
     var out = (LANG === "en" && I18N[text]) || text;
     if (vars) out = out.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; });
@@ -98,7 +101,7 @@
   //: 타일 레이어(지질) — 벡터·모자이크는 아래 "착륙지" 절이 따로 짓는다
   var GEO_NAMES = ALL_NAMES.filter(function (n) { return !LAYER[n].kind; });
   var GEO_MAX = 11;            // 서버의 `trek.MARS_MAX_ZOOM`
-  function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png"; }
+  function geoUrl(name) { return BASE + "mars/tiles/" + name + "/{z}/{x}/{y}.png" + (/^orig-/.test(name) ? vq("orig") : ""); }
   var GEO_CREDIT = "Geologic Map of Mars 1:20M (Tanaka et al., 2014, USGS SIM 3292) via NASA Mars Trek";
   var ORIG_CREDIT = "USGS Mars geologic maps: I-1802-A/B/C 1:15M (1986–87), SIM 2888 (2005), I-2650 (2001), MTM 1:500K";
   var CRATER_CREDIT = "Mars crater database (Robbins & Hynek 2012, USGS Astrogeology)";
@@ -405,7 +408,7 @@
   function polarGeoSource(pole, name) {
     return new ol.source.TileImage({
       projection: pole === "n" ? NPS : SPS, tileGrid: polarGrid(GEO_MAX), attributions: creditOf(name),
-      url: BASE + "mars/ptiles/" + pole + "/" + name + "/{z}/{x}/{y}.png",
+      url: BASE + "mars/ptiles/" + pole + "/" + name + "/{z}/{x}/{y}.png" + (/^orig-/.test(name) ? vq("orig") : ""),
     });
   }
   function baseSource(key) {
