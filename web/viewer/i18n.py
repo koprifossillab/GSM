@@ -2449,6 +2449,7 @@ PROP_EN = {
     "회사": "Company",
     "생산": "Production", "발견": "Discovery",
     "광종 (태국어)": "Commodity (Thai)", "군": "District", "탐사 단계": "Exploration status", "광종 갈래": "Commodity group", "조사 단계": "Survey stage",
+    "광업 지역": "Mining area",
     "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
     "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
     "시대 기호": "Age code", "자원량": "Resources",
@@ -3133,6 +3134,7 @@ GROUP_EN = {
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
     "인도네시아 광물 자원 (ESDM)": "Indonesia mineral resources (ESDM)", "필리핀 광물 자원 (MGB)": "Philippines mineral resources (MGB)",
     "태국 광물 (DMR)": "Thailand minerals (DMR)", "사우디 광물 (SGS)": "Saudi Arabia minerals (SGS)", "몽골 광물 (MRIS)": "Mongolia minerals (MRIS)",
+    "남아공 광업·자원 지역 (CGS)": "South Africa mining and resource areas (CGS)",
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
     "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
     "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
@@ -3290,6 +3292,8 @@ LAYER_EN = {
     "dmr:min_occ": "Mineral occurrences", "dmr:critical": "Critical mineral occurrences",
     "sgs:mods": "Mineral occurrences (MODS)", "sgs:belts": "Mineralization belts (gold, nickel, zinc, VMS)",
     "mris:ree": "Rare earth deposits, mineralized points and occurrences",
+    # 남아공 광업·자원 지역 (wetherilli 285)
+    "cgs:mining_areas": "Main mining areas (CSIR)", "cgs:coal": "Main coal resource areas", "cgs:uranium": "Uranium areas",
     # 북유럽 광물·지구물리 (wetherilli 270)
     "gtk:aeromagneettinen_anomaliakartta": "Aeromagnetic anomaly", "gtk:aeroradiometrinen_yhdistelmakartta": "Aeroradiometric ternary (K·Th·U)",
     "gtk:fennoscandia_mineral_deposit": "Ore deposits (Norway, Sweden, Finland, NW Russia)",

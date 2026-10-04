@@ -454,6 +454,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
                   (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도,
                   영국 GeoIndex 의 자력·중력 이상·광산·광물 산지(`bgsgi`, OGL, wetherilli 258)도
   cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
+                  같은 서비스의 광업·석탄·우라늄 지역(레이어 0·1·2, 면 8·86·19)도 — NO_STORE 를 따른다 (wetherilli 285)
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
                   CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)·카메룬 IRGM 1:100만(`irgm`, 4326 만, 246)도
                   해외 영토의 스캔도(앤틸리스·폴리네시아·레위니옹·마요트·생피에르 미클롱 — 지역은 씨앗마다, wetherilli 260)

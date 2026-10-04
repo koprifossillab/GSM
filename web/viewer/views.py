@@ -3062,6 +3062,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": brgm.CGMW_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "cgs" and cgs.knows(layer.name):
         # 남아공 CGS 1:100만(wetherilli 209) — 문이 WMS 변수를 ArcGIS REST export·identify 로 옮긴다. 범례는 REST 를 목록으로(`cgs/legend/`)
+        if layer.name != "cgs:geology_1m":
+            # 광업·석탄·우라늄 지역(wetherilli 285)도 같은 서비스다. 한 색이라 범례 칸 이름이 비어 범례를 두지 않는다. 석탄 지역은 누르지 않는다
+            return {"attribution": cgs.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
+                    **({"queryable": False} if layer.name in cgs.NOT_QUERYABLE else {})}
         return {"attribution": cgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "list", "legendUrl": "cgs/legend/"}
     if layer.upstream == "gsn":
         # 나미비아 GSN 1:100만(wetherilli 209) — BGS 의 MapServer, 3857 그대로
