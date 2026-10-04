@@ -2309,6 +2309,8 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    # 하와이 (wetherilli 238)
+    "조성": "Composition", "섬": "Island", "화산 성장 단계": "Volcano stage",
     "서열": "Rank",
     "변성암": "Metamorphic rock",
     "화성암": "Igneous rock",
@@ -2976,6 +2978,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "하와이 지질도 (USGS)": "Hawaii geology (USGS)", "푸에르토리코 지질도 (USGS)": "Puerto Rico geology (USGS)",
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
@@ -3263,6 +3266,9 @@ LAYER_EN = {
     "mrdata:sgmc2:sgmc2structure": "Structures (state map compilation)",
     "mrdata:sim3340:units": "Geologic units (Alaska 1:1.58M)",
     "mrdata:sim3340:faults": "Faults (Alaska 1:1.58M)",
+    # 하와이·푸에르토리코 (wetherilli 238)
+    "mrdata:hi:units": "Geologic units (Hawaii)", "mrdata:hi:faults": "Faults (Hawaii)", "mrdata:hi:dikes": "Dikes (Hawaii)",
+    "mrdata:pr:geol": "Geologic units (Puerto Rico)", "mrdata:pr:fault": "Thrust faults (Puerto Rico)", "mrdata:pr:faultn": "Normal faults (Puerto Rico)",
     # 멕시코 (wetherilli 206)
     "sgm:8": "Lithology (1:250k)",
     # 호주 (wetherilli 212)

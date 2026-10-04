@@ -1259,7 +1259,8 @@
     // 나라 판을 대륙 탭 하나에 얹은 아프리카(`clip`, wetherilli 209)도 같다
     // 캐나다 탭(3978)의 주 판(wetherilli 235)도 — 앨버타 타일은 주 밖이 404 이고, 사스카치원·노바스코샤도 주 밖은 빈 그림이다.
     // 람베르트에서도 위경도 네모의 가장자리를 따라 옮기므로(`transformExtent`) 주를 덮는다
-    var provincial = row && ["ags", "skgs", "nsgs"].indexOf(row.upstream) >= 0 && viewProj().getCode() === "EPSG:3978";
+    // 미국 탭의 하와이·푸에르토리코(카탈로그 행의 `clip`, wetherilli 238)도 같다 — 섬 둘레만 묻는다
+    var provincial = row && (row.clip || ["ags", "skgs", "nsgs"].indexOf(row.upstream) >= 0) && viewProj().getCode() === "EPSG:3978";
     if (row && row.bbox && (provincial || ((REGIONS[region].includes || REGIONS[region].clip || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()))) {
       // 지질도Navi 판은 Capabilities 의 범위가 판 그대로라 넉넉히 두지 않는다 — 둘레의 없는 타일(404)을 묻지 않게
       var b = row.bbox, pad = row.upstream === "geonavi" ? 0 : 0.5;
