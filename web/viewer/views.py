@@ -3395,10 +3395,10 @@ def wms(request):
             return _tile(old, cached=True)
         return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
+    # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
+    first = (params.get("layers") or "").split(",")[0].strip()
+    last = metatile.limit(METATILE, first)
     try:
-        # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
-        first = (params.get("layers") or "").split(",")[0].strip()
-        last = metatile.limit(METATILE, first)
         piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)),
                                 max_zoom=last, errors=UPSTREAM_ERRORS)
                  if last is not False else None)
@@ -3407,8 +3407,10 @@ def wms(request):
         else:
             content, ctype = door.get_map(params)
     except UPSTREAM_ERRORS as exc:
-        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
+        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다. 메타타일 레이어는 조각에도 옛것이 있다
         old = tilecache.get(cache_key, stale=True)
+        if old is None and last is not False:
+            old = metatile.stale(first, params)
         if old is not None:
             log.info("타일을 못 받아 옛것을 낸다: %s", exc)
             return _tile(old, cached=True)
@@ -3417,7 +3419,8 @@ def wms(request):
 
     # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
     # 자료를 파는 상류(`NO_STORE`)도 담지 않는다 — 그때그때 받아 보여 주기만 한다 (wetherilli 209)
-    if not door.nostore:
+    # 메타타일 조각으로 낸 칸도 다시 담지 않는다 — 조각 열쇠에 이미 있다(두 벌이 되지 않게, wetherilli 297)
+    if not door.nostore and piece is None:
         tilecache.put(cache_key, content)
 
     response = HttpResponse(content, content_type=ctype)
