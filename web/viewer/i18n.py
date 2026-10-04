@@ -1979,6 +1979,7 @@ PROP_EN = {
     "화산 종류": "Volcano type",
     "마지막 분화": "Last eruption",
     "표고 (m)": "Elevation (m)",
+    "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
     "지구조 환경": "Tectonic setting",
     "주 암석": "Major rock type",
     "근거": "Evidence",
@@ -3160,7 +3161,7 @@ GROUP_EN = {
     "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)", "그린란드 지질도 1:250만·1:10만 (GEUS)": "Greenland geological maps 1:2.5M and 1:100k (GEUS)",
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
-    "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)",
+    "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)", "빅토리아 지구물리 (GSV)": "Victoria geophysics (GSV)",
     "남호주 광물 산지 (GSSA)": "South Australia mineral occurrences (GSSA)", "뉴질랜드 지구물리 (GNS)": "New Zealand geophysics (GNS)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
@@ -3360,6 +3361,8 @@ LAYER_EN = {
     # 오세아니아 광물·지구물리 (wetherilli 269)
     "gsq:mines": "Mines and mineral occurrences (MINOCC)", "gsq:tmi": "Total magnetic intensity (TMI)", "gsq:radiometric": "Radiometric ternary",
     "gsq:gravity": "Complete Bouguer gravity anomaly", "gsv:mineral": "Mineral deposits (polygons)", "gsv:mineralp": "Mineral deposits (points)",
+    "gsv:gravity": "Gravity stations", "gsv:lin_tmi": "Magnetic lineaments (TMI)", "gsv:lin_gravity": "Gravity lineaments",
+    "gsv:lin_radio": "Radiometric lineaments",
     "gssa:minocc": "Mineral occurrences (SARIG)", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
