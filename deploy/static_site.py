@@ -49,7 +49,9 @@ BAKED_UPSTREAMS = {"geomap": "geomap", "ibcso": "ibcso"}
 #: 콜롬비아(wetherilli 201): SGC 의 콜롬비아 1:50만만 선다 — 같은 지역의 남미 1:500만은 CGMW 의 지도라 `views._static_catalog` 가 뺀다
 OPTIONAL = {"colombia": (["colombia"], ["sgc"]),
             # 미국(wetherilli 205): USGS SGMC·알래스카 — 공공 도메인, CORS `*`. 브라우저가 mrdata 를 곧장 부른다
-            "usa": (["usa"], ["mrdata"])}
+            "usa": (["usa"], ["mrdata"]),
+            # 호주(wetherilli 212): Geoscience Australia — CC BY 4.0, Origin 을 되비춘다. 브라우저가 GA WMS 를 곧장 부른다
+            "australia": (["australia"], ["ga"])}
 
 
 def baked_spec(baked: pathlib.Path) -> dict:

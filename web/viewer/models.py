@@ -50,7 +50,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 아프리카 — 대륙 판(CGMW–BRGM 1:1000만)이 바탕이라 탭 하나. 나라 판이 붙으면 그때 가른다 (wetherilli 207)
            ("africa", "아프리카"),
            # 캐나다 — NRCan 1:500만·온타리오 OGS (wetherilli 204). 화면은 캐나다 람베르트(3978)다. 묶음 "북미" 는 DB 에 없다(남미와 같다)
-           ("canada", "캐나다"))
+           ("canada", "캐나다"),
+           # 호주 — Geoscience Australia 1:250만·1:100만 (wetherilli 212)
+           ("australia", "호주"))
 
 
 class LayerGroup(models.Model):
