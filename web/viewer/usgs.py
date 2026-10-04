@@ -113,7 +113,7 @@ def fetch_recent(dest: Path) -> dict:
     except requests.RequestException as exc:
         usage.record("usgs", ok=False)
         raise UsgsError(f"USGS 피드에 닿지 못했다: {exc}") from exc
-    usage.record("usgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("usgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     if r.status_code != 200:
         raise UsgsError(f"피드를 받지 못했다 (status={r.status_code})")
     try:
