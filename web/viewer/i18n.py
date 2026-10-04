@@ -2489,6 +2489,60 @@ AGES_ES = {
 _ES_PART = {"superior": "Late", "medio": "Middle", "inferior": "Early", "tardio": "Late", "temprano": "Early"}
 
 
+#: 프랑스어 시대 이름(악센트를 뗀 소문자) → ICS 영문 — 퀘벡 SIGÉOM (wetherilli 224)
+AGES_FR = {
+    "hadeen": "Hadean", "archeen": "Archean", "eoarcheen": "Eoarchean", "paleoarcheen": "Paleoarchean",
+    "mesoarcheen": "Mesoarchean", "neoarcheen": "Neoarchean", "proterozoique": "Proterozoic",
+    "paleoproterozoique": "Paleoproterozoic", "mesoproterozoique": "Mesoproterozoic", "neoproterozoique": "Neoproterozoic",
+    "precambrien": "Precambrian", "phanerozoique": "Phanerozoic", "paleozoique": "Paleozoic", "mesozoique": "Mesozoic",
+    "cenozoique": "Cenozoic", "cambrien": "Cambrian", "ordovicien": "Ordovician", "silurien": "Silurian", "devonien": "Devonian",
+    "carbonifere": "Carboniferous", "mississippien": "Mississippian", "pennsylvanien": "Pennsylvanian", "permien": "Permian",
+    "trias": "Triassic", "triasique": "Triassic", "jurassique": "Jurassic", "cretace": "Cretaceous", "paleogene": "Paleogene",
+    "neogene": "Neogene", "quaternaire": "Quaternary", "tertiaire": "Tertiary", "paleocene": "Paleocene", "eocene": "Eocene",
+    "oligocene": "Oligocene", "miocene": "Miocene", "pliocene": "Pliocene", "pleistocene": "Pleistocene", "holocene": "Holocene",
+    "visean": "Visean",
+}
+#: `Ordovicien supérieur` 의 뒤 낱말 → ICS 의 앞 낱말
+_FR_PART = {"inferieur": "Early", "precoce": "Early", "moyen": "Middle", "superieur": "Late", "tardif": "Late"}
+
+
+def _fold(text: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", str(text).lower()) if not unicodedata.combining(c)).strip()
+
+
+def _age_fr_one(text: str) -> str:
+    folded = _fold(text)
+    if folded in AGES_FR:
+        return AGES_FR[folded]
+    head, _, part = folded.rpartition(" ")
+    if head in AGES_FR and part in _FR_PART:
+        return f"{_FR_PART[part]} {AGES_FR[head]}"
+    if folded.endswith("ien") and folded.isalpha():      # 절 이름 — Darriwilien → Darriwilian
+        return folded[:-3].capitalize() + "ian"
+    return ""
+
+
+def age_fr(value: str) -> str:
+    """프랑스어 시대 값 → ICS 영문 (wetherilli 224). `A à B`·`A ? B` 는 범위(`A - B`, 뒤는 물음표를 단다), `A ou B` 는 `A or B`.
+    한 마디라도 모르면 원문 그대로 돌려준다 — 반쯤 옮긴 것을 내지 않는다."""
+    import re
+    text = str(value or "").strip()
+    if not text:
+        return text
+    out = []
+    for alt in re.split(r"\s+ou\s+", text):
+        parts = re.split(r"\s+(à|\?)\s+", alt)
+        names = [_age_fr_one(p) for p in parts[::2]]
+        if not all(names):
+            return text
+        joined = names[0]
+        for sep, name in zip(parts[1::2], names[1:]):
+            joined += " - " + name + (" (?)" if sep == "?" else "")
+        out.append(joined)
+    return " or ".join(out)
+
+
 def age_es(value: str) -> str:
     """에스파냐어 시대 이름 하나 → ICS 영문. 표에 없고 `-iano` 로 끝나면 절 이름으로 보고 `-ian` 으로 바꾼다. 모르면 원문 그대로."""
     import unicodedata

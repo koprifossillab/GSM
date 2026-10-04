@@ -2651,6 +2651,13 @@ class _Door:
         return msg("인증키가 없다")
 
 
+def map_cache_key(params: dict) -> str:
+    """타일의 캐시 열쇠. 받은 그림을 문이 고쳐 내는 레이어(알래스카의 물 면, wetherilli 224)는 고침의 판이 든다 — 미리 데우기도 이것을 쓴다"""
+    key = tilecache.key_for("map", params)
+    tag = mrdata.redraw_tag(params.get("layers"))
+    return tilecache.key_text("map", f"{key}/r{tag}") if tag else key
+
+
 @require_GET
 def wms(request):
     """`GetMap` 중계. 브라우저가 부르는 타일 주소다.
@@ -2672,7 +2679,7 @@ def wms(request):
 
     # 들고 있으면 상류에 묻지 않는다. **인증키가 없어도 캐시는 내준다** —
     # 이미 받아둔 그림이고, 다시 받을 일이 없으니 막을 까닭이 없다.
-    cache_key = tilecache.key_for("map", params)
+    cache_key = map_cache_key(params)
     hit = tilecache.get(cache_key)
     if hit is not None:
         return _tile(hit, cached=True)

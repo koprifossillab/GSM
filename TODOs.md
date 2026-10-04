@@ -33,13 +33,10 @@
 ### 북미
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
-- [ ] 알래스카 SIM 3340 이 북위 51.5° 남짓에 하늘색 띠를 그린다 — 상류 MapServer 의 그림이다. 잘라 내 보다 되돌렸다(wetherilli 210)
 - [ ] 브리티시컬럼비아(BCGS) — 줌 12 남짓부터만 색이 들고 CORS 가 없고 첫 요청이 9.5 초라 미뤘다(wetherilli 210). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)도 아직
-- [ ] 퀘벡 시대(`Néoarchéen` 따위)는 프랑스어 그대로다 — 옮기려면 `i18n` 에 프랑스어 → ICS 표가 든다(wetherilli 210)
-      (지금은 3857 이라 부푼다). 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 같은 서버에 있다
+- [ ] 미국 — 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 USGS mrdata 같은 서버에 있다
 - [ ] 멕시코 SGM — 지질 연대·고생물·광상 1:25만은 섰다(wetherilli 219). 남은 것: 같은 서버의 지화학(`SUNGeoquimica`)·자기 이상
       (`SUNAnomalias250`)·광산 1:5만(`SUNYacimientosMinerales`, 4 만 6 천 점). 고생물·광산 점은 그림 기호라 범례가 없다
-- [ ] 퀘벡 SIGÉOM — CC BY 4.0, Macrostrat 의 빈 자리. Origin 헤더가 붙으면 403 이라 서버 문으로만. 반나절. 그다음 캘리포니아·유콘·BC
 - 막힌 것: USGS 북미 지질도 GMNA(403), ScienceBase(503), NGMDB(지도 API 없음)
 
 ### 아프리카
