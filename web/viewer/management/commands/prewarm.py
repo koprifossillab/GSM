@@ -443,7 +443,12 @@ def _projected_plan(name, upstream):
         return None
     # 3857 은 화면의 `createXYZ` 가 `wmsSource` 와 같은 격자다 — KIGAM 과 같은 셈을 탄다
     grid = None if crs == "EPSG:3857" else tilegrid.Grid(crs)
-    return WmsPlan(name, upstream, grid, (extra.get("minZoom"), extra.get("lastZoom")))
+    last = extra.get("lastZoom")
+    # `maxZoom`(화면 줌)이 있으면 화면의 WMS 격자가 격자 줌 `maxZoom − 1` 에서 멈추고 그 위는 늘려 그린다(`npolarSource`) — 그 너머는
+    # 브라우저가 묻지 않는 타일이다(인도네시아·오스트리아·폴란드·캘리포니아, wetherilli 252)
+    if extra.get("maxZoom"):
+        last = min(last, extra["maxZoom"] - 1) if last else extra["maxZoom"] - 1
+    return WmsPlan(name, upstream, grid, (extra.get("minZoom"), last))
 
 
 def plan_for(name, upstream):
