@@ -696,6 +696,8 @@ EN = {
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
     "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
+    # 미국 (wetherilli 205)
+    "미국": "United States",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -1719,6 +1721,7 @@ PROP_EN = {
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
     "경제적 쓰임": "Economic interest",    # 에콰도르 IIGE (wetherilli 198)
+    "주": "State", "단위 설명": "Unit description",   # 미국 USGS (wetherilli 205)
     "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
     "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
@@ -2721,6 +2724,8 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
+    "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
+    "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
 }
 
 LAYER_EN = {
@@ -2798,6 +2803,11 @@ LAYER_EN = {
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
     "iige:geologia_general": "General geological map",
+    # 미국 (wetherilli 205)
+    "mrdata:sgmc2:sgmc2": "Geologic units (state map compilation)",
+    "mrdata:sgmc2:sgmc2structure": "Structures (state map compilation)",
+    "mrdata:sim3340:units": "Geologic units (Alaska 1:1.58M)",
+    "mrdata:sim3340:faults": "Faults (Alaska 1:1.58M)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
