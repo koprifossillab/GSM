@@ -2413,8 +2413,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "segemar" and segemar.knows(layer.name):
         # 아르헨티나 SEGEMAR(wetherilli 196) — GeoServer 라 3857 을 그대로. 1:25만은 간행 도폭만 덮어 가까이서만 그린다.
         # 범례는 상류의 그림 한 장이다(JSON 범례를 이 GeoServer 가 받지 못한다)
+        # 여럿을 묶은 레이어(주별 1:75만 구조선, wetherilli 220)는 범례가 없다
         first, last = segemar.ZOOMS.get(segemar.upstream_name(layer.name), (None, None))
         return {"attribution": segemar.ATTRIBUTION, "projection": "EPSG:3857",
+                **({"noLegend": True} if segemar.upstream_name(layer.name) in segemar.COMBINED else {}),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
     if layer.upstream == "dinamige" and dinamige.knows(layer.name):
         # 우루과이 DINAMIGE(wetherilli 196) — 3857 로 그린다. 그림 범례가 비어 REST 범례를 목록으로 낸다(`dinamige/legend/`)
