@@ -721,7 +721,7 @@ EN = {
     # 영국·프랑스·유럽 — BGS·BRGM·EGDI 지질도 (wetherilli 143)
     "영국": "United Kingdom",
     "프랑스": "France",
-    "유럽": "Europe",
+    "유럽": "Europe", "아시아": "Asia", "아메리카": "Americas",
     # 독일·스페인·아일랜드 (wetherilli 147)
     "독일": "Germany",
     "스페인": "Spain",
