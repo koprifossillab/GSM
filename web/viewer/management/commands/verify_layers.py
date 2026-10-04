@@ -4,12 +4,13 @@
     manage.py verify_layers --redo                # 전부 다시
     manage.py verify_layers --upstream sgm,sgc    # 그 상류만
     manage.py verify_layers --only geology --redo
+    manage.py verify_layers --redo --skip geus    # 멈춘 상류를 빼고 이어 간다
 
 레이어마다 **그 레이어의 범위 한가운데 칸 하나**를 화면이 받는 꼴 그대로 문으로 받는다 — 꼴은 미리 데우기의 계획(`prewarm.plan_for`)을
 빌린다(3857 WMS·지역 투영 WMS·GSJ z/x/y·INGEMMET 타일 캐시·우리가 굽는 GeoMAP). 받은 것을 셋으로 가른다.
 
 - **그림** — 칠한 화소가 있다. `Layer.verified_at` 에 날짜를 남긴다(레이어 패널의 "대조 안 함" 표가 떨어진다)
-- **빈 그림** — 다 투명하거나 흰 바탕뿐이다. 한가운데가 바다·빈 땅일 수도 있어 칸 하나를 더 본다. 그래도 비면 빈 그림으로 적는다
+- **빈 그림** — 다 투명하거나 흰 바탕뿐이다. 한가운데가 바다·빈 땅일 수도 있어 귀퉁이 쪽 넷을 더 본다. 다 비면 빈 그림으로 적는다
 - **오류** — 문이 오류를 냈거나 그림이 아니다
 
 타일이 아닌 레이어(점·모양·벡터, 화면이 상류를 곧장 부르는 것)는 **건너뜀**으로 센다. 끝에 상류마다 표를 낸다.
@@ -61,15 +62,28 @@ def classify(content) -> str:
 
 
 def points(bbox) -> list:
-    """물어볼 자리 — 한가운데, 그리고 비었을 때 볼 한 자리"""
+    """물어볼 자리 — 한가운데, 비면 네 귀퉁이 쪽 넷(범위의 ¼·¾). 섬나라·해외 영토는 한가운데가 바다이기 쉽다"""
     w, s, e, n = bbox
-    return [((w + e) / 2, (s + n) / 2), (w + (e - w) * 0.35, s + (n - s) * 0.6)]
+    at = lambda fx, fy: (w + (e - w) * fx, s + (n - s) * fy)
+    return [at(0.5, 0.5), at(0.3, 0.6), at(0.7, 0.4), at(0.3, 0.3), at(0.7, 0.7)]
+
+
+def first_zoom(plan) -> int:
+    """계획이 그리기 시작하는 격자 줌. WMS 는 화면 줌(`minZoom`)보다 하나 작은 512 px 격자다 — 그 밑은 상류가 그리지 않는
+    축척일 수 있다(BGS 1:5만·GÜK250·IGME5000 의 축척별 레이어)"""
+    if isinstance(plan, WmsPlan):
+        return max(0, (plan.first or 0) - 1)
+    if isinstance(plan, GsjPlan):
+        return plan.spec["min"]
+    if isinstance(plan, IngemmetPlan):
+        return ingemmet.first_zoom(plan.name) or 0
+    return 0
 
 
 def tile_at(plan, bbox, lon, lat):
-    """그 자리를 품은 칸 — 범위의 대략 절반이 한 칸에 드는 줌부터, 계획이 그리지 않는 줌이면 올라간다"""
+    """그 자리를 품은 칸 — 범위의 대략 절반이 한 칸에 드는 줌부터(그리기 시작하는 줌 밑으로는 내려가지 않는다)"""
     width = max(bbox[2] - bbox[0], (bbox[3] - bbox[1]) * 1.5, 1e-3)
-    start = max(0, min(18, round(math.log2(360.0 / width)) + 1))
+    start = max(first_zoom(plan), min(18, round(math.log2(360.0 / width)) + 1))
     tiny = (lon - 1e-6, lat - 1e-6, lon + 1e-6, lat + 1e-6)
     for z in range(start, 19):
         for tile in plan.tiles_for(tiny, z):
@@ -112,6 +126,7 @@ class Command(BaseCommand):
         parser.add_argument("--delay", type=float, default=1.0, help="한 장 사이에 쉬는 초 (기본 1)")
         parser.add_argument("--only", default="", help="이 글자가 든 레이어명만 본다")
         parser.add_argument("--upstream", default="", help="이 상류만 (쉼표로 여럿)")
+        parser.add_argument("--skip", default="", help="이 상류는 빼고 (쉼표로 여럿)")
         parser.add_argument("--redo", action="store_true", help="이미 확인한 것도 다시 본다")
         parser.add_argument("--probe-info", action="store_true",
                             help="대조는 건너뛰고 /openapi/wms 의 GetFeatureInfo 만 찔러본다")
@@ -127,6 +142,8 @@ class Command(BaseCommand):
         layers = Layer.objects.order_by("upstream", "name")
         if o["upstream"]:
             layers = layers.filter(upstream__in=[u.strip() for u in o["upstream"].split(",") if u.strip()])
+        if o["skip"]:
+            layers = layers.exclude(upstream__in=[u.strip() for u in o["skip"].split(",") if u.strip()])
         if o["only"]:
             layers = layers.filter(name__icontains=o["only"])
         if not o["redo"]:
@@ -204,7 +221,7 @@ class Command(BaseCommand):
             if result != "빈 그림":
                 size = len(content) if content else 0
                 return result, f"{z}/{x}/{y} {size:,} bytes" if result == "그림" else f"{z}/{x}/{y} 그림이 아니다", True
-        return result, f"{z}/{x}/{y} 두 칸 모두 비었다", True
+        return result, f"{z}/{x}/{y} 다섯 칸 모두 비었다", True
 
     def _save(self, layer, kind, note):
         layer.verify_note = f"{timezone.localdate():%Y-%m-%d} {kind} — {note}"[:200]

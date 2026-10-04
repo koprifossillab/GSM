@@ -65,7 +65,7 @@ class VerifyLayers(TestCase):
     def test_빈_그림은_한_칸_더_보고_날짜를_남기지_않는다(self):
         text, _, gget = self.run_command(geus_answer=BLANK, upstream="geus")
         self.other.refresh_from_db()
-        self.assertEqual(gget.call_count, 2)
+        self.assertEqual(gget.call_count, 5)                         # 한가운데와 귀퉁이 쪽 넷
         self.assertIsNone(self.other.verified_at)
         self.assertTrue(self.other.enabled)                         # KIGAM 밖은 내리지 않는다
         self.assertIn("빈 그림", self.other.verify_note)
