@@ -538,6 +538,18 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 세계 광상 USGS (wetherilli 276)
+    "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
+    "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
+    "핵심·에너지 광물": "Critical and energy minerals", "산업 광물": "Industrial minerals",
+    "USGS 세계 반암동 광상": "USGS global porphyry copper deposits", "USGS 세계 퇴적암 호스트 구리 광상": "USGS global sediment-hosted copper deposits",
+    "USGS 세계 화산성 괴상 황화물(VMS) 광상": "USGS global volcanogenic massive sulfide (VMS) deposits",
+    "USGS 세계 포디폼 크로마이트 광상": "USGS global podiform chromite deposits", "USGS 세계 희토류 광상": "USGS global rare earth element deposits",
+    "USGS 세계 퇴적암 호스트 납·아연 광상": "USGS global sediment-hosted zinc-lead deposits",
+    "대규모": "Large", "중규모": "Medium", "소규모": "Small",
+    "마름모는 세계 광상 표와 대규모 광산, 큰 원은 생산한 곳, 작은 원은 산지·탐사지(줌 4 부터)":
+        "Diamonds: global deposit tables and large mines; large circles: past or current producers; small circles: occurrences and prospects (from zoom 4)",
+    "광상 {n} 곳 가운데 크고 가까운 것부터 (USGS)": "Largest and nearest of {n} sites (USGS)",
     # 지각 응력 World Stress Map 2025 (wetherilli 273)
     "지각 응력 (World Stress Map)": "Crustal stress (World Stress Map)", "최대 수평 응력 방향": "Maximum horizontal stress",
     "막대는 최대 수평 응력 방향, 길이는 품질(A–D)": "Bars show S_Hmax orientation; length shows quality (A–D)",
@@ -1839,6 +1851,9 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 광상 (wetherilli 276)
+    "딸린 광종": "Secondary commodities", "생산 규모": "Production size", "광상 유형": "Deposit type",
+    "광석 광물": "Ore minerals", "총 광량 (Mt)": "Tonnage (Mt)", "품위": "Grade",
     # 지각 응력 (wetherilli 273)
     "응력 체제": "Stress regime", "최대 수평 응력 방향": "S_Hmax azimuth", "일시": "Date",
     # 세계 지질구 (wetherilli 272)
