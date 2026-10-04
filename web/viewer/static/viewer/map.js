@@ -196,7 +196,7 @@
     taiwan: { title: "대만", proj: "EPSG:3857", center: [120.9, 23.7], zoom: 7, vworld: false,
               home: [13277000, 2470000, 13617000, 2948000],
               basemap: "nlsc_grey", example: "25.033, 121.565",
-              base: ["gsmma:geology_50k", "gsmma:geology_250k", "gsmma:geology_500k", "gsmma:geology_1m"],
+              base: ["gsmma:geology_50k", "gsmma:drainage_50k", "gsmma:geology_250k", "gsmma:geology_500k", "gsmma:geology_1m"],
               first: "gsmma:geology_50k" },
     // ── 몽골 (wetherilli 221) ──
     // 국가지질조사소 MonGeoCat 의 국가지질도첩 지질도와 1:50만 단층(ArcGIS WMS, 3857 로). 속성은 영어 열, 시대는 기호(러시아식
