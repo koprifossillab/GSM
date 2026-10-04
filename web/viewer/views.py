@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -3157,7 +3157,14 @@ def wms(request):
         return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
     try:
-        content, ctype = door.get_map(params)
+        # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
+        first = (params.get("layers") or "").split(",")[0].strip()
+        piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)))
+                 if first in sgm.METATILE else None)
+        if piece is not None:
+            content, ctype = piece, "image/png"
+        else:
+            content, ctype = door.get_map(params)
     except UPSTREAM_ERRORS as exc:
         # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
         old = tilecache.get(cache_key, stale=True)
