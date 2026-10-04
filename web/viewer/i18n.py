@@ -552,6 +552,16 @@ EN = {
     "수압 파쇄 (탄성 역산)": "Hydraulic fracturing (elastic inversion)", "수압 파쇄 (기존 균열)": "Hydraulic tests on pre-existing fractures",
     "코어 덧씌워 떼기": "Overcoring", "지질 — 단층 미끄럼 역산": "Geology — fault-slip inversion", "지질 — 단층 미끄럼": "Geology — fault slip",
     "지질 — 단층 미끄럼 (단일)": "Geology — single fault slip", "지질 — 화산 배열": "Geology — volcanic vent alignment", "횡파 분리": "Shear-wave splitting",
+    # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272)
+    "판·지질구 (Hasterok 2022)": "Plates & provinces (Hasterok 2022)", "판 경계": "Plate boundaries", "세계 지질구": "Geologic provinces",
+    "여기에는 지질구가 없다": "No geologic province here",
+    "확장 중심 (해령)": "Spreading centre (ridge)", "확장대·열곡": "Extensional zone / rift", "섭입대": "Subduction zone",
+    "충상 (대륙 충돌)": "Thrust (continental collision)", "좌수향 변환 단층": "Sinistral transform", "우수향 변환 단층": "Dextral transform",
+    "추정 경계": "Inferred boundary",
+    "강괴 (크라톤)": "Craton", "순상지": "Shield", "수동형 대륙 연변": "Passive margin", "부가 복합체": "Accretionary complex", "분지": "Basin",
+    "전면 분지": "Foredeep basin", "조산대": "Orogenic belt", "좁은 열곡": "Narrow rift", "넓은 열곡": "Wide rift", "화산호": "Volcanic arc",
+    "배호 분지": "Back-arc basin", "오피올라이트 복합체": "Ophiolite complex", "거대 화성 구역": "Magmatic province", "해양 고원": "Oceanic plateau",
+    "해양 배호 분지": "Oceanic back-arc basin", "해양 지각": "Oceanic crust", "대륙 지각": "Continental crust", "전이 지각": "Transitional crust",
     # 세계 암상 GLiM·지열류 IHFC (wetherilli 267)
     "암상 (GLiM)": "Lithology (GLiM)", "세계 암상": "Global lithology",
     "{name} — GLiM, 0.5° 칸에서 가장 넓은 암상": "{name} — GLiM, the most extensive lithology in the 0.5° cell",
@@ -1831,6 +1841,8 @@ EN = {
 PROP_EN = {
     # 지각 응력 (wetherilli 273)
     "응력 체제": "Stress regime", "최대 수평 응력 방향": "S_Hmax azimuth", "일시": "Date",
+    # 세계 지질구 (wetherilli 272)
+    "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
     # 지열류 (wetherilli 267)
     "지열류 (mW/m²)": "Heat flow (mW/m²)", "환경": "Setting", "품질": "Quality",
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "주기": "Cycle", "영역": "Domain",

@@ -206,6 +206,15 @@
       { group: "지각 응력 (World Stress Map)", layers: [
         { name: "stress", title: "최대 수평 응력 방향", grid: "ll", legend: "stress", src: "World Stress Map 2025 · CC BY 4.0" }] });
   }
+  // 판 경계·세계 지질구 — Hasterok 2022. 오늘의 지구다(판 회전의 조각 경계 `plates` 와 다른 모형). 지각 두께 앞에 둔다 (wetherilli 272)
+  var TECT = THEN.tectonics || {};
+  if (TECT.boundaries) {
+    CATALOG.splice(CATALOG.findIndex(function (g) { return g.layers[0].name === "crust"; }), 0,
+      { group: "판·지질구 (Hasterok 2022)", layers: [
+        { name: "tbound", title: "판 경계", grid: "ll", legend: "tbound", max: 7, src: "Hasterok et al. 2022 · CC BY 4.0" },
+        { name: "tprov", title: "세계 지질구", grid: "ll", info: "tectonics", legend: "tprov", max: 7,
+          src: "Hasterok et al. 2022 · CC BY 4.0" }] });
+  }
   if (THEN.araon) {
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
@@ -220,6 +229,7 @@
     if (name === "coast") return paleoUrl("coast", paleoOn() ? age : 0);
     if (name === "crust") return BASE + "earth/crust/tiles/{z}/{x}/{y}.png" + vq("crust");
     if (name === "stress") return BASE + "earth/stress/tiles/{z}/{x}/{y}.png" + vq("stress");
+    if (name === "tbound" || name === "tprov") return BASE + "earth/tectonics/" + name + "/{z}/{x}/{y}.png" + vq("tectonics");
     if (name === "glim") return BASE + "earth/glim/tiles/{z}/{x}/{y}.png" + vq("glim");
     if (name === "heatflow") return BASE + "earth/heatflow/tiles/{z}/{x}/{y}.png" + vq("heatflow");
     if (name === "seaage" || name === "sediment") return BASE + "earth/seafloor/" + name + "/{z}/{x}/{y}.png" + vq(name);
@@ -238,6 +248,7 @@
   var PBDB_CREDIT = "Paleobiology Database (CC BY 4.0) · paleobiodb.org";
   var CRUST_CREDIT = "CRUST 2.0 (CC BY 4.0) · Laske, Masters & Reif 2000 · EarthByte GPlates 2.3";
   var STRESS_CREDIT = "World Stress Map 2025 (CC BY 4.0) · Heidbach et al., GFZ";
+  var TECT_CREDIT = "Hasterok et al. 2022, Earth-Science Reviews (CC BY 4.0)";
   var GLIM_CREDIT = "GLiM (CC BY 3.0) · Hartmann & Moosdorf 2012, G-cubed";
   var HEATFLOW_CREDIT = "IHFC Global Heat Flow Database 2024 (CC BY 4.0) · GFZ Data Services";
   var SEAAGE_CREDIT = "Seton et al. 2020, G-cubed · EarthByte (CC BY 4.0)";
@@ -250,7 +261,7 @@
   var MANTLE_CREDIT = "Müller et al. (2022) OPT1, Solid Earth (CC BY 4.0)";
   function creditOf(name) {
     if (LAYER[name] && LAYER[name].neo) return NEO_CREDIT;
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT, stress: STRESS_CREDIT, glim: GLIM_CREDIT, heatflow: HEATFLOW_CREDIT, seaage: SEAAGE_CREDIT, sediment: SEDIMENT_CREDIT,
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT, stress: STRESS_CREDIT, tbound: TECT_CREDIT, tprov: TECT_CREDIT, glim: GLIM_CREDIT, heatflow: HEATFLOW_CREDIT, seaage: SEAAGE_CREDIT, sediment: SEDIMENT_CREDIT,
              names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
@@ -2203,7 +2214,7 @@
     var mine = ++asked;
     showPopup(head + '<p class="none">' + esc(T("읽는 중")) + "</p>", pixel);
     var at = "?lon=" + ll[0].toFixed(4) + "&lat=" + ll[1].toFixed(4) + "&z=" + hereZoom();
-    var ASK = { geology: "earth/info/", crust: "earth/crust/at/", seafloor: "earth/seafloor/at/", glim: "earth/glim/at/" };
+    var ASK = { geology: "earth/info/", crust: "earth/crust/at/", tectonics: "earth/tectonics/at/", seafloor: "earth/seafloor/at/", glim: "earth/glim/at/" };
     Promise.all(layers.map(function (l) {
       return fetch(BASE + ASK[l.info] + at + (l.info === "seafloor" ? "&layer=" + l.name : "")).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
@@ -2212,6 +2223,12 @@
       all.forEach(function (data, i) {
         html += "<h3>" + esc(T(layers[i].title)) + "</h3>";
         if (data.error) { html += '<p class="none">' + esc(T("속성을 받지 못했다")) + "</p>"; return; }
+        if (layers[i].info === "tectonics") {
+          html += data.province ? "<p><b>" + esc(data.province.name) + "</b></p><table>" + data.province.rows.map(function (row) {
+            return "<tr><th>" + esc(row[0]) + "</th><td>" + esc(row[1]) + "</td></tr>";
+          }).join("") + "</table>" : '<p class="none">' + esc(data.text) + "</p>";
+          return;
+        }
         if (layers[i].info === "crust" || layers[i].info === "seafloor" || layers[i].info === "glim") { html += '<p class="none">' + esc(data.text) + "</p>"; return; }
         if (!data.units || !data.units.length) {
           html += '<p class="none">' + esc(T("여기에는 지질 단위가 없다")) + "</p>";
@@ -2346,6 +2363,12 @@
         (THEN.stress || []).map(function (row) {
           return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
         }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "tbound" || kind === "tprov") {
+      legends[kind] = (TECT[kind === "tbound" ? "boundaries" : "provinces"] || []).map(function (row) {
+        return '<li><span class="chip" style="background:' + esc(row.color) + (row.dash ? ";opacity:.6" : "") + '"></span>' + esc(row.name) + "</li>";
+      }).join("");
       return Promise.resolve(legends[kind]);
     }
     if (kind === "crust") {
