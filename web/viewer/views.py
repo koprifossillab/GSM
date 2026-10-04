@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1486,6 +1486,9 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272) — 파일이 있을 때만 레이어가 선다
+                                   "tectonics": ({"boundaries": tectonics.legend("boundaries", lang),
+                                                  "provinces": tectonics.legend("provinces", lang)} if tectonics.available() else {}),
                                    # 세계 암상 GLiM·지열류 IHFC (wetherilli 267) — 구운 것이 있을 때만 레이어가 선다
                                    "glim": glim.legend(lang) if glim.grid() else [],
                                    "heatflow": heatflow.legend(lang) if heatflow.available() else [],
@@ -1964,6 +1967,42 @@ def earth_seafloor_at(request):
     else:
         text = i18n.t(msg("약 {m} m — GlobSed v3, 해저면에서 음향 기반암까지", m=f"{value:,.0f}"), lang)
     return JsonResponse({"value": value, "text": text, "credit": seafloor.KINDS[kind][4]})
+
+
+#: 온 지구 화면의 레이어 이름 → 판 (wetherilli 272). `plates` 는 판 회전의 조각 경계라 이름을 갈랐다
+TECTONIC_LAYERS = {"tbound": "boundaries", "tprov": "provinces"}
+
+
+@require_GET
+def earth_tectonics_tile(request, layer, z, x, y):
+    """`earth/tectonics/<tbound|tprov>/<z>/<x>/<y>.png` — Hasterok 2022 판 경계·세계 지질구, 경위도 격자 (`tectonics.render_tile`)"""
+    kind, z, x, y = TECTONIC_LAYERS.get(layer), int(z), int(x), int(y)
+    if kind is None or not tectonics.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not tectonics.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    version = tectonics_version()
+    key = tilecache.key_text("tectonics", f"{kind}/{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = tectonics.render_tile(kind, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_tectonics_at(request):
+    """`?lon=&lat=` — 누른 자리의 세계 지질구(Hasterok 2022)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    got = tectonics.province_at(lon, lat, lang)
+    text = "" if got else i18n.t(msg("여기에는 지질구가 없다"), lang)
+    return JsonResponse({"province": got, "text": text, "credit": tectonics.CITE})
 
 
 @require_GET
@@ -4137,6 +4176,7 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "tectonics": tectonics_version(),
                 "seaage": seafloor_version("age"), "sediment": seafloor_version("sediment"),
                 "glim": glim_version(), "heatflow": heatflow_version()}
     return {}
@@ -4190,6 +4230,10 @@ def heatflow_version() -> str:
 
 def seafloor_version(kind: str) -> str:
     return _stamp(seafloor.RENDERER, *(_content_stamp(p) for p in seafloor.files(kind)[::2]))
+
+
+def tectonics_version() -> str:
+    return _stamp(tectonics.RENDERER, _content_stamp(settings.TECTONICS_FILE))
 
 
 def crust_version() -> str:
