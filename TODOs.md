@@ -238,7 +238,8 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
       해석 기반암)는 열려 있지만 저작권 칸이 "SLIP Transaction — Personal Use Licence" 다. 같은 자료가 다른 곳에서 CC BY 4.0 으로 열렸는지 읽고 정한다 (wetherilli 225)
 - [ ] 호주의 남은 것 — 뉴사우스웨일스(GSNSW GeoServer 에는 시추공·광산·광업권뿐, 이음매 없는 지질도의 주소를 못 찾았다)·태즈메이니아
       (MRT 서비스에 지질도가 없다, 도폭 색인뿐)·노던테리토리(NTGS GeoServer 에 시추공·광산뿐)는 지질도 서비스를 찾지 못했다. GA 의 다른 서비스는
-      서비스 목록이 403 이라 이름을 알아야 부른다 (wetherilli 225). 범례·구조선은 섰다(232)
+      지질구·핵심 광물·지구물리 격자가 섰다(wetherilli 241). 남은 것: 확인 자원(`AustraliasIdentifiedMineralResources`, 광종 스물아홉 레이어)·지하수 —
+      목록이 403 이라 ecat 에서 이름을 찾는다. 범례·구조선은 섰다(232)
       **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
       VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 
