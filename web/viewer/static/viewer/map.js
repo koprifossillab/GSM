@@ -749,6 +749,8 @@
     janmayen: { source: null, info: null },
     // 지구 자료 점(wetherilli 185) — 화석 산지·화산·지진·고생태 산지. 점을 한 덩이로 받아 그린다(`kind: points`)
     earth: { source: null, info: null },
+    // KIGAM 5만 구조 요소(wetherilli 199) — 화석산지·시료·광산·도폭 틀. 받아 둔 WFS 파일을 한 덩이로
+    kigam50k: { source: null, info: null },
     geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
@@ -2257,6 +2259,7 @@
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
+    kigam50k: "KIGAM",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
@@ -2272,6 +2275,7 @@
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
     earth: T("온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma"),
+    kigam50k: T("한국지질자원연구원 5만 수치지질도"),
   };
 
   function upstreamOf(name) { return (byName[name] && byName[name].upstream) || "kigam"; }
