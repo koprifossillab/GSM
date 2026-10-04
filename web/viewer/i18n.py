@@ -2995,6 +2995,7 @@ def props_en(props: dict) -> dict:
 
 GROUP_EN = {
     "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
+    "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
@@ -3123,6 +3124,19 @@ LAYER_EN = {
     # GEUS ArcGIS (wetherilli 259)
     "geusarc:magnetic": "Magnetic anomaly compilation", "geusarc:bouguer": "Bouguer gravity anomaly (DTU)",
     "geusarc:provinces": "Geological provinces (1:2.5M)",
+    # GSJ 의 다른 WMS (wetherilli 255)
+    "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
+    "gsjows:geochem:Cu": "Copper — geochemical map",
+    "gsjows:geochem:Pb": "Lead — geochemical map",
+    "gsjows:geochem:Zn": "Zinc — geochemical map",
+    "gsjows:geochem:As": "Arsenic — geochemical map",
+    "gsjows:geochem:Hg": "Mercury — geochemical map",
+    "gsjows:geochem:Cr": "Chromium — geochemical map",
+    "gsjows:geochem:Ni": "Nickel — geochemical map",
+    "gsjows:geochem:Fe2O3": "Iron (Fe₂O₃) — geochemical map",
+    "gsjows:geochem:K2O": "Potassium (K₂O) — geochemical map",
+    "gsjows:geochem:U": "Uranium — geochemical map",
+    "gsjows:geochem:Th": "Thorium — geochemical map",
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
     # NRCan 의 다른 서비스 (wetherilli 250)
