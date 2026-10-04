@@ -539,6 +539,10 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 세계 활성단층 GEM (wetherilli 279)
+    "활성단층 (GEM)": "Active faults (GEM)", "역단층·섭입": "Reverse / subduction", "주향이동·변환": "Strike-slip / transform",
+    "사교 (주향이동+경사이동)": "Oblique (strike-slip + dip-slip)", "확장 해령": "Spreading ridge", "습곡·갈래 모름": "Fold / unknown",
+    "이름 없는 단층": "Unnamed fault", "여기에는 활성단층이 없다": "No active fault here",
     # 세계 광상 USGS (wetherilli 276)
     "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
     "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
@@ -1852,6 +1856,9 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 활성단층 (wetherilli 279)
+    "미끄럼 (원문)": "Slip type (source)", "레이크 (°)": "Rake (°)", "미끄럼 속도 (mm/yr)": "Slip rate (mm/yr)",
+    "지진 발생 깊이 (km)": "Seismogenic depth (km)", "원 목록": "Source catalogue",
     # 세계 광상 (wetherilli 276)
     "딸린 광종": "Secondary commodities", "생산 규모": "Production size", "광상 유형": "Deposit type",
     "광석 광물": "Ore minerals", "총 광량 (Mt)": "Tonnage (Mt)", "품위": "Grade",

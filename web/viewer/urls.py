@@ -84,6 +84,9 @@ urlpatterns = [
     re_path(r"^earth/crust/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_crust_tile,
             name="earth-crust-tile"),
     path("earth/crust/at/", views.earth_crust_at, name="earth-crust-at"),
+    # 세계 활성단층 GEM (faults.py, wetherilli 279)
+    re_path(r"^earth/faults/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_faults_tile, name="earth-faults-tile"),
+    path("earth/faults/at/", views.earth_faults_at, name="earth-faults-at"),
     # 세계 광상 USGS — 광종 칸마다 (minerals.py, wetherilli 276)
     re_path(r"^earth/minerals/tiles/(?P<band>min_[a-z]+)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_minerals_tile, name="earth-minerals-tile"),
