@@ -402,6 +402,8 @@ PGC_CATALOG_SEEDS = tuple(REPO_DIR / "data" / f"pgc_{r}_layers.json" for r in ("
 #: 북극해(KPDC 자료) (053–057·075·076)
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
                        for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
+#: 지구 자료 점 — 화석 산지·홀로세 화산·지진·고생태 산지를 지역 탭에 (wetherilli 185). 북극은 북극해에 두고 다른 탭이 빌린다
+EARTH_CATALOG_SEEDS = [REPO_DIR / "data" / f"earth_{region}_layers.json" for region in ("korea", "antarctica", "arctic_ocean")]
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"
 
 # ── Django ────────────────────────────────────────────────────────────
