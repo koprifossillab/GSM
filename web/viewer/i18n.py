@@ -539,6 +539,10 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 세계 활성단층 GEM (wetherilli 279)
+    "활성단층 (GEM)": "Active faults (GEM)", "역단층·섭입": "Reverse / subduction", "주향이동·변환": "Strike-slip / transform",
+    "사교 (주향이동+경사이동)": "Oblique (strike-slip + dip-slip)", "확장 해령": "Spreading ridge", "습곡·갈래 모름": "Fold / unknown",
+    "이름 없는 단층": "Unnamed fault", "여기에는 활성단층이 없다": "No active fault here",
     # 세계 광상 USGS (wetherilli 276)
     "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
     "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
@@ -1852,6 +1856,9 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 활성단층 (wetherilli 279)
+    "미끄럼 (원문)": "Slip type (source)", "레이크 (°)": "Rake (°)", "미끄럼 속도 (mm/yr)": "Slip rate (mm/yr)",
+    "지진 발생 깊이 (km)": "Seismogenic depth (km)", "원 목록": "Source catalogue",
     # 세계 광상 (wetherilli 276)
     "딸린 광종": "Secondary commodities", "생산 규모": "Production size", "광상 유형": "Deposit type",
     "광석 광물": "Ore minerals", "총 광량 (Mt)": "Tonnage (Mt)", "품위": "Grade",
@@ -2397,6 +2404,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "광종 (태국어)": "Commodity (Thai)", "군": "District", "탐사 단계": "Exploration status", "광종 갈래": "Commodity group", "조사 단계": "Survey stage",
     "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
     "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
     "시대 기호": "Age code", "자원량": "Resources",
@@ -3078,6 +3086,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "인도네시아 광물 자원 (ESDM)": "Indonesia mineral resources (ESDM)", "필리핀 광물 자원 (MGB)": "Philippines mineral resources (MGB)",
+    "태국 광물 (DMR)": "Thailand minerals (DMR)", "사우디 광물 (SGS)": "Saudi Arabia minerals (SGS)", "몽골 광물 (MRIS)": "Mongolia minerals (MRIS)",
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
     "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
     "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
@@ -3225,6 +3235,12 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 아시아 광물 (wetherilli 280)
+    "esdm:metal": "Metallic mineral potential", "esdm:nonmetal": "Non-metallic mineral and rock potential",
+    "mgb:metallic": "Metallic mineral resources", "mgb:nonmetallic": "Non-metallic mineral resources",
+    "dmr:min_occ": "Mineral occurrences", "dmr:critical": "Critical mineral occurrences",
+    "sgs:mods": "Mineral occurrences (MODS)", "sgs:belts": "Mineralization belts (gold, nickel, zinc, VMS)",
+    "mris:ree": "Rare earth deposits, mineralized points and occurrences",
     # 북유럽 광물·지구물리 (wetherilli 270)
     "gtk:aeromagneettinen_anomaliakartta": "Aeromagnetic anomaly", "gtk:aeroradiometrinen_yhdistelmakartta": "Aeroradiometric ternary (K·Th·U)",
     "gtk:fennoscandia_mineral_deposit": "Ore deposits (Norway, Sweden, Finland, NW Russia)",

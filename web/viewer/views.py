@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1486,6 +1486,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 세계 활성단층 GEM (wetherilli 279) — 구운 것이 있을 때만 레이어가 선다
+                                   "faults": faults.legend(lang) if faults.available() else [],
                                    # 세계 광상 USGS (wetherilli 276) — 구운 것이 있을 때만. 광종 칸 여섯이 레이어가 된다
                                    "minerals": minerals.legend(lang) if minerals.available() else [],
                                    # 지각 응력 World Stress Map 2025 (wetherilli 273) — 구운 것이 있을 때만 레이어가 선다
@@ -2166,6 +2168,39 @@ def earth_minerals_at(request):
 
 
 @require_GET
+def earth_faults_tile(request, z, x, y):
+    """`earth/faults/tiles/<z>/<x>/<y>.png` — GEM 세계 활성단층, 경위도 격자 (`faults.render_tile`, wetherilli 279)"""
+    z, x, y = int(z), int(x), int(y)
+    if not faults.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not faults.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = faults_version()
+    key = tilecache.key_text("faults", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = faults.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_faults_at(request):
+    """`?lon=&lat=&z=` — 누른 자리 둘레(그 줌의 8 화소)의 가장 가까운 활성단층"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = _float(request.GET.get("z"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    r = min(2.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
+    got = faults.near(lon, lat, r, lang)
+    return JsonResponse({"fault": got, "text": "" if got else i18n.t(msg("여기에는 활성단층이 없다"), lang), "credit": faults.CITE})
+
+
+@require_GET
 def earth_crust_at(request):
     """`?lon=&lat=` — 누른 자리의 지각 두께. 모형이지 관측이 아니다."""
     lang = i18n.lang_of(request)
@@ -2648,14 +2683,20 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 extra.update({"legend": "list", "legendUrl": "list/legend/"})
             elif mod is jmg:
                 extra["noLegend"] = True
+            elif mod is esdm and layer.name in esdm.RESOURCES:
+                # 인도네시아 광물 잠재력(wetherilli 280) — REST export·identify. 광종이 수십 가지라 범례는 두지 않고 누르면 뜬다
+                extra["noLegend"] = True
             elif mod is esdm:
                 # 인도네시아 — 보는 범위의 범례(`esdm/legend/`, wetherilli 243). 전체 범례는 1 403 칸이다
                 extra.update(legend="extent", legendUrl="esdm/legend/")
-            if mod is esdm:
+            if mod is esdm and layer.name not in esdm.RESOURCES:
                 extra["maxZoom"] = esdm.LAST_ZOOM
             return extra
     if layer.upstream == "sgs" and sgs.knows(layer.name):
-        # 사우디 SGS(wetherilli 227) — ArcGIS WMS(원본 3857). 범례는 1 337 칸이라 보는 범위의 것(`sgs/legend/`)
+        # 사우디 SGS(wetherilli 227) — ArcGIS WMS(원본 3857). 범례는 1 337 칸이라 보는 범위의 것(`sgs/legend/`).
+        # 광물 산지 MODS·광화대(wetherilli 280)는 다른 서비스의 WMS 이고 범례도 그 그림이다
+        if layer.name in sgs.RESOURCES:
+            return {"attribution": sgs.ATTRIBUTION, "projection": "EPSG:3857"}
         return {"attribution": sgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "sgs/legend/"}
     if layer.upstream == "gsiindia" and gsiindia.knows(layer.name):
         # 인도 GSI(wetherilli 226) — 그림은 BGS WMS 를 3857 로, 속성은 GSI 피처 서비스(문이 바꾼다). BGS 범례는 번호뿐이라 두지 않는다
@@ -4309,6 +4350,7 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "faults": faults_version(),
                 "minerals": minerals_version(),
                 "stress": stress_version(),
                 "tectonics": tectonics_version(),
@@ -4375,6 +4417,10 @@ def tectonics_version() -> str:
 
 def minerals_version() -> str:
     return _stamp(minerals.RENDERER, minerals.built(), _file_stamp(minerals.path()))
+
+
+def faults_version() -> str:
+    return _stamp(faults.RENDERER, _content_stamp(settings.FAULTS_FILE))
 
 
 def crust_version() -> str:
