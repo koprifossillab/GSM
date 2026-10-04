@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, swisstopo, tno, usage, usgscarib, ygs
+from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -372,6 +372,8 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "sgm",
              # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207), 남아공 CGS·나미비아 GSN(209) — 서버 캐시에 담지 않는 둘도 3D 는 그때그때 받는다
              "cgmw", "aga", "cgs", "gsn",
+             # 부르키나파소 BUMIGEB(wetherilli 246) — BGS 의 MapServer, 3857. 카메룬 IRGM 은 4326 만 그려 3D 에 없다
+             "bumigeb",
              # 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
              "nrcan", "ogs",
              # 퀘벡 SIGÉOM·유콘 YGS(wetherilli 210) — 둘 다 3857 도 그린다
@@ -2189,7 +2191,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "sim3534"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2221,6 +2223,11 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
+    if layer.upstream == "stri" and stri.knows(layer.name):
+        # 파나마 STRI(wetherilli 253) — 카리브와 같은 꼴, 면과 단층을 한 덩이씩
+        return {"kind": "points", "queryable": False, "style": "unit" if layer.name == stri.GEOLOGY else "line",
+                "render": "image", "source": stri.SOURCE_URL, "attribution": stri.ATTRIBUTION,
+                "opacity": 0.75 if layer.name == stri.GEOLOGY else 1}
     if layer.upstream == "usgscarib" and usgscarib.knows(layer.name):
         # USGS 카리브 지질도(wetherilli 248) — 피처 서비스라 면(6 343)을 한 덩이로 받아 화면이 구워 그린다(geo3al 과 같은 꼴)
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
@@ -2477,6 +2484,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "ga" and ga.knows(layer.name):
         # 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로(3577 은 그리지 않는다). 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가
         # 축척에 맞는 판을 그린다. 범례는 보는 범위의 것(`ga/legend/`), 단층은 범례·누르기가 없다
+        if layer.name in ga.OTHER:
+            # 지질구·핵심 광물·지구물리 격자(wetherilli 241) — 범례는 상류 그림, 격자는 범례·누르기가 없다
+            grid = ga.OTHER[layer.name][3]
+            return {"attribution": ga.OTHER_ATTRIBUTION, "projection": "EPSG:3857",
+                    **({"noLegend": True} if grid else {}), **({} if ga.queryable(layer.name) else {"queryable": False})}
         unit = layer.name in ga.legend_layers()
         return {"attribution": ga.ATTRIBUTION, "projection": "EPSG:3857",
                 **({"legend": "extent", "legendUrl": "ga/legend/"} if unit else {"noLegend": True, "queryable": False})}
@@ -2490,6 +2502,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({"minZoom": first} if first else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):
         # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
+        if layer.name in nrcan.SERVICES:
+            # 같은 서버의 다른 서비스(wetherilli 250) — 편찬 지질도·유망도는 래스터라 누르지 않고 범례 그림만
+            return {"attribution": nrcan.OTHER_ATTRIBUTION, "projection": "EPSG:3978",
+                    **({} if nrcan.queryable(layer.name) else {"queryable": False})}
         return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
     if layer.upstream == "ogs" and ogs.knows(layer.name):
         # 온타리오 OGS(wetherilli 204) — 3978 로 다시 그려 준다. 속성은 REST identify(문이 WMS 꼴을 바꾼다)
@@ -2510,7 +2526,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": mrdata.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
                 **({} if layer.name in mrdata.QUERYABLE else {"queryable": False}),
                 # 하와이·푸에르토리코(wetherilli 238)는 미국 탭(3978)에서 제 범위 밖 타일을 묻지 않는다
-                **({"clip": True} if layer.name in mrdata.ISLANDS else {})}
+                **({"clip": True} if layer.name in mrdata.ISLANDS else {}),
+                # 광물 자원·광산 기호(wetherilli 247)는 넓게 보면 점이 땅을 덮어 가까이서부터
+                **({"minZoom": mrdata.MIN_ZOOM[layer.name]} if layer.name in mrdata.MIN_ZOOM else {})}
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}
@@ -2567,6 +2585,16 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "gsn":
         # 나미비아 GSN 1:100만(wetherilli 209) — BGS 의 MapServer, 3857 그대로
         return {"attribution": bgs.GSN_ATTRIBUTION, "projection": "EPSG:3857"}
+    if layer.upstream == "bumigeb":
+        # 부르키나파소 BUMIGEB 1:100만(wetherilli 246) — BGS 의 MapServer, 3857. 구조선은 누를 것이 없다
+        return {"attribution": bgs.BUMIGEB_ATTRIBUTION, "projection": "EPSG:3857",
+                **({} if layer.name.endswith("_BLS") else {"queryable": False})}
+    if layer.upstream == "irgm":
+        # 카메룬 IRGM 1:100만(wetherilli 246) — BRGM 의 MapServer 가 4326 만 그린다(IGME 1:100만처럼 화면이 옮겨 그린다). 속성 열이 없다.
+        # 단층은 범례 그림이 예외라 범례가 없다
+        unit = layer.name.split(":", 1)[1] in brgm.IRGM_LEGEND_LAYERS
+        return {"attribution": brgm.IRGM_ATTRIBUTION, "projection": "EPSG:4326", "queryable": False,
+                **({} if unit else {"noLegend": True})}
     if layer.upstream == "aga":
         # 아프리카 지하수 지도책의 나라별 지질(wetherilli 207) — 38 나라 레이어를 문이 이어 묻는다. 3857 그대로
         return {"attribution": bgs.AGA_ATTRIBUTION, "projection": "EPSG:3857"}
@@ -2711,6 +2739,8 @@ class _Door:
                "cgmw": brgm.CGMW, "aga": bgs.AGA,
                # 아프리카 나라 판(wetherilli 209) — 남아공은 새 문, 나미비아는 BGS 가 내주어 bgs.py 안에
                "cgs": cgs, "gsn": bgs.GSN,
+               # 부르키나파소·카메룬 1:100만(wetherilli 246) — BGS·BRGM 이 대신 내준다
+               "bumigeb": bgs.BUMIGEB, "irgm": brgm.IRGM,
                # 캐나다(wetherilli 204)
                "nrcan": nrcan, "ogs": ogs,
                # 퀘벡·유콘(wetherilli 210)
@@ -2749,7 +2779,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -4126,6 +4156,8 @@ def feature_info(request):
             props = cgs.friendly(props, lang)         # 남아공 — 층서·시대·암석, 값은 영어 그대로 (wetherilli 209)
         elif door.name == "gsn":
             props = bgs.gsn_friendly(props, lang)     # 나미비아 — 연대·층서·암석 (wetherilli 209)
+        elif door.name == "bumigeb":
+            props = bgs.bumigeb_friendly(props, lang)     # 부르키나파소 — 기호·설명·암석, 프랑스어 그대로 (wetherilli 246)
         elif door.name == "aga":
             props = bgs.aga_friendly(props, lang)     # 나라마다 다른 `…GLG` 열이 암상이다 (wetherilli 207)
         elif door.name == "gsni":
@@ -4426,6 +4458,8 @@ def point_layer(request):
         return _geo3al_layer(name, lang)
     if usgscarib.knows(name):
         return _usgscarib_layer(name, lang)
+    if stri.knows(name):
+        return _stri_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -4530,6 +4564,19 @@ def _usgscarib_layer(name, lang):
     except usgscarib.UsgsCaribError as exc:
         log.warning("USGS 카리브 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("USGS 카리브 지질도를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _stri_layer(name, lang):
+    """파나마 STRI 지질도 한 덩이 (wetherilli 253). 꼴은 `_usgscarib_layer` 와 같다"""
+    try:
+        content = stri.body(name, lang)
+    except stri.StriError as exc:
+        log.warning("STRI 파나마 지질도를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("파나마 지질도(STRI)를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

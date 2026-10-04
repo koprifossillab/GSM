@@ -178,6 +178,9 @@ CGMW_LEGEND_URL = env("GSM_CGMW_LEGEND_URL", "https://mapsref.brgm.fr/legendes/o
 #: 아프리카 나라 판(wetherilli 209) — 남아공 CGS(정부 DPME 사본 ArcGIS REST)·나미비아 GSN(BGS 가 대신 내주는 MapServer)
 CGS_REST_URL = env("GSM_CGS_REST_URL", "https://dpmegis.dpme.gov.za/arcgis/rest/services/Geology/MapServer")
 GSN_WMS_URL = env("GSM_GSN_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_GSN_Bedrock_Geology/wms")
+#: 부르키나파소 BUMIGEB(BGS)·카메룬 IRGM(BRGM) 1:100만 (wetherilli 246). 열쇠가 없다
+BUMIGEB_WMS_URL = env("GSM_BUMIGEB_WMS_URL", "https://ogc.bgs.ac.uk/cgi-bin/BGS_BUMIGEB_FR_Bedrock_Geology/wms")
+IRGM_WMS_URL = env("GSM_IRGM_WMS_URL", "https://mapsref.brgm.fr/wxs/1GG/IRGM_Formations_et_Geologie_Structurale")
 AGA_WMS_URL = env("GSM_AGA_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/AGA/BGS_Groundwater/MapServer/WMSServer")
 EGDI_WMS_URL = env("GSM_EGDI_WMS_URL", "https://geoserver.geo-zs.si/egdi-surface-geology/gsmlp/wms")
 #: 독일·스페인·아일랜드 지질도 — BGR·IGME·GSI ArcGIS WMS 의 판 앞 주소, GSNI 는 BGS 서버의 것 (wetherilli 147). 열쇠가 없다
@@ -229,11 +232,15 @@ DOV_WMS_URL = env("GSM_DOV_WMS_URL", "https://www.dov.vlaanderen.be/geoserver/wm
 SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
 #: 니카라과 국토연구원(INETER) GeoServer WMS (`viewer/ineter.py`, wetherilli 242). 열쇠가 없다
 INETER_WMS_URL = env("GSM_INETER_WMS_URL", "https://mapserveride.ineter.gob.ni/geoserver/ows")
+#: 파나마 지질도 1:25만 — STRI 피처 서비스 (`viewer/stri.py`, wetherilli 253). 열쇠가 없다
+STRI_URL = env("GSM_STRI_URL", "https://services2.arcgis.com/HRY6x8qt5qjGnAA9/arcgis/rest/services/Geologia_Panama/FeatureServer")
 #: USGS 카리브 지질도 피처 서비스 (`viewer/usgscarib.py`, wetherilli 248). 열쇠가 없다
 USGSCARIB_URL = env("GSM_USGSCARIB_URL", "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Caribbean_Geology/FeatureServer/2")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
+#: GA 의 다른 서비스(지질구·핵심 광물·지구물리 격자)의 뿌리 (wetherilli 241)
+GA_GIS_URL = env("GSM_GA_GIS_URL", "https://services.ga.gov.au/gis")
 #: 이탈리아 ISPRA·포르투갈 LNEG ArcGIS 의 앞 주소, 스위스 swisstopo WMS·identify (wetherilli 211). 열쇠가 없다
 ISPRA_URL = env("GSM_ISPRA_URL", "https://sgi2.isprambiente.it/arcgis")
 LNEG_URL = env("GSM_LNEG_URL", "https://sig.lneg.pt/server")
@@ -484,6 +491,8 @@ CGMW_CATALOG_SEED = REPO_DIR / "data" / "cgmw_layers.json"
 AGA_CATALOG_SEED = REPO_DIR / "data" / "aga_layers.json"
 CGS_CATALOG_SEED = REPO_DIR / "data" / "cgs_layers.json"
 GSN_CATALOG_SEED = REPO_DIR / "data" / "gsn_layers.json"
+BUMIGEB_CATALOG_SEED = REPO_DIR / "data" / "bumigeb_layers.json"
+IRGM_CATALOG_SEED = REPO_DIR / "data" / "irgm_layers.json"
 #: 남미 (wetherilli 188)
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)
@@ -522,6 +531,8 @@ INETER_CATALOG_SEED = REPO_DIR / "data" / "ineter_layers.json"
 #: 카리브 — USGS 카리브 지질도 (wetherilli 248)
 USGSCARIB_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_layers.json"
 SIM3534_CATALOG_SEED = REPO_DIR / "data" / "sim3534_layers.json"
+#: 파나마 — STRI (wetherilli 253)
+STRI_CATALOG_SEED = REPO_DIR / "data" / "stri_layers.json"
 IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"

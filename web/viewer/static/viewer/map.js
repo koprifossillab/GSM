@@ -425,9 +425,9 @@
               home: [-2900000, -4300000, 6000000, 4600000],
               basemap: "eox_terrain", example: "-1.29, 36.82 · Nairobi",
               base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology", "cgs:geology_1m",
-                     "gsn:NAM_GSN_1M_BLS"],
+                     "gsn:NAM_GSN_1M_BLS", "bumigeb:BFA_BUMIGEB_FR_1M_BLS", "irgm:CMR_IRGM_1M_UnitesGeologiques"],
               first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits",
-              // 나라 판(남아공·나미비아, wetherilli 209)은 제 나라만 덮는다 — 묶음 탭처럼 범위 밖 타일을 묻지 않는다
+              // 나라 판(남아공·나미비아, wetherilli 209 · 부르키나파소·카메룬, 246)은 제 나라만 덮는다 — 묶음 탭처럼 범위 밖 타일을 묻지 않는다
               clip: true },
     // 호주(wetherilli 212) — Geoscience Australia 지표 지질도. 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가 축척에 맞는 판을
     // 그린다. 화면은 3857 — GA 가 3577(호주 알베르스)을 그려 주지 않고 남위 10–44° 라 많이 부풀지 않는다
@@ -498,12 +498,18 @@
                  basemap: "eox_terrain", example: "18.018, -76.809 · Kingston",
                  base: ["usgscarib:geology", "sim3534:units"],
                  first: "usgscarib:geology" },
+    // 파나마(wetherilli 253) — STRI 가 디지털로 옮긴 MICI 1990 1:25만. 피처 서비스라 면·단층을 한 덩이씩 받아 화면이 그린다(카리브와 같은 꼴)
+    panama: { title: "파나마", proj: "EPSG:3857", center: [-80.1, 8.5], zoom: 7, vworld: false,
+              home: [-9251000, 792000, -8583000, 1085000],
+              basemap: "eox_terrain", example: "9.081, -79.593 · Panamá",
+              base: ["stri:geology", "stri:faults"],
+              first: "stri:geology" },
     central_america: { title: "중미·카리브", proj: "EPSG:3857", center: [-77.0, 15.5], zoom: 5, vworld: false,
-                       includes: ["nicaragua", "dominican_republic", "caribbean"],
+                       includes: ["nicaragua", "panama", "dominican_republic", "caribbean"],
                        borrow: { usa: ["mrdata:pr:"] },
                        home: [-9852000, 1062000, -7180000, 2392000],
                        basemap: "eox_terrain",
-                       base: ["ineter:geology", "igme:sgnrd:0", "mrdata:pr:geol", "usgscarib:geology", "sim3534:units"],
+                       base: ["ineter:geology", "stri:geology", "igme:sgnrd:0", "mrdata:pr:geol", "usgscarib:geology", "sim3534:units"],
                        first: ["usgscarib:geology", "ineter:geology", "igme:sgnrd:0", "mrdata:pr:geol"] },
   };
   if (STATIC) {
@@ -566,7 +572,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania", "austria", "poland", "netherlands", "belgium", "nicaragua", "dominican_republic", "caribbean", "central_america"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania", "austria", "poland", "netherlands", "belgium", "nicaragua", "dominican_republic", "caribbean", "panama", "central_america"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -1010,6 +1016,7 @@
     usgscarib: { source: null, info: null },  // 카리브 — USGS 지질도 면 한 덩이 (wetherilli 248)
     // 대앤틸리스 — 우리가 구운 USGS SIM 3534 의 3857 z/x/y. 누른 자리는 위경도로 (wetherilli 254)
     sim3534: { source: gsjSource, info: sim3534InfoUrl },
+    stri: { source: null, info: null },       // 파나마 — STRI 면·단층 한 덩이씩 (wetherilli 253)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
     kopri: { source: npolarSource, info: wmsInfoUrl },
@@ -1061,6 +1068,9 @@
     // 아프리카 나라 판(wetherilli 209) — 남아공 CGS(서버가 REST export 로 옮긴다)·나미비아 GSN
     cgs: { source: npolarSource, info: wmsInfoUrl },
     gsn: { source: npolarSource, info: wmsInfoUrl },
+    // 부르키나파소 BUMIGEB(BGS)·카메룬 IRGM(BRGM, 4326 으로 받아 옮겨 그린다) 1:100만 (wetherilli 246)
+    bumigeb: { source: npolarSource, info: wmsInfoUrl },
+    irgm: { source: npolarSource, info: wmsInfoUrl },
     // 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. OGS 속성은 문이 REST identify 로 바꾼다
     nrcan: { source: npolarSource, info: wmsInfoUrl },
     ogs: { source: npolarSource, info: wmsInfoUrl },
@@ -1584,7 +1594,7 @@
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
               "indonesia", "malaysia", "philippines", "thailand",
               "austria", "poland", "netherlands", "belgium",
-              "nicaragua", "dominican_republic", "caribbean"],
+              "nicaragua", "dominican_republic", "caribbean", "panama"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
@@ -1595,7 +1605,7 @@
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
               "indonesia", "malaysia", "philippines", "thailand",
               "austria", "poland", "netherlands", "belgium",
-              "nicaragua", "dominican_republic", "caribbean"],
+              "nicaragua", "dominican_republic", "caribbean", "panama"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2589,7 +2599,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2605,13 +2615,13 @@
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"),
-    ineter: T("니카라과 국토연구원 (INETER)"), usgscarib: T("미국 지질조사국"), sim3534: T("미국 지질조사국"), geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
+    ineter: T("니카라과 국토연구원 (INETER)"), usgscarib: T("미국 지질조사국"), sim3534: T("미국 지질조사국"), stri: T("스미스소니언 열대연구소 (STRI)"), geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
     skgs: T("사스카치원 지질조사소"), nsgs: T("노바스코샤 자연자원·재생에너지부"), ags: T("앨버타 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
-    cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",
+    cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), bumigeb: T("부르키나파소 지질광업국"), irgm: T("카메룬 지질광업연구소"), ga: "Geoscience Australia",
     gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
