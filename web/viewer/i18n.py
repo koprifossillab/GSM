@@ -2309,6 +2309,8 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    # 미국 광물·연대 (wetherilli 247)
+    "개발 단계": "Development status", "지형도": "Topographic map", "상세": "Details",
     # 하와이 (wetherilli 238)
     "조성": "Composition", "섬": "Island", "화산 성장 단계": "Volcano stage",
     "서열": "Rank",
@@ -2978,6 +2980,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
+    "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "하와이 지질도 (USGS)": "Hawaii geology (USGS)", "푸에르토리코 지질도 (USGS)": "Puerto Rico geology (USGS)",
     "호주 지질구 (GA)": "Australia geological provinces (GA)", "호주 핵심 광물 (GA 2025)": "Australia critical minerals (GA 2025)",
     "호주 지구물리 (GA)": "Australia geophysics (GA)",
@@ -3271,6 +3275,11 @@ LAYER_EN = {
     # 하와이·푸에르토리코 (wetherilli 238)
     "mrdata:hi:units": "Geologic units (Hawaii)", "mrdata:hi:faults": "Faults (Hawaii)", "mrdata:hi:dikes": "Dikes (Hawaii)",
     "mrdata:pr:geol": "Geologic units (Puerto Rico)", "mrdata:pr:fault": "Thrust faults (Puerto Rico)", "mrdata:pr:faultn": "Normal faults (Puerto Rico)",
+    # USGS 의 다른 자료 (wetherilli 247)
+    "mrdata:mrds:mrds": "Mineral resources (MRDS)", "mrdata:usmin:points": "Mine features — points (USMIN)",
+    "mrdata:usmin:polygons": "Mine features — polygons (USMIN)", "mrdata:aeromag:namag": "Magnetic anomalies of North America (NAMAG)",
+    "mrdata:gravity:isostatic": "Isostatic residual gravity anomaly", "mrdata:gravity:bouguer": "Bouguer gravity anomaly",
+    "mrdata:geochron:geochron": "Geochronology (National Geochronological Database)",
     # 멕시코 (wetherilli 206)
     "sgm:8": "Lithology (1:250k)",
     # 호주 (wetherilli 212)

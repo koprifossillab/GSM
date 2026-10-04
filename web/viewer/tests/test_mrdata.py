@@ -192,3 +192,29 @@ class Islands(SimpleTestCase):
         self.assertTrue(get.call_args.args[0].endswith("/services/hi"))
         self.assertIn("mrdata:pr:geol", mrdata.QUERYABLE)
         self.assertIn("mrdata:pr:faultn", mrdata.ISLANDS)
+
+
+class UsgsMore(SimpleTestCase):
+    """USGS 의 다른 자료 — 광물 자원·광산 기호·지질 연대·자력·중력 (wetherilli 247). 2026-10-05 에 받은 `text/plain` 그대로"""
+
+    def test_광물_자원(self):
+        got = mrdata.friendly({"dep_id": "10199384", "site_name": "Kunklin", "dev_stat": "Prospect", "code_list": " CU",
+                               "url": "https://mrdata.usgs.gov/mrds/show-mrds.php?dep_id=10199384"})
+        self.assertEqual((got["이름"], got["광종"], got["개발 단계"]), ("Kunklin", "CU", "Prospect"))
+
+    def test_광산_기호(self):
+        got = mrdata.friendly({"state": "NM", "county": "Guadalupe", "ftr_type": "Borrow Pit", "ftr_name": "",
+                               "topo_name": "Newkirk", "topo_date": "1964", "topo_scale": "24000", "remarks": ""})
+        self.assertEqual(got, {"갈래": "Borrow Pit", "주": "Guadalupe · NM", "지형도": "Newkirk (1964, 1:24,000)"})
+
+    def test_지질_연대(self):
+        got = mrdata.friendly({"recno": "707", "url": "https://mrdata.usgs.gov/geochron/show-geochron.php?recno=707"})
+        self.assertEqual((got["기록 번호"], got["상세"]["links"][0]["url"]), ("707", "https://mrdata.usgs.gov/geochron/show-geochron.php?recno=707"))
+
+    def test_격자는_누르지_않는다(self):
+        self.assertNotIn("mrdata:aeromag:namag", mrdata.QUERYABLE)
+        self.assertEqual(mrdata.get_feature_info({"layers": "mrdata:gravity:bouguer"}), {"features": []})
+        with mock.patch.object(mrdata, "_get", return_value=answer()) as get:
+            mrdata.get_map({"layers": "mrdata:aeromag:namag"})
+        self.assertTrue(get.call_args.args[0].endswith("/services/aeromag"))
+        self.assertEqual(mrdata.MIN_ZOOM["mrdata:usmin:points"], 9)

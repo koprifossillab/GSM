@@ -2503,7 +2503,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": mrdata.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
                 **({} if layer.name in mrdata.QUERYABLE else {"queryable": False}),
                 # 하와이·푸에르토리코(wetherilli 238)는 미국 탭(3978)에서 제 범위 밖 타일을 묻지 않는다
-                **({"clip": True} if layer.name in mrdata.ISLANDS else {})}
+                **({"clip": True} if layer.name in mrdata.ISLANDS else {}),
+                # 광물 자원·광산 기호(wetherilli 247)는 넓게 보면 점이 땅을 덮어 가까이서부터
+                **({"minZoom": mrdata.MIN_ZOOM[layer.name]} if layer.name in mrdata.MIN_ZOOM else {})}
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}
