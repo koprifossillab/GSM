@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, egdi, emodnet, esdm, ga, gns, gsi, gsiindia, gtk, igme, iige, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, swisstopo, usage, ygs
+from . import austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, geosphere, ga, gns, gsi, gsiindia, gtk, igme, iige, ingemmet, ispra, jmg, linked, lneg, mgb, pig, mrdata, mris, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, spw, swisstopo, tno, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -395,7 +395,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 동남아(wetherilli 228) — 인도네시아·필리핀·태국은 ArcGIS WMS, 말레이시아는 문이 REST export 로 옮긴다. 다 3857 로 그린다
              "esdm", "jmg", "mgb", "dmr",
              # 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
-             "bcgs", "calgs")
+             "bcgs", "calgs",
+             # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 3857 로 그린다
+             "geosphere", "pig", "tno", "dov", "spw")
 
 
 @require_GET
@@ -2395,6 +2397,20 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream in ("geosphere", "pig", "tno", "dov", "spw"):
+        # 유럽(wetherilli 237) — 3857 로 그린다. 오스트리아·폴란드는 상류가 가까이서 그리지 않아 그 줌 위는 화면이 늘리고(`maxZoom`),
+        # 폴란드 단층은 줌 10·왈로니아는 줌 9(단층 13)부터. 왈로니아 범례는 395 칸 약호뿐이라 두지 않는다
+        mod = {"geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw}[layer.upstream]
+        if mod.knows(layer.name):
+            extra = {"attribution": mod.ATTRIBUTION, "projection": "EPSG:3857"}
+            spec = {"geosphere:geology": {"maxZoom": geosphere.MAX_ZOOM}, "geosphere:faults": {"maxZoom": geosphere.MAX_ZOOM},
+                    "pig:mgp500k": {"maxZoom": pig.MAX_ZOOM}, "pig:faults": {"minZoom": pig.FAULTS_MIN_ZOOM},
+                    "spw:geology": {"minZoom": spw.MIN_ZOOM, "noLegend": True},
+                    "spw:faults": {"minZoom": spw.FAULTS_MIN_ZOOM, "noLegend": True}}.get(layer.name, {})
+            extra.update(spec)
+            if layer.name in ("geosphere:faults", "pig:faults", "spw:faults"):
+                extra["queryable"] = False
+            return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
         # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
         return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978", "minZoom": bcgs.MIN_ZOOM}
@@ -2585,6 +2601,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
                    esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError,
+                   geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError,
                    basemaps.BasemapError)
 
 
@@ -2666,7 +2683,9 @@ class _Door:
                # 동남아(wetherilli 228)
                "esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr,
                # 브리티시컬럼비아·캘리포니아(wetherilli 231)
-               "bcgs": bcgs, "calgs": calgs}
+               "bcgs": bcgs, "calgs": calgs,
+               # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237)
+               "geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2675,7 +2694,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3965,6 +3984,9 @@ def feature_info(request):
             props = mrdata.friendly(props, lang)     # 미국 — 값은 영어 그대로, 알래스카의 시대만 옮긴다 (wetherilli 205)
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
+        elif door.name in ("geosphere", "pig", "tno", "dov", "spw"):
+            # 유럽(wetherilli 237) — 값은 그 나라 말 그대로, 시대만 옮긴다(`i18n.age_local`)
+            props = {"geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw}[door.name].friendly(props, lang)
         elif door.name in ("bcgs", "calgs"):
             # 브리티시컬럼비아·캘리포니아(wetherilli 231) — 값은 영어 그대로, 시대만 옮긴다
             props = {"bcgs": bcgs, "calgs": calgs}[door.name].friendly(props, lang)

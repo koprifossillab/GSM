@@ -211,7 +211,15 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 
 - [ ] 유럽 — 영국·프랑스(143)·독일·스페인·아일랜드(147) 탭과 유럽 묶음이 섰다. 남은 것: EGDI 1:100만의 시대 판 속성이
       되살아나면(2026-10-04 에도 DB 오류, 지금은 암상 판에 묻는다 — wetherilli 177) 그쪽으로. BGS 1:62만 5천이 WMS 로 열리면 영국 탭의 넓은 줌을 그것으로. 독일은 줌 9 전에 EGDI 뿐이다 —
-      BGR GÜK1000 보다 넓은 판(GÜK 2000?)이 있는지. 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 섰다(wetherilli 211) — 밖에 열기 전에 LNEG 의 조건(적힌 것이 없다)과 ISPRA 의 "열람 자유" 를 사람이 읽는다
+      BGR GÜK1000 보다 넓은 판(GÜK 2000?)이 있는지. 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 섰다(wetherilli 211) — 밖에 열기 전에 LNEG 의 조건(적힌 것이 없다)과 ISPRA 의 "열람 자유" 를 사람이 읽는다.
+      오스트리아(GeoSphere 1:100만)·폴란드(PIG-PIB 1:50만)·네덜란드(TNO)·벨기에(플랑드르 DOV·왈로니아 SPW)는 섰다(wetherilli 237).
+      다음 판: 오스트리아 1:5만(`einheiten_50`, CC BY 4.0)·폴란드 1:5만(`smgp50k`, 줌 13 부터) — 둘 다 가까이서만 그린다
+- [ ] **(사람)** 체코 ČGS — 1:50만 영어판(`geologicka_mapa500_CR_en`)이 ICS 영어라 붙이기 좋다. 그런데 데이터셋 메타데이터는 "Copyright (všechna práva
+      vyhrazena)", 저작권 페이지(cgs.gov.cz/copyright)는 CC BY 4.0 이라 말이 엇갈린다 — 사람이 읽고 정한다. 1:5만은 나라 줌 한 장에 22 초다(wetherilli 237)
+- [ ] **(사람)** 덴마크 GEUS — 지표 퇴적층도 1:20만·1:2.5만. GEUS 조건(terms_20140620.pdf)이 "자기 용도만, 공개는 서면 동의" 이고 익명 타일 요청은 403 이다.
+      도로청이 다시 내는 ArcGIS(`kort.vd.dk`)는 기술로는 쉽다 — 조건을 사람이 읽은 뒤에(wetherilli 237)
+- [ ] (사람) 왈로니아 SPW 서비스의 조건 PDF(LicServicesSPW.pdf)와 오스트리아 1:100만 서비스 자체의 메타데이터는 읽지 않았다 — 자료는 CC BY 4.0 으로
+      적혀 있다(wetherilli 237)
 - [ ] 다른 나라 지질도 — 호주 GA 탭은 섰다(wetherilli 212). 주 판은 퀸즐랜드·빅토리아·남호주가 섰다(225). 스웨덴 SGU 는
       노르웨이·스웨덴·핀란드 탭에 섰다(wetherilli 213).
 - [ ] (사람) 서호주 GSWA 지질도 — SLIP 공개 서비스(`services.slip.wa.gov.au/public/…/Geology_and_Soils_Map/MapServer`, 1:250만·1:50만·1:10만
