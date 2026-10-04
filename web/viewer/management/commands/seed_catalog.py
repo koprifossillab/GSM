@@ -78,6 +78,7 @@ class Command(BaseCommand):
                 # 영국·프랑스 — BGS·BRGM, 그리고 넓게 볼 때 까는 EGDI 1:100만(영국에 두고 프랑스가 빌린다) (wetherilli 143)
                 (settings.EGDI_CATALOG_SEED, "유럽 (EGDI)", "uk", "egdi"),
                 (settings.BGS_CATALOG_SEED, "영국 (BGS)", "uk", "bgs"),
+                (settings.BGSGI_CATALOG_SEED, "영국 (BGS GeoIndex)", "uk", "bgsgi"),
                 # 유럽 바다 — EMODnet 의 제4기 퇴적층·지질 사건. 영국에 두고 유럽 탭들이 빌린다 (wetherilli 176)
                 (settings.EMODNET_EUROPE_CATALOG_SEED, "유럽 바다 (EMODnet)", "uk", "emodnet"),
                 (settings.BRGM_CATALOG_SEED, "프랑스 (BRGM)", "france", "brgm"),
@@ -179,8 +180,12 @@ class Command(BaseCommand):
                 (settings.PENINSULA_CATALOG_SEED, "한반도 음영판", "korea", "peninsula"),
                 # 남극 IBCSO 자료 출처(TID) — 우리 디스크의 격자를 잘라 둔 타일 (071)
                 (settings.IBCSO_CATALOG_SEED, "남극 IBCSO", "antarctica", "ibcso"),
+                # 남극 자력 이상 ADMAP-2 — 우리가 칠해 잘라 둔 3031 타일 (wetherilli 262)
+                (settings.ADMAP_CATALOG_SEED, "남극 ADMAP-2", "antarctica", "admap"),
                 # PGC 경사·등고선 — 극지 지질도 위에 겹친다 (wetherilli 099). 지역은 씨앗이 적는다
                 *((path, f"PGC ({path.stem})", "greenland", "pgc") for path in settings.PGC_CATALOG_SEEDS),
+                # 남극 — BAS 의 Bedmap3 빙저 지형·얼음 두께·윗면 (wetherilli 261)
+                (settings.BAS_CATALOG_SEED, "남극 (BAS Bedmap3)", "antarctica", "bas"),
                 # 극지연구소 — 암석 시료·운석·KPDC 자료·기지·해안선 (053–057). 지역은 씨앗이 적는다
                 *((path, f"극지연구소 ({path.stem})", "antarctica", "kopri")
                   for path in settings.KOPRI_CATALOG_SEEDS),
