@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
+from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -381,7 +381,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
              "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
-             "sgu")
+             "sgu",
+             # 아이슬란드 NÍ(wetherilli 216) — 2D 는 3413 이지만 GeoServer 라 3857 도 그린다
+             "natt")
 
 
 @require_GET
@@ -2321,6 +2323,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 스웨덴 SGU(wetherilli 213) — GeoServer 가 3413 도 그려 준다. 레이어 하나가 1:100만·5만 판을 함께 부른다
         return {"attribution": sgu.ATTRIBUTION, "projection": "EPSG:3413",
                 **({} if layer.name in sgu.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "natt" and natt.knows(layer.name):
+        # 아이슬란드 NÍ(wetherilli 216) — GeoServer 가 3413 으로 다시 그려 준다. 선·점 레이어는 속성이 부호뿐이라 누르지 않는다
+        return {"attribution": natt.ATTRIBUTION, "projection": "EPSG:3413",
+                **({} if natt.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
         return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
@@ -2507,7 +2513,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError,
-                   ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError,
+                   ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError,
                    basemaps.BasemapError)
 
 
@@ -2573,7 +2579,9 @@ class _Door:
                # 호주(wetherilli 212)
                "ga": ga,
                # 이탈리아·포르투갈·스위스(wetherilli 211)
-               "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo}
+               "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo,
+               # 아이슬란드(wetherilli 216)
+               "natt": natt}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2582,7 +2590,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "ispra", "lneg", "swisstopo", "sgu"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "ispra", "lneg", "swisstopo", "sgu", "natt"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3707,6 +3715,8 @@ def feature_info(request):
             props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
         elif door.name == "sgu":
             props = sgu.friendly(props, lang)        # 스웨덴 — 1:100만은 영어 열, 5만은 스웨덴어 그대로 (wetherilli 213)
+        elif door.name == "natt":
+            props = natt.friendly(props, lang)       # 아이슬란드 — 1:60만의 부호를 범례 이름으로, 시대를 옮긴다 (wetherilli 216)
         elif door.name == "gtk":
             props = gtk.friendly(props, lang)        # ROCK_NAME_ → 암석 …, 시대를 옮긴다
         elif door.name == "bgs":

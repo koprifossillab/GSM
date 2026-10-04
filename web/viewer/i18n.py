@@ -86,6 +86,8 @@ EN = {
     "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
     "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
     "스위스 연방 지형청": "swisstopo (Switzerland)",
+    # 아이슬란드 (wetherilli 216)
+    "아이슬란드": "Iceland", "아이슬란드 자연사연구소": "Icelandic Institute of Natural History",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -1744,6 +1746,7 @@ PROP_EN = {
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
+    "고지자기": "Magnetic polarity",                     # 아이슬란드 1:10만의 `segultimatal`(BRUN 따위, wetherilli 216)
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
@@ -2728,6 +2731,7 @@ GROUP_EN = {
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
+    "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2825,6 +2829,13 @@ LAYER_EN = {
     "lneg:500k:2": "Portugal geology (1:500k)", "lneg:500k:1": "Portugal structures (1:500k)",
     "lneg:500k:4": "Portugal shelf geology (1:500k)", "lneg:500k:3": "Portugal shelf structures (1:500k)",
     "swisstopo:geologische_karte": "Geological map of Switzerland (1:500k)", "swisstopo:geocover": "GeoCover (1:25k)",
+    # 아이슬란드 (wetherilli 216)
+    "ni:ni_j600v_berg_2_jardlog_2utg_fl": "Bedrock units (1:600k)", "ni:ni_j600v_berg_2_jardlogMork_2utg_li": "Unit boundaries (1:600k)",
+    "ni:ni_j600v_berg_2_brotalina_1utg_li": "Faults (1:600k)", "ni:ni_j600v_berg_2_gosspr_1utg_li": "Eruptive fissures (1:600k)",
+    "ni:ni_j600v_berg_2_gigar_1utg_p": "Craters (1:600k)", "ni:ni_j600v_hoggun_eldstodvakerfi_li": "Volcanic systems (1:600k)",
+    "ni:ni_j100v_vesturgosbelti_berggrunnur_1utg_fl": "Western Volcanic Zone bedrock (1:100k)",
+    "ni:ni_j100v_vesturgosbelti_jardgrunnur_1utg_fl": "Western Volcanic Zone superficial deposits (1:100k)",
+    "ni:ni_j100v_austurland_berggrunnur_1utg_fl": "East Iceland bedrock (1:100k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",

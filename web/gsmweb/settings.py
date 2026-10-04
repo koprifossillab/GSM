@@ -152,6 +152,8 @@ NGU_WMS_URL = env("GSM_NGU_WMS_URL", "https://geo.ngu.no/mapserver/BerggrunnWMS3
 GTK_WMS_URL = env("GSM_GTK_WMS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Kalliopera_WMS/MapServer/WMSServer")
 #: 스웨덴 기반암 지질도 — SGU GeoServer (`viewer/sgu.py`, wetherilli 213). 열쇠가 없다. 안내 문서의 resource.sgu.se 주소는 Capabilities 만 준다
 SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
+#: 아이슬란드 지질도 — 자연사연구소(NÍ) GeoServer WMS (`viewer/natt.py`, wetherilli 216). 열쇠가 없다
+NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 영국·프랑스·범유럽 지질도 — BGS ArcGIS·BRGM MapServer·EGDI GeoServer WMS (`viewer/bgs.py`·`brgm.py`·`egdi.py`, wetherilli 143). 열쇠가 없다
 BGS_WMS_URL = env("GSM_BGS_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer")
 BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
@@ -427,6 +429,8 @@ EMODNET_EUROPE_CATALOG_SEED = REPO_DIR / "data" / "emodnet_europe_layers.json"
 NGU_CATALOG_SEED = REPO_DIR / "data" / "ngu_layers.json"
 GTK_CATALOG_SEED = REPO_DIR / "data" / "gtk_layers.json"
 SGU_CATALOG_SEED = REPO_DIR / "data" / "sgu_layers.json"
+#: 아이슬란드 (wetherilli 216)
+NATT_CATALOG_SEED = REPO_DIR / "data" / "natt_layers.json"
 #: 영국·프랑스 — BGS·BRGM 지질도, 그리고 둘이 함께 까는 EGDI 1:100만 (wetherilli 143)
 BGS_CATALOG_SEED = REPO_DIR / "data" / "bgs_layers.json"
 BRGM_CATALOG_SEED = REPO_DIR / "data" / "brgm_layers.json"

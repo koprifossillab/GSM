@@ -150,9 +150,20 @@
                            "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132", "sgu:bedrock"],
                     first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet", "sgu:bedrock"],
                     borrow: { arctic_ocean: ["earth"] } },
+    // ── 아이슬란드 (wetherilli 216) ──
+    // 자연사연구소(NÍ)의 1:60만 기반암과 1:10만(서부 화산대·동부)을 중계한다. GeoServer 가 3413 으로 다시 그려 주어 곧장 받는다(GTK 와 같다).
+    // 섬을 둘러싼 바다의 EMODnet 과 지구 자료 점은 북극해에서 빌린다 — 스발바르와 같다
+    iceland: { title: "아이슬란드", proj: "EPSG:3413", center: [-19.0, 64.9], zoom: 6, vworld: false,
+               home: [887000, -2773000, 1557000, -2184000],
+               basemap: "eox_terrain", example: "64.147, -21.942 · Reykjavík",
+               base: ["ni:ni_j600v_berg_2_jardlog_2utg_fl", "ni:ni_j100v_vesturgosbelti_berggrunnur_1utg_fl",
+                      "ni:ni_j100v_austurland_berggrunnur_1utg_fl"],
+               first: ["ni:ni_j600v_berg_2_jardlog_2utg_fl", "ni:ni_j600v_hoggun_eldstodvakerfi_li"],
+               borrow: { arctic_ocean: ["emodnet", "earth"] } },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
-              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia"],
-              home: [-612000, -3344000, 1380000, -212000],
+              includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia", "iceland"],
+              // 아이슬란드 동쪽 끝까지 — 오른쪽을 넓혔다 (wetherilli 216)
+              home: [-612000, -3344000, 1560000, -212000],
               basemap: "eox_s2", places: "78.223, 15.647 · Longyearbyen",
               base: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"],
               first: ["grl_g500_lithostr_search", "npolar:svalbard_units", "janmayen:units"] },
@@ -423,7 +434,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -905,6 +916,8 @@
     ispra: { source: npolarSource, info: wmsInfoUrl },
     lneg: { source: npolarSource, info: wmsInfoUrl },
     swisstopo: { source: npolarSource, info: wmsInfoUrl },
+    // 아이슬란드 NÍ(wetherilli 216) — 카탈로그 행의 투영(3413)으로 서버 문을 거쳐 받는다
+    natt: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -1373,7 +1386,7 @@
   BASEMAPS.eox_s2 = {
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france",
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
@@ -1381,7 +1394,7 @@
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france",
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
@@ -1389,7 +1402,7 @@
   BASEMAPS.arcticdem = {
     title: T("ArcticDEM 음영"),
     note: T("Polar Geospatial Center. 2 m 표고에서 그린 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM); },
   };
   // 같은 ImageServer 의 다른 그리는 법 둘 (wetherilli 092). 여러 방향 음영은 한 방향 음영이 그늘에 묻는
@@ -1397,19 +1410,19 @@
   BASEMAPS.arcticdem_multi = {
     title: T("ArcticDEM 음영 (여러 방향)"),
     note: T("Polar Geospatial Center. 여러 방향에서 비춘 음영 — 한 방향 음영에서 그늘진 사면이 살아난다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Multidirectional"); },
   };
   BASEMAPS.arcticdem_tinted = {
     title: T("ArcticDEM 높이 색 음영"),
     note: T("Polar Geospatial Center. 높이를 색으로 칠한 음영"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland"], needs: "EPSG:3413",
     make: function () { return pgcHillshade("arcticdem_latest", "EPSG:3413", PGC_ARCTICDEM, "Hillshade Elevation Tinted"); },
   };
   BASEMAPS.gibs_bm_n = {
     title: T("Blue Marble 위성 (NASA)"),
     note: T("NASA GIBS. 500 m 해상도라 넓게 볼 때 쓴다"),
-    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia"], needs: "EPSG:3413",
+    regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland"], needs: "EPSG:3413",
     make: function () { return gibsLayer("3413", "BlueMarble_ShadedRelief_Bathymetry", 4); },
   };
   BASEMAPS.gibs_bm_s = {
@@ -2377,7 +2390,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2393,7 +2406,7 @@
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"),
-    ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"),
+    ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
     cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",

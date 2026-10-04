@@ -56,7 +56,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211). 유럽 묶음에 들고 EGDI 1:100만은 영국에서 빌린다
            ("italy", "이탈리아"),
            ("portugal", "포르투갈"),
-           ("switzerland", "스위스"))
+           ("switzerland", "스위스"),
+           # 아이슬란드 — 자연사연구소(NÍ) 1:60만·1:10만 (wetherilli 216). 3413 이라 북극 묶음에 든다
+           ("iceland", "아이슬란드"))
 
 
 class LayerGroup(models.Model):
@@ -121,6 +123,7 @@ class Layer(models.Model):
     #: cgmw → `brgm.py` 의 CGMW (아프리카 1:1000만), aga → `bgs.py` 의 AGA (아프리카 지하수 지도책 나라별 지질, wetherilli 207)
     #: nrcan → `nrcan.py` (캐나다 1:500만), ogs → `ogs.py` (온타리오 1:25만, wetherilli 204)
     #: ispra → `ispra.py`·lneg → `lneg.py`·swisstopo → `swisstopo.py` (이탈리아·포르투갈·스위스 지질도, wetherilli 211)
+    #: natt → `natt.py` (아이슬란드 지질도 1:60만·1:10만, wetherilli 216)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
