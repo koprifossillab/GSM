@@ -24,8 +24,6 @@
       읽고 되면 정적 판에 싣는다(CORS 가 열려 있어 `static-kinds.js` 한 갈래)
 - [ ] (사람) 운영에서 `manage.py fetch_sgb_units` 를 한 번 — 브라질 범례에 단위 이름·시대가 붙는다(없으면 기호만). 1:100만은
       WFS 열 번 남짓·1 초 간격 (wetherilli 191)
-- [ ] 페루 INGEMMET 1:5만 지질 단위만(단층·습곡 없이) — 단층·습곡은 따로 켜는 레이어로 섰지만 통합판 캐시에는 여전히 구워져 있다
-      (wetherilli 222). 통합판의 암상 레이어(`show:7`)만 `export` 로 받으면 타일 한 칸이 줌 7 에 5 초·줌 9 에 2.6 초·줌 11 에 1.7 초다
 - [ ] (사람) 우루과이 DINAMIGE 1:50만의 이용 조건 — 탭은 섰다(wetherilli 196). Capabilities·MIEM 안내에 적힌 것이 없다. 밖에 열기 전에 읽는다
 - 막힌 것: 칠레 SERNAGEOMIN(연결 거부 — 남미 1:500만이 메운다), 베네수엘라(서비스 없음), 볼리비아(그쪽 8080 이 거부한다 — 우리 망은 8080 으로
   나간다, wetherilli 198. 뷰어가 지금도 그 주소만 부른다. 열리면 GeoServer 1:100만 `geologico:geologico_1M`)

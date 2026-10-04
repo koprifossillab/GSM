@@ -3020,6 +3020,7 @@ LAYER_EN = {
     "sgb:fossils": "Fossil occurrences",
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
+    "ingemmet:50k_units": "Geological units only 1:50k (no faults or folds, from zoom 9)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
     "ingemmet:faults_1m": "Faults (1:1M)",
     "ingemmet:faults_100k": "Faults (1:100k)",

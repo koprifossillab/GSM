@@ -305,7 +305,7 @@
     peru: { title: "페루", proj: "EPSG:3857", center: [-75.0, -9.5], zoom: 6, vworld: false,
             home: [-9084000, -2108000, -7637000, 0],
             basemap: "eox_terrain", example: "-12.046, -77.043 · Lima",
-            base: ["sgc:sa:8", "ingemmet:100k", "ingemmet:50k"],
+            base: ["sgc:sa:8", "ingemmet:100k", "ingemmet:50k", "ingemmet:50k_units"],
             first: "ingemmet:50k",
             borrow: { colombia: ["sgc:sa:"] } },
     // 아르헨티나 SEGEMAR·우루과이 DINAMIGE (wetherilli 196) — 브라질처럼 남미 1:500만만 콜롬비아에서 빌린다
