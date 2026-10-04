@@ -244,7 +244,7 @@
   // 새 레이어는 아래 표에 이름을 적는다. 적지 않으면 맨 끝 "그 밖" 에 선다(시험 `test_earth_panel` 이 적었는지 본다)
   var THEMES = [
     ["지질", ["geology", "glim", "seaage", "sediment"]],
-    ["구조·판", ["tbound", "tprov", "plates", "stress"]],
+    ["구조·판", ["tbound", "gemfaults", "tprov", "plates", "stress"]],
     ["지구물리", ["crust", "heatflow", "mantle"]],
     ["자원", []],                                     // 세계 광상(USGS)의 광종 칸은 `mineral` 로 여기 선다 (wetherilli 276)
     ["화산·지진", ["volcanoes", "pleistocene", "quake6", "quake55", "quake5"]],
