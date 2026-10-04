@@ -102,7 +102,9 @@ EN = {
     # 동남아 (wetherilli 228)
     "인도네시아": "Indonesia", "말레이시아": "Malaysia", "필리핀": "Philippines", "태국": "Thailand", "동남아": "Southeast Asia",
     # 중앙아메리카·카리브 (wetherilli 242)
-    "니카라과": "Nicaragua", "도미니카공화국": "Dominican Republic", "카리브": "Caribbean", "파나마": "Panama",
+    "니카라과": "Nicaragua", "도미니카공화국": "Dominican Republic", "카리브": "Caribbean", "파나마": "Panama", "파라과이": "Paraguay",
+    "파라과이 광업·에너지 차관실 (VMME)": "Vice-Ministry of Mines and Energy of Paraguay (VMME)",
+    "파라과이 지질도(VMME)를 받지 못했다": "Could not fetch the geologic map of Paraguay (VMME)",
     "스미스소니언 열대연구소 (STRI)": "Smithsonian Tropical Research Institute (STRI)",
     "파나마 지질도(STRI)를 받지 못했다": "Could not fetch the geologic map of Panama (STRI)",
     "USGS 카리브 지질도를 받지 못했다": "Could not fetch the USGS Caribbean geologic map",
@@ -3018,6 +3020,7 @@ GROUP_EN = {
     "카리브 지질도 (USGS 1:250만)": "Geology of the Caribbean (USGS 1:2.5M)",
     "대앤틸리스 지질도 (USGS SIM 3534)": "Geology of the Greater Antilles (USGS SIM 3534)",
     "파나마 지질도 (STRI·MICI 1:25만)": "Geology of Panama (STRI · MICI 1:250k)",
+    "파라과이 지질도 (VMME)": "Geology of Paraguay (VMME)", "남미 지질도 (USGS)": "Geology of South America (USGS)",
     "니카라과 지질도 (INETER)": "Geology of Nicaragua (INETER)", "도미니카공화국 지질도 (SGN 1:25만)": "Geology of the Dominican Republic (SGN 1:250k)",
     "오스트리아 지질도 (GeoSphere 1:100만)": "Geology of Austria (GeoSphere 1:1M)", "폴란드 지질도 (PIG-PIB 1:50만)": "Geology of Poland (PIG-PIB 1:500k)",
     "오스트리아 지질도 1:5만 (GeoSphere)": "Geology of Austria 1:50k (GeoSphere)",
@@ -3175,6 +3178,7 @@ LAYER_EN = {
     "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
     "sim3534:units": "Geologic units",
     "sim3534:faults": "Faults",
+    "vmme:geology": "Geology (overview)", "usgscarib:sa:geology": "Geology (USGS, public domain)",
     "ineter:geology": "Geology", "ineter:faults": "Faults", "igme:sgnrd:0": "Geological units (1:250k)",
     "igme:sgnrd:1": "Structures (1:250k)",
     "geosphere:geology": "Geology (1:1M)", "geosphere:faults": "Faults and nappe boundaries (1:1M)",

@@ -2969,3 +2969,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #39300c; --hi-deep: #221d07; --on-hi: #fdfcfb; --hi-ink: #9f8620;
   --glass: rgba(253, 252, 251, .95); --glass-line: #f9f2d5;
 }
+
+/* ── 파라과이 (wetherilli 256) — 동부의 붉은 흙(테라 로하)의 적갈: 차코 관목림의 마른 갈색 바탕 ── */
+:root[data-region="paraguay"] {
+  --bg: #15110f; --panel: #1e1b19; --panel-tint: #100d0b; --raise: #2a2625;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #3a3735; --line-soft: #2a2625;
+  --gold: #c9573a; --gold-bright: #e1a393; --gold-muted: #ab4a31;
+  --gold-wash: rgba(201, 87, 58, .13); --gold-edge: rgba(201, 87, 58, .42);
+  --hi: #c9573a; --hi-deep: #e1a393; --on-hi: #100d0b; --hi-ink: #e1a393;
+  --glass: rgba(16, 13, 11, .93); --glass-line: rgba(201, 87, 58, .35);
+}
+:root[data-region="paraguay"][data-theme="light"] {
+  --bg: #fcf5f3; --panel: #fdfcfb; --panel-tint: #fdf8f7; --raise: #f7e7e3;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #f4ddd8; --line-soft: #f7e7e3;
+  --gold: #8d3d29; --gold-bright: #6f3020; --gold-muted: #8c5446;
+  --gold-wash: #f7e6e1; --gold-edge: #e7b3a6;
+  --hi: #32160e; --hi-deep: #1e0d09; --on-hi: #fdfcfb; --hi-ink: #8d3d29;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #f4ddd8;
+}

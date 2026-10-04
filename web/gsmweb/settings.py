@@ -237,6 +237,10 @@ SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
 INETER_WMS_URL = env("GSM_INETER_WMS_URL", "https://mapserveride.ineter.gob.ni/geoserver/ows")
 #: 파나마 지질도 1:25만 — STRI 피처 서비스 (`viewer/stri.py`, wetherilli 253). 열쇠가 없다
 STRI_URL = env("GSM_STRI_URL", "https://services2.arcgis.com/HRY6x8qt5qjGnAA9/arcgis/rest/services/Geologia_Panama/FeatureServer")
+#: USGS 남미 지질도 피처 서비스 — 카리브와 같은 문 (wetherilli 256)
+USGSCARIB_SA_URL = env("GSM_USGSCARIB_SA_URL", "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/South_America_Geology/FeatureServer/2")
+#: 파라과이 지질도 — 광업·에너지 차관실(VMME) 피처 서비스 (`viewer/vmme.py`, wetherilli 256). 열쇠가 없다
+VMME_URL = env("GSM_VMME_URL", "https://services5.arcgis.com/LSvRaxOMGSmUKhcq/arcgis/rest/services/Mapa_WFL1/FeatureServer/5")
 #: USGS 카리브 지질도 피처 서비스 (`viewer/usgscarib.py`, wetherilli 248). 열쇠가 없다
 USGSCARIB_URL = env("GSM_USGSCARIB_URL", "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Caribbean_Geology/FeatureServer/2")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
@@ -538,6 +542,9 @@ USGSCARIB_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_layers.json"
 SIM3534_CATALOG_SEED = REPO_DIR / "data" / "sim3534_layers.json"
 #: 파나마 — STRI (wetherilli 253)
 STRI_CATALOG_SEED = REPO_DIR / "data" / "stri_layers.json"
+#: 파라과이 VMME·남미 USGS (wetherilli 256)
+VMME_CATALOG_SEED = REPO_DIR / "data" / "vmme_layers.json"
+USGSCARIB_SA_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_sa_layers.json"
 IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
