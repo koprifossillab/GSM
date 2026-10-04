@@ -155,6 +155,8 @@ urlpatterns = [
     path("ingemmet/legend/", views.ingemmet_legend, name="ingemmet-legend"),
     # 우루과이 — REST 범례를 목록으로 (dinamige.py, wetherilli 196)
     path("dinamige/legend/", views.dinamige_legend, name="dinamige-legend"),
+    # 몽골 — REST 범례를 목록으로, 시대는 층서 지수에서 푼다 (mris.py, wetherilli 221)
+    path("mris/legend/", views.mris_legend, name="mris-legend"),
     # 남아공 — REST 범례를 목록으로 (cgs.py, wetherilli 209)
     path("cgs/legend/", views.cgs_legend, name="cgs-legend"),
     # 에콰도르 — 보는 범위의 범례 (iige.py, wetherilli 198)

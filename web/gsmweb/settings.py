@@ -156,6 +156,8 @@ SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
 NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 뉴질랜드·남빅토리아랜드 지질도 — GNS Science GeoServer WMS (`viewer/gns.py`, wetherilli 218). 열쇠가 없다
 GNS_WMS_URL = env("GSM_GNS_WMS_URL", "https://maps.gns.cri.nz/geology/wms")
+#: 몽골 국가지질도첩 — MonGeoCat ArcGIS 의 앞 주소 (`viewer/mris.py`, wetherilli 221). 열쇠가 없다. 문서에 없는 주소다
+MRIS_URL = env("GSM_MRIS_URL", "https://gismap.mris.mn/arcgis")
 #: 영국·프랑스·범유럽 지질도 — BGS ArcGIS·BRGM MapServer·EGDI GeoServer WMS (`viewer/bgs.py`·`brgm.py`·`egdi.py`, wetherilli 143). 열쇠가 없다
 BGS_WMS_URL = env("GSM_BGS_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer")
 BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
@@ -471,6 +473,8 @@ GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 뉴질랜드, 남극 남빅토리아랜드 (wetherilli 218)
 GNS_CATALOG_SEED = REPO_DIR / "data" / "gns_layers.json"
 GNS_ANTARCTICA_CATALOG_SEED = REPO_DIR / "data" / "gns_antarctica_layers.json"
+#: 몽골 (wetherilli 221)
+MRIS_CATALOG_SEED = REPO_DIR / "data" / "mris_layers.json"
 #: 이탈리아·포르투갈·스위스 (wetherilli 211)
 ISPRA_CATALOG_SEED = REPO_DIR / "data" / "ispra_layers.json"
 LNEG_CATALOG_SEED = REPO_DIR / "data" / "lneg_layers.json"

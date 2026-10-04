@@ -90,6 +90,8 @@ EN = {
     "아이슬란드": "Iceland", "아이슬란드 자연사연구소": "Icelandic Institute of Natural History",
     # 뉴질랜드·오세아니아 (wetherilli 218)
     "뉴질랜드": "New Zealand", "오세아니아": "Oceania", "뉴질랜드 지질·핵과학연구소 (GNS)": "GNS Science (New Zealand)",
+    # 몽골 (wetherilli 221)
+    "몽골": "Mongolia", "몽골 국가지질조사소 (MonGeoCat)": "National Geological Survey of Mongolia (MonGeoCat)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -1748,7 +1750,7 @@ PROP_EN = {
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
-    "초층군": "Supergroup",
+    "초층군": "Supergroup", "지구조 대구역": "Tectonic megazone",
     "고지자기": "Magnetic polarity",                     # 아이슬란드 1:10만의 `segultimatal`(BRUN 따위, wetherilli 216)
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
@@ -2737,6 +2739,7 @@ GROUP_EN = {
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
     "뉴질랜드 지질도 (GNS)": "Geology of New Zealand (GNS)", "뉴질랜드 구조 (GNS 1:25만)": "New Zealand structures (GNS 1:250k)",
     "남빅토리아랜드 1:25만 (GNS)": "Southern Victoria Land 1:250k (GNS)",
+    "몽골 지질도 (MonGeoCat)": "Geology of Mongolia (MonGeoCat)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2847,6 +2850,8 @@ LAYER_EN = {
     "gns:NZL_GNS_250K_folds": "Fold axes (1:250k)", "gns:NZL_GNS_250K_metamorphic_zones": "Metamorphic zones (1:250k)",
     "gns:ATA_SVL_GNS_250K_geological_units": "Southern Victoria Land geological units (1:250k)",
     "gns:ATA_SVL_GNS_250K_faults": "Southern Victoria Land faults (1:250k)",
+    # 몽골 (wetherilli 221)
+    "mris:geology:1": "Geological map (National Geological Atlas)", "mris:faults:0": "Faults (1:500k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
