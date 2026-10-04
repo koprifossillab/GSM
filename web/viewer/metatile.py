@@ -5,7 +5,8 @@
 
 - **화면이 부르는 주소와 캐시 열쇠는 그대로다.** 칸의 열쇠는 브라우저가 보낸 WMS 변수의 해시(`views.map_cache_key`)라 이웃 칸의 `bbox` 글자를
   서버가 똑같이 지을 수 없다(OpenLayers 가 쓴 소수 자리). 그래서 잘라 둔 조각은 **우리 열쇠**(레이어·칸 크기·z/x/y)로 담고, 칸 요청이 오면
-  `map_cache_key` → 조각 열쇠 차례로 찾는다. 찾은 조각은 `views.wms` 가 제 열쇠로도 담는다
+  `map_cache_key` → 조각 열쇠 차례로 찾는다. 조각으로 낸 칸은 `views.wms` 가 제 열쇠로 **다시 담지 않는다** — 같은 그림을 두 벌 두게 되고,
+  다음에 오면 조각 열쇠에서 곧 나온다(잠금 앞에서 찾는다, wetherilli 297)
 - 칸의 z/x/y 는 3857 의 `bbox` 에서 거꾸로 셈한다(OpenLayers `createXYZ` 의 격자). 격자에 맞지 않는 요청은 `None` — 부르는 쪽이 하던 대로 한 칸을 받는다
 - **같은 메타타일을 동시에 두 번 받지 않는다** — 워커가 프로세스 여럿이라 캐시 자리 밑의 잠금 파일(`fcntl.flock`)로 막는다. 잠금을 얻은 뒤 조각을
   다시 찾아, 먼저 받은 워커가 담은 것이면 그것을 낸다
@@ -71,6 +72,15 @@ def meta_size(px: int) -> int:
 
 def piece_key(layer: str, px: int, z: int, x: int, y: int) -> str:
     return tilecache.key_text("meta", f"{layer}/{px}/{z}/{x}/{y}")
+
+
+def stale(layer: str, params: dict):
+    """나이가 지난 조각이라도 — 상류가 못 줄 때 빈 자리보다 옛것을 내려고 (`tilecache.get(stale=True)` 의 짝, wetherilli 297)"""
+    tile = tile_of(params) if tilecache.enabled() else None
+    if tile is None:
+        return None
+    z, x, y, px = tile
+    return tilecache.get(piece_key(layer, px, z, x, y), stale=True)
 
 
 def _bbox(z: int, x0: int, y0: int, count: int) -> str:
