@@ -32,8 +32,8 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
+from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, usstates, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -291,7 +291,7 @@ def intro_view(request):
 
 @require_GET
 def manage_view(request):
-    """관리 화면 (wetherilli P08·118). 지금은 개인 레이어 반입과 이 브라우저의 저장 자료 관리 둘이다.
+    """관리 화면 (wetherilli P08·118). 개인 레이어 반입, 이 브라우저의 저장 자료 관리, 상류 응답 시간(읽기만, wetherilli 295).
 
     **서버는 화면만 내준다.** 개인 레이어는 브라우저가 읽어 브라우저(IndexedDB)에 둔다 — 서버로 오지 않는다.
     관리라는 이름이지만 지우고 고치는 것은 그 브라우저의 것뿐이라 계정을 묻지 않는다."""
@@ -303,6 +303,8 @@ def manage_view(request):
         "linked_proxy": not settings.PUBLIC,
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
+        # 상류 응답 시간 (wetherilli 295) — `upstream_stats` 와 같은 값. 읽기만 하고 상류의 이름과 수뿐이다(주소·키는 남기지도 않는다)
+        "upstream_rows": usage.summary(7),
     })
 
 
@@ -400,6 +402,8 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              "esdm", "jmg", "mgb", "dmr",
              # 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
              "bcgs", "calgs",
+             # 네바다·워싱턴·오리건(wetherilli 291) — 캘리포니아처럼 문이 REST export 로, 3D 는 3857
+             "nbmg", "wadnr", "dogami",
              # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 3857 로 그린다
              "geosphere", "pig", "tno", "dov", "spw",
              # 니카라과 INETER(wetherilli 242) — GeoServer 라 3857 로 그린다
@@ -1476,6 +1480,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 화석 산지 밀도 (wetherilli 286) — 같은 pbdb.sqlite 에서. 범례는 비율
+                                   "fossildensity": fossils.density_legend(lang) if fossils.available() else [],
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
                                    # 플라이스토세 화산 (wetherilli 194) — 따로 받은 것이 있을 때만 따로 레이어가 선다
@@ -1486,6 +1492,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 세계 빙하 RGI 7.0 (wetherilli 289) — 구운 것이 있을 때만 레이어가 선다
+                                   "glaciers": glaciers.legend(lang) if glaciers.available() else [],
                                    # 충돌구·거대 화성암 지대 (wetherilli 283) — 파일이 있을 때만 레이어가 선다
                                    "impacts": ({"impacts": impacts.legend("impacts", lang), "lips": impacts.legend("lips", lang)}
                                                if impacts.available() else {}),
@@ -2253,6 +2261,48 @@ def earth_impacts_at(request):
 
 
 @require_GET
+def earth_glaciers_tile(request, z, x, y):
+    """`earth/glaciers/tiles/<z>/<x>/<y>.png` — RGI 7.0 빙하, 넓이만 한 점 (`glaciers.render_tile`, wetherilli 289). 줌 3 밑은 빈 타일"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not glaciers.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = glaciers_version()
+    key = tilecache.key_text("glaciers", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = glaciers.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_glaciers_at(request):
+    """`?lon=&lat=&z=` — 누른 자리의 빙하(넓이의 원 안, 또는 그 줌의 8 화소 안)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = _float(request.GET.get("z"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    r = min(1.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
+    out = []
+    for g in glaciers.near(lon, lat, r):
+        span = f"{g['zmin']:.0f}–{g['zmax']:.0f}" if g["zmin"] is not None and g["zmax"] is not None else ""
+        rows = [("넓이 (km²)", f"{g['area']:,.2f}"), ("높이 (m)", span), ("가운데 높이 (m)", f"{g['zmed']:.0f}" if g["zmed"] is not None else ""),
+                ("경사 (°)", f"{g['slope']:.1f}" if g["slope"] is not None else ""),
+                ("끝", i18n.t(glaciers.TERMINUS[1][1], lang) if g["term"] == 1 else ""),
+                ("서지", i18n.t(glaciers.SURGE[g["surge"]], lang) if g["surge"] in glaciers.SURGE else ""),
+                ("윤곽의 날", g["date"]), ("RGI", g["id"])]
+        out.append({"name": g["name"].rstrip(",") or i18n.t(msg("이름 없는 빙하"), lang),
+                    "rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
+    return JsonResponse({"hits": out, "text": "" if out else i18n.t(msg("여기에는 빙하가 없다"), lang), "credit": glaciers.CREDIT})
+
+
+@require_GET
 def earth_crust_at(request):
     """`?lon=&lat=` — 누른 자리의 지각 두께. 모형이지 관측이 아니다."""
     lang = i18n.lang_of(request)
@@ -2266,6 +2316,30 @@ def earth_crust_at(request):
 
 
 # ── 화석 산지 (wetherilli 098) ───────────────────────────────────────
+
+@require_GET
+def earth_fossil_density_tile(request, ka, z, x, y):
+    """`earth/fossils/density/<ka>/<z>/<x>/<y>.png` — 그 연대의 화석 산지 밀도(1° 칸, 로그) (wetherilli 286). 연대는 점 레이어와 같은 ka.
+    고르기도 점 레이어와 같다 — 1 Ma 부터는 그때의 자리로 옮긴 산지를 센다"""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not fossils.density_valid(z, x, y) or ka > 1100000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if fossils.db() is None:
+        return _tile(tiles.blank_tile(), store=False)
+    age = ka / 1000.0
+    if age >= fossils.PALEO_FROM:
+        age = float(round(age))
+    version = fossils_version() + fossils.DENSITY_RENDERER
+    key = tilecache.key_text("pbdb-density", f"{version}/{age:g}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = fossils.render_density(age, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
 
 @require_GET
 def earth_fossil_tile(request, ka, z, x, y):
@@ -2821,6 +2895,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "skgs" and skgs.knows(layer.name):
         # 사스카치원(wetherilli 235) — ArcGIS WMS 를 3978 로 곧장(Capabilities 에 없지만 그린다)
         return {"attribution": skgs.ATTRIBUTION, "projection": "EPSG:3978",
+                # 광물 산지 SMDI·광산(wetherilli 288) — 다른 서비스의 REST, 범례를 두지 않는다. 넓게 보면 한 장에 10 초라 줌 6 부터
+                **({"noLegend": True, "minZoom": 6} if layer.name in skgs.RESOURCES else {}),
                 **({} if skgs.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "nsgs" and nsgs.knows(layer.name):
         # 노바스코샤(wetherilli 235) — WMS 가 없어 문이 REST export 로 옮긴다. 화면의 투영을 그대로 넘긴다
@@ -2854,7 +2930,16 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
         # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
+        if layer.name == "bcgs:minfile":
+            # MINFILE 광물 산지(wetherilli 288) — 같은 openmaps 의 점 레이어, 넓게 봐도 그린다
+            return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978"}
         return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978", "minZoom": bcgs.MIN_ZOOM}
+    if layer.upstream in usstates.DOORS and usstates.knows(layer.upstream, layer.name):
+        # 네바다·워싱턴·오리건(wetherilli 291) — 캘리포니아처럼 문이 REST export 를 3978 로. 주 밖 칸은 묻지 않는다(`clip`).
+        # 넓게 보면 느린 판은 처음 줌을 둔다. 범례는 REST 를 목록으로
+        first = usstates.first_zoom(layer.name)
+        return {"attribution": usstates.UPSTREAMS[layer.upstream][0], "projection": "EPSG:3978", "clip": True,
+                "legend": "list", "legendUrl": "list/legend/", **({"minZoom": first} if first else {})}
     if layer.upstream == "calgs" and calgs.knows(layer.name):
         # 캘리포니아(wetherilli 231) — 문이 REST export 를 3978 로 받는다. 줌 12 너머는 상류가 그리지 않아 화면이 늘린다. 범례는 목록
         return {"attribution": calgs.ATTRIBUTION, "projection": "EPSG:3978", "maxZoom": calgs.MAX_ZOOM,
@@ -2985,6 +3070,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": brgm.CGMW_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "cgs" and cgs.knows(layer.name):
         # 남아공 CGS 1:100만(wetherilli 209) — 문이 WMS 변수를 ArcGIS REST export·identify 로 옮긴다. 범례는 REST 를 목록으로(`cgs/legend/`)
+        if layer.name != "cgs:geology_1m":
+            # 광업·석탄·우라늄 지역(wetherilli 285)도 같은 서비스다. 한 색이라 범례 칸 이름이 비어 범례를 두지 않는다. 석탄 지역은 누르지 않는다
+            return {"attribution": cgs.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
+                    **({"queryable": False} if layer.name in cgs.NOT_QUERYABLE else {})}
         return {"attribution": cgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "list", "legendUrl": "cgs/legend/"}
     if layer.upstream == "gsn":
         # 나미비아 GSN 1:100만(wetherilli 209) — BGS 의 MapServer, 3857 그대로
@@ -3096,7 +3185,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, skgs.SkgsError, nsgs.NsgsError, ags.AgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
-                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError, bas.BasError,
+                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError, bcgs.BcgsError, calgs.CalgsError, usstates.UsStatesError, bas.BasError,
                    geosphere.GeosphereError, pig.PigError, tno.TnoError, dov.DovError, spw.SpwError, ineter.IneterError, georep.GeorepError,
                    basemaps.BasemapError)
 
@@ -3188,6 +3277,8 @@ class _Door:
                "esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr,
                # 브리티시컬럼비아·캘리포니아(wetherilli 231)
                "bcgs": bcgs, "calgs": calgs,
+               # 네바다·워싱턴·오리건(wetherilli 291) — 한 파일(`usstates.py`)에 문 셋
+               **usstates.DOORS,
                # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237)
                "geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw,
                # 니카라과(wetherilli 242)
@@ -3200,7 +3291,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -4083,7 +4174,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs, georep, bas)
+LIST_LEGENDS = (jmg, dmr, calgs, georep, bas, usstates)
 
 
 @require_GET
@@ -4403,8 +4494,10 @@ def tile_versions(page: str) -> dict:
                 for name, sheet in ibcso.SHEETS.items()}
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
+                "fossildensity": fossils_version() + fossils.DENSITY_RENDERER,
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "glaciers": glaciers_version(),
                 "impacts": impacts_version(),
                 "faults": faults_version(),
                 "minerals": minerals_version(),
@@ -4481,6 +4574,10 @@ def faults_version() -> str:
 
 def impacts_version() -> str:
     return _stamp(impacts.RENDERER, _content_stamp(settings.IMPACTS_FILE), paleo.RENDERER)
+
+
+def glaciers_version() -> str:
+    return _stamp(glaciers.RENDERER, glaciers.built(), _file_stamp(glaciers.path()))
 
 
 def crust_version() -> str:
@@ -4728,6 +4825,8 @@ def feature_info(request):
         elif door.name in ("geosphere", "pig", "tno", "dov", "spw"):
             # 유럽(wetherilli 237) — 값은 그 나라 말 그대로, 시대만 옮긴다(`i18n.age_local`)
             props = {"geosphere": geosphere, "pig": pig, "tno": tno, "dov": dov, "spw": spw}[door.name].friendly(props, lang)
+        elif door.name in usstates.DOORS:
+            props = usstates.friendly(props, lang)   # 네바다·워싱턴·오리건 — 시대만 옮긴다 (wetherilli 291)
         elif door.name in ("bcgs", "calgs"):
             # 브리티시컬럼비아·캘리포니아(wetherilli 231) — 값은 영어 그대로, 시대만 옮긴다
             props = {"bcgs": bcgs, "calgs": calgs}[door.name].friendly(props, lang)

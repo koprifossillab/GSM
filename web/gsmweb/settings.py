@@ -232,6 +232,10 @@ AGS_FEATURE_URL = env("GSM_AGS_FEATURE_URL", "https://services2.arcgis.com/jQV6V
 BCGS_WMS_URL = env("GSM_BCGS_WMS_URL", "https://openmaps.gov.bc.ca/geo/pub/WHSE_MINERAL_TENURE.GEOL_BEDROCK_UNIT_POLY_SVW/ows")
 #: 캘리포니아 지질도 1:75만 — CGS ArcGIS 의 앞 주소 (`viewer/calgs.py`, wetherilli 231). 열쇠가 없다
 CALGS_URL = env("GSM_CALGS_URL", "https://gis.conservation.ca.gov/server")
+#: 미국 주 지질도 셋 — 네바다 NBMG·워싱턴 DNR·오리건 DOGAMI ArcGIS REST 의 `rest/services` 까지 (`viewer/usstates.py`, wetherilli 291). 열쇠가 없다
+NBMG_URL = env("GSM_NBMG_URL", "https://gisweb.unr.edu/nbmg/rest/services")
+WADNR_URL = env("GSM_WADNR_URL", "https://gis.dnr.wa.gov/site1/rest/services")
+DOGAMI_URL = env("GSM_DOGAMI_URL", "https://gis.dogami.oregon.gov/arcgis/rest/services")
 #: 유럽 — 오스트리아 GeoSphere·폴란드 PIG·네덜란드 TNO·플랑드르 DOV·왈로니아 SPW (wetherilli 237). 열쇠가 없다
 GEOSPHERE_URL = env("GSM_GEOSPHERE_URL", "https://gis.geosphere.at/maps")
 PIG_URL = env("GSM_PIG_URL", "https://cbdgmapa.pgi.gov.pl/arcgis")
@@ -550,6 +554,9 @@ AGS_CATALOG_SEED = REPO_DIR / "data" / "ags_layers.json"
 #: 브리티시컬럼비아·캘리포니아 (wetherilli 231)
 BCGS_CATALOG_SEED = REPO_DIR / "data" / "bcgs_layers.json"
 CALGS_CATALOG_SEED = REPO_DIR / "data" / "calgs_layers.json"
+NBMG_CATALOG_SEED = REPO_DIR / "data" / "nbmg_layers.json"
+WADNR_CATALOG_SEED = REPO_DIR / "data" / "wadnr_layers.json"
+DOGAMI_CATALOG_SEED = REPO_DIR / "data" / "dogami_layers.json"
 #: 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237)
 GEOSPHERE_CATALOG_SEED = REPO_DIR / "data" / "geosphere_layers.json"
 PIG_CATALOG_SEED = REPO_DIR / "data" / "pig_layers.json"
