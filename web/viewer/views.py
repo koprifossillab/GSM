@@ -2957,6 +2957,8 @@ def feature_info(request):
             props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
         elif door.name == "gsni":
             props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
+        elif door.name == "egdi":
+            props = egdi.friendly(props, lang)       # 암상 판의 INSPIRE 열 → 암상·지질시대·제공 기관 (wetherilli 177)
         elif door.name in ("bgr", "igme", "gsi"):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "npolar":
