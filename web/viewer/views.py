@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, ygs
+from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2191,7 +2191,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "vmme"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2230,8 +2230,14 @@ def _point_fields(layer) -> dict:
                 "opacity": 0.75 if layer.name == stri.GEOLOGY else 1}
     if layer.upstream == "usgscarib" and usgscarib.knows(layer.name):
         # USGS 카리브 지질도(wetherilli 248) — 피처 서비스라 면(6 343)을 한 덩이로 받아 화면이 구워 그린다(geo3al 과 같은 꼴)
+        sa = layer.name == usgscarib.SA_NAME                  # 남미(wetherilli 256)도 같은 문
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
-                "source": usgscarib.SOURCE_URL, "attribution": usgscarib.ATTRIBUTION, "opacity": 0.75}
+                "source": usgscarib.SA_SOURCE_URL if sa else usgscarib.SOURCE_URL,
+                "attribution": usgscarib.SA_ATTRIBUTION if sa else usgscarib.ATTRIBUTION, "opacity": 0.75}
+    if layer.upstream == "vmme" and vmme.knows(layer.name):
+        # 파라과이 VMME(wetherilli 256) — 카리브와 같은 꼴, 면 61 을 한 덩이로
+        return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
+                "source": vmme.SOURCE_URL, "attribution": vmme.ATTRIBUTION, "opacity": 0.75}
     if layer.upstream == "geo3al" and geo3al.knows(layer.name):
         # 중국 지질도(USGS geo3al, 025) — 얀마옌처럼 면을 한 덩이로. 면이 1 만 2 천이라
         # 화면이 한 장으로 구워 그린다(`render: image`). 이용 조건은 범례 칸이 적는다
@@ -4379,6 +4385,8 @@ def point_layer(request):
         return _usgscarib_layer(name, lang)
     if stri.knows(name):
         return _stri_layer(name, lang)
+    if vmme.knows(name):
+        return _vmme_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -4483,6 +4491,19 @@ def _usgscarib_layer(name, lang):
     except usgscarib.UsgsCaribError as exc:
         log.warning("USGS 카리브 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("USGS 카리브 지질도를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _vmme_layer(name, lang):
+    """파라과이 VMME 지질도 한 덩이 (wetherilli 256). 꼴은 `_usgscarib_layer` 와 같다"""
+    try:
+        content = vmme.body(name, lang)
+    except vmme.VmmeError as exc:
+        log.warning("파라과이 지질도를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("파라과이 지질도(VMME)를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

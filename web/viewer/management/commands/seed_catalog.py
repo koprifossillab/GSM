@@ -154,6 +154,9 @@ class Command(BaseCommand):
                 (settings.USGSCARIB_CATALOG_SEED, "카리브 (USGS)", "caribbean", "usgscarib"),
                 # 파나마 — STRI 의 MICI 1990 1:25만, 면·단층을 한 덩이로 (wetherilli 253)
                 (settings.STRI_CATALOG_SEED, "파나마 (STRI)", "panama", "stri"),
+                # 파라과이 — 광업·에너지 차관실 지질도, 남미 — USGS 1:500만(콜롬비아 지역에 두고 남미 탭들이 빌린다) (wetherilli 256)
+                (settings.VMME_CATALOG_SEED, "파라과이 (VMME)", "paraguay", "vmme"),
+                (settings.USGSCARIB_SA_CATALOG_SEED, "남미 (USGS)", "colombia", "usgscarib"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),
