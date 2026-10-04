@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, segemar, sgb, sgc, sgm, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, segemar, sgb, sgc, sgm, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -371,7 +371,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 멕시코 SGM(wetherilli 206) — 문이 WMS 변수를 REST export 로 옮긴다
              "sgm",
              # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
-             "cgmw", "aga")
+             "cgmw", "aga",
+             # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다
+             "ga")
 
 
 @require_GET
@@ -2329,6 +2331,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "ga" and ga.knows(layer.name):
+        # 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로(3577 은 그리지 않는다). 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가
+        # 축척에 맞는 판을 그린다. 범례는 보는 범위의 것(`ga/legend/`), 단층은 범례·누르기가 없다
+        unit = layer.name in ga.legend_layers()
+        return {"attribution": ga.ATTRIBUTION, "projection": "EPSG:3857",
+                **({"legend": "extent", "legendUrl": "ga/legend/"} if unit else {"noLegend": True, "queryable": False})}
     if layer.upstream == "sgm" and sgm.knows(layer.name):
         # 멕시코 SGM(wetherilli 206) — WMS 가 막혀 문이 REST export 로 옮긴다. 화면에는 3857 WMS 와 같다. 1:5만은 가까이서만.
         # 범례는 보는 범위의 것(`sgm/legend/`, 페루와 같은 꼴), 구조선은 범례·누르기가 없다
@@ -2455,7 +2463,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, basemaps.BasemapError)
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, ga.GaError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2506,14 +2514,16 @@ class _Door:
                # 멕시코(wetherilli 206)
                "sgm": sgm,
                # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
-               "cgmw": brgm.CGMW, "aga": bgs.AGA}
+               "cgmw": brgm.CGMW, "aga": bgs.AGA,
+               # 호주(wetherilli 212)
+               "ga": ga}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "ga"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3266,6 +3276,36 @@ def dinamige_legend(request):
 
 @require_GET
 @browser_cached
+def ga_legend(request):
+    """`?layer=ga:lithostratigraphy&bbox=서,남,동,북` — 호주 지질도의 보는 범위 범례 (wetherilli 212). 범위가 넓으면 1:250만 판,
+    좁으면 1:100만 판의 단위를 센다 — 상류가 그 축척에 그리는 판과 같게. 꼴은 페루(`ingemmet_legend`)와 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in ga.legend_layers():
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    if bbox[2] - bbox[0] > ga.SPAN or bbox[3] - bbox[1] > ga.SPAN:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("ga-legend", f"{name}/{bbox}")
+    held = _cached_json(key)
+    try:
+        if held is None:
+            rows, table = ga.extent_legend(name, tuple(bbox))
+            held = {"rows": rows, "table": table}
+            tilecache.put(key, json.dumps(held, ensure_ascii=False).encode("utf-8"), ".json")
+    except ga.GaError as exc:
+        log.info("호주 범례를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+    shown = [ga.legend_row(r, held["table"], lang) for r in held["rows"][:ga.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(held["rows"]) - len(shown))})
+
+
+@require_GET
+@browser_cached
 def sgm_legend(request):
     """`?layer=sgm:8&bbox=서,남,동,북` — 멕시코 지질도의 보는 범위 범례 (wetherilli 206). 꼴은 페루(`ingemmet_legend`)와 같다"""
     lang = i18n.lang_of(request)
@@ -3601,6 +3641,8 @@ def feature_info(request):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
+        elif door.name == "ga":
+            props = ga.friendly(props, lang)         # 호주 — 시대만 옮기고 이름·설명은 영어 그대로 (wetherilli 212)
         elif door.name == "sgm":
             props = sgm.friendly(props, lang)        # 멕시코 — 시대만 옮기고 암상·지층은 에스파냐어 그대로 (wetherilli 206)
         elif door.name == "mrdata":

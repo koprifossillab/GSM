@@ -642,10 +642,33 @@
     legend: function () { return Promise.resolve(null); },
   };
 
+  // ── 호주 — Geoscience Australia (wetherilli 212) ──
+  // CC BY 4.0, Origin 을 되비춘다. 레이어 하나가 1:250만·1:100만 두 판을 함께 부르고 상류가 축척에 맞는 판을 그린다(서버의 `ga._wms`)
+  var gaT = T.ga || {};
+  /** `ga.friendly` 와 같다 — 이름·설명·암상은 영어 그대로, 시대만 옮긴다 */
+  function gaFriendly(props) {
+    var v = function (k) {
+      var s = String(props[k] == null ? "" : props[k]).trim();
+      return ["null", "none"].indexOf(s.toLowerCase()) >= 0 ? "" : s;
+    };
+    var hist = v("geologicHistory").split(" to ").map(function (p) { return p.trim(); }).filter(Boolean).join(" - ");
+    var scale = v("resolutionScale");
+    var rows = [["기호", v("mapSymbol") || v("plotSymbol")], ["이름", v("name")], ["설명", v("description")],
+                ["지질시대", hist && lang() === "ko" ? ageKo(hist) : hist], ["암석", v("lithology")],
+                ["축척", /^\d+(\.\d+)?$/.test(scale) ? "1:" + Math.floor(Number(scale)).toLocaleString("en-US") : ""]];
+    var out = {};
+    rows.forEach(function (r) { if (r[1]) out[r[0]] = r[1]; });
+    return out;
+  }
+  KINDS.ga = wmsKind(gaT.url, function (name) { return (gaT.layers || {})[name]; }, function () { return "EPSG:3857"; },
+                     gaFriendly, gaT.attribution, "application/geo+json");
+  // 범례 그림은 198×4096 이라 싣지 않는다 — 서버 판은 보는 범위의 범례를 뜨지만 정적 판에는 그 길이 없다
+  KINDS.ga.legend = function () { return Promise.resolve(null); };
+
   window.GSM_STATIC_KINDS = KINDS;
   // 시험·다른 화면이 같은 손질을 쓰게 — 정적 판의 다른 파일(개인 레이어 따위)도 지질시대를 옮길 수 있다
   window.GSM_STATIC_HELPERS = { ageKo: ageKo, parsePlain: parsePlain, compact: compact, classOf: classOf, pointBody: pointBody,
                                 npiFriendly: npiFriendly, emodFriendly: emodFriendly, geusFriendly: geusFriendly, sgcFriendly: sgcFriendly,
-                                usgsFriendly: usgsFriendly, usgsGml: usgsGml,
+                                usgsFriendly: usgsFriendly, usgsGml: usgsGml, gaFriendly: gaFriendly,
                                 tidy: tidy };
 })();

@@ -179,6 +179,9 @@ IIGE_URL = env("GSM_IIGE_URL", "https://capas.geoenergia.gob.ec/arcgis")
 MRDATA_URL = env("GSM_MRDATA_URL", "https://mrdata.usgs.gov/services")
 #: 멕시코 지질도 — SGM ArcGIS REST 서비스 주소 (wetherilli 206). WMS 는 400 이라 export·identify 를 쓴다. 열쇠가 없다
 SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM/SUNGeologiaContinuoMineDatosEs/MapServer")
+#: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
+GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
+GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -431,6 +434,8 @@ IIGE_CATALOG_SEED = REPO_DIR / "data" / "iige_layers.json"
 MRDATA_CATALOG_SEED = REPO_DIR / "data" / "mrdata_layers.json"
 #: 멕시코 (wetherilli 206)
 SGM_CATALOG_SEED = REPO_DIR / "data" / "sgm_layers.json"
+#: 호주 (wetherilli 212)
+GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

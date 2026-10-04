@@ -48,7 +48,9 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
            ("mexico", "멕시코"),
            # 아프리카 — 대륙 판(CGMW–BRGM 1:1000만)이 바탕이라 탭 하나. 나라 판이 붙으면 그때 가른다 (wetherilli 207)
-           ("africa", "아프리카"))
+           ("africa", "아프리카"),
+           # 호주 — Geoscience Australia 1:250만·1:100만 (wetherilli 212)
+           ("australia", "호주"))
 
 
 class LayerGroup(models.Model):

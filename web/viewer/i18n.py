@@ -704,6 +704,8 @@ EN = {
     "미국": "United States",
     # 멕시코 (wetherilli 206)
     "멕시코": "Mexico",
+    # 호주 (wetherilli 212)
+    "호주": "Australia",
     "멕시코 지질조사소": "Mexican Geological Survey (SGM)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
@@ -2764,6 +2766,7 @@ GROUP_EN = {
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
+    "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
 }
 
@@ -2854,6 +2857,11 @@ LAYER_EN = {
     "mrdata:sim3340:faults": "Faults (Alaska 1:1.58M)",
     # 멕시코 (wetherilli 206)
     "sgm:8": "Lithology (1:250k)",
+    # 호주 (wetherilli 212)
+    "ga:lithostratigraphy": "Geologic units — lithostratigraphy",
+    "ga:age": "Geologic units — age",
+    "ga:lithology": "Geologic units — lithology",
+    "ga:faults": "Faults",
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
