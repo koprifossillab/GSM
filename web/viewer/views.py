@@ -2331,8 +2331,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         except RuntimeError:
             return {}
         first, last = door.ZOOMS.get(sheet, (None, None))
-        return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
-                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+        return {"attribution": getattr(door, "ATTRIBUTIONS", {}).get(sheet, door.ATTRIBUTION),
+                "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
+                # IGME5000 의 단층·연대 기호(wetherilli 217)는 누를 것이 없다
+                **({} if getattr(door, "queryable", lambda n: True)(layer.name) else {"queryable": False})}
     if layer.upstream == "ga" and ga.knows(layer.name):
         # 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로(3577 은 그리지 않는다). 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가
         # 축척에 맞는 판을 그린다. 범례는 보는 범위의 것(`ga/legend/`), 단층은 범례·누르기가 없다
@@ -3689,8 +3692,10 @@ def feature_info(request):
             props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
         elif door.name == "egdi":
             props = egdi.friendly(props, lang)       # 암상 판의 INSPIRE 열 → 암상·지질시대·제공 기관 (wetherilli 177)
-        elif door.name in ("bgr", "igme", "gsi"):
-            props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
+        elif door.name == "bgr":
+            props = bgr.friendly(props, lang)        # 독일 판은 독일어 그대로, IGME5000 은 시대만 옮긴다 (wetherilli 217)
+        elif door.name in ("igme", "gsi"):
+            props = {"igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":

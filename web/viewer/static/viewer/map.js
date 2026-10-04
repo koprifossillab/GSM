@@ -202,14 +202,14 @@
           base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "bgs:BGS.50k.Superficial.deposits"],
           first: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock"],
           // 바다 — EMODnet 의 해저 퇴적물·기반암은 북극해 지역에 있다. 제4기 퇴적층·지질 사건은 영국 지역에 둔다 (wetherilli 176)
-          borrow: { arctic_ocean: ["emodnet"] } },
+          borrow: { germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     france: { title: "프랑스", proj: "EPSG:3857", center: [2.5, 46.5], zoom: 6, vworld: false,
               home: [-590000, 5060000, 1080000, 6650000],
               basemap: "eox_terrain", example: "48.857, 2.352 · Paris",
               base: ["brgm:SCAN_F_GEOL1M", "brgm:SCAN_F_GEOL250", "brgm:SCAN_H_GEOL50", "brgm:LITHO_1M_SIMPLIFIEE"],
               first: "brgm:SCAN_F_GEOL1M",
               // 범유럽 1:100만(EGDI)·유럽 바다(EMODnet)는 영국 지역에 들어 있다 — 그 상류의 레이어군만 빌린다
-              borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+              borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     // ── 독일·스페인·아일랜드 (wetherilli 147) ──
     // BGR·IGME·GSI 를 중계한다. 판마다 그리는 줌이 좁아 넓게 볼 때는 EGDI 1:100만을 빌려 깐다. 아일랜드는 섬 전체 —
     // GSI 1:100만이 이미 섬 하나로 이어져 있고, 북아일랜드 1:25만(GSNI, BGS 서버)을 같은 레이어군에 둔다
@@ -224,14 +224,14 @@
              basemap: "eox_terrain", example: "40.417, -3.704 · Madrid",
              base: ["igme:geologico1m:0", "igme:magna50:0", "igme:magna50:2"],
              first: "igme:geologico1m:0",
-             borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+             borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     ireland: { title: "아일랜드", proj: "EPSG:3857", center: [-7.8, 53.4], zoom: 7, vworld: false,
                home: [-1191000, 6675000, -601000, 7460000],
                basemap: "eox_terrain", example: "53.35, -6.26 · Dublin",
                base: ["gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM", "gsi:100k:IE_GSI_Bedrock_Geology_100K_IE26_ITM",
                       "gsni:5"],
                first: "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM",
-               borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+               borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     // ── 남미 (wetherilli 188·191) ──
     // 나라 탭 둘(콜롬비아·브라질)과 묶음 "남미". SGC 가 내는 남미 1:500만(CGMW 2019)이 대륙 바탕이다 — 콜롬비아 지역에 두고
     // 브라질이 그 레이어군만 빌린다(`borrow` 의 `sgc:sa:` — 이름 앞머리로). 칠레·페루처럼 나라 판이 없는 곳은 묶음에서 1:500만이 메운다
@@ -315,7 +315,8 @@
               includes: ["uk", "ireland", "france", "germany", "spain"],
               home: [-1225000, 4232000, 1781000, 8626000],
               basemap: "eox_terrain",
-              base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
+              // IGME5000(BGR 1:500만, wetherilli 217)은 독일 탭에 레이어군을 두고 영국·프랑스·스페인·아일랜드가 빌린다 — 러시아 유럽부·우랄·튀르키예까지 덮는다
+              base: ["egdi:GeologicUnitView_Age", "bgr:igme5000:37", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
               borrow: { arctic_ocean: ["emodnet"] } },
     // ── 북미 (wetherilli 205) ──
