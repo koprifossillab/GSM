@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1479,6 +1479,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 세계 광상 USGS (wetherilli 276) — 구운 것이 있을 때만. 광종 칸 여섯이 레이어가 된다
+                                   "minerals": minerals.legend(lang) if minerals.available() else [],
                                    # 지각 응력 World Stress Map 2025 (wetherilli 273) — 구운 것이 있을 때만 레이어가 선다
                                    "stress": stress.legend(lang) if stress.available() else [],
                                    # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272) — 파일이 있을 때만 레이어가 선다
@@ -2113,6 +2115,47 @@ def earth_stress_at(request):
         out.append({"id": s["id"], "name": i18n.t(msg("응력 N{azi}°E", azi=f"{s['azi']:.0f}"), lang), "rows": rows,
                     "at": [s["lon"], s["lat"]], "color": "#%02x%02x%02x" % stress.colour(s["regime"])})
     return JsonResponse({"hits": out, "credit": stress.CREDIT, "link": stress.DOI})
+
+
+@require_GET
+def earth_minerals_tile(request, band, z, x, y):
+    """`earth/minerals/tiles/<칸>/<z>/<x>/<y>.png` — USGS 세계 광상, 광종 칸 하나(`minerals.BANDS`) (wetherilli 276)"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y) or band not in minerals.BANDS:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not minerals.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = minerals_version()
+    key = tilecache.key_text("minerals", f"{version}/{band}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = minerals.render_tile(band, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_minerals_at(request):
+    """`?lon=&lat=&r=&bands=min_cu,min_au` — 누른 자리 둘레(`r`°)의 광상, 켠 칸에서 무겁고 가까운 것부터 다섯"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    bands = [b for b in (request.GET.get("bands") or "").split(",") if b in minerals.BANDS]
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for d in minerals.near(bands, lon, lat, r):
+        rows = []
+        for key, value in json.loads(d["rows"]):
+            if key in minerals.TRANSLATED:
+                value = i18n.t(msg(value), lang)
+            rows.append([i18n.PROP_EN.get(key, key) if lang == "en" else key, value])
+        out.append({"name": d["name"] or i18n.t(msg("이름 없는 곳"), lang), "rows": rows, "at": [d["lon"], d["lat"]],
+                    "color": minerals.BANDS[d["band"]][0], "link": d["url"], "table": d["src"] != "mrds"})
+    return JsonResponse({"hits": out, "credit": minerals.CREDIT})
 
 
 @require_GET
@@ -4190,6 +4233,7 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "minerals": minerals_version(),
                 "stress": stress_version(),
                 "tectonics": tectonics_version(),
                 "seaage": seafloor_version("age"), "sediment": seafloor_version("sediment"),
@@ -4251,6 +4295,10 @@ def stress_version() -> str:
     return _stamp(stress.RENDERER, stress.built(), _file_stamp(stress.path()))
 def tectonics_version() -> str:
     return _stamp(tectonics.RENDERER, _content_stamp(settings.TECTONICS_FILE))
+
+
+def minerals_version() -> str:
+    return _stamp(minerals.RENDERER, minerals.built(), _file_stamp(minerals.path()))
 
 
 def crust_version() -> str:
