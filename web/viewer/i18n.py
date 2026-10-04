@@ -1276,6 +1276,9 @@ EN = {
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    # 남극 자력 이상 ADMAP-2 (wetherilli 262)
+    "자력 이상": "Magnetic anomaly",
+    "자력 이상 자료(ADMAP-2)가 서버에 없다": "The magnetic anomaly data (ADMAP-2) is not on the server",
     "영국 남극조사소": "British Antarctic Survey",
     # 대앤틸리스 — USGS SIM 3534 를 우리가 굽는다 (wetherilli 254)
     "대앤틸리스 지질도 파일이 서버에 없다": "The Greater Antilles geologic map file is not on the server",
@@ -1862,6 +1865,7 @@ PROP_EN = {
     # 제4기 고생태 산지 (wetherilli 139)
     "연구자": "Investigators",
     "지질시대": "Geologic age",
+    "자력 이상 (nT)": "Magnetic anomaly (nT)",
     "시대": "Age",
     "도폭": "Map sheet",
     "도폭명": "Sheet name",
@@ -3055,6 +3059,7 @@ GROUP_EN = {
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
     "지구물리이상도": "Geophysical anomaly maps",
+    "지구물리 (ADMAP-2)": "Geophysics (ADMAP-2)",
     "지화학도": "Geochemical maps",
     "좋은물지도": "Groundwater quality maps",
     "해저지질도": "Marine geological maps",
@@ -3229,6 +3234,7 @@ LAYER_EN = {
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
+    "admap:anomaly": "Magnetic anomaly",
     "bas:bedmap3_bed": "Bed topography", "bas:bedmap3_thickness": "Ice thickness", "bas:bedmap3_surface": "Ice surface",
     "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
     "sim3534:units": "Geologic units",
