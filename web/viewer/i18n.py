@@ -2352,6 +2352,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "시대 기호": "Age code", "자원량": "Resources",
     "영국 격자": "British National Grid",
     # 남미 광물 자원 (wetherilli 265)
     "중요도": "Importance", "광산": "Mine status", "모암": "Host rock", "광체 형태": "Ore body form", "광화 지역": "Mineral province",
@@ -3030,6 +3031,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
     "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
     "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
@@ -3172,6 +3174,11 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 페루 광물·지구물리 (wetherilli 277)
+    "ingemmet:deposits": "Mineral deposits (Yacimientos mineros)", "ingemmet:projects": "Mining projects and operations",
+    "ingemmet:occ_metal": "Metallic mineral occurrences (10–18° S)", "ingemmet:occ_nonmetal": "Non-metallic mineral occurrences (10–18° S)",
+    "ingemmet:belts": "Metallogenic belts (Franjas metalogenéticas)", "ingemmet:bouguer": "Bouguer gravity anomaly",
+    "ingemmet:aeromag": "Aeromagnetics",
     # 영국 GeoIndex (wetherilli 258)
     "bgsgi:magnetic": "Magnetic anomalies (colour shaded)", "bgsgi:gravity": "Gravity anomalies (colour shaded)",
     "bgsgi:mines": "Mines and quarries (BritPits)", "bgsgi:occurrences": "Mineral occurrences (MINGOL)",

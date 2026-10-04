@@ -57,9 +57,9 @@
 - [ ] **(사람)** 자메이카 MGD 웹맵의 지질 면(조건 없음)·트리니다드 Latinum(교육용 한정) — 조건을 묻는다
 - 막힌 것: 과테말라·온두라스·벨리즈·쿠바(서비스 없음·DNS·시간 초과), 엘살바도르 SNET(522 — 다시 볼 것), 코스타리카(UCR 여백 붙은 스캔·DGM 빈 응답)
 
-- [ ] 남미 광물·지구물리(wetherilli 265) — 브라질 광물 산출·콜롬비아 금속광상도/지구물리·아르헨티나 광상은 섰다. 남은 것: 페루 INGEMMET 의
-      `SERV_OCURRENCIA_MINERAL`·`SERV_METALOGENETICO`(MapServer, 4326)·`SERV_AEROMAGNETIICO`(ImageServer) — 페루 문은 타일 칸 기계(`ingemmet/<판>/z/x/y`)라
-      서비스를 하나 더 얹는 손이 든다. 브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다)
+- [ ] 남미 광물·지구물리(wetherilli 265·277) — 브라질 광물 산출·콜롬비아 금속광상도/지구물리·아르헨티나 광상·페루 광물·지구물리는 섰다. 남은 것:
+      브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다), 페루 광업 권리(`SERV_CATASTRO_MINERO`)·
+      지화학 지도첩(`SERV_ATLAS_GEOQUIMICO`)·산업 광물(`SERV_ROCAS_MINERALES_INDUSTRIALES`)
 
 - [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
       가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
