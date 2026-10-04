@@ -829,6 +829,12 @@
     return BASE + "featureinfo/?" + q.toString();
   }
 
+  /** 남극 자력 이상(ADMAP-2)의 속성 주소 — 누른 자리의 위경도로 묻는다(`admap/info/`, wetherilli 262). */
+  function admapInfoUrl(source, coordinate) {
+    var ll = toLL(coordinate);
+    return BASE + "admap/info/?" + new URLSearchParams({ lat: ll[1].toFixed(6), lon: ll[0].toFixed(6) }).toString();
+  }
+
   /** IBCSO 자료 출처(TID)의 속성 주소 — 누른 자리의 위경도로 묻는다(`ibcso/info/`, 071). */
   function ibcsoInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -1123,6 +1129,8 @@
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
     ibcso: { source: geomapSource, info: ibcsoInfoUrl },
+    // 남극 자력 이상 ADMAP-2(wetherilli 262) — 우리가 잘라 둔 3031 타일, 누른 자리는 위경도로
+    admap: { source: geomapSource, info: admapInfoUrl },
   };
 
   function layerKind(name) {
@@ -2601,7 +2609,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", gsjows: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", gsjows: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO", admap: "ADMAP",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2627,7 +2635,7 @@
     gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
-    ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
+    ibcso: "IBCSO", admap: "ADMAP-2", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
     earth: T("온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma"),
     kigam50k: T("한국지질자원연구원 5만 수치지질도"),
   };
