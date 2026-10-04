@@ -313,10 +313,11 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   제목·레이어군만 손질하고, `seed_catalog` 가 컨테이너가 뜰 때 다 넣는다
 - VWorld 배경·주소 찾기·한국 좌표계·KIGAM 인증키 띠는 한국과, 한국을 품은 동아시아에서만 보인다. 하나만 예외다 —
   남극의 "세종·장보고 기지 위성"(VWorld 테마 영상 2013, 두 기지 둘레만) 배경 (wetherilli 093)
-- 극지 배경(EOX·NASA GIBS·PGC·NPI 타일·Esri 남극 위성)과 일본 배경·주제도 겹침(국토지리원 지리원 타일 — 활단층도·화산토지조건도는
-  카탈로그 레이어 `gsitile` 이 지리원 주소를 그대로 화면에 준다, wetherilli 172), 대만 배경(국토측회중심 WMTS, wetherilli 141), 모든 지역의 해저 지형 배경(GEBCO,
-  공공 도메인 — 극 평사도법 탭은 4326 을 옮겨 그린다, wetherilli 135)은 VWorld 처럼
-  브라우저가 곧장 부른다. 일본의 찾기 칸(국토지리원 주소·지명 검색, 지리원 지도가 쓰는 것)도 브라우저가 곧장 부른다 —
+- 극지 배경(EOX·PGC·NPI 타일·Esri 남극 위성)과 일본 배경·주제도 겹침(국토지리원 지리원 타일 — 활단층도·화산토지조건도는
+  카탈로그 레이어 `gsitile` 이 지리원 주소를 그대로 화면에 준다, wetherilli 172), 대만 배경(국토측회중심 WMTS, wetherilli 141)은 VWorld 처럼
+  브라우저가 곧장 부른다. **조건이 열린 배경 — NASA GIBS(Blue Marble)와 모든 지역의 해저 지형 배경 GEBCO(공공 도메인 — 극 평사도법 탭은
+  4326 을 옮겨 그린다, wetherilli 135) — 은 서버가 받아 캐시에 담는다**(`basemaps.py`, wetherilli 184). 브라우저가 부르던 주소 그대로 받고,
+  정적 판만 곧장 부른다. 조건을 읽지 않은 배경은 이 길로 옮기지 않는다. 일본의 찾기 칸(국토지리원 주소·지명 검색, 지리원 지도가 쓰는 것)도 브라우저가 곧장 부른다 —
   열쇠가 없고 CORS 가 열려 있다. 지리원 지도를 위한 것이라 예고 없이 바뀔 수 있다 (wetherilli 155).
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
@@ -442,6 +443,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   wind.py         바람 u·v 격자 -> PNG 텍스처(R=u·G=v), 구름량 -> 회색 PNG, 그리고 목록. 굽기는 호스트에서만(numpy). 문이 아니다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
   static_tables.py 정적 판(GitHub Pages)이 극지 상류를 곧장 부를 때 쓸 표 — 문의 명세·이름 표를 JSON 으로 뜬다. `static-kinds.js` 가 읽는다. 문이 아니다
+  basemaps.py     조건이 열린 배경으로 나가는 문 (NASA GIBS Blue Marble WMTS·WMS, GEBCO 해저 지형 WMS). 받아 캐시에 담는다
   linked.py       연결 레이어로 나가는 문 — 사람이 준 주소(남의 API)를 대신 부른다. 사설망·낮은 포트를 막고 검사한 IP 로만 붙는다
   fossils.py      PBDB 화석 산지 CSV -> sqlite(R*Tree) -> 연대마다 그 자리의 점 타일·누른 자리. 문이 아니다
   volcanoes.py    GVP 홀로세 화산 JSON -> 경위도 세모 타일(마지막 분화의 색)·누른 자리. 문이 아니다
@@ -462,8 +464,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`igme.py`·`gsi.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 서른 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`igme.py`·`gsi.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 서른하나 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py` 는

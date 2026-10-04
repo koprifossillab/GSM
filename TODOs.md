@@ -159,8 +159,9 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] 판을 주소에 넣어 길게(immutable) 두기 — 남은 것. ETag·304 는 모든 응답에, `?v=` 는 카탈로그가 주소를 주는 GeoMAP·IBCSO TID·
       음영판에 섰다(wetherilli 151). JS 가 주소를 짓는 것 — 달·화성·수성 원도(`moonmap`·`marsmap`·`mercurymap`), 온 지구의
       판 회전·옛 해안선·화석·화산·지진·지각·지명 타일, IBCSO 배경(bed·ice) — 은 판을 화면에 알리는 길(카탈로그나 페이지 값)이 먼저다
-- [ ] 브라우저가 곧장 받는 배경 가운데 조건이 허락하는 것을 서버에 담는다 — PGC 음영(요청마다 1–2 초)·NPI 타일·
-      NASA GIBS·Trek 영상·GEBCO(공공 도메인, 한 장에 2 초, wetherilli 135). EOX(비상업)·Esri 는 조건을 먼저 본다. VWorld 는 그대로 곧장 (003·033)
+- [ ] 브라우저가 곧장 받는 배경 가운데 조건이 허락하는 것을 서버에 담는다 — 남은 것. GIBS·GEBCO 는 섰다(`basemaps.py`, wetherilli 184).
+      PGC 음영(요청마다 1–2 초)·NPI 타일·Trek 영상은 조건을 읽고 나서 `basemaps.py` 에 더한다. EOX(비상업)·Esri 는 조건을 먼저 본다.
+      VWorld 는 그대로 곧장 (003·033)
 - [ ] `prewarm` 이 모르는 것 — 남은 것. KOPRI WMS·달·화성 Trek 은 섰다(wetherilli 158). 지역의 투영으로 받는 새 상류
       (EMODnet·GTK 3413, NGU 3575, BGS·BRGM·EGDI·BGR·IGME·GSI 3857)는 아직 — `views._layer_extra` 의 투영으로 `WmsPlan` 을 지으면 된다
 - [ ] **무엇을 미리 받을지 정한다.** 남한 전체 줌 12 까지는 싸다(5만 지질도
