@@ -164,6 +164,11 @@ GSIINDIA_FEATURE_URL = env("GSM_GSIINDIA_FEATURE_URL", "https://services7.arcgis
                                                        "Geology_2M_WFL1/FeatureServer")
 #: 사우디 1:25만 — SGS 국가 지질 자료(NGD) ArcGIS 의 앞 주소 (`viewer/sgs.py`, wetherilli 227). 열쇠가 없다
 SGS_URL = env("GSM_SGS_URL", "https://ngdgis.sgs.gov.sa/ngdgis")
+#: 동남아 — 인도네시아 ESDM·필리핀 MGB·태국 DMR ArcGIS(WMS)·말레이시아 JMG ArcGIS(REST)의 앞 주소 (wetherilli 228). 열쇠가 없다
+ESDM_URL = env("GSM_ESDM_URL", "https://geoportal.esdm.go.id/gis4")
+MGB_URL = env("GSM_MGB_URL", "https://controlmap.mgb.gov.ph/arcgis")
+DMR_URL = env("GSM_DMR_URL", "https://gisportal.dmr.go.th/arcgis")
+JMG_URL = env("GSM_JMG_URL", "https://mygems.jmg.gov.my/server")
 #: 영국·프랑스·범유럽 지질도 — BGS ArcGIS·BRGM MapServer·EGDI GeoServer WMS (`viewer/bgs.py`·`brgm.py`·`egdi.py`, wetherilli 143). 열쇠가 없다
 BGS_WMS_URL = env("GSM_BGS_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/BGS_Detailed_Geology/MapServer/WMSServer")
 BRGM_WMS_URL = env("GSM_BRGM_WMS_URL", "https://geoservices.brgm.fr/geologie")
@@ -485,6 +490,11 @@ MRIS_CATALOG_SEED = REPO_DIR / "data" / "mris_layers.json"
 GSIINDIA_CATALOG_SEED = REPO_DIR / "data" / "gsiindia_layers.json"
 #: 사우디아라비아 (wetherilli 227)
 SGS_CATALOG_SEED = REPO_DIR / "data" / "sgs_layers.json"
+#: 동남아 (wetherilli 228)
+ESDM_CATALOG_SEED = REPO_DIR / "data" / "esdm_layers.json"
+JMG_CATALOG_SEED = REPO_DIR / "data" / "jmg_layers.json"
+MGB_CATALOG_SEED = REPO_DIR / "data" / "mgb_layers.json"
+DMR_CATALOG_SEED = REPO_DIR / "data" / "dmr_layers.json"
 #: 이탈리아·포르투갈·스위스 (wetherilli 211)
 ISPRA_CATALOG_SEED = REPO_DIR / "data" / "ispra_layers.json"
 LNEG_CATALOG_SEED = REPO_DIR / "data" / "lneg_layers.json"

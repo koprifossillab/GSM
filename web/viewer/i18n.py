@@ -96,6 +96,10 @@ EN = {
     "인도": "India", "인도 지질조사소 (그림: BGS)": "Geological Survey of India (map by BGS)",
     # 사우디아라비아 (wetherilli 227)
     "사우디아라비아": "Saudi Arabia", "사우디 지질조사소": "Saudi Geological Survey",
+    # 동남아 (wetherilli 228)
+    "인도네시아": "Indonesia", "말레이시아": "Malaysia", "필리핀": "Philippines", "태국": "Thailand", "동남아": "Southeast Asia",
+    "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
+    "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -1754,7 +1758,7 @@ PROP_EN = {
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
-    "초층군": "Supergroup", "지구조 대구역": "Tectonic megazone",
+    "초층군": "Supergroup", "지구조 대구역": "Tectonic megazone", "편집 연도": "Compilation year",
     "고지자기": "Magnetic polarity",                     # 아이슬란드 1:10만의 `segultimatal`(BRUN 따위, wetherilli 216)
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
@@ -2481,6 +2485,35 @@ def age_es(value: str) -> str:
     return text
 
 
+#: 상류의 영어 시대 값에 섞인 오탈자·옛 말 (wetherilli 228) — 말레이시아 `Caroboniferous`, 필리핀 `Pliestocene`
+_AGE_TYPOS = {"caroboniferous": "Carboniferous", "pliestocene": "Pleistocene", "neoproteozoic": "Neoproterozoic"}
+
+
+def age_tidy(value: str) -> str:
+    """영어 시대 값을 `age_ko` 가 읽는 꼴로 — 대문자를 낱말 꼴로, `Upper`·`Lower` 를 `Late`·`Early` 로, `-`·`TO` 를 ` – ` 로,
+    오탈자를 고친다. `Quaternary [Holocene]` 처럼 괄호 안이 더 자세하면 그쪽을 쓴다. `CRETACEOUS, JURASSIC`(젊은, 오랜)은 `오랜 – 젊은`."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    inner = re.search(r"\[([^\]]+)\]", text)
+    if inner:
+        text = inner.group(1).strip()
+    if "," in text:
+        young, _, old = (p.strip() for p in text.partition(","))
+        text = young if young.lower() == old.lower() or not old else f"{old} - {young}"
+    text = re.sub(r"\s+(?:TO|to|To)\s+", " - ", text)
+    text = re.sub(r"(?<![Pp]re)(?<!PRE)\s*-\s*", " – ", text)        # `Pre-Jurassic` 의 붙임표는 둔다
+    words = []
+    for word in text.split():
+        if word == "–":
+            words.append(word)
+            continue
+        low = word.lower()
+        word = _AGE_TYPOS.get(low) or {"upper": "Late", "lower": "Early"}.get(low) or (word.title() if word.isupper() else word)
+        words.append(word.replace("Palaeo", "Paleo").replace("Archaean", "Archean"))
+    return " ".join(words)
+
+
 def age_ko(value: str) -> str:
     """영문 지질시대 값 하나를 한국어로. 못 옮기면 원문을 그대로 돌려준다.
 
@@ -2746,6 +2779,8 @@ GROUP_EN = {
     "몽골 지질도 (MonGeoCat)": "Geology of Mongolia (MonGeoCat)",
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
+    "인도네시아 지질도 (ESDM)": "Geology of Indonesia (ESDM)", "말레이시아 지질도 (JMG)": "Geology of Malaysia (JMG)",
+    "필리핀 지질도 (MGB)": "Geology of the Philippines (MGB)", "태국 지질도 (DMR)": "Geology of Thailand (DMR)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2862,6 +2897,9 @@ LAYER_EN = {
     "gsiindia:geology": "Geology (1:2M)", "gsiindia:faults": "Faults (1:2M)", "gsiindia:thrusts": "Thrusts (1:2M)",
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
+    # 동남아 (wetherilli 228)
+    "esdm:geology": "Geology (1:100k compilation 2018)", "jmg:lithology": "Lithology (by state)", "jmg:age": "Rock age (by state)",
+    "mgb:geology": "Regional geology", "dmr:rock_units": "Rock units (1:250k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",

@@ -110,6 +110,11 @@ class Command(BaseCommand):
                 (settings.GSIINDIA_CATALOG_SEED, "인도 (GSI)", "india", "gsiindia"),
                 # 사우디아라비아 — SGS 1:25만 합본 (wetherilli 227)
                 (settings.SGS_CATALOG_SEED, "사우디아라비아 (SGS)", "saudi", "sgs"),
+                # 동남아 — 인도네시아 ESDM·말레이시아 JMG·필리핀 MGB·태국 DMR (wetherilli 228)
+                (settings.ESDM_CATALOG_SEED, "인도네시아 (ESDM)", "indonesia", "esdm"),
+                (settings.JMG_CATALOG_SEED, "말레이시아 (JMG)", "malaysia", "jmg"),
+                (settings.MGB_CATALOG_SEED, "필리핀 (MGB)", "philippines", "mgb"),
+                (settings.DMR_CATALOG_SEED, "태국 (DMR)", "thailand", "dmr"),
                 # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
                 (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
                 (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),
