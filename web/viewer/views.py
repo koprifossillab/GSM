@@ -2465,6 +2465,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "ga" and ga.knows(layer.name):
         # 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로(3577 은 그리지 않는다). 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가
         # 축척에 맞는 판을 그린다. 범례는 보는 범위의 것(`ga/legend/`), 단층은 범례·누르기가 없다
+        if layer.name in ga.OTHER:
+            # 지질구·핵심 광물·지구물리 격자(wetherilli 241) — 범례는 상류 그림, 격자는 범례·누르기가 없다
+            grid = ga.OTHER[layer.name][3]
+            return {"attribution": ga.OTHER_ATTRIBUTION, "projection": "EPSG:3857",
+                    **({"noLegend": True} if grid else {}), **({} if ga.queryable(layer.name) else {"queryable": False})}
         unit = layer.name in ga.legend_layers()
         return {"attribution": ga.ATTRIBUTION, "projection": "EPSG:3857",
                 **({"legend": "extent", "legendUrl": "ga/legend/"} if unit else {"noLegend": True, "queryable": False})}

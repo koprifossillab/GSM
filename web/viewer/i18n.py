@@ -2979,6 +2979,8 @@ def props_en(props: dict) -> dict:
 
 GROUP_EN = {
     "하와이 지질도 (USGS)": "Hawaii geology (USGS)", "푸에르토리코 지질도 (USGS)": "Puerto Rico geology (USGS)",
+    "호주 지질구 (GA)": "Australia geological provinces (GA)", "호주 핵심 광물 (GA 2025)": "Australia critical minerals (GA 2025)",
+    "호주 지구물리 (GA)": "Australia geophysics (GA)",
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
@@ -3276,6 +3278,10 @@ LAYER_EN = {
     "ga:age": "Geologic units — age",
     "ga:lithology": "Geologic units — lithology",
     "ga:faults": "Faults",
+    # GA 의 다른 서비스 (wetherilli 241)
+    "ga:crustal": "Crustal elements", "ga:provinces": "Geological provinces (all)", "ga:mines": "Critical minerals mines",
+    "ga:deposits": "Critical minerals deposits", "ga:tmi": "Total magnetic intensity (2019)",
+    "ga:gravity": "Complete Bouguer gravity anomaly (2019)", "ga:radiometric": "Radiometric ternary (K·Th·U, 2019)",
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
