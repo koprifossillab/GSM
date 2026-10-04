@@ -162,6 +162,9 @@ SGC_WMS_URL = env("GSM_SGC_WMS_URL", "https://srvags.sgc.gov.co/arcgis/services"
 #: 브라질 지질도 — SGB GeoServer 둘 (wetherilli 191). 1:100만·1:25만은 geoservicos, 2025 년판 1:250만은 opendata. 열쇠가 없다
 SGB_GEOSERVICOS_URL = env("GSM_SGB_GEOSERVICOS_URL", "https://geoservicos.sgb.gov.br/geoserver/ows")
 SGB_OPENDATA_URL = env("GSM_SGB_OPENDATA_URL", "https://opendata.sgb.gov.br/geoserver/ows")
+#: 아르헨티나 SEGEMAR SIGAM GeoServer·우루과이 DINAMIGE ArcGIS (wetherilli 196). 둘 다 CORS 가 없어 서버 문으로만 간다
+SEGEMAR_WMS_URL = env("GSM_SEGEMAR_WMS_URL", "https://sigam.segemar.gov.ar/geoserver217/ows")
+DINAMIGE_URL = env("GSM_DINAMIGE_URL", "https://geoportal.miem.gub.uy/arcgis1091")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -402,6 +405,8 @@ GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)
 SGB_CATALOG_SEED = REPO_DIR / "data" / "sgb_layers.json"
+SEGEMAR_CATALOG_SEED = REPO_DIR / "data" / "segemar_layers.json"
+DINAMIGE_CATALOG_SEED = REPO_DIR / "data" / "dinamige_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

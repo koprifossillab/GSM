@@ -218,12 +218,12 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 줄이고 싶으면 사람이 `manage.py prune_tiles` 를 부른다. 자료의 주인은
 한국지질자원연구원이다 — 우리는 받은 것을 다시 내주지 않는다.
 
-## 지역 — 한국·일본·중국·대만·그린란드·스발바르·얀마옌·노르웨이·핀란드·영국·프랑스·독일·스페인·아일랜드·콜롬비아·브라질·남극, 그리고 동아시아·북극·유럽·남미
+## 지역 — 한국·일본·중국·대만·그린란드·스발바르·얀마옌·노르웨이·핀란드·영국·프랑스·독일·스페인·아일랜드·콜롬비아·브라질·아르헨티나·우루과이·남극, 그리고 동아시아·북극·유럽·남미
 
 화면 위 지역 탭으로 가른다 (devlog 016). **한국이 기본**이고 다른 지역은
 "+ 추가 지역" 에서 더한다. 지역마다 레이어 목록·켠 레이어·보던 자리·배경·색이
 따로다 — 한국은 먹갈색·금, 일본은 벚꽃, 중국은 청화백자, 대만은 보라얼룩나비, 그린란드는 빙하빛, 스발바르는 노르웨이
-국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 노르웨이·핀란드는 타이가의 순록이끼, 영국은 히스꽃 자주, 프랑스는 포도잎 초록, 독일은 점판암 청회, 스페인은 리오하 장밋빛, 아일랜드는 코네마라 대리석, 콜롬비아는 커피 열매의 진홍, 브라질은 이페 꽃의 노랑, 남극은 오로라 청록, 동아시아는 청자, 남미는 안데스의 구리빛,
+국기의 남색·빨강, 얀마옌은 현무암 숯빛·용암 주황, 노르웨이·핀란드는 타이가의 순록이끼, 영국은 히스꽃 자주, 프랑스는 포도잎 초록, 독일은 점판암 청회, 스페인은 리오하 장밋빛, 아일랜드는 코네마라 대리석, 콜롬비아는 커피 열매의 진홍, 브라질은 이페 꽃의 노랑, 아르헨티나는 페리토 모레노 빙하의 청록, 우루과이는 마노 지오드의 보라, 남극은 오로라 청록, 동아시아는 청자, 남미는 안데스의 구리빛,
 유럽은 백악의 회백.
 
 - **달은 지역이 아니다** — 대돌여지도 아이콘의 숨은 차림에서 들어가는 따로 화면(`/GSM/moon/`)이다.
@@ -280,7 +280,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - **점묶음은 몸을 갖는다**(`PointSet.body` — `earth`·`moon`·`mars`·`mercury`, 037·058·P10). 지구 화면은 `earth` 만, 달 화면은
   `moon` 만, 화성 화면은 `mars` 만, 수성 화면은 `mercury` 만 읽는다. 몸을 적지 않은 요청은 지구다. 달 점묶음의 표고는 LOLA(`trek.lola_values`),
   화성은 MOLA–HRSC(`trek.mars_values`, 화성 기준면), 수성은 MESSENGER(`trek.mercury_values`, 2 439.4 km 구)
-- **지역마다 화면 투영이 다르다** — 한국·일본·중국·대만·동아시아·영국·프랑스·독일·스페인·아일랜드·유럽·콜롬비아·브라질·남미 3857, 그린란드·스발바르·얀마옌·노르웨이·핀란드·북극
+- **지역마다 화면 투영이 다르다** — 한국·일본·중국·대만·동아시아·영국·프랑스·독일·스페인·아일랜드·유럽·콜롬비아·브라질·아르헨티나·우루과이·남미 3857, 그린란드·스발바르·얀마옌·노르웨이·핀란드·북극
   3413, 남극 3031 이고 남극점이 가운데다 (017). 좌표를 옮길 때는 `toLL`/`fromLL`
   (화면 투영)을 쓰고 `ol.proj.toLonLat` 을 투영 없이 부르지 않는다. 지금의 투영은 축척 막대 옆에
   EPSG 번호로 늘 떠 있다 (jikhanjung 001)
@@ -289,12 +289,12 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   **동아시아도 묶음이다** — `REGIONS.eastasia.includes` 가 한국·일본·중국·대만을 모은다. 묶음
   탭(3857)에서는 레이어가 제 범위(`bbox` + 0.5°) 밖 타일을 묻지 않는다 (024).
   **유럽도 묶음이다** — `REGIONS.europe.includes` 가 영국·아일랜드·프랑스·독일·스페인을 모은다 (wetherilli 143·147).
-  **남미도 묶음이다** — `REGIONS.south_america.includes` 가 콜롬비아·브라질을 모은다 (wetherilli 188·191).
+  **남미도 묶음이다** — `REGIONS.south_america.includes` 가 콜롬비아·브라질·아르헨티나·우루과이를 모은다 (wetherilli 188·191·196).
   지역 하나가 다른 지역의 상류 하나만 **빌릴** 수도 있다(`REGIONS.<지역>.borrow`) — 스발바르가 북극해의 EMODnet 을(135),
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
-  상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질이 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191)
+  상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·196)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·segemar·dinamige·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -330,7 +330,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   EOX Sentinel-2 는 **비상업(CC BY-NC-SA)** 조건이고 Esri 남극 위성은 **Esri 이용 조건**이다 — 밖에 열 때 다시 본다 (040)
 - **남미 1:500만은 CGMW 의 지도다** — SGC 가 WMS 를 열어 두었지만 CGMW 는 지도를 판다. 정적 판에 싣지 않았고, 밖에 열기 전에
   사람이 조건을 읽는다(TODOs). 콜롬비아 1:50만은 SGC 열린자료(CC BY 4.0)다 (wetherilli 188). **브라질 SGB 는 비상업(CC BY-NC 4.0)**
-  이다 — GeoSGB 사이트가 그렇게 적는다. EOX 처럼 밖에 열 때 다시 본다 (wetherilli 191)
+  이다 — GeoSGB 사이트가 그렇게 적는다. EOX 처럼 밖에 열 때 다시 본다 (wetherilli 191). **아르헨티나 SEGEMAR** 는 "SEGEMAR 의 재산, CC 아르헨티나
+  라이선스로 쓸 때 저작자를 밝힌다", **우루과이 DINAMIGE** 는 적힌 조건이 없다 — 둘 다 CORS 가 없어 서버 문으로만 가고 정적 판에 싣지 않는다 (wetherilli 196)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
   가공물 포함 제3자 재배포 금지" 다(UNESCO·CGMW·ESRI 지적재산). 화면에 보이는 것 자체가
   재배포라 **밖에 열 때는 이 레이어를 먼저 내린다.** 파일은 `.gitignore`·`.dockerignore` 가 막는다 (025).
@@ -420,6 +421,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   gsi.py          아일랜드 지질조사소(GSI)로 나가는 문 (섬 전체 1:100만·공화국 1:10만 ArcGIS WMS)
   sgc.py          콜롬비아 지질조사소(SGC)로 나가는 문 (남미 1:500만 CGMW 2019·콜롬비아 1:50만 2023 ArcGIS WMS, 3857 로). 이름은 `sgc:<판>:<번호>`
   sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`)
+  segemar.py      아르헨티나 지질광업조사소(SEGEMAR)로 나가는 문 (SIGAM GeoServer — 1:250만 단위·구조선·화산, 1:25만 간행 도폭). 이름은 `segemar:<상류 이름>`. CORS 가 없다
+  dinamige.py     우루과이 광업지질국(DINAMIGE, MIEM)으로 나가는 문 (1:50만 ArcGIS WMS, 3857 로). 이름은 WMS 번호 — REST 와 거꾸로다. 범례는 REST 를 목록으로
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
   gvp.py          스미스소니언 Global Volcanism Program 으로 나가는 문 (홀로세 화산 WFS 를 통째로 한 번). 모아 둔다(`fetch_gvp`)
   usgs.py         미국 지질조사국(USGS)으로 나가는 문 (지진 목록 FDSN, M5 이상을 5 년씩). 모아 둔다(`fetch_quakes`)
@@ -480,8 +483,8 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 서른셋 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`segemar.py`·`dinamige.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 서른다섯 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`ibcso.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는

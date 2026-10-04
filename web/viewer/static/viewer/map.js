@@ -246,11 +246,24 @@
               base: ["sgc:sa:8", "sgb:2500k", "sgb:1m", "sgb:250k"],
               first: "sgb:2500k",
               borrow: { colombia: ["sgc:sa:"] } },
+    // 아르헨티나 SEGEMAR·우루과이 DINAMIGE (wetherilli 196) — 브라질처럼 남미 1:500만만 콜롬비아에서 빌린다
+    argentina: { title: "아르헨티나", proj: "EPSG:3857", center: [-65.0, -38.0], zoom: 4, vworld: false,
+                 home: [-8250000, -7400000, -5900000, -2450000],
+                 basemap: "eox_terrain", example: "-34.60, -58.38 · Buenos Aires",
+                 base: ["sgc:sa:8", "segemar:e2.5M.UnidadesGeologicas", "segemar:e250K_UnidadGeologica"],
+                 first: "segemar:e2.5M.UnidadesGeologicas",
+                 borrow: { colombia: ["sgc:sa:"] } },
+    uruguay: { title: "우루과이", proj: "EPSG:3857", center: [-56.0, -32.6], zoom: 7, vworld: false,
+               home: [-6510000, -4170000, -5920000, -3500000],
+               basemap: "eox_terrain", example: "-34.90, -56.19 · Montevideo",
+               base: ["sgc:sa:8", "dinamige:0"],
+               first: "dinamige:0",
+               borrow: { colombia: ["sgc:sa:"] } },
     south_america: { title: "남미", proj: "EPSG:3857", center: [-60.0, -15.0], zoom: 3, vworld: false,
-                     includes: ["colombia", "brazil"],
+                     includes: ["colombia", "brazil", "argentina", "uruguay"],
                      home: [-9128198, -7558416, -3784863, 1516914],
                      basemap: "eox_terrain", example: "4.711, -74.072 · Bogotá",
-                     base: ["sgc:sa:8", "sgc:co:3", "sgb:2500k"],
+                     base: ["sgc:sa:8", "sgc:co:3", "sgb:2500k", "segemar:e2.5M.UnidadesGeologicas", "dinamige:0"],
                      first: ["sgc:sa:8", "sgb:2500k"] },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
               includes: ["uk", "ireland", "france", "germany", "spain"],
@@ -315,7 +328,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "south_america"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "argentina", "uruguay", "south_america"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -752,6 +765,9 @@
     gsni: { source: npolarSource, info: wmsInfoUrl },
     // 남미·콜롬비아 SGC(wetherilli 188) — ArcGIS WMS 를 3857 로
     sgc: { source: npolarSource, info: wmsInfoUrl },
+    // 아르헨티나·우루과이(wetherilli 196) — 유럽 문처럼 카탈로그 행의 투영(3857)으로 서버 문을 거쳐 받는다
+    segemar: { source: npolarSource, info: wmsInfoUrl },
+    dinamige: { source: npolarSource, info: wmsInfoUrl },
     // 브라질 SGB(wetherilli 191) — GeoServer WMS 를 3857 로. 범례는 보는 범위의 것(`sgb/legend/`)
     sgb: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
@@ -1222,14 +1238,14 @@
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil"],
+              "germany", "spain", "ireland", "colombia", "brazil", "argentina", "uruguay"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil"],
+              "germany", "spain", "ireland", "colombia", "brazil", "argentina", "uruguay"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2219,7 +2235,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2233,6 +2249,7 @@
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"),
+    segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),

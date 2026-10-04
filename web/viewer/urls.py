@@ -143,6 +143,8 @@ urlpatterns = [
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
     # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
     path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
+    # 우루과이 — REST 범례를 목록으로 (dinamige.py, wetherilli 196)
+    path("dinamige/legend/", views.dinamige_legend, name="dinamige-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다
