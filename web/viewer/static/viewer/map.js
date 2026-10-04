@@ -93,7 +93,9 @@
                  home: [-750000, -3450000, 950000, -550000],
                  basemap: "eox_s2", places: "64.176, -51.736 · Nuuk",
                  base: ["grl_g500_lithostr_search", "lithologies"],
-                 first: "grl_g500_lithostr_search" },
+                 first: "grl_g500_lithostr_search",
+                 // 화석 산지·화산·지진·고생태 산지는 북극해에 하나로 두고 빌린다 (wetherilli 185)
+                 borrow: { arctic_ocean: ["earth"] } },
     antarctica: { title: "남극", proj: "EPSG:3031", center: [0, -90], zoom: 1, vworld: false,
                   home: [-2800000, -2400000, 2900000, 2500000],
                   basemap: "esri_antarctic", forgetOldView: true,
@@ -112,7 +114,8 @@
                  home: [1200000, -1704000, 1270000, -1634000],
                  basemap: "eox_s2",
                  base: ["janmayen:units", "janmayen:lines", "janmayen:vents"],
-                 first: ["janmayen:units", "janmayen:lines", "janmayen:vents"] },
+                 first: ["janmayen:units", "janmayen:lines", "janmayen:vents"],
+                 borrow: { arctic_ocean: ["earth"] } },
     // ── 스발바르·북극 (devlog 021) ──
     // 스발바르는 노르웨이 극지연구소(NPI)의 지도 서버를 중계한다 — 타일은 3413 으로
     // 곧장 받는다(`npolarSource`). `places` 면 찾기 칸이 NPI 지명을 뒤진다.
@@ -125,8 +128,8 @@
                 base: ["npolar:svalbard_units", "npolar:svalbard_faults", "npolar:svalbard_paper"],
                 first: "npolar:svalbard_units",
                 // 북극해의 해저 지질(EMODnet)을 빌려 보인다 — 스발바르를 둘러싼 바다다. 묶음(`includes`)으로 만들면
-                // KPDC 의 북극해 자료까지 따라와서, 상류 하나만 빌린다 (wetherilli 135)
-                borrow: { arctic_ocean: ["emodnet"] } },
+                // KPDC 의 북극해 자료까지 따라와서, 상류 하나만 빌린다 (wetherilli 135). 지구 자료 점도 (wetherilli 185)
+                borrow: { arctic_ocean: ["emodnet", "earth"] } },
     // ── 북극해 (devlog 076) ──
     // 스발바르·그린란드 탭 밖의 북극 — 지금은 KPDC 자료(아라온의 축치해·베링해 항해, 캐나다
     // 케임브리지베이, 시베리아·스칸디나비아 관측소)뿐이다. 3413 은 경도 -45° 가 아래라 베링 해협이
@@ -145,7 +148,8 @@
                     basemap: "eox_terrain", example: "69.649, 18.956 · Tromsø",
                     base: ["ngu:Berggrunn_nasjonal_bergartsenheter", "ngu:Berggrunn_regional_hovedbergarter",
                            "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132"],
-                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet"] },
+                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet"],
+                    borrow: { arctic_ocean: ["earth"] } },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
               includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia"],
               home: [-612000, -3344000, 1380000, -212000],
@@ -687,6 +691,8 @@
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
     janmayen: { source: null, info: null },
+    // 지구 자료 점(wetherilli 185) — 화석 산지·화산·지진·고생태 산지. 점을 한 덩이로 받아 그린다(`kind: points`)
+    earth: { source: null, info: null },
     geo3al: { source: null, info: null },     // 중국 — 모양 한 덩이 (025)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
@@ -2183,6 +2189,8 @@
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
     gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
+    // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
+    earth: "EARTH",
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
@@ -2195,6 +2203,7 @@
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
+    earth: T("온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma"),
   };
 
   function upstreamOf(name) { return (byName[name] && byName[name].upstream) || "kigam"; }
@@ -3587,7 +3596,9 @@
   /** 점 레이어 한 덩이의 주소. 정적 판은 구워 둔 파일 `points/<상류>/<이름>.json` — 물음(`?layer=`)을 파일로 둘 수
    *  없어서다. 얀마옌·극지연구소처럼 언어마다 답이 다른 것은 영어판 `.en.json` 이 따로 있다 (wetherilli 160·165) */
   function pointsUrl(name) {
-    if (!STATIC) return BASE + "points/?layer=" + encodeURIComponent(name) + "&lang=" + LANG;
+    // 판이 있는 덩이(지구 자료 점, wetherilli 185)는 `&v=` 를 붙인다 — 판이 같으면 브라우저가 오래 들고 있다
+    var ver = byName[name] && byName[name].version;
+    if (!STATIC) return BASE + "points/?layer=" + encodeURIComponent(name) + "&lang=" + LANG + (ver ? "&v=" + encodeURIComponent(ver) : "");
     var en = LANG === "en" && staticBaked("points")[name];
     return BASE + "points/" + name.replace(":", "/") + (en ? ".en" : "") + ".json";
   }
@@ -4213,6 +4224,10 @@
         ? new ol.style.RegularShape({ points: 4, radius: r + 1.5, angle: 0, fill: fill, stroke: stroke })
         : spec.shape === "square"
         ? new ol.style.RegularShape({ points: 4, radius: r + 1, angle: Math.PI / 4, fill: fill, stroke: stroke })
+        // 홀로세 화산(wetherilli 185) — 온 지구 화면처럼 세모
+        : spec.shape === "triangle"
+        ? new ol.style.RegularShape({ points: 3, radius: r + 1.5, angle: 0, fill: fill,
+                                      stroke: new ol.style.Stroke({ color: "rgba(30,20,20,0.9)", width: far ? 0.6 : 1 }) })
         : new ol.style.Circle({ radius: r, fill: fill, stroke: stroke });
       style = new ol.style.Style({ image: image });
     }
@@ -4241,7 +4256,7 @@
           esc(r.color || "#888") + '" stroke-width="' + (r.shape === "dash" ? '1.6" stroke-dasharray="6 4' : "2.5") + '"/></svg>';
       } else if (row.style === "class") {
         sw = document.createElement("span");
-        sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond" }[r.shape] || "dot");
+        sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond", triangle: "triangle" }[r.shape] || "dot");
         sw.style.background = r.color || "#888";
       } else {
         sw = document.createElement("span");
@@ -4266,7 +4281,9 @@
       a.href = row.source;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.textContent = row.upstream === "geo3al"
+      // 지구 자료 점(wetherilli 185)처럼 서버가 원본 자료의 글(조건 포함)을 적어 주면 그것을
+      a.textContent = row.sourceLabel ? T(row.sourceLabel)
+        : row.upstream === "geo3al"
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
         : row.upstream === "kopri" ? T("원본 자료 — 극지연구소 KPDC")
         // 그린란드 포털의 면·갈래 레이어(wetherilli 089) — 이용 조건이 적혀 있지 않다(019)
