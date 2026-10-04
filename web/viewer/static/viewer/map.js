@@ -140,15 +140,15 @@
                     basemap: "gibs_bm_n", example: "71.5, -156.8",
                     base: [],
                     first: "kopri:kpdc_ocean_arctic_ocean" },
-    // ── 노르웨이·핀란드 (wetherilli 140) ──
-    // NGU(노르웨이)·GTK(핀란드)의 기반암 지질도를 중계한다. 스발바르와 같은 3413 이라 북극 묶음에 든다.
-    // GTK 는 3413 을 그대로 받고, NGU 는 3413 을 그려 주지 않아 북극 람베르트(3575)로 받아 옮겨 그린다
-    fennoscandia: { title: "노르웨이·핀란드", proj: "EPSG:3413", center: [18.0, 65.0], zoom: 4, vworld: false,
+    // ── 노르웨이·스웨덴·핀란드 (wetherilli 140·213) ──
+    // NGU(노르웨이)·SGU(스웨덴)·GTK(핀란드)의 기반암 지질도를 중계한다. 스발바르와 같은 3413 이라 북극 묶음에 든다.
+    // GTK·SGU 는 3413 을 그대로 받고, NGU 는 3413 을 그려 주지 않아 북극 람베르트(3575)로 받아 옮겨 그린다
+    fennoscandia: { title: "노르웨이·스웨덴·핀란드", proj: "EPSG:3413", center: [18.0, 65.0], zoom: 4, vworld: false,
                     home: [1525000, -2371000, 3522000, -455000],
                     basemap: "eox_terrain", example: "69.649, 18.956 · Tromsø",
                     base: ["ngu:Berggrunn_nasjonal_bergartsenheter", "ngu:Berggrunn_regional_hovedbergarter",
-                           "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132"],
-                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet"],
+                           "gtk:kalliopera_1m_kivilajiseurueet", "gtk:Litologiset_yksiköt_200k25132", "sgu:bedrock"],
+                    first: ["ngu:Berggrunn_nasjonal_bergartsenheter", "gtk:kalliopera_1m_kivilajiseurueet", "sgu:bedrock"],
                     borrow: { arctic_ocean: ["earth"] } },
     arctic: { title: "북극", proj: "EPSG:3413", center: [-20.0, 76.0], zoom: 3, vworld: false,
               includes: ["greenland", "svalbard", "jan_mayen", "arctic_ocean", "fennoscandia"],
@@ -819,6 +819,8 @@
     // 노르웨이 NGU(3575)·핀란드 GTK(3413) 기반암(wetherilli 140) — 카탈로그 행의 투영으로 받는다
     ngu: { source: npolarSource, info: wmsInfoUrl },
     gtk: { source: npolarSource, info: wmsInfoUrl },
+    // 스웨덴 SGU(wetherilli 213) — GeoServer 가 3413 을 그린다. 레이어 하나가 1:100만·5만 판을 함께 부른다
+    sgu: { source: npolarSource, info: wmsInfoUrl },
     // 영국 BGS·프랑스 BRGM·범유럽 EGDI(wetherilli 143) — 3857 이지만 출처를 카탈로그 행에서 받으려고 같은 틀을 쓴다
     bgs: { source: npolarSource, info: wmsInfoUrl },
     brgm: { source: npolarSource, info: wmsInfoUrl },
@@ -2318,7 +2320,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2329,7 +2331,7 @@
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
-    ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
+    ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"), sgu: T("스웨덴 지질조사소"),
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),

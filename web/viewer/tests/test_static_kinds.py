@@ -12,7 +12,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from viewer import emodnet, geus, grportal, i18n, kopri, mrdata, npolar, sgc, static_tables, views
+from viewer import emodnet, geus, grportal, i18n, kopri, mrdata, npolar, sgc, sgu, static_tables, views
 
 JS = Path(__file__).resolve().parents[1] / "static" / "viewer" / "static-kinds.js"
 
@@ -56,7 +56,7 @@ class Script(SimpleTestCase):
 
     def test_꼴(self):
         self.assertIn("window.GSM_STATIC_KINDS = KINDS", self.js)
-        for up in ("geus", "npolar", "grportal", "pgc", "emodnet", "kopri", "sgc", "mrdata"):
+        for up in ("geus", "npolar", "grportal", "pgc", "emodnet", "kopri", "sgc", "mrdata", "sgu"):
             self.assertIn(f"KINDS.{up} =", self.js)
 
     def test_서버를_부르지_않는다(self):
@@ -65,7 +65,7 @@ class Script(SimpleTestCase):
 
     def test_상류_주소를_박지_않는다(self):
         # 주소는 빌드가 서버의 문에서 떠 싣는 표에서 읽는다 — 상류가 바뀌면 문 하나만 고친다
-        for host in ("geodata.npolar.no", "data.geus.dk", "arcgis.com", "emodnet-geology", "kpdcgeo", "sgc.gov.co", "mrdata.usgs.gov"):
+        for host in ("geodata.npolar.no", "data.geus.dk", "arcgis.com", "emodnet-geology", "kpdcgeo", "sgc.gov.co", "mrdata.usgs.gov", "sgu.se"):
             self.assertNotIn(host, self.code)
 
     def test_GEUS_는_정사각이_아닌_타일로(self):
@@ -119,10 +119,16 @@ class SameAsPython(SimpleTestCase):
         usgs_gml = ("<wfs:FeatureCollection><gml:featureMember><ms:Lithology><ms:state>CO</ms:state><ms:orig_label>Qa</ms:orig_label>"
                     "<ms:generalize>Unconsolidated</ms:generalize><ms:url>https://mrdata.usgs.gov/x?a=1&amp;b=2</ms:url>"
                     "<ms:src_url>ftp://no</ms:src_url></ms:Lithology></gml:featureMember></wfs:FeatureCollection>")
+        # 스웨덴 SGU(wetherilli 213) — 1:100만은 영어 열, 5만은 스웨덴어, `Null:…` 칸은 뺀다
+        sgu_props = [{"lithology": "Metagreywacke, mica schist", "tect_unit": "Svecokarelian orogen", "subunit": "Bergslagen",
+                      "litologi": "Metagråvacka", "etikett": 625},
+                     {"geo_enh_tx": "Svekokarelska orogenen, intrusivbergart", "lito_n_tx": "Null:okänt", "bergart_tx": "Granit",
+                      "handel1_tx": "intrusionsprocess; orosirium 7 1820-1800 Ma; Null:okänt; Null:ej_tillämpligt", "partik1_tx": ""}]
         usgs_plain = [{"class": "102", "label": "", "state_unit": "Water", "age_range": "late Paleocene",
                        "url": "https://mrdata.usgs.gov/sim3340/show-sim3340.php?seq=A002"}]
         expected = {"ages": [i18n.age_ko(a) for a in ages], "npi": [npolar.friendly(p, "ko") for p in npi],
                     "sgc": [sgc.friendly(p, "ko") for p in sgc_props],
+                    "sgu": [sgu.friendly(p, "ko") for p in sgu_props],
                     # 미국 USGS(wetherilli 205) — GML 읽기와 손질
                     "usgs": [mrdata.friendly(f["properties"], "ko") for f in mrdata.parse_gml(usgs_gml, "Lithology")]
                     + [mrdata.friendly(p, "ko") for p in usgs_plain],
@@ -136,7 +142,7 @@ global.localStorage = {getItem: () => null}; global.sessionStorage = {getItem: (
 eval(fs.readFileSync(process.argv[3], 'utf8')); const H = window.GSM_STATIC_HELPERS;
 const P = inp.tables.grportal.points;
 console.log(JSON.stringify({ages: inp.ages.map(H.ageKo), npi: inp.npi.map(H.npiFriendly), emo: inp.emo.map(H.emodFriendly),
-  sgc: inp.sgc.map(H.sgcFriendly),
+  sgc: inp.sgc.map(H.sgcFriendly), sgu: inp.sgu.map(H.sguFriendly),
   usgs: H.usgsGml(inp.usgsGml, "Lithology").map(f => H.usgsFriendly(f.properties)).concat(inp.usgsPlain.map(H.usgsFriendly)),
   plain: H.parsePlain(inp.plain).map(f => H.geusFriendly(f.properties)),
   classes: inp.classes.map(([n, samples]) => [n, samples, samples.map(p => H.classOf(P[n].classes, p)[0])])}));
@@ -144,7 +150,7 @@ console.log(JSON.stringify({ages: inp.ages.map(H.ageKo), npi: inp.npi.map(H.npiF
         with tempfile.TemporaryDirectory() as tmp:
             Path(tmp, "in.json").write_text(json.dumps({"tables": static_tables.tables(), "ages": ages, "npi": npi,
                                                         "emo": emo, "plain": plain, "classes": classes,
-                                                        "sgc": sgc_props, "usgsGml": usgs_gml, "usgsPlain": usgs_plain},
+                                                        "sgc": sgc_props, "sgu": sgu_props, "usgsGml": usgs_gml, "usgsPlain": usgs_plain},
                                                        ensure_ascii=False), "utf-8")
             Path(tmp, "h.js").write_text(harness, "utf-8")
             out = subprocess.run([node, str(Path(tmp, "h.js")), str(Path(tmp, "in.json")), str(JS)],

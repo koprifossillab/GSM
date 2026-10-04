@@ -11,7 +11,7 @@ KOPRI 점(시료·운석·KPDC 목록)은 여기 없다 — 굽는 쪽(`bake_sta
 """
 from django.conf import settings
 
-from . import arcpoints, elevation, emodnet, geus, grportal, i18n, kopri, mrdata, npolar, sgc
+from . import arcpoints, elevation, emodnet, geus, grportal, i18n, kopri, mrdata, npolar, sgc, sgu
 
 
 def _points(spec: dict, url: str, oid: str, page: int, max_pages: int) -> dict:
@@ -102,6 +102,12 @@ def tables() -> dict:
             "url": settings.MRDATA_URL.rstrip("/"), "attribution": mrdata.ATTRIBUTION,
             "layers": {name: list(parts) for name, parts in mrdata.LAYERS.items()}, "queryable": list(mrdata.QUERYABLE),
             "sgmcFields": list(mrdata.SGMC_FIELDS),
+        },
+        # 스웨덴 SGU(wetherilli 213) — CC0. 싣는 것은 굽는 사람이 고른다(`static_site.py --with sweden`)
+        "sgu": {
+            "url": settings.SGU_WMS_URL, "attribution": sgu.ATTRIBUTION,
+            "layers": {name: list(parts) for name, parts in sgu.LAYERS.items()}, "legend": sgu.LEGEND,
+            "queryable": list(sgu.QUERYABLE), "friendly": [list(pair) for pair in sgu.FRIENDLY],
         },
         # 지질시대 — 영문 ICS 값을 한국어로(`i18n.age_ko` 의 표)
         "age": {"words": i18n.AGE_WORDS_KO, "modifiers": i18n.AGE_MODIFIERS_KO, "joiners": i18n.AGE_JOINERS_KO},
