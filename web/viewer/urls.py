@@ -78,6 +78,10 @@ urlpatterns = [
     re_path(r"^earth/quakes/tiles/(?P<band>quake\d{1,2})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_quake_tile, name="earth-quake-tile"),
     path("earth/quakes/at/", views.earth_quake_at, name="earth-quake-at"),
+    # 최근 지진 — USGS 실시간 피드 (wetherilli 292)
+    re_path(r"^earth/recentquakes/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_recent_quake_tile,
+            name="earth-recent-quake-tile"),
+    path("earth/recentquakes/at/", views.earth_recent_quake_at, name="earth-recent-quake-at"),
     re_path(r"^earth/neotoma/tiles/(?P<band>neo_[a-z]{1,6})/(?P<ka>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_neotoma_tile, name="earth-neotoma-tile"),
     path("earth/neotoma/at/", views.earth_neotoma_at, name="earth-neotoma-at"),

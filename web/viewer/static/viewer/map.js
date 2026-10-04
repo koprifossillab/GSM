@@ -4747,8 +4747,16 @@
         : spec.shape === "triangle"
         ? new ol.style.RegularShape({ points: 3, radius: r + 1.5, angle: 0, fill: fill,
                                       stroke: new ol.style.Stroke({ color: "rgba(30,20,20,0.9)", width: far ? 0.6 : 1 }) })
-        : new ol.style.Circle({ radius: r, fill: fill, stroke: stroke });
-      style = new ol.style.Style({ image: image });
+        : null;
+      if (spec.shape === "ring") {
+        // 최근 지진(wetherilli 292) — 속이 빈 고리. 지난 지진(속을 채운 점, 깊이의 색)과 섞이지 않게. 어두운 테 위에 지난 시간의 색
+        style = [new ol.style.Style({ image: new ol.style.Circle({ radius: r + 1.5,
+                   stroke: new ol.style.Stroke({ color: "rgba(20,20,20,0.75)", width: far ? 2.6 : 3.6 }) }) }),
+                 new ol.style.Style({ image: new ol.style.Circle({ radius: r + 1.5,
+                   stroke: new ol.style.Stroke({ color: color, width: far ? 1.4 : 2 }) }) })];
+      } else {
+        style = new ol.style.Style({ image: image || new ol.style.Circle({ radius: r, fill: fill, stroke: stroke }) });
+      }
     }
     cache[key] = style;
     return style;
@@ -4785,8 +4793,9 @@
         sw.innerHTML = attitudeSvg(r.shape, r.color, 16).replace("<svg ", '<svg aria-hidden="true" ');
       } else if (row.style === "class") {
         sw = document.createElement("span");
-        sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond", triangle: "triangle" }[r.shape] || "dot");
-        sw.style.background = r.color || "#888";
+        sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond", triangle: "triangle", ring: "ring" }[r.shape] || "dot");
+        // 최근 지진의 고리(wetherilli 292) — 속을 비우고 테두리에 색
+        if (r.shape === "ring") sw.style.borderColor = r.color || "#888"; else sw.style.background = r.color || "#888";
       } else {
         sw = document.createElement("span");
         sw.className = "sw " + (row.style === "unit" ? "box" : r.shape === "star" ? "star" : "triangle");
