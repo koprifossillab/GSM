@@ -81,7 +81,7 @@ class Catalog(TestCase):
         self.assertFalse(rows["ineter:faults"][1]["queryable"])
         js = (Path(views.__file__).parent / "static/viewer/map.js").read_text(encoding="utf-8")
         ca = re.search(r'central_america: \{ title: "중미·카리브".*?includes: \[([^\]]*)\]', js, re.S).group(1)
-        self.assertEqual(ca.replace(" ", ""), '"nicaragua","dominican_republic","caribbean"')   # 카리브는 wetherilli 248
+        self.assertEqual(ca.replace(" ", ""), '"nicaragua","panama","dominican_republic","caribbean"')   # 카리브 248·파나마 253
         # 푸에르토리코는 미국 탭의 것을 빌린다 — 같은 레이어를 두 번 두지 않는다(wetherilli 238·242)
         self.assertIn('borrow: { usa: ["mrdata:pr:"] }', re.search(r'central_america: \{.*?\},\n', js, re.S).group(0))
 
