@@ -1042,6 +1042,8 @@
     gsitile: { source: gsiTileSource, info: null },
     // CCOP 200만 지질도(wetherilli 108) — 여느 WMS 다. 속성의 4326 풀이는 서버의 문(gsj.py)이 한다
     ccop: { source: wmsSource, info: wmsInfoUrl },
+    // GSJ 의 다른 WMS — 1:200만 지질도·부게 중력·지구화학도(wetherilli 255). 누르기는 없고 범례 그림
+    gsjows: { source: wmsSource, info: wmsInfoUrl },
     // 대만 지질도(wetherilli 136) — 4326 WMS. 속성은 서버의 문(gsmma.py)이 지질운 API 로 바꿔 묻는다
     gsmma: { source: taiwanSource, info: wmsInfoUrl },
     // EMODnet 해저 지질(wetherilli 135) — NPI 처럼 3413 으로 곧장 받는다
@@ -2614,7 +2616,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", bas: "BAS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", gsjows: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", bas: "BAS", sim3534: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2622,7 +2624,7 @@
   };
   var UPSTREAM_NAMES = {
     kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
-    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
+    npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), gsjows: T("일본 지질조사종합센터"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"), sgu: T("스웨덴 지질조사소"),

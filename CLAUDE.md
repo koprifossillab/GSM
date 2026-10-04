@@ -99,7 +99,7 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 KIGAM·VWorld 키를 넣고(처음 열 때 묻는다, wetherilli 174)(그 브라우저 localStorage, 30 일), 브라우저가 `/openapi/wms` 를 곧장 부른다(`map.js` 의 `STATIC_KIGAM`).
 서버 없이 돌므로 위의 "서버가 키를 붙인다" 가 없다. 판 세션이 판마다 `deploy/publish_pages.sh` 로 굽고 민다
 (wetherilli P11·162). 실을 지역·상류는 `deploy/static_site.py` 의 `REGIONS`·`UPSTREAMS`. 조건은 열렸지만 실을지 사람이 정할 것은
-`OPTIONAL` 에 두고 고를 때만 싣는다(`--with colombia` — 콜롬비아 1:50만, wetherilli 201; `--with usa` — 미국 USGS, 공공 도메인, wetherilli 205; `--with australia` — 호주 GA, CC BY 4.0, wetherilli 212; `--with sweden` — 스웨덴 SGU, CC0, wetherilli 213).
+`OPTIONAL` 에 두고 고를 때만 싣는다(`--with colombia` — 콜롬비아 1:50만, wetherilli 201; `--with usa` — 미국 USGS, 공공 도메인, wetherilli 205; `--with australia` — 호주 GA, CC BY 4.0, wetherilli 212; `--with sweden` — 스웨덴 SGU, CC0, wetherilli 213; `--with netherlands`·`belgium`·`austria`·`poland` — `arcwms.Door` 상류를 표 하나·손 하나(`static-kinds.js` 의 `arcKind`)로, wetherilli 257).
 
 ## 상류의 함정 — 문서를 믿지 않는다
 
@@ -306,7 +306,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
   상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·페루·에콰도르·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·195·196·198)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·bas·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsjows·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·bas·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -431,7 +431,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   geus.py         GEUS 로 나가는 문 (그린란드 지질도)
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
-  gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS, 지질도Navi 판 목록)
+  gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS, 지질도Navi 판 목록,
+                  1:200만 일본 지질도·부게 중력·지구화학도 WMS — 상류 `gsjows`, 정부표준이용규약 2.0, wetherilli 255)
   gsmma.py        대만 경제부 지질조사·광업관리중심(GSMMA)으로 나가는 문 (지질도 WMS 는 4326 만, 누른 자리의 지층은 지질운 GeoJSON)
   emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
   ngu.py          노르웨이 지질조사소(NGU)로 나가는 문 (본토 기반암 1:135만·25만·5만 MapServer WMS). 3413 을 안 그려 북극 람베르트(3575)로
