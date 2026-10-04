@@ -239,6 +239,9 @@ IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
 #: `manage.py fetch_kopri` 가 천천히 모아 여기 쓴다(두 시간 남짓, 다음부터는 새 것만). 저장소·이미지에
 #: 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (devlog 053·055). 기본은 `<DB 옆>/kopri/`.
 KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
+#: KIGAM 오픈플랫폼의 자료 목록·상세(`/openapi/data`) — `manage.py fetch_kigam_data` 가 1 초 간격으로 모아 둔 것과 행정구역을
+#: 찾은 자리. 저장소·이미지에 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (wetherilli 169).
+KIGAM_DATA_DIR = env("GSM_KIGAM_DATA_DIR") or str(_data_dir() / "kigam_data")
 #: KIGAM 5만 지질도의 층리·엽리·절리 등 — GeoServer WFS 에서 한 번 받아 둔 것(`raw/<YYYYMMDD>/`).
 #: 저장소·이미지에 두지 않는다. 없으면 자세 기호에 커서가 안 바뀔 뿐 뷰어는 돈다 (jikhanjung 004).
 KIGAM50K_DIR = env("GSM_KIGAM50K_DIR") or str(_data_dir() / "kigam50k")
@@ -393,6 +396,7 @@ IBCSO_CATALOG_SEED = REPO_DIR / "data" / "ibcso_layers.json"
 PGC_CATALOG_SEEDS = tuple(REPO_DIR / "data" / f"pgc_{r}_layers.json" for r in ("greenland", "svalbard", "antarctica"))
 #: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료·KPDC 자료),
 #: 북극해(KPDC 자료) (053–057·075·076)
+KIGAM_DATA_CATALOG_SEED = REPO_DIR / "data" / "kigam_data_layers.json"
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
                        for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"

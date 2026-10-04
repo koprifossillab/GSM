@@ -30,7 +30,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, kigamdata, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2074,6 +2074,10 @@ def _point_fields(layer) -> dict:
         # 연구실의 암맥 기록(026) — 같은 서버의 phyloserver 에서 통째로 받는다
         return {"kind": "points", "queryable": False, "style": phyloserver.LAYERS[layer.name]["style"],
                 "source": phyloserver.source_url(layer.name), "attribution": phyloserver.ATTRIBUTION}
+    if layer.upstream == "kigam_data" and kigamdata.knows(layer.name):
+        # KIGAM 오픈플랫폼의 자료(wetherilli 169) — 모아 둔 파일에서. 이용 조건은 자료마다 팝업에
+        return {"kind": "points", "queryable": False, "style": "class", "source": "https://data.kigam.re.kr/",
+                "attribution": kigamdata.ATTRIBUTION}
     if layer.upstream == "kopri" and kopri.knows(layer.name):
         # 극지연구소(053–056) — 암석 시료·운석·KPDC 자료는 모아 둔 파일에서, 기지는 WFS 에서.
         # 색과 범례는 서버가 한 표(`legend`)로 준다
@@ -3179,6 +3183,8 @@ def point_layer(request):
         return _geo3al_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
+    if kigamdata.knows(name):
+        return _kigam_data_layer(name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name in PLACE_FIELDS:
@@ -3281,6 +3287,23 @@ def _geo3al_layer(name, lang):
         log.warning("geo3al 을 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("중국 지질도 자료(USGS geo3al)를 읽지 못했다"), lang)},
                             status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _kigam_data_layer(name, lang):
+    """KIGAM 오픈플랫폼의 자료(wetherilli 169) — 모아 둔 파일에서. 꼴과 까닭은 `_kopri_layer` 와 같다.
+    파일은 `manage.py fetch_kigam_data` 가 쓴다."""
+    try:
+        content = kigamdata.body(name, lang)
+    except FileNotFoundError:
+        return JsonResponse({"error": i18n.t(msg("KIGAM 자료를 아직 모으지 않았다 (fetch_kigam_data)"), lang)},
+                            status=503)
+    except (OSError, ValueError) as exc:
+        log.warning("KIGAM 자료를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("KIGAM 자료를 읽지 못했다"), lang)}, status=500)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

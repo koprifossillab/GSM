@@ -1989,7 +1989,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO", kigam_data: "KIGAM",
     phyloserver: "LAB", peninsula: "LAB",
   };
   var UPSTREAM_NAMES = {
@@ -2002,7 +2002,7 @@
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
-    ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
+    ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"), kigam_data: T("한국지질자원연구원"),
   };
 
   function upstreamOf(name) { return (byName[name] && byName[name].upstream) || "kigam"; }
@@ -3802,6 +3802,8 @@
       a.textContent = row.upstream === "geo3al"
         ? T("원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지")
         : row.upstream === "kopri" ? T("원본 자료 — 극지연구소 KPDC")
+        // KIGAM 오픈플랫폼의 자료(wetherilli 169) — 이용 조건은 자료마다 팝업에
+        : row.upstream === "kigam_data" ? T("원본 자료 — KIGAM 지오빅데이터 오픈플랫폼 (이용 조건은 자료마다)")
         // 그린란드 포털의 면·갈래 레이어(wetherilli 089) — 이용 조건이 적혀 있지 않다(019)
         : row.upstream === "grportal" && row.license ? T("포털의 원본 항목 — CC BY 4.0, Hutchison (2020)")
         : row.upstream === "grportal" ? T("포털의 원본 항목 — 이용 조건 표시 없음")

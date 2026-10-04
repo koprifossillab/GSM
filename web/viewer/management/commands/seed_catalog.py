@@ -79,6 +79,8 @@ class Command(BaseCommand):
                 (settings.GSNI_CATALOG_SEED, "북아일랜드 (GSNI)", "ireland", "gsni"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
+                # KIGAM 오픈플랫폼의 자료 — 시료·분석, 조사·탐사, 주제도 범위 (wetherilli 169)
+                (settings.KIGAM_DATA_CATALOG_SEED, "KIGAM 자료", "korea", "kigam_data"),
                 # 연구실의 암맥 기록 — phyloserver (026)
                 (settings.PHYLOSERVER_CATALOG_SEED, "암맥 (phyloserver)", "korea", "phyloserver"),
                 # 한반도 지질도 음영판 — 우리 디스크의 PDF 를 잘라 둔 타일 (027)
