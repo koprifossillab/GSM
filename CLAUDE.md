@@ -231,7 +231,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - **달은 지역이 아니다** — 대돌여지도 아이콘의 숨은 차림에서 들어가는 따로 화면(`/GSM/moon/`)이다.
   CesiumJS 의 둥근 달(극까지 온전하다)에 USGS 달 통합 지질도와 LOLA 지형을 얹고, 테마는 늘 흑백이다
   (036, P05). 지질도·표고·속성·범례는 `trek.py` 를 거치고, 영상 배경(LRO WAC·Kaguya TC·LOLA 음영)만 브라우저가
-  Trek 을 곧장 부른다. 좌표는 달 경위도다 — 지구의 `toLL`·좌표계를 타지 않는다. 평면은 위도 65° 너머면
+  Trek 을 곧장 부른다. 루나 오비터·클레멘타인 배경은 브라우저가 USGS Astrogeology WMS 를 칸의 경위도 범위로 곧장 부른다(공공 도메인,
+  CORS `*`, wetherilli 229) — 극 평면에서는 USGS 극 판이 우리 극 격자와 맞지 않아 WAC 를 쓴다. 좌표는 달 경위도다 — 지구의 `toLL`·좌표계를 타지 않는다. 평면은 위도 65° 너머면
   달 극 평사도법(`IAU_2015:30130`·`30135`)이고 Trek 의 극지 판을 받는다 (052). 달 지명은
   `data/moon_places.json`(`manage.py fetch_moon_places`). 원도 6 장(1971–1979)은 우리가 굽는다 — 아래 "파일을 받아"
 - **화성도 지역이 아니다** — 달 화면을 옮긴 따로 화면(`/GSM/mars/`, `mars.js`·`mars.html`, 058)이다. 틀은 달과 같고
@@ -243,7 +244,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   `emblem-mars.png`)과 대기 화면(`splash-*.gif`)이 따로다 — 원본은 `docs/brand/`
 - **수성도 지역이 아니다** — 화성 화면을 옮긴 따로 화면(`/GSM/mercury/`, `mercury.js`·`mercury.html`, wetherilli P10·137)이다.
   문은 같은 `trek.py`(`mercury_*`, 주소 `TREK_MERCURY_URL`)인데 ArcGIS 의 뿌리가 `arcgis/rest/services/mercury/` 다. 영상은 MESSENGER
-  MDIS, 표고는 USGS 665 m. **지질도는 우리가 굽는다**(`mercurymap.py`, wetherilli 144) — Trek 의 5M 도폭은 Capabilities 만 있고
+  MDIS(마리너 10 모자이크는 USGS Astrogeology WMS, wetherilli 229), 표고는 USGS 665 m. **지질도는 우리가 굽는다**(`mercurymap.py`, wetherilli 144) — Trek 의 5M 도폭은 Capabilities 만 있고
   타일이 404 라, USGS 1:500만 도폭 아홉의 합본(Frigeri 외 2008, 마리너 10 시절 좌표)을 쓴다. 마리너 10 이 찍은 반쪽 남짓만 덮고
   시대 열이 없어 범례는 갈래(평원·분지·크레이터)로 묶는다. 극지 판 타일이 없어 극 평면(`IAU_2015:19930`·`19935`)은 경위도 타일을 옮겨 그린다.
   테마는 MESSENGER 강조색의 청회색·황갈. **화성 화면을 고치면 수성에도 옮길지 본다.** 지명은 `data/mercury_places.json`
