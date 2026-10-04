@@ -110,7 +110,7 @@ GSM_DEV_DIRECT_WMS=0
 | 카탈로그 | `geoOpen` 61 개, 레이어군 8 갈래 |
 | 점묶음 | UTF-8 CSV·CP949 CSV·GeoJSON 올라간다. 위경도 열 없으면 까닭을 말한다 |
 | 좌표 | 십진도·도분초 오가고, 찍어서 이동하고, 눌러서 복사한다 |
-| 시험 | 1 400 개 남짓 다 돈다 (`manage.py test viewer`, 2026-10-04). 휴대폰 화면은 CI 의 "휴대폰 화면" job(`test_mobile`, 모든 지역 탭) |
+| 시험 | 1 370 개 다 돈다 (`manage.py test viewer`, 2026-10-04). 휴대폰 화면은 CI 의 "휴대폰 화면" job(`test_mobile`, 모든 지역 탭) |
 | 오픈API | 키로 61 개 전부 그려진다. 범례도 된다. **속성은 막혀 있다** (006) |
 | 배포 | `http://paleolab/GSM/` 200. 짧은 주소 `/geomap/` 301 |
 | 배경지도 | VWorld `Base`·`Satellite`·`Hybrid` 200. 자리 차례는 `z/y/x` (003) |

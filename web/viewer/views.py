@@ -1298,7 +1298,7 @@ def mars_places(request):
 
 # ── 수성 (wetherilli P10) ─────────────────────────────────────────────
 #
-# 화성 화면을 옮겼다. 문은 `trek.py` 의 `mercury_*` 다. 지질도는 아직 없다 — 5M 도폭을 굽는 것이 다음 단계다
+# 화성 화면을 옮겼다. 문은 `trek.py` 의 `mercury_*` 다. 지질도는 우리가 굽는다 — USGS 1:500만 도폭 합본(`mercurymap.py`, wetherilli 144)
 
 @require_GET
 def mercury_view(request):

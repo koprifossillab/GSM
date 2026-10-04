@@ -3057,3 +3057,10 @@ LAYER_EN = {
     "kopri:arctic_depth_contours": "Arctic Ocean depth contours",
     "kopri:greenland_ice_contours": "Ice sheet contours",
 }
+# 지역 탭의 화석·화산·지진·고생태 점 (wetherilli 185) — 지역마다 이름이 갈려 열둘이다. 열쇠가 레이어 이름이라 제목으로는 찾지 못했다
+# (영어판에 한국어 제목이 뜨던 것, wetherilli 203)
+LAYER_EN.update({f"earth:{kind}_{region}": title
+                 for region in ("korea", "antarctica", "arctic")
+                 for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
+                                     ("quakes", "Earthquakes M5+ (USGS)"),
+                                     ("neotoma", "Quaternary palaeoecology sites (Neotoma)"))})

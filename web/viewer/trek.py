@@ -1080,8 +1080,8 @@ def mars_traverses() -> list:
 #
 # 화성과 같은 틀이다 — 주소만 `settings.TREK_MERCURY_URL` 밑이다. **ArcGIS 의 뿌리가 다르다** — 달·화성의
 # `trekarcgis/` 가 아니라 `arcgis/rest/services/mercury/` 다(2026-10-02, `trekarcgis` 는 404).
-# 지질도는 아직 없다 — Trek 의 5M 도폭 일곱은 색인·Capabilities 만 있고 타일이 404 다(2026-10-02). 원본
-# 셰이프파일을 우리가 굽는 것이 다음 단계다(P10 §2). 영상 배경(MESSENGER MDIS)은 브라우저가 곧장 부른다.
+# 지질도는 Trek 에서 받지 않는다 — Trek 의 5M 도폭 일곱은 색인·Capabilities 만 있고 타일이 404 다(2026-10-02). USGS 1:500만
+# 도폭 합본을 우리가 굽는다(`mercurymap.py`, wetherilli 144). 영상 배경(MESSENGER MDIS)은 브라우저가 곧장 부른다.
 
 MERCURY_ATTRIBUTION = ("MESSENGER MDIS (NASA/JHUAPL/Carnegie Institution of Washington) · "
                        "MESSENGER DEM v2 (USGS, Becker et al., 2016) · via NASA Mercury Trek")

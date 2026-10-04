@@ -76,9 +76,11 @@ class PhoneScreenTests(StaticLiveServerTestCase):
 
     # ── 여는 법 ─────────────────────────────────────────────
 
-    def open(self, path, settle=1500):
+    def open(self, path, settle=1500, lang=None):
         ctx = self.browser.new_context(**PHONE)
         self.addCleanup(ctx.close)
+        if lang:                                    # 영어판 — 글이 길어 넘치기 쉽다 (wetherilli 203)
+            ctx.add_cookies([{"name": "gsm_lang", "value": lang, "url": self.live_server_url}])
         page = ctx.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
@@ -89,7 +91,7 @@ class PhoneScreenTests(StaticLiveServerTestCase):
             rest = url[len(base):] if url.startswith(base) else None
             if rest is None:
                 return r.abort()
-            if r.request.resource_type == "document" or rest.startswith(("static/", "pointsets/")):
+            if r.request.resource_type == "document" or rest.startswith(("static/", "pointsets/", "patchnotes/")):
                 return r.continue_()
             return r.abort()       # 타일·표고·범례 — 상류로 이어진다
 
@@ -113,9 +115,9 @@ class PhoneScreenTests(StaticLiveServerTestCase):
             self.assertGreaterEqual(b["top"], -1, f"{where}: {sel} 가 위로 나간다")
             self.assertLessEqual(b["bottom"], m["vh"] + 1, f"{where}: {sel} 가 아래로 나간다")
 
-    def check_map_screen(self, path, settle=1500):
+    def check_map_screen(self, path, settle=1500, lang=None):
         """2D·구 화면 — 패널이 접힌 채로 열려 지도가 화면을 차지하고, 손잡이가 아이콘 한 줄이다."""
-        page, errors = self.open(path, settle)
+        page, errors = self.open(path, settle, lang)
         self.assertEqual(errors, [], f"{path}: 페이지 오류")
         m = self.measure(page)
         self.assertFits(m, path)
@@ -209,6 +211,32 @@ class PhoneScreenTests(StaticLiveServerTestCase):
         self.assertIsNone(page.evaluate("localStorage.getItem('gsm.region')"), "그 사람의 기억을 덮는다")
         self.assertIsNone(page.evaluate("localStorage.getItem('gsm.layers.antarctica')"))
         self.assertTrue(page.locator("#tool-share").is_visible())
+
+    def test_영어판(self):
+        """영어 글은 한국어보다 길다 — 지역 지도와 온 지구를 영어판으로 연다 (wetherilli 203)"""
+        for path, settle in (("map/", 1500), ("earth/", 3000)):
+            with self.subTest(path=path):
+                page = self.check_map_screen(path, settle, lang="en")
+                self.assertEqual(page.evaluate("document.documentElement.lang"), "en")
+                page.context.close()
+
+    def test_설정_창(self):
+        """설정 창(판 이력·언어·기억 지우기)이 휴대폰 화면 안에 선다 (wetherilli 203)"""
+        page, errors = self.open("map/")
+        page.tap("#panel-handle")
+        page.wait_for_timeout(300)
+        page.tap("#gear")
+        page.wait_for_timeout(800)
+        self.assertEqual(errors, [])
+        box = page.locator("#settings .sheet-box").bounding_box()
+        m = self.measure(page)
+        self.assertFits(m, "map/ (설정 창)")
+        self.assertGreaterEqual(box["x"], -1)
+        self.assertLessEqual(box["x"] + box["width"], m["vw"] + 1, "설정 창이 오른쪽으로 나간다")
+        self.assertTrue(page.locator("#settings-close").is_visible())
+        page.tap("#settings-close")
+        page.wait_for_timeout(200)
+        self.assertTrue(page.locator("#settings").is_hidden())
 
     def test_3D_판은_접혀_열린다(self):
         page, errors = self.open("3d/", settle=2000)
