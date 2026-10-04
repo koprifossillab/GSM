@@ -32,7 +32,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgc, usage
-from . import profileband, static_tables
+from . import earthpoints, profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -820,7 +820,7 @@ def _trek_map(request, body, label):
 
 @require_GET
 def trek_map_tile(request, body, label, z, x, y):
-    """`trek/<moon|mars>/map/<판>/<z>/<x>/<y>.png` — MapServer 판의 타일."""
+    """`trek/<moon|mars|mercury>/map/<판>/<z>/<x>/<y>.png` — MapServer 판의 타일."""
     z, x, y = int(z), int(x), int(y)
     entry, error = _trek_map(request, body, label)
     if error:
@@ -2139,6 +2139,12 @@ def _point_fields(layer) -> dict:
             # 아라온호 항적 — 고를 기간(날수, 앞의 것이 기본). 화면이 이 안의 조각만 옅어지게 그린다 (koprifossillab 017)
             spec["periods"] = list(kopri.ARAON_PERIODS)
         return spec
+    if layer.upstream == "earth" and earthpoints.knows(layer.name):
+        # 지구 자료 점(wetherilli 185) — 온 지구 화면의 화석 산지·화산·지진·고생태 산지를 지역의 네모만큼. 색은 서버의 표
+        src = earthpoints.source_of(layer.name)
+        return {"kind": "points", "queryable": False, "style": "class",
+                "source": earthpoints.SOURCE_URLS[src], "sourceLabel": str(earthpoints.SOURCE_LABELS[src]),
+                "attribution": earthpoints.CREDITS[src], "version": earthpoints.version(layer.name)}
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
@@ -3440,6 +3446,8 @@ def point_layer(request):
         return _geo3al_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
+    if earthpoints.knows(name):
+        return _earth_points_layer(request, name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name in PLACE_FIELDS:
@@ -3566,6 +3574,23 @@ def _kopri_layer(name, lang):
     elif settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response
+
+
+def _earth_points_layer(request, name, lang):
+    """지역 탭의 지구 자료 점(wetherilli 185) — 화석 산지·홀로세 화산·지진·고생태 산지를 지역의 네모만큼. 꼴과 까닭은
+    `_kopri_layer` 와 같다. 모아 둔 파일에서 자를 뿐이라 상류를 타지 않는다."""
+    try:
+        content = earthpoints.body(name, lang)
+    except FileNotFoundError:
+        return JsonResponse({"error": i18n.t(earthpoints.MISSING[earthpoints.source_of(name)], lang)}, status=503)
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        log.warning("지구 자료 점을 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("모아 둔 자료를 읽지 못했다"), lang)}, status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    # 모아 둔 파일에서 나오니 판이 있다 — 카탈로그가 준 `?v=` 가 맞으면 오래 둔다 (wetherilli 183)
+    return _immutable(request, response, earthpoints.version(name))
 
 
 def _geomap_legend(request, layer):

@@ -76,6 +76,20 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 지역 탭의 지구 자료 점 (wetherilli 185)
+    "제4기": "Quaternary", "신진기": "Neogene", "고진기": "Paleogene", "백악기": "Cretaceous", "쥐라기": "Jurassic",
+    "트라이아스기": "Triassic", "페름기": "Permian", "석탄기": "Carboniferous", "데본기": "Devonian",
+    "실루리아기": "Silurian", "오르도비스기": "Ordovician", "캄브리아기": "Cambrian", "선캄브리아": "Precambrian",
+    "원본 자료 — Paleobiology Database, CC BY 4.0": "Source — Paleobiology Database, CC BY 4.0",
+    "원본 자료 — 스미스소니언 GVP, 비상업·인용 조건": "Source — Smithsonian GVP, non-commercial use with citation",
+    "원본 자료 — USGS ComCat, 공공 영역": "Source — USGS ComCat, public domain",
+    "원본 자료 — Neotoma, CC BY 4.0": "Source — Neotoma, CC BY 4.0",
+    "화석 산지 자료를 아직 모으지 않았다 (fetch_pbdb)": "Fossil collections have not been gathered yet (fetch_pbdb)",
+    "홀로세 화산 자료를 아직 모으지 않았다 (fetch_gvp)": "Holocene volcanoes have not been gathered yet (fetch_gvp)",
+    "지진 자료를 아직 모으지 않았다 (fetch_quakes)": "Earthquakes have not been gathered yet (fetch_quakes)",
+    "고생태 산지 자료를 아직 모으지 않았다 (fetch_neotoma)": "Paleoecology sites have not been gathered yet (fetch_neotoma)",
+    "모아 둔 자료를 읽지 못했다": "Could not read the gathered data",
+    "온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma": "Data gathered for the Whole Earth view — PBDB, GVP, USGS, Neotoma",
     # 이름
     "대돌여지도": "Great Stone Map",
     "GSM — 한국지질자원연구원 지오빅데이터 오픈플랫폼 오픈API 지도뷰어":
@@ -1634,6 +1648,9 @@ EN = {
 
 PROP_EN = {
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
+    # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
+    "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
+    "USGS 지진 페이지": "USGS event page", "Neotoma 산지 페이지": "Neotoma site page",
     # 대만 — 지질운의 온천·시추·순향사면 (gsmma.py, wetherilli 141)
     "온천명": "Hot spring", "수질": "Water type", "수온 (°C)": "Water temperature (°C)", "pH": "pH",
     "조사 사업": "Survey project", "공번": "Borehole no.", "심도 (m)": "Depth (m)",
@@ -2547,6 +2564,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
@@ -2612,6 +2630,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 지구 자료 점 (wetherilli 185)
+    "화석 산지 (PBDB)": "Fossil collections (PBDB)", "홀로세 화산 (GVP)": "Holocene volcanoes (GVP)",
+    "지진 M5 이상 (USGS)": "Earthquakes M5+ (USGS)", "제4기 고생태 산지 (Neotoma)": "Quaternary paleoecology sites (Neotoma)",
     # 국토지리원 주제 타일 (wetherilli 172)
     "gsitile:afm": "Active fault map (urban areas)",
     "gsitile:vlcd": "Volcanic land condition map",

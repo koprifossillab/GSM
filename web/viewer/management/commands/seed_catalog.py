@@ -95,7 +95,9 @@ class Command(BaseCommand):
                 *((path, f"PGC ({path.stem})", "greenland", "pgc") for path in settings.PGC_CATALOG_SEEDS),
                 # 극지연구소 — 암석 시료·운석·KPDC 자료·기지·해안선 (053–057). 지역은 씨앗이 적는다
                 *((path, f"극지연구소 ({path.stem})", "antarctica", "kopri")
-                  for path in settings.KOPRI_CATALOG_SEEDS)):
+                  for path in settings.KOPRI_CATALOG_SEEDS),
+                # 지구 자료 점 — 모아 둔 화석 산지·화산·지진·고생태 산지를 지역의 네모만큼 (wetherilli 185). 지역은 씨앗이 적는다
+                *((path, f"지구 자료 ({path.stem})", "korea", "earth") for path in settings.EARTH_CATALOG_SEEDS)):
             if not path.exists():
                 continue
             extra = json.loads(path.read_text(encoding="utf-8"))
