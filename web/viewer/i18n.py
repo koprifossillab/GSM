@@ -115,6 +115,7 @@ EN = {
     "폴란드 지질연구소 (PIG-PIB)": "Polish Geological Institute (PIG-PIB)", "네덜란드 지질조사부 (TNO)": "Geological Survey of the Netherlands (TNO)",
     "플랑드르 지하 자료은행 (DOV)": "Flanders Subsurface Database (DOV)", "왈로니아 공공서비스 (SPW)": "Public Service of Wallonia (SPW)",
     "브리티시컬럼비아 지질조사소": "British Columbia Geological Survey", "캘리포니아 지질조사소": "California Geological Survey",
+    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI",
     "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
     "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
@@ -3097,6 +3098,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "네바다 지질도 (NBMG 1:50만)": "Nevada geology (NBMG 1:500k)", "워싱턴 지질도 (DNR)": "Washington geology (DNR)",
+    "오리건 지질도 (DOGAMI OGDC-6)": "Oregon geology (DOGAMI OGDC-6)",
     "인도네시아 광물 자원 (ESDM)": "Indonesia mineral resources (ESDM)", "필리핀 광물 자원 (MGB)": "Philippines mineral resources (MGB)",
     "태국 광물 (DMR)": "Thailand minerals (DMR)", "사우디 광물 (SGS)": "Saudi Arabia minerals (SGS)", "몽골 광물 (MRIS)": "Mongolia minerals (MRIS)",
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
@@ -3246,6 +3249,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 미국 주 지질도 (wetherilli 291)
+    "nbmg:geology": "Geologic map (1:500,000)", "wadnr:500k": "Geologic map (1:500,000)", "wadnr:100k": "Geologic map (1:100,000 GeMS)",
+    "dogami:ogdc": "Oregon Geologic Data Compilation (OGDC-6)",
     # 아시아 광물 (wetherilli 280)
     "esdm:metal": "Metallic mineral potential", "esdm:nonmetal": "Non-metallic mineral and rock potential",
     "mgb:metallic": "Metallic mineral resources", "mgb:nonmetallic": "Non-metallic mineral resources",

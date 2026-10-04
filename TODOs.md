@@ -61,6 +61,10 @@
       브라질 opendata 의 광업 권역(ANM)·항공 지구물리 조사 범위, SEGEMAR 자력 이상(나라 전체 면 47 개뿐이라 뺐다), 페루 광업 권리(`SERV_CATASTRO_MINERO`)·
       지화학 지도첩(`SERV_ATLAS_GEOQUIMICO`)·산업 광물(`SERV_ROCAS_MINERALES_INDUSTRIALES`)
 
+- [ ] 미국 주 지질도(wetherilli 291) — 네바다·워싱턴·오리건은 섰다. 남은 것: 유타 UGS(`webmaps.geology.utah.gov/arcgis/rest/services/GeolMap/500k_State`)와
+      애리조나 AZGS(`services.azgs.az.gov`)는 이 서버에서 연결이 시간 초과다(나라 밖을 막는 듯) — 미국 안의 길이 생기면. 알래스카 DGGS 는 지질도가
+      SIM 3340(mrdata)과 겹쳐 두지 않았고 광물 산지(`Mineral_Occurrences_2020_MIL1`)는 따로 볼 것. 세 주 모두 조건 문구를 읽지 않았다 — 정적 판에 싣기 전에
+
 - [ ] 아시아 광물(wetherilli 280) — 인도네시아·필리핀·태국·사우디·몽골 희토류는 섰다. 남은 것: 말레이시아 MyGEMS 는 `rest/services` 목록이 허브 쪽으로
       넘어가 광물 서비스를 찾지 못했다, 인도 GSI 는 Bhukosh 가 나라 밖에서 닿지 않는다. 몽골 `Atlas/AtlasPoints` 의 광상 레이어(6–9)는 우물 자료를
       돌려준다 — 고쳐지면 금속·비금속·연료·전략 광상. 태국 지구물리 탐사 지점·사우디 지구물리 사업 범위는 범위뿐이라 뺐다.
