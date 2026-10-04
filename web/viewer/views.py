@@ -2807,8 +2807,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geusarc" and geus.arc_knows(layer.name):
-        # 그린란드 GEUS ArcGIS(wetherilli 259) — 화면의 투영(3413)으로 REST export. 범례는 따로 받지 않고, 지질구만 누른다
-        return {"attribution": geus.ARC_ATTRIBUTION.get(layer.name, geus.GEUS_ATTRIBUTION), "projection": "EPSG:3413", "noLegend": True,
+        # 그린란드 GEUS ArcGIS(wetherilli 259) — 화면의 투영(3413)으로 REST export. 지질도는 목록 범례(wetherilli 301), 지구물리는 범례가 없다
+        legend = ({"legend": "list", "legendUrl": "list/legend/"} if layer.name in geus.LEGEND_LAYERS else {"noLegend": True})
+        return {"attribution": geus.ARC_ATTRIBUTION.get(layer.name, geus.GEUS_ATTRIBUTION), "projection": "EPSG:3413", **legend,
                 **({} if geus.ARC_LAYERS[layer.name][2] else {"queryable": False})}
     if layer.upstream == "vworld" and layer.name in vworld.MIN_ZOOM:
         # 가까이서만 그려 주는 VWorld 레이어(토양·산림·국가유산, wetherilli 084·193) — 멀리서는 묻지 않는다
@@ -4220,7 +4221,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs, georep, bas, usstates)
+LIST_LEGENDS = (jmg, dmr, calgs, georep, bas, usstates, geus)
 
 
 @require_GET
