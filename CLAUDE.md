@@ -304,7 +304,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
   상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·페루·에콰도르·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·195·196·198)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -348,7 +348,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 - **아프리카 1:1000만도 CGMW 의 지도다**(CGMW–BRGM 2016) — 서버의 조건 칸은 비었지만 CGMW 가 인쇄판을 판다. 정적 판에 싣지 않고
   밖에 열기 전에 사람이 읽는다(TODOs). **BGS 아프리카 지하수 지도책은 CC BY-SA 4.0** 이다 (wetherilli 207).
   **남아공 CGS(정부 DPME 사본)·나미비아 GSN 은 자료를 판다** — 보기는 열려 있지만 받은 것을 **서버 캐시에 담지 않는다**(`views.NO_STORE`) —
-  그때그때 받아 보여 주기만 한다. 정적 판에 싣지 않는다 (wetherilli 209)
+  그때그때 받아 보여 주기만 한다. 정적 판에 싣지 않는다 (wetherilli 209). **부르키나파소 BUMIGEB·카메룬 IRGM 1:100만은 비상업**
+  ("personal, teaching, research or non-commercial use") — 파는 자료가 아니라 캐시에 담고, 정적 판에 싣지 않는다 (wetherilli 246)
 - **호주의 주 판(퀸즐랜드 GSQ·빅토리아 GSV·남호주 GSSA)은 CC BY 4.0** 이다 — 남호주는 Capabilities 가, 퀸즐랜드·빅토리아는 주 열린자료 목록이
   그렇게 적는다. 정적 판에는 아직 싣지 않았다(`static-kinds.js` 가 없다). 서호주 SLIP 은 "개인 이용 허락" 이라 싣지 않았다(TODOs, wetherilli 225)
 - **중국 geo3al 은 연구실 내부용이다** — USGS 메타데이터의 이용 조건이 "내부 용도만,
@@ -436,10 +437,10 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   natt.py         아이슬란드 자연사연구소(NÍ)로 나가는 문 (1:60만 기반암·1:10만 GeoServer WMS). 3413 으로 곧장, 1:60만의 부호는 범례 이름으로 푼다
   bgs.py          영국 지질조사소(BGS)로 나가는 문 (그레이트브리튼 1:5만 ArcGIS WMS, 줌 13 부터). 같은 서버의 북아일랜드 GSNI 1:25만도,
                   아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
-                  (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)도
+                  (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도
   cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
-                  CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)도
+                  CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)·카메룬 IRGM 1:100만(`irgm`, 4326 만, 246)도
   egdi.py         EGDI(EuroGeoSurveys)로 나가는 문 (범유럽 1:100만 지표 지질 GeoServer WMS). 느리다. 속성은 두 판 모두 암상 판에 묻는다(wetherilli 177)
   bgr.py          독일 연방 지구과학·자원청(BGR)으로 나가는 문 (GK1000·GÜK250 ArcGIS WMS). 이름은 `bgr:<판>:<번호>`. 유럽 1:500만 IGME5000 도
                   (축척마다 갈린 상류 레이어는 `+` 로 잇는다, 독일 탭에 두고 유럽 나라 탭이 빌린다, wetherilli 217)
