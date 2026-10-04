@@ -245,6 +245,7 @@
 | wetherilli 200 | 2026-10-04 | [남은 배경의 조건을 읽었다 — NPI 타일만 서버 캐시로](20261004_wetherilli_200_cache_more_basemaps.md) |
 | wetherilli 201 | 2026-10-04 | [정적 판에 콜롬비아 1:50만을 실을 수 있게 — 싣는 것은 사람이 고른다](20261004_wetherilli_201_static_colombia.md) |
 | wetherilli 202 | 2026-10-04 | [5만 구조 요소 — 단층·습곡·광종·변질대·변성대](20261004_wetherilli_202_kigam50k_lines.md) |
+| wetherilli 203 | 2026-10-04 | [작은 고침 묶음 — 미뤄 둔 것·시험·영어판·휴대폰의 빈틈](20261004_wetherilli_203_small_fixes.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
