@@ -562,7 +562,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 이 일흔둘 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`caribmap.py`·`ibcso.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`caribmap.py`·`ibcso.py`·`admap.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
