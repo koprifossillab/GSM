@@ -70,6 +70,9 @@ urlpatterns = [
     re_path(r"^earth/fossils/tiles/(?P<ka>\d{1,7})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_fossil_tile, name="earth-fossil-tile"),
     path("earth/fossils/at/", views.earth_fossil_at, name="earth-fossil-at"),
+    # 화석 산지 밀도 열지도 (fossils.py, wetherilli 286)
+    re_path(r"^earth/fossils/density/(?P<ka>\d{1,7})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+            views.earth_fossil_density_tile, name="earth-fossil-density-tile"),
     re_path(r"^earth/volcanoes/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_volcano_tile,
             name="earth-volcano-tile"),
     re_path(r"^earth/volcanoes/pleistocene/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_volcano_tile,

@@ -1476,6 +1476,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 화석 산지 밀도 (wetherilli 286) — 같은 pbdb.sqlite 에서. 범례는 비율
+                                   "fossildensity": fossils.density_legend(lang) if fossils.available() else [],
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
                                    # 플라이스토세 화산 (wetherilli 194) — 따로 받은 것이 있을 때만 따로 레이어가 선다
@@ -2179,6 +2181,30 @@ def earth_crust_at(request):
 
 
 # ── 화석 산지 (wetherilli 098) ───────────────────────────────────────
+
+@require_GET
+def earth_fossil_density_tile(request, ka, z, x, y):
+    """`earth/fossils/density/<ka>/<z>/<x>/<y>.png` — 그 연대의 화석 산지 밀도(1° 칸, 로그) (wetherilli 286). 연대는 점 레이어와 같은 ka.
+    고르기도 점 레이어와 같다 — 1 Ma 부터는 그때의 자리로 옮긴 산지를 센다"""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not fossils.density_valid(z, x, y) or ka > 1100000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if fossils.db() is None:
+        return _tile(tiles.blank_tile(), store=False)
+    age = ka / 1000.0
+    if age >= fossils.PALEO_FROM:
+        age = float(round(age))
+    version = fossils_version() + fossils.DENSITY_RENDERER
+    key = tilecache.key_text("pbdb-density", f"{version}/{age:g}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = fossils.render_density(age, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
 
 @require_GET
 def earth_fossil_tile(request, ka, z, x, y):
@@ -4294,6 +4320,7 @@ def tile_versions(page: str) -> dict:
                 for name, sheet in ibcso.SHEETS.items()}
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
+                "fossildensity": fossils_version() + fossils.DENSITY_RENDERER,
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
                 "minerals": minerals_version(),

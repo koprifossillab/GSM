@@ -539,6 +539,13 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 화석 산지 밀도 (wetherilli 286)
+    "화석 산지 밀도": "Fossil locality density",
+    "드물다": "Sparse",
+    "몇 곳": "A few",
+    "많다": "Many",
+    "가장 많은 칸": "Densest cell",
+    "1° 칸의 산지 수(로그) — 조사가 몰린 곳이 진하다": "Localities per 1° cell (log) — darker where sampling concentrates",
     # 세계 광상 USGS (wetherilli 276)
     "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
     "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
