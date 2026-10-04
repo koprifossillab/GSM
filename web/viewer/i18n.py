@@ -92,6 +92,8 @@ EN = {
     "뉴질랜드": "New Zealand", "오세아니아": "Oceania", "뉴질랜드 지질·핵과학연구소 (GNS)": "GNS Science (New Zealand)",
     # 몽골 (wetherilli 221)
     "몽골": "Mongolia", "몽골 국가지질조사소 (MonGeoCat)": "National Geological Survey of Mongolia (MonGeoCat)",
+    # 인도 (wetherilli 226)
+    "인도": "India", "인도 지질조사소 (그림: BGS)": "Geological Survey of India (map by BGS)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -2755,6 +2757,7 @@ GROUP_EN = {
     "뉴질랜드 지질도 (GNS)": "Geology of New Zealand (GNS)", "뉴질랜드 구조 (GNS 1:25만)": "New Zealand structures (GNS 1:250k)",
     "남빅토리아랜드 1:25만 (GNS)": "Southern Victoria Land 1:250k (GNS)",
     "몽골 지질도 (MonGeoCat)": "Geology of Mongolia (MonGeoCat)",
+    "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2871,6 +2874,8 @@ LAYER_EN = {
     "gns:ATA_SVL_GNS_250K_faults": "Southern Victoria Land faults (1:250k)",
     # 몽골 (wetherilli 221)
     "mris:geology:1": "Geological map (National Geological Atlas)", "mris:faults:0": "Faults (1:500k)",
+    # 인도 (wetherilli 226)
+    "gsiindia:geology": "Geology (1:2M)", "gsiindia:faults": "Faults (1:2M)", "gsiindia:thrusts": "Thrusts (1:2M)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
