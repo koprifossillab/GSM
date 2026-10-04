@@ -16,6 +16,8 @@ from . import usage
 log = logging.getLogger(__name__)
 
 PREFIX = "swisstopo:"
+#: 메타타일로 받는다 (wetherilli 287) — 1:50만 512 px 2.1–4.5 초, 1 024 px 2.3 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"swisstopo:": None}
 LAYERS = {"swisstopo:geologische_karte": "ch.swisstopo.geologie-geologische_karte",
           "swisstopo:geocover": "ch.swisstopo.geologie-geocover"}
 ATTRIBUTION = '<a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">© swisstopo</a>'
@@ -51,7 +53,7 @@ def _get(url: str, params: dict):
         usage.record("swisstopo", ok=False)
         raise SwisstopoError(f"swisstopo 에 닿지 못했다: {exc}") from exc
     log.info("swisstopo %s -> %s", r.url, r.status_code)
-    usage.record("swisstopo", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("swisstopo", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

@@ -88,7 +88,7 @@ def _get(op: str, params: dict):
         usage.record("cgs", ok=False)
         raise CgsError(f"DPME(CGS) 에 닿지 못했다: {exc}") from exc
     log.info("CGS %s -> %s", r.url, r.status_code)
-    usage.record("cgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("cgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 
