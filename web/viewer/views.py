@@ -2645,7 +2645,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 처음 줌을 둔다. 단위 면은 보는 범위의 범례(`austates/legend/`, 232), 구조선은 범례·누르기가 없다
         first = austates.first_zoom(layer.upstream, layer.name)
         legend = ({"legend": "extent", "legendUrl": "austates/legend/"} if austates.is_unit(layer.upstream, layer.name)
-                  else {"noLegend": True, "queryable": False})
+                  # 광산·광물 산지(wetherilli 269)는 누르기만, 지구물리 영상·구조선은 범례·누르기가 없다
+                  else {"noLegend": True} if austates.queryable(layer.upstream, layer.name) else {"noLegend": True, "queryable": False})
         return {"attribution": austates.UPSTREAMS[layer.upstream][2], "projection": "EPSG:3857", **legend,
                 **({"minZoom": first} if first else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):

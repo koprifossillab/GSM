@@ -159,6 +159,8 @@ SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
 NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 뉴질랜드·남빅토리아랜드 지질도 — GNS Science GeoServer WMS (`viewer/gns.py`, wetherilli 218). 열쇠가 없다
 GNS_WMS_URL = env("GSM_GNS_WMS_URL", "https://maps.gns.cri.nz/geology/wms")
+#: GNS 전체 서비스 — 지질 서비스에 없는 중력 이상 따위 (wetherilli 269)
+GNS_ALL_WMS_URL = env("GSM_GNS_ALL_WMS_URL", "https://maps.gns.cri.nz/gns/wms")
 #: 몽골 국가지질도첩 — MonGeoCat ArcGIS 의 앞 주소 (`viewer/mris.py`, wetherilli 221). 열쇠가 없다. 문서에 없는 주소다
 MRIS_URL = env("GSM_MRIS_URL", "https://gismap.mris.mn/arcgis")
 #: 인도 1:200만 — 그림은 BGS 가 여는 OneGeology WMS, 속성은 GSI 의 ArcGIS Online 피처 서비스 (`viewer/gsiindia.py`, wetherilli 226)
