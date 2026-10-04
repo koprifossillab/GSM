@@ -113,6 +113,18 @@ class View(TestCase):
         rows = {l["name"]: l for g in views._catalog("ko") for l in g["layers"]}
         self.assertEqual((rows["sgm:datos:7"]["minZoom"], rows["sgm:datos:7"]["queryable"]), (8, False))
 
+    def test_끄는_스위치(self):
+        """`GSM_METATILE_OFF` 면 칸 하나씩 받던 앞의 길로 (wetherilli 299)"""
+        sent = []
+
+        def fake(url, params=None, **kw):
+            sent.append(params)
+            return mock.Mock(status_code=200, headers={"content-type": "image/png"}, content=quadrants(256), url=url)
+        with override_settings(METATILE=False), mock.patch.object(sgm.requests, "get", side_effect=fake), \
+             mock.patch.object(sgm.usage, "record"), mock.patch.object(sgm.usage, "paused", return_value=0):
+            self.client.get("/GSM/wms/", {k.upper(): v for k, v in wms(8, 56, 112).items()} | {"SERVICE": "WMS", "REQUEST": "GetMap"})
+        self.assertEqual(sent[0]["size"], "512,512")
+
     def test_조각을_두_벌_담지_않고_옛것으로_되받는다(self):
         """조각으로 낸 칸은 브라우저 열쇠로 다시 담지 않는다 — 다음에도 조각에서 나오고, 상류가 못 줄 때는 조각의 옛것이 나온다 (wetherilli 297)"""
         q = {k.upper(): v for k, v in wms(8, 56, 112).items()} | {"SERVICE": "WMS", "REQUEST": "GetMap"}
