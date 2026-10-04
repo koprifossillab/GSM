@@ -3,9 +3,11 @@
 프록시가 있는 까닭은 인증키다 — 브라우저는 키를 모른 채 `/wms/` 를 부르고,
 여기서 키를 붙여 상류로 넘긴다. CLAUDE.md 의 "인증키" 를 볼 것.
 """
+import csv
 import datetime
 import functools
 import hashlib
+import io
 import json
 import logging
 import math
@@ -32,7 +34,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgc, usage
-from . import earthpoints, profileband, static_tables
+from . import earthpoints, pointvalues, profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -3929,6 +3931,60 @@ def pointset_geojson(request, pk):
         response["Content-Disposition"] = (
             f'attachment; filename="pointset-{pk}.geojson"; '
             f"filename*=UTF-8''{quote(stem + '.geojson')}")
+    return response
+
+
+@require_GET
+def pointset_csv(request, pk):
+    """점묶음의 점을 CSV 로 내려받는다 (wetherilli 190). 엑셀이 한글을 알아보게 BOM 붙인 UTF-8 이다.
+
+    열은 이름표·위도·경도, 올린 속성(표고·VWorld 둘레·IBCSO 수심을 붙인 GeoJSON 의 속성 그대로), 그리고 **우리 파일에서 읽는
+    값**(`pointvalues`) — 지구는 GeoMAP 단위·지각 두께·가까운 화석 산지, 달·화성·수성은 그 몸의 지질도 단위다. `?extras=` 로
+    갈래를 고른다(쉼표, `none` 이면 붙이지 않는다). 점이 `pointvalues.LIMIT` 를 넘으면 붙일 값을 읽지 않고 413 으로 까닭을 말한다 —
+    화면은 점 수를 알고 미리 `none` 으로 부른다. 선·면(모양)은 CSV 에 담지 않는다 — GeoJSON 으로 받는다."""
+    lang = i18n.lang_of(request)
+    pointset = get_object_or_404(PointSet, pk=pk)
+    asked = (request.GET.get("extras") or "all").strip()
+    wanted = None if asked == "all" else set() if asked == "none" else set(asked.split(","))
+    kinds = pointvalues.kinds(pointset.body, wanted)
+    points = list(pointset.points.all())
+    if kinds and len(points) > pointvalues.LIMIT:
+        return JsonResponse({"error": i18n.t(msg("점이 {n} 개라 붙일 값을 읽지 않는다 — {limit} 개까지다. extras=none 으로 부른다",
+                                                 n=len(points), limit=pointvalues.LIMIT), lang)}, status=413)
+    depths = {}
+    if pointset.body == "earth":
+        depths = ibcso.depths({p.id: (p.lat, p.lon) for p in points if p.lat <= ibcso.NORTH})
+    rows, keys = [], {}
+    for p in points:
+        props = _point_props(p, depths.get(p.id))
+        label = props.pop("이름표", "")
+        for k in props:
+            keys.setdefault(k, None)
+        rows.append((p, label, props, pointvalues.values(pointset.body, kinds, p.lat, p.lon, lang) if kinds else {}))
+    extra = pointvalues.columns(pointset.body, kinds)
+
+    # 영어판은 우리가 붙인 열만 옮긴다 — 올린 열의 이름은 그 사람의 자료다
+    ours = {"이름표", "위도", "경도", ELEV_PROP, ELEV_SOURCE_PROP, IBCSO_BED_PROP, IBCSO_ICE_PROP, FAULT_PROP,
+            PLACENAME_PROP, *(label for _, label in PLACE_PROPS), *extra}
+
+    def head(name):
+        return i18n.PROP_EN.get(name, name) if lang == "en" and name in ours else name
+
+    def cell(value):
+        if value is None:
+            return ""
+        return json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value
+    out = io.StringIO()
+    out.write("\ufeff")
+    writer = csv.writer(out)
+    writer.writerow([head(c) for c in ["이름표", "위도", "경도", *keys, *extra]])
+    for p, label, props, values in rows:
+        writer.writerow([label, p.lat, p.lon, *(cell(props.get(k)) for k in keys), *(cell(values.get(c)) for c in extra)])
+    from urllib.parse import quote
+    stem = re.sub(r'[\\/:*?"<>|]+', "_", pointset.name).strip() or f"pointset-{pk}"
+    response = HttpResponse(out.getvalue().encode("utf-8"), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (f'attachment; filename="pointset-{pk}.csv"; '
+                                       f"filename*=UTF-8''{quote(stem + '.csv')}")
     return response
 
 

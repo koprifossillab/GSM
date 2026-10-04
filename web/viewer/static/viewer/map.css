@@ -437,6 +437,8 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 }
 .iconbtn:hover:not(:disabled) { color: var(--on-hi); background: var(--hi); border-color: var(--hi); }
 .iconbtn:disabled { opacity: .3; cursor: default; }
+/* 글자 단추(CSV, wetherilli 190) — 23 px 네모에 들지 않아 넓힌다 */
+.iconbtn.wide { width: auto; padding: 0 4px; font-size: 10px; letter-spacing: .02em; }
 .active-foot { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
 .active-foot input[type=range] { flex: 1; height: 3px; }
 .opacity-num {
