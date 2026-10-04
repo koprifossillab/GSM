@@ -102,8 +102,8 @@
 - [ ] (사람) 달 Trek 판 한글 제목 초안(몸 전체를 덮는 114 판)을 읽고 고친다 — `data/moon_trek_layers.json` 의 `ko` (060)
 - [ ] (사람) SPA 지질도 원본(Zenodo 10.5281/zenodo.19728952 의 `GeoMap.tif.zip`·`Mapplate.zip`)을 NAS `sources/moon/` 에 둔다.
       운영 `db/moon/` 에는 두었다 (wetherilli 081)
-- [ ] 수성 화면 — USGS Astrogeology WMS(MESSENGER·Mariner)로 달·화성의 틀을 옮긴다. 달 화면의 Lunar Orbiter·Clementine
-      배경도 같은 상류 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §1)
+- [ ] 달 화면의 Lunar Orbiter·Clementine 배경 — USGS Astrogeology WMS ([docs/새_상류_후보.md](docs/새_상류_후보.md) §1).
+      수성 화면은 섰다(wetherilli P10·137·144)
 
 ## 온 지구 (P06·P07)
 
