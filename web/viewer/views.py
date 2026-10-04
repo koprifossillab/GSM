@@ -2390,6 +2390,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}
+    if layer.upstream == "ingemmet" and layer.name in ingemmet.STRUCTURES:
+        # 페루 단층·습곡(wetherilli 222) — 지질도와 같은 z/x/y 길이지만 상류가 그때그때 그린다. 선이라 누르지 않고 범례가 없다
+        first = ingemmet.STRUCTURES[layer.name]["min"]
+        return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
+                "maxZoom": ingemmet.STRUCTURES_MAX, "noLegend": True, "queryable": False,
+                **({"minZoom": first} if first else {})}
     if layer.upstream == "ingemmet" and ingemmet.knows(layer.name):
         # 페루 INGEMMET(wetherilli 195) — WMS 는 넓게 물으면 30 초를 넘겨 REST 타일 캐시(3857 z/x/y)를 우리 서버가 중계한다(일본과 같다).
         # 누른 자리는 위경도로(`ingemmet/info/`), 범례는 보는 범위의 것(`ingemmet/legend/`)
@@ -3224,6 +3230,7 @@ def ingemmet_tile_key(name, z, x, y):
 @require_GET
 def ingemmet_tile(request, sheet, z, x, y):
     """페루 지질도 — `ingemmet/<판>/<z>/<x>/<y>.png`. 상류의 REST 캐시(`tile/{z}/{y}/{x}`)를 중계한다 (wetherilli 195).
+    단층·습곡(222)은 같은 주소로 상류의 `export` 를 그 칸만큼 받는다.
     캐시 밖(바다·나라 밖)은 투명한 빈 타일이고, 그것도 담는다 — 다시 물을 까닭이 없다"""
     name, z, x, y = f"{ingemmet.PREFIX}{sheet}", int(z), int(x), int(y)
     if not ingemmet.valid_tile(name, z, x, y):
