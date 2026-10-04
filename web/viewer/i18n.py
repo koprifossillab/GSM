@@ -104,6 +104,12 @@ EN = {
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
     "단층": "Fault",
+    # 5만 선구조·신장광물·습곡축·유동구조의 갈래 (wetherilli 223)
+    "1차 선구조": "First-order lineation", "2차 선구조": "Second-order lineation", "3차 선구조": "Third-order lineation",
+    "선구조": "Lineation", "그 밖의 선구조": "Other lineations", "신장광물": "Stretched mineral",
+    "침강각 미상 신장광물": "Stretched mineral (plunge unknown)", "그 밖의 신장광물": "Other stretched minerals",
+    "습곡축": "Fold axis", "소습곡축": "Minor fold axis", "2·3차 습곡축": "Second- and third-order fold axes",
+    "유동구조": "Flow structure", "유상구조": "Flow banding", "수직 유동구조": "Vertical flow structure",
     "배사": "Anticline", "향사": "Syncline", "역전 등사 배사": "Overturned isoclinal anticline",
     "역전 등사 향사": "Overturned isoclinal syncline", "침강 배사": "Plunging anticline", "침강 향사": "Plunging syncline",
     "그 밖의 습곡": "Other folds",
@@ -252,6 +258,9 @@ EN = {
     "LRO 광각 카메라 영상": "LRO Wide Angle Camera mosaic",
     "고해상 영상 (Kaguya 지형 카메라 + LRO 광각)": "High-resolution imagery (Kaguya Terrain Camera + LRO WAC)",
     "LOLA 표고 음영": "LOLA hillshade",
+    "루나 오비터 모자이크 (1966–67)": "Lunar Orbiter mosaic (1966–67)",
+    "클레멘타인 750 nm 모자이크 (1994)": "Clementine 750 nm mosaic (1994)",
+    "마리너 10 모자이크 (1974–75)": "Mariner 10 mosaic (1974–75)",
     "LOLA 표고로 세운다": "Raise with LOLA elevation",
     "앞면 한가운데로": "Back to the centre of the near side",
     "지명·착륙지 찾기 (Tycho, Apollo 11 …)": "Find a place or landing site (Tycho, Apollo 11 …)",
@@ -717,6 +726,8 @@ EN = {
     "아르헨티나": "Argentina",
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
+    "퀸즐랜드 지질조사소": "Geological Survey of Queensland", "빅토리아 지질조사소": "Geological Survey of Victoria",
+    "남호주 지질조사소": "Geological Survey of South Australia",
     # 아프리카 (wetherilli 207)
     "아프리카": "Africa",
     "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
@@ -2098,6 +2109,14 @@ PROP_EN = {
     "해석": "Interpretation",
     "광물": "Mineral",
     "측정법": "Technique",
+    # 호주의 주 판 (wetherilli 225)
+    "지질 이력": "Geologic history",
+    # 아르헨티나 SEGEMAR 의 제4기 변형·화산 위험도·구조선 (wetherilli 220)
+    "구조 갈래": "Structure type", "세부 갈래": "Subtype", "활동성": "Activity", "마지막 움직임": "Last movement",
+    "움직임 속도": "Slip rate", "재발 간격 (년)": "Recurrence (years)", "위험도": "Hazard level", "위험 지수": "Hazard index",
+    "평가일": "Assessed", "화석": "Fossils",
+    # 5만 선구조의 팝업 (wetherilli 223)
+    "침강 방향": "Plunge direction", "침강각": "Plunge", "방향 (사분면)": "Trend (quadrant)", "침강 방향 (사분면)": "Plunge direction (quadrant)",
     # 브라질 SGB 의 노두·연대측정·화석 산지 (wetherilli 215)
     "야외 번호": "Field number", "과제": "Project", "분석 재료": "Material analysed", "자료 공개": "Access level",
     "분류": "Systematics", "분류군": "Taxon", "재료": "Material", "암층서 단위": "Lithostratigraphic unit",
@@ -2255,6 +2274,9 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    # 멕시코 광상 (wetherilli 219)
+    "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
+    "광산 지구": "Mining district",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -2470,7 +2492,66 @@ AGES_ES = {
     "cuaternario": "Quaternary", "terciario": "Tertiary",
     "paleoceno": "Paleocene", "eoceno": "Eocene", "oligoceno": "Oligocene", "mioceno": "Miocene", "plioceno": "Pliocene",
     "pleistoceno": "Pleistocene", "holoceno": "Holocene",
+    # 멕시코 지질 연대 점(wetherilli 219)
+    "hadeano": "Hadean", "eoarqueano": "Eoarchean", "paleoarqueano": "Paleoarchean", "mesoarqueano": "Mesoarchean",
+    "neoarqueano": "Neoarchean", "titoniano": "Tithonian", "precambrico": "Precambrian",
 }
+#: `Triásico Superior` 의 뒤 낱말 → ICS 의 앞 낱말 (wetherilli 219)
+_ES_PART = {"superior": "Late", "medio": "Middle", "inferior": "Early", "tardio": "Late", "temprano": "Early"}
+
+
+#: 프랑스어 시대 이름(악센트를 뗀 소문자) → ICS 영문 — 퀘벡 SIGÉOM (wetherilli 224)
+AGES_FR = {
+    "hadeen": "Hadean", "archeen": "Archean", "eoarcheen": "Eoarchean", "paleoarcheen": "Paleoarchean",
+    "mesoarcheen": "Mesoarchean", "neoarcheen": "Neoarchean", "proterozoique": "Proterozoic",
+    "paleoproterozoique": "Paleoproterozoic", "mesoproterozoique": "Mesoproterozoic", "neoproterozoique": "Neoproterozoic",
+    "precambrien": "Precambrian", "phanerozoique": "Phanerozoic", "paleozoique": "Paleozoic", "mesozoique": "Mesozoic",
+    "cenozoique": "Cenozoic", "cambrien": "Cambrian", "ordovicien": "Ordovician", "silurien": "Silurian", "devonien": "Devonian",
+    "carbonifere": "Carboniferous", "mississippien": "Mississippian", "pennsylvanien": "Pennsylvanian", "permien": "Permian",
+    "trias": "Triassic", "triasique": "Triassic", "jurassique": "Jurassic", "cretace": "Cretaceous", "paleogene": "Paleogene",
+    "neogene": "Neogene", "quaternaire": "Quaternary", "tertiaire": "Tertiary", "paleocene": "Paleocene", "eocene": "Eocene",
+    "oligocene": "Oligocene", "miocene": "Miocene", "pliocene": "Pliocene", "pleistocene": "Pleistocene", "holocene": "Holocene",
+    "visean": "Visean",
+}
+#: `Ordovicien supérieur` 의 뒤 낱말 → ICS 의 앞 낱말
+_FR_PART = {"inferieur": "Early", "precoce": "Early", "moyen": "Middle", "superieur": "Late", "tardif": "Late"}
+
+
+def _fold(text: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", str(text).lower()) if not unicodedata.combining(c)).strip()
+
+
+def _age_fr_one(text: str) -> str:
+    folded = _fold(text)
+    if folded in AGES_FR:
+        return AGES_FR[folded]
+    head, _, part = folded.rpartition(" ")
+    if head in AGES_FR and part in _FR_PART:
+        return f"{_FR_PART[part]} {AGES_FR[head]}"
+    if folded.endswith("ien") and folded.isalpha():      # 절 이름 — Darriwilien → Darriwilian
+        return folded[:-3].capitalize() + "ian"
+    return ""
+
+
+def age_fr(value: str) -> str:
+    """프랑스어 시대 값 → ICS 영문 (wetherilli 224). `A à B`·`A ? B` 는 범위(`A - B`, 뒤는 물음표를 단다), `A ou B` 는 `A or B`.
+    한 마디라도 모르면 원문 그대로 돌려준다 — 반쯤 옮긴 것을 내지 않는다."""
+    import re
+    text = str(value or "").strip()
+    if not text:
+        return text
+    out = []
+    for alt in re.split(r"\s+ou\s+", text):
+        parts = re.split(r"\s+(à|\?)\s+", alt)
+        names = [_age_fr_one(p) for p in parts[::2]]
+        if not all(names):
+            return text
+        joined = names[0]
+        for sep, name in zip(parts[1::2], names[1:]):
+            joined += " - " + name + (" (?)" if sep == "?" else "")
+        out.append(joined)
+    return " or ".join(out)
 
 
 def age_es(value: str) -> str:
@@ -2480,6 +2561,9 @@ def age_es(value: str) -> str:
     folded = "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
     if folded in AGES_ES:
         return AGES_ES[folded]
+    head, _, part = folded.rpartition(" ")
+    if head in AGES_ES and part in _ES_PART:
+        return f"{_ES_PART[part]} {AGES_ES[head]}"
     if folded.endswith("iano") and folded.isalpha():
         return folded[:-1].capitalize()
     return text
@@ -2850,8 +2934,13 @@ GROUP_EN = {
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
     "브라질 지질 자료 점 (SGB)": "Brazil geological data points (SGB)",
     "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
+    "페루 단층·습곡 (INGEMMET)": "Peru faults & folds (INGEMMET)",
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
+    "아르헨티나 지역 지질도 (SEGEMAR 1:100만·1:75만·1:50만)": "Argentina regional geology (SEGEMAR 1:1M · 1:750k · 1:500k)",
+    "아르헨티나 지질 위험 (SEGEMAR)": "Argentina geohazards (SEGEMAR)",
+    "퀸즐랜드 지질도 (GSQ)": "Queensland geology (GSQ)", "빅토리아 지질도 (GSV)": "Victoria geology (GSV)",
+    "남호주 지질도 (GSSA)": "South Australia geology (GSSA)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
     "아프리카 지질도 (CGMW–BRGM 1:1000만)": "Africa geology (CGMW–BRGM 1:10M)",
     "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
@@ -2863,6 +2952,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)",
 }
 
 LAYER_EN = {
@@ -2906,6 +2996,8 @@ LAYER_EN = {
     # KIGAM 5만 구조 요소 (wetherilli 199). 열쇠는 레이어 이름이다
     "kigam50k:frame": "1:50k map sheet frames", "kigam50k:fossil": "Fossil localities (1:50k)",
     "kigam50k:sample": "Dating and geochemistry samples (1:50k)", "kigam50k:mine": "Mines (1:50k)",
+    "kigam50k:lineation": "Lineations (1:50k)", "kigam50k:mineralarray": "Stretched minerals (1:50k)",
+    "kigam50k:foldaxis": "Fold axes (1:50k)", "kigam50k:flowstructure": "Flow structures (1:50k)",
     # 지구 자료 점 (wetherilli 185) — 처음에 제목을 열쇠로 적어 영어판에 한국어가 나왔다(199 에서 이름으로 고쳤다)
     "earth:pbdb_korea": "Fossil collections (PBDB)", "earth:pbdb_antarctica": "Fossil collections (PBDB)", "earth:pbdb_arctic": "Fossil collections (PBDB)",
     "earth:gvp_korea": "Holocene volcanoes (GVP)", "earth:gvp_antarctica": "Holocene volcanoes (GVP)", "earth:gvp_arctic": "Holocene volcanoes (GVP)",
@@ -2967,12 +3059,37 @@ LAYER_EN = {
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
+    "ingemmet:faults_1m": "Faults (1:1M)",
+    "ingemmet:faults_100k": "Faults (1:100k)",
+    "ingemmet:folds_100k": "Folds (1:100k)",
+    "ingemmet:faults_50k": "Faults (1:50k)",
+    "ingemmet:folds_50k": "Folds (1:50k)",
     # 아르헨티나·우루과이 (wetherilli 196)
     "segemar:e2.5M.UnidadesGeologicas": "Geological units (1:2.5M)",
     "segemar:e2.5M.Estructuras": "Structures (1:2.5M)",
     "segemar:e2.5M.VolcanesInventario": "Volcano inventory",
     "segemar:e250K_UnidadGeologica": "Geological units (1:250k sheets)",
     "segemar:e250K.Fallas": "Faults (1:250k sheets)",
+    "gsq:state": "Queensland geology (1:2M)", "gsq:detailed": "Queensland detailed geology (1:100k)",
+    "gsv:250k": "Victoria geology (1:250k, seamless)", "gsv:50k": "Victoria geology (1:50k, seamless)",
+    "gssa:units": "South Australia geological units",
+    "segemar:e1M.NOA.Geol": "Northwest — geological units (1:1M)",
+    "segemar:e1M.NOA.Fallas": "Northwest — faults (1:1M)",
+    "segemar:e1M.SH21.Geol": "Corrientes — geological units (1:1M, SH21)",
+    "segemar:e1M.SH21.Fallas": "Corrientes — structures (1:1M, SH21)",
+    "segemar:e750K.ProvChacoUGeol": "Chaco Province — geological units (1:750k)",
+    "segemar:e750K.ProvChubutGeol": "Chubut Province — geological units (1:750k)",
+    "segemar:e750K.ProvJujuyGeol": "Jujuy Province — geological units (1:750k)",
+    "segemar:e750K.ProvMendozaGeol": "Mendoza Province — geological units (1:750k)",
+    "segemar:e750K.ProvSantaFeGeol": "Santa Fe Province — geological units (1:750k)",
+    "segemar:e750K.ProvTucumanGeol": "Tucumán Province — geological units (1:750k)",
+    "segemar:e750K.ProvEstr": "Provincial structures (1:750k, six provinces)",
+    "segemar:e500K.Front.ArCh.Geol": "Argentina–Chile border — geological units (1:500k)",
+    "segemar:e500K.Front.ArCh.Fallas": "Argentina–Chile border — faults (1:500k)",
+    "segemar:e250K.IslasMalvinasGeol": "Falkland Islands (Malvinas) — geological units (1:250k)",
+    "segemar:e250K.IslasMalvinasFallas": "Falkland Islands (Malvinas) — faults (1:250k)",
+    "segemar:DeformacionesCuaternarias_250K": "Quaternary deformation (faults & folds)",
+    "segemar:e2.5M.VolcanesEvaluacionPeligrosidad": "Volcanic hazard (by volcano)",
     "dinamige:0": "Geological units (1:500k)",
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
@@ -3001,6 +3118,9 @@ LAYER_EN = {
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
+    # 멕시코 SGM 의 다른 서비스 (wetherilli 219)
+    "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
+    "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
     # 스웨덴 기반암 (wetherilli 213)
     "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
     "sgu:deformation": "Deformation zones (1:1M)",
