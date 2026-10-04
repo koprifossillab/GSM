@@ -135,9 +135,9 @@
 
 ### 한국 — 시료 지점 칸·KIGAM 자료
 
-- [ ] **KIGAM `/openapi/data` 모으기 — 이틀 반** [실측] — 목록 3 450 건. `page` 는 0 부터, `collection=` 거르기가 안 먹고 목록엔 좌표가
-      없어 한 건씩 상세 → `fetch_kopri` 꼴(2 초, 두 시간, 다음부터 `lastModified`). `kigam.py` 에 더하고 씨앗은 따로
-      (`kigam_data_layers.json`). CC BY-NC, DOI 로 출처, 밖에 열 때 `LAB_ONLY` 를 정한다. `POINT` 의 축 차례를 먼저 본다
+- [ ] **KIGAM `/openapi/data` 를 지도에** — 모으기는 섰다(`fetch_kigam_data`, wetherilli 169). 무엇을 올릴지는 이슈 #153 —
+      지어 본 레이어(모음마다 점·면, 행정구역 가운데 표본)는 `feature/kigam-data-layers` 가지에. CC BY-NC, DOI 로 출처,
+      밖에 열 때 `LAB_ONLY` 를 정한다
   - 표본(시료·분석) 점 레이어 — 연대·지질단위·채취지·보관처. 이틀
   - 누른 자리를 덮는 도폭의 저자·발간일·DOI — 같은 모으기라 반나절 더. `/openapi/file` 은 확인 못 했다
   - ("더 나중에" 의 데이터셋 검색 API 가 이 묶음이다)
