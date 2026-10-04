@@ -3350,7 +3350,7 @@ class _Door:
 
 
 #: 메타타일로 받는 레이어 — 문마다의 표를 모은다(이름 또는 `:` 로 끝나는 앞머리 → 가장 깊은 격자 줌, None 은 모든 줌) (wetherilli 282·284)
-METATILE = {**sgm.METATILE, **sgc.METATILE, **egdi.METATILE,
+METATILE = {**sgm.METATILE, **sgc.METATILE, **egdi.METATILE, **geus.METATILE,   # 그린란드 GEUS ArcGIS 는 3413 격자 (wetherilli 307)
             # 느린 상류를 재어 더한 것 (wetherilli 287)
             **austates.METATILE, **iige.METATILE, **ispra.METATILE, **mris.METATILE, **pig.METATILE, **sgs.METATILE,
             **dinamige.METATILE, **lneg.METATILE, **tno.METATILE, **swisstopo.METATILE, **segemar.METATILE, **gsi.METATILE}
