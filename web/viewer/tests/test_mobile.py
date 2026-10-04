@@ -179,9 +179,14 @@ class PhoneScreenTests(StaticLiveServerTestCase):
         close = m["parts"]["#popup-close"]
         self.assertIsNotNone(close, "닫기 단추가 보이지 않는다")
         self.assertGreaterEqual(min(close["width"], close["height"]), 20, "닫기 단추가 손가락에 작다")
+        # 다른 것(도구 묶음 따위)이 닫기 단추를 덮지 않는다
+        self.assertTrue(page.evaluate("""() => { const c = document.getElementById('popup-close'), b = c.getBoundingClientRect();
+            const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return c === hit || c.contains(hit); }"""),
+                        "닫기 단추가 다른 것에 덮인다")
         page.tap("#popup-close")
         page.wait_for_timeout(300)
         self.assertFalse(page.locator("#popup.on").count(), "팝업이 닫히지 않는다")
+        self.assertTrue(page.locator("#toolbar").is_visible(), "팝업을 닫으면 도구 묶음이 돌아온다")
 
     def test_구_화면은_범례가_접혀_열린다(self):
         for path in ("earth/", "moon/", "mars/", "mercury/"):
