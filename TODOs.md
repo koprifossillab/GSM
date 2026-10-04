@@ -213,7 +213,7 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
       그 사이 축척의 BGR 판(GÜK 2000?)이 있는지. **(사람)** BGR 판(GÜK·GK·IGME5000)을 정적 판에 실을지 — BGR 약관(AGB 3조)은 공중에 내놓을
       권리를 넘기지 않는다고 적고, 연방 지리정보 무료 이용 규정(GeoNutzV)이 이 WMS 에 걸리는지는 서비스에 적혀 있지 않다. BGR 에 묻고 나서 (wetherilli 217). 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 섰다(wetherilli 211) — 밖에 열기 전에 LNEG 의 조건(적힌 것이 없다)과 ISPRA 의 "열람 자유" 를 사람이 읽는다.
       오스트리아(GeoSphere 1:100만)·폴란드(PIG-PIB 1:50만)·네덜란드(TNO)·벨기에(플랑드르 DOV·왈로니아 SPW)는 섰다(wetherilli 237).
-      다음 판: 오스트리아 1:5만(`einheiten_50`, CC BY 4.0)·폴란드 1:5만(`smgp50k`, 줌 13 부터) — 둘 다 가까이서만 그린다
+      1:5만 둘도 섰다(wetherilli 239 — 오스트리아는 줌 11, 폴란드는 줌 13 부터). 폴란드 1:5만은 디지털로 올린 도폭만 있다(바르샤바·크라쿠프는 비었다)
 - [ ] **(사람)** 체코 ČGS — 1:50만 영어판(`geologicka_mapa500_CR_en`)이 ICS 영어라 붙이기 좋다. 그런데 데이터셋 메타데이터는 "Copyright (všechna práva
       vyhrazena)", 저작권 페이지(cgs.gov.cz/copyright)는 CC BY 4.0 이라 말이 엇갈린다 — 사람이 읽고 정한다. 1:5만은 나라 줌 한 장에 22 초다(wetherilli 237)
 - [ ] **(사람)** 덴마크 GEUS — 지표 퇴적층도 1:20만·1:2.5만. GEUS 조건(terms_20140620.pdf)이 "자기 용도만, 공개는 서면 동의" 이고 익명 타일 요청은 403 이다.
