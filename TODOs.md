@@ -258,6 +258,16 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt` 를 주면 돈다. 운영과는 상관없다.
 phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapSheet`) JSON API 를 그쪽에 먼저.
 
+## 레이어 대조에서 나온 것 (2026-10-05 개발 기계, wetherilli 298)
+
+- [ ] **카메룬 IRGM 1:100만 단층(`irgm:CMR_IRGM_1M_Failles`)이 상류에서 깨져 있다** — BRGM mapsref 가 ServiceException
+      "unable to open file /carto/wxs/1GG/THRUSTFAULT" 를 준다(기호 파일이 서버에 없다). 다음 판까지 낫지 않으면 레이어를 끄거나 BRGM 에 알린다
+- [ ] 느린 둘 — `emodnet:cp_wp3_seabed_substrate_folk_7`·`gsmma:attitude_50k` 이 두 번 모두 20 초를 넘겼다. 메타타일 표(`views.METATILE`)에 넣을지 잰다
+- [ ] 빈 그림 35 — 대개 성긴 선·점(단층·습곡·기호·이상·광산)이라 다섯 칸이 비켜 간 것이다. 축척이 갈린 것은 화면에서 한 번 본다:
+      `bgr:igme5000:43+44`·`46+47+48`·`51+53+55+57`(줌 2 에서 비었다), `ispra:100k:1`·`2`, `lneg:500k:1`·`3`·`4`, `brgm:GEOL_PYF_5S`·`6S`·`7S`,
+      `gsmma:fossils_50k`·`sensitive_landslide`
+- [ ] VWorld 레이어(46)는 개발 기계에 열쇠가 없어 보지 못했다 — 운영에서 `verify_layers --redo --upstream vworld`
+
 ## 캐시·미리 받기 (007·010)
 
 2026-09-30 에 타일이 어디서 어떻게 캐시되는지 훑었다. 캐시를 더 적극적으로 쓰기로 했다(사람). 차례는 위에서 아래로.
