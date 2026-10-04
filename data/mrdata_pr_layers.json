@@ -1,0 +1,37 @@
+{
+ "_주석": "푸에르토리코 지질도 씨앗이다 — 푸에르토리코 탭. USGS mrdata 의 services/pr 을 mrdata 문으로 받는다. 한글 제목과 레이어군은 사람이 붙였다 (wetherilli 242).",
+ "_뽑은날": "2026-10-05",
+ "_출처": "https://mrdata.usgs.gov/services/pr?service=WMS&request=GetCapabilities",
+ "_지역": "puerto_rico",
+ "_상류": "mrdata",
+ "_레이어군차례": 1,
+ "레이어군순서": [
+  "푸에르토리코 지질도 (USGS)"
+ ],
+ "레이어": [
+  {
+   "name": "mrdata:pr:geol",
+   "title": "지질 단위",
+   "group": "푸에르토리코 지질도 (USGS)",
+   "abstract": "USGS OFR 98-38 (Bawiec 1998) — geol",
+   "bbox": [
+    -67.95,
+    17.85,
+    -65.2,
+    18.55
+   ]
+  },
+  {
+   "name": "mrdata:pr:faults",
+   "title": "단층",
+   "group": "푸에르토리코 지질도 (USGS)",
+   "abstract": "fault·faultn — 충상·정단층",
+   "bbox": [
+    -67.95,
+    17.85,
+    -65.2,
+    18.55
+   ]
+  }
+ ]
+}
