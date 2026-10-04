@@ -692,6 +692,10 @@ EN = {
     "아르헨티나": "Argentina",
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
+    # 아프리카 (wetherilli 207)
+    "아프리카": "Africa",
+    "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
+    "영국 지질조사소 — 아프리카 지하수 지도책": "British Geological Survey — Africa Groundwater Atlas",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
@@ -2054,6 +2058,7 @@ PROP_EN = {
     "측정법": "Technique",
     "계산법": "Approach",
     "암상": "Lithology",
+    "연대": "Age",                      # 아프리카 CGMW 의 `AGE`("23 - 2.6 Ma") (wetherilli 207)
     "제공 기관": "Provider",
     "암석 갈래": "Rock type",
     "지괴": "Terrane",
@@ -2720,6 +2725,8 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
+    "아프리카 지질도 (CGMW–BRGM 1:1000만)": "Africa geology (CGMW–BRGM 1:10M)",
+    "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
 }
 
@@ -2797,6 +2804,11 @@ LAYER_EN = {
     "dinamige:0": "Geological units (1:500k)",
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
+    # 아프리카 (wetherilli 207)
+    "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits": "Geological units (1:10M)",
+    "cgmw:AFR_CGMW_BRGM_10M_Faults": "Faults (1:10M)",
+    "cgmw:AFR_CGMW_BRGM_10M_Oceanic_crust_domain": "Oceanic crust (1:10M)",
+    "aga:geology": "Country lithology (1:5M, 38 countries)",
     "iige:geologia_general": "General geological map",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",

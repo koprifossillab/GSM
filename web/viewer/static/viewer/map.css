@@ -2388,3 +2388,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #0e3a42; --hi-deep: #07232a; --on-hi: #f2fafb; --hi-ink: #1a8798;
   --glass: rgba(251, 253, 253, .95); --glass-line: #d0e2e5;
 }
+
+/* ── 아프리카 (wetherilli 207) — 사바나 황토와 바오바브 껍질의 적갈 ── */
+:root[data-region="africa"] {
+  --bg: #17120c; --panel: #1f1810; --panel-tint: #120e09; --raise: #2b2116;
+  --ink: #f7efe3; --ink-soft: #d6c2a4; --ink-faint: #957f61;
+  --line: #3d2f1f; --line-soft: #2b2116;
+  --gold: #d9902f; --gold-bright: #f0bf74; --gold-muted: #b5772a;
+  --gold-wash: rgba(217, 144, 47, .13); --gold-edge: rgba(217, 144, 47, .42);
+  --hi: #d9902f; --hi-deep: #f0bf74; --on-hi: #120e09; --hi-ink: #f0bf74;
+  --glass: rgba(18, 14, 9, .93); --glass-line: rgba(217, 144, 47, .35);
+}
+:root[data-region="africa"][data-theme="light"] {
+  --bg: #f8f1e6; --panel: #fefbf6; --panel-tint: #faf5ec; --raise: #efe2cd;
+  --ink: #2a1d0d; --ink-soft: #634c2e; --ink-faint: #9e8a6c;
+  --line: #e7d7bd; --line-soft: #efe2cd;
+  --gold: #9c5e12; --gold-bright: #7a470b; --gold-muted: #8d6a3b;
+  --gold-wash: #f6e6cb; --gold-edge: #e6c48d;
+  --hi: #3f2508; --hi-deep: #281604; --on-hi: #fdf8f0; --hi-ink: #9c5e12;
+  --glass: rgba(254, 251, 246, .95); --glass-line: #e7d7bd;
+}

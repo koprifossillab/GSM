@@ -209,3 +209,108 @@ def parse_esri_xml(text: str) -> list:
 
 #: `views._Door` 가 쓰는 꼴 — 다른 문(모듈)과 같은 이름의 셋
 GSNI = _NS(get_map=gsni_get_map, get_feature_info=gsni_get_feature_info, get_legend=gsni_get_legend)
+
+
+# ── 아프리카 지하수 지도책(AGA)의 나라별 1:500만 지질 (wetherilli 207) ──────────
+#
+# 같은 BGS 서버(`map.bgs.ac.uk/arcgis/services/AGA/BGS_Groundwater`)의 것이라 문은 여기다(GSNI 와 같다). 상류 이름은 `aga` 로 따로 —
+# 조건이 **CC BY-SA 4.0** 으로 다르다(Capabilities 의 AccessConstraints). 나라마다 레이어가 하나라(38 나라, 수단·모리타니·보츠와나는
+# 기반암·표층으로 갈린다 — 기반암을 쓴다) 카탈로그에는 **레이어 하나**(`aga:geology`)로 두고 문이 나라 레이어를 쉼표로 이어 묻는다.
+# 3857 그대로(동아프리카 넷을 묶어 256² 1.7 초, 2026-10-04). 속성은 `text/xml` 의 `<FIELDS KenGLG="Igneous Volcanic" …/>` —
+# 열 이름이 나라마다 달라 `…GLG` 로 끝나는 것을 암상으로 읽는다. 지질시대 열은 없다
+
+AGA_PREFIX = "aga:"
+AGA_ATTRIBUTION = ('Africa Groundwater Atlas — <a href="https://www2.bgs.ac.uk/africagroundwateratlas/" target="_blank" rel="noopener">'
+                   'British Geological Survey</a> (CC BY-SA 4.0)')
+#: 나라 레이어 — 2026-10-04 의 Capabilities. 기반암·표층으로 갈린 셋은 기반암
+AGA_COUNTRIES = ("AGO", "BEN", "BFA", "BWA", "CAF", "CIV", "CMR", "COD", "COG", "DJI", "DZA", "ESH", "ETH", "GAB", "GHA", "GMB",
+                 "KEN", "LSO", "MAR", "MDG", "MLI", "MOZ", "MRT", "MWI", "NER", "NGA", "SDN", "SEN", "SLE", "SOM", "SSD", "TCD",
+                 "TGO", "TUN", "TZA", "UGA", "ZMB", "ZWE")
+AGA_SPLIT = ("BWA", "MRT", "SDN")
+AGA_LAYERS = {"aga:geology": tuple(f"{c}_BGS_5M_{'Bedrock' if c in AGA_SPLIT else ''}Geology" for c in AGA_COUNTRIES)}
+#: 범례는 나라마다 같은 갈래(암상 열 남짓)라 한 나라의 것을 쓴다
+AGA_LEGEND_LAYER = "KEN_BGS_5M_Geology"
+
+
+def _aga_names(names: str) -> str:
+    out = []
+    for one in str(names or "").split(","):
+        one = one.strip()
+        if one not in AGA_LAYERS:
+            raise BgsError(f"모르는 레이어다: {one}")
+        out.extend(AGA_LAYERS[one])
+    return ",".join(out)
+
+
+def _aga_get(params: dict):
+    left = usage.paused()
+    if left:
+        raise BgsError(f"차단 조짐이 있어 {int(left)}초 동안 상류에 묻지 않는다")
+    try:
+        r = requests.get(settings.AGA_WMS_URL, params=params, timeout=settings.UPSTREAM_TIMEOUT,
+                         verify=settings.CA_BUNDLE or True, headers={"User-Agent": "GSM/0.1"})
+    except requests.RequestException as exc:
+        usage.record("aga", ok=False)
+        raise BgsError(f"BGS 지하수 지도책에 닿지 못했다: {exc}") from exc
+    log.info("AGA %s -> %s", r.url, r.status_code)
+    usage.record("aga", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    return r
+
+
+def _aga_wms(params: dict, request: str) -> dict:
+    params = dict(params, service="WMS", request=request, version="1.1.1")
+    if "crs" in params and "srs" not in params:
+        params["srs"] = params.pop("crs")
+    params["layers"] = _aga_names(params.get("layers") or params.get("query_layers"))
+    if "query_layers" in params:
+        params["query_layers"] = _aga_names(params["query_layers"])
+    return params
+
+
+def aga_get_map(params: dict):
+    r = _aga_get(_aga_wms(params, "GetMap"))
+    ctype = r.headers.get("content-type", "")
+    if r.status_code != 200 or not ctype.startswith("image/"):
+        raise BgsError(f"그림이 아닌 것이 왔다 (status={r.status_code}, type={ctype})")
+    return r.content, ctype
+
+
+def aga_get_legend(layer: str):
+    _aga_names(layer)
+    r = _aga_get({"service": "WMS", "version": "1.1.1", "request": "GetLegendGraphic", "format": "image/png",
+                  "layer": AGA_LEGEND_LAYER})
+    if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+        raise BgsError(f"범례가 아닌 것이 왔다 (status={r.status_code})")
+    return r.content, r.headers.get("content-type")
+
+
+def aga_get_feature_info(params: dict) -> dict:
+    params = _aga_wms(params, "GetFeatureInfo")
+    params["info_format"] = "text/xml"
+    if "i" in params and "x" not in params:
+        params["x"], params["y"] = params.pop("i"), params.pop("j", "0")
+    r = _aga_get(params)
+    if r.status_code != 200:
+        raise BgsError(f"속성을 읽지 못했다 (status={r.status_code})")
+    return {"features": parse_fields_xml(r.text)}
+
+
+def parse_fields_xml(text: str) -> list:
+    """ArcGIS `text/xml` 의 `<FIELDS 열="값" …/>` → feature 목록."""
+    try:
+        root = _ET.fromstring(text.encode("utf-8") if isinstance(text, str) else text)
+    except _ET.ParseError:
+        return []
+    return [{"id": f"aga.{f.attrib.get('OBJECTID', i)}", "properties": dict(f.attrib)}
+            for i, f in enumerate(root.iter(f"{_ESRI}FIELDS"))]
+
+
+def aga_friendly(props: dict, lang: str = "ko") -> dict:
+    """나라마다 열 이름이 다르다(`KenGLG`·`EthGLG` …) — `GLG` 로 끝나는 열이 암상이다. 값(영어)은 그대로 둔다."""
+    for key, value in props.items():
+        if key.endswith("GLG") and str(value or "").strip():
+            return {"암상": str(value).strip()}
+    return {}
+
+
+AGA = _NS(get_map=aga_get_map, get_feature_info=aga_get_feature_info, get_legend=aga_get_legend)

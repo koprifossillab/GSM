@@ -46,8 +46,9 @@
 
 ### 아프리카
 
-- [ ] CGMW–BRGM 아프리카 1:1000만(`mapsref.brgm.fr`) — 3857, CORS `*`, 지질시대 ICS. `brgm.py` 의 틀. 속성은 GML, 범례는 정적 PNG. 반나절
-- [ ] BGS 아프리카 지하수 지도책의 나라별 1:500만 지질 — 38 나라, `bgs.py` 와 같은 호스트, CC BY-SA 4.0. 속성은 암상 하나. 반나절
+- [ ] **(사람) 아프리카 1:1000만의 CGMW 이용 조건** — 아프리카 탭은 CGMW–BRGM 1:1000만과 BGS 지하수 지도책으로 섰다(wetherilli 207).
+      CGMW 는 인쇄판을 판다 — 정적 판·밖에 열기 전에 읽는다(남미 1:500만과 같다). CORS 가 `*` 라 되면 `static-kinds.js` 한 갈래
+- [ ] 아프리카 지하수 지도책의 수리지질(`<ISO3>_BGS_5M_Hydrogeology`) — 같은 서버·같은 조건(CC BY-SA). 지질 탭에 둘지 사람이 본다
 - [ ] 남아공 CGS 1:100만(정부 사본 ArcGIS REST, 하루)·나미비아 GSN 1:100만·탄자니아 GMIS 1:150만(CORS 없음)
 - [ ] (사람) RMCA 의 콩고·르완다·부룬디 판 — 이용 조건을 묻는다
 - 막힌 것: SIGAfrique(호스트 없음), USGS certmapper(403), OneGeology 포털(닫힘), 모로코·나이지리아(서비스 없음)
