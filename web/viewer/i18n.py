@@ -669,6 +669,11 @@ EN = {
     # 페루 (wetherilli 195)
     "페루": "Peru",
     "페루 지질광업야금연구소": "INGEMMET (Geological, Mining and Metallurgical Institute of Peru)",
+    # 아르헨티나·우루과이 (wetherilli 196)
+    "아르헨티나": "Argentina",
+    "우루과이": "Uruguay",
+    "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
+    "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -2686,6 +2691,9 @@ GROUP_EN = {
     "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
     "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
+    "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
+    "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
+    "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
 }
 
 LAYER_EN = {
@@ -2745,6 +2753,15 @@ LAYER_EN = {
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
+    # 아르헨티나·우루과이 (wetherilli 196)
+    "segemar:e2.5M.UnidadesGeologicas": "Geological units (1:2.5M)",
+    "segemar:e2.5M.Estructuras": "Structures (1:2.5M)",
+    "segemar:e2.5M.VolcanesInventario": "Volcano inventory",
+    "segemar:e250K_UnidadGeologica": "Geological units (1:250k sheets)",
+    "segemar:e250K.Fallas": "Faults (1:250k sheets)",
+    "dinamige:0": "Geological units (1:500k)",
+    "dinamige:1": "Faults, contacts and lineaments (1:500k)",
+    "dinamige:2": "Dykes (1:500k)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

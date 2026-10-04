@@ -2313,6 +2313,46 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --glass: rgba(251, 252, 254, .95); --glass-line: #d3dbe9;
 }
 
+/* ── 아르헨티나 (wetherilli 196) — 페리토 모레노 빙하의 청록: 파타고니아 고원의 회갈 바탕 ── */
+:root[data-region="argentina"] {
+  --bg: #10141a; --panel: #161c23; --panel-tint: #0c1015; --raise: #202831;
+  --ink: #eef3f7; --ink-soft: #b4c3cf; --ink-faint: #74848f;
+  --line: #2a3540; --line-soft: #202831;
+  --gold: #4fb3c8; --gold-bright: #93d6e4; --gold-muted: #3f93a5;
+  --gold-wash: rgba(79, 179, 200, .13); --gold-edge: rgba(79, 179, 200, .42);
+  --hi: #4fb3c8; --hi-deep: #93d6e4; --on-hi: #0c1015; --hi-ink: #93d6e4;
+  --glass: rgba(12, 16, 21, .93); --glass-line: rgba(79, 179, 200, .35);
+}
+:root[data-region="argentina"][data-theme="light"] {
+  --bg: #eff4f6; --panel: #fbfdfd; --panel-tint: #f4f8f9; --raise: #e1eaee;
+  --ink: #142028; --ink-soft: #40525d; --ink-faint: #7f909a;
+  --line: #d3e0e6; --line-soft: #e1eaee;
+  --gold: #1f7f93; --gold-bright: #15606f; --gold-muted: #4d8591;
+  --gold-wash: #dceff3; --gold-edge: #a6d3dd;
+  --hi: #123a44; --hi-deep: #0a252c; --on-hi: #f4fbfc; --hi-ink: #1f7f93;
+  --glass: rgba(251, 253, 253, .95); --glass-line: #d3e0e6;
+}
+
+/* ── 우루과이 (wetherilli 196) — 마노(瑪瑙, 아르티가스의 자수정·마노 지오드)의 보라 ── */
+:root[data-region="uruguay"] {
+  --bg: #141019; --panel: #1b1522; --panel-tint: #100c14; --raise: #261e2f;
+  --ink: #f2edf7; --ink-soft: #c5b8d3; --ink-faint: #857894;
+  --line: #352a41; --line-soft: #261e2f;
+  --gold: #a679d6; --gold-bright: #cfb0ee; --gold-muted: #8a62b4;
+  --gold-wash: rgba(166, 121, 214, .13); --gold-edge: rgba(166, 121, 214, .42);
+  --hi: #a679d6; --hi-deep: #cfb0ee; --on-hi: #100c14; --hi-ink: #cfb0ee;
+  --glass: rgba(16, 12, 20, .93); --glass-line: rgba(166, 121, 214, .35);
+}
+:root[data-region="uruguay"][data-theme="light"] {
+  --bg: #f4f0f7; --panel: #fdfbfe; --panel-tint: #f8f4fa; --raise: #e9e1ef;
+  --ink: #221a2b; --ink-soft: #54476a; --ink-faint: #8c809b;
+  --line: #e0d5e8; --line-soft: #e9e1ef;
+  --gold: #6e3fa3; --gold-bright: #552d82; --gold-muted: #7d5f9e;
+  --gold-wash: #eee3f7; --gold-edge: #cdb4e5;
+  --hi: #2c1845; --hi-deep: #1b0d2e; --on-hi: #fbf7fe; --hi-ink: #6e3fa3;
+  --glass: rgba(253, 251, 254, .95); --glass-line: #e0d5e8;
+}
+
 /* 층리·엽리 장미도 (wetherilli 197) — 팝업 안 */
 .rose-block { margin-top: 10px; }
 .rose-open { font: inherit; font-size: 12px; padding: 4px 10px; color: var(--ink); background: var(--panel-tint);

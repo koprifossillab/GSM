@@ -151,6 +151,8 @@ urlpatterns = [
             views.ingemmet_tile, name="ingemmet-tile"),
     path("ingemmet/info/", views.ingemmet_info, name="ingemmet-info"),
     path("ingemmet/legend/", views.ingemmet_legend, name="ingemmet-legend"),
+    # 우루과이 — REST 범례를 목록으로 (dinamige.py, wetherilli 196)
+    path("dinamige/legend/", views.dinamige_legend, name="dinamige-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다

@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, ingemmet, linked, ngu, sgb, sgc, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, ingemmet, linked, ngu, segemar, sgb, sgc, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -362,8 +362,8 @@ def map_view(request):
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
 MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
-             # 남미 SGC(wetherilli 188)·브라질 SGB(191) — 3857 로 그린다
-             "sgc", "sgb")
+             # 남미 SGC(wetherilli 188)·브라질 SGB(191)·아르헨티나 SEGEMAR·우루과이 DINAMIGE(196) — 3857 로 그린다
+             "sgc", "sgb", "segemar", "dinamige")
 
 
 @require_GET
@@ -2327,6 +2327,17 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                   else {"noLegend": True})
         return {"attribution": sgb.ATTRIBUTION, "projection": "EPSG:3857", **legend,
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "segemar" and segemar.knows(layer.name):
+        # 아르헨티나 SEGEMAR(wetherilli 196) — GeoServer 라 3857 을 그대로. 1:25만은 간행 도폭만 덮어 가까이서만 그린다.
+        # 범례는 상류의 그림 한 장이다(JSON 범례를 이 GeoServer 가 받지 못한다)
+        first, last = segemar.ZOOMS.get(segemar.upstream_name(layer.name), (None, None))
+        return {"attribution": segemar.ATTRIBUTION, "projection": "EPSG:3857",
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "dinamige" and dinamige.knows(layer.name):
+        # 우루과이 DINAMIGE(wetherilli 196) — 3857 로 그린다. 그림 범례가 비어 REST 범례를 목록으로 낸다(`dinamige/legend/`)
+        legend = ({"legend": "list", "legendUrl": "dinamige/legend/"} if layer.name in dinamige.LEGEND_LAYERS
+                  else {"noLegend": True})
+        return {"attribution": dinamige.ATTRIBUTION, "projection": "EPSG:3857", **legend}
     if layer.upstream == "gsni":
         return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
@@ -2405,7 +2416,8 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError, basemaps.BasemapError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
+                   segemar.SegemarError, dinamige.DinamigeError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2446,14 +2458,16 @@ class _Door:
                # 남미·콜롬비아(wetherilli 188)·브라질(191)
                "sgc": sgc, "sgb": sgb,
                # 페루(wetherilli 195) — 그림은 타일 캐시라 이 문의 WMS 길은 오류를 낸다. 눌러 묻는 것도 따로다(`ingemmet_info`)
-               "ingemmet": ingemmet}
+               "ingemmet": ingemmet,
+               # 아르헨티나·우루과이(wetherilli 196)
+               "segemar": segemar, "dinamige": dinamige}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3172,6 +3186,30 @@ def ingemmet_legend(request):
 
 @require_GET
 @browser_cached
+def dinamige_legend(request):
+    """`?layer=dinamige:2` — 우루과이 지질도의 범례 목록 (wetherilli 196). WMS 의 그림 범례가 비어(18×18) ArcGIS REST 의
+    `legend` 를 받아 칸마다 이름·시대·견본으로 낸다. 화면은 일본·대만의 범례와 같은 꼴로 그린다. 받은 것은 캐시에 담는다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in dinamige.LEGEND_LAYERS:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    key = tilecache.key_text("dinamige-legend", name)
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        try:
+            rows = dinamige.legend_rows(name)
+        except dinamige.DinamigeError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("우루과이 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    return JsonResponse({"rows": rows})
+
+
+@require_GET
+@browser_cached
 def sgb_legend(request):
     """`?layer=sgb:1m&bbox=서,남,동,북` — 브라질 지질도의 보는 범위 범례 (wetherilli 191).
 
@@ -3447,6 +3485,9 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "sgb":
             props = sgb.friendly(props, lang)        # 브라질 — 포르투갈어 시대만 옮기고 이름·설명은 그대로 (wetherilli 191)
+        elif door.name in ("segemar", "dinamige"):
+            # 아르헨티나·우루과이(wetherilli 196) — 열 이름만 한국어로, 값은 에스파냐어 그대로
+            props = {"segemar": segemar, "dinamige": dinamige}[door.name].friendly(props, lang)
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
