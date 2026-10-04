@@ -476,6 +476,28 @@
               basemap: "eox_terrain", example: "22.77, -102.58 · Zacatecas",
               base: ["sgm:8", "sgm:6", "sgm:7"],
               first: "sgm:8" },
+    // ── 중앙아메리카·카리브 (wetherilli 242) ──
+    // 니카라과 INETER(나라 지질도), 도미니카공화국 SGN 1:25만(IGME 서버, 영어판). 둘 다 3857 이다. 푸에르토리코는 미국 탭에 섰다(wetherilli 238) —
+    // 묶음이 그 레이어군(`mrdata:pr:`)만 빌린다. 탭을 따로 두면 같은 레이어가 두 지역에 생긴다
+    // 묶음은 북미(3978, 캐나다 람베르트)에 넣지 않고 따로 세웠다 — 북위 10–20° 는 람베르트의 가장자리라 기운다.
+    // 과테말라·온두라스·엘살바도르·코스타리카·파나마·쿠바 따위는 열린 나라 지질도가 없거나 닿지 않는다(docs)
+    nicaragua: { title: "니카라과", proj: "EPSG:3857", center: [-85.2, 12.9], zoom: 7, vworld: false,
+                 home: [-9774000, 1187000, -9195000, 1701000],
+                 basemap: "eox_terrain", example: "12.136, -86.251 · Managua",
+                 base: ["ineter:geology", "ineter:faults"],
+                 first: "ineter:geology" },
+    dominican_republic: { title: "도미니카공화국", proj: "EPSG:3857", center: [-70.2, 18.8], zoom: 8, vworld: false,
+                          home: [-8026000, 1967000, -7592000, 2273000],
+                          basemap: "eox_terrain", example: "18.486, -69.931 · Santo Domingo",
+                          base: ["igme:sgnrd:0", "igme:sgnrd:1"],
+                          first: ["igme:sgnrd:0", "igme:sgnrd:1"] },
+    central_america: { title: "중앙아메리카·카리브", proj: "EPSG:3857", center: [-77.0, 15.5], zoom: 5, vworld: false,
+                       includes: ["nicaragua", "dominican_republic"],
+                       borrow: { usa: ["mrdata:pr:"] },
+                       home: [-9852000, 1062000, -7180000, 2392000],
+                       basemap: "eox_terrain",
+                       base: ["ineter:geology", "igme:sgnrd:0", "mrdata:pr:geol"],
+                       first: ["ineter:geology", "igme:sgnrd:0", "mrdata:pr:geol"] },
   };
   if (STATIC) {
     // 정적 판이 싣지 않은 지역은 탭에서 뺀다. 묶음은 품은 지역 가운데 실린 것만 남기고, 하나도 없으면 뺀다
@@ -537,7 +559,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania", "austria", "poland", "netherlands", "belgium"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania", "austria", "poland", "netherlands", "belgium", "nicaragua", "dominican_republic", "central_america"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -1057,6 +1079,8 @@
     // 동남아(wetherilli 228) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다. 말레이시아는 문이 REST export 로 옮긴다
     // 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 카탈로그 행의 투영(3978)으로 서버 문을 거친다
     // 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다
+    // 니카라과 INETER(wetherilli 242) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다
+    ineter: { source: npolarSource, info: wmsInfoUrl },
     geosphere: { source: npolarSource, info: wmsInfoUrl },
     pig: { source: npolarSource, info: wmsInfoUrl },
     tno: { source: npolarSource, info: wmsInfoUrl },
@@ -1544,7 +1568,8 @@
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
               "indonesia", "malaysia", "philippines", "thailand",
-              "austria", "poland", "netherlands", "belgium"],
+              "austria", "poland", "netherlands", "belgium",
+              "nicaragua", "dominican_republic"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
@@ -1554,7 +1579,8 @@
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
               "indonesia", "malaysia", "philippines", "thailand",
-              "austria", "poland", "netherlands", "belgium"],
+              "austria", "poland", "netherlands", "belgium",
+              "nicaragua", "dominican_republic"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2548,7 +2574,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2564,7 +2590,7 @@
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"),
-    geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
+    ineter: T("니카라과 국토연구원 (INETER)"), geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
     skgs: T("사스카치원 지질조사소"), nsgs: T("노바스코샤 자연자원·재생에너지부"), ags: T("앨버타 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),

@@ -230,6 +230,8 @@ PIG_URL = env("GSM_PIG_URL", "https://cbdgmapa.pgi.gov.pl/arcgis")
 TNO_WMS_URL = env("GSM_TNO_WMS_URL", "https://www.gdngeoservices.nl/inspire/geoserver/geomap_as_is/ows")
 DOV_WMS_URL = env("GSM_DOV_WMS_URL", "https://www.dov.vlaanderen.be/geoserver/wms")
 SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
+#: 니카라과 국토연구원(INETER) GeoServer WMS (`viewer/ineter.py`, wetherilli 242). 열쇠가 없다
+INETER_WMS_URL = env("GSM_INETER_WMS_URL", "https://mapserveride.ineter.gob.ni/geoserver/ows")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -518,6 +520,9 @@ PIG_CATALOG_SEED = REPO_DIR / "data" / "pig_layers.json"
 TNO_CATALOG_SEED = REPO_DIR / "data" / "tno_layers.json"
 DOV_CATALOG_SEED = REPO_DIR / "data" / "dov_layers.json"
 SPW_CATALOG_SEED = REPO_DIR / "data" / "spw_layers.json"
+#: 중앙아메리카·카리브 — 니카라과 INETER, 도미니카공화국(IGME 서버의 SGN 판) (wetherilli 242)
+INETER_CATALOG_SEED = REPO_DIR / "data" / "ineter_layers.json"
+IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 호주의 주 판 — 퀸즐랜드·빅토리아·남호주 (wetherilli 225)
