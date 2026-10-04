@@ -182,6 +182,8 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 조사는 끝났고 **쏴 보고 확인한 것들**이다. 자세한 것은 devlog 004.
 
+- [ ] (운영) VWorld GetCapabilities 를 2026-09-27 의 187 종과 다시 견준다 — 개발 기계에는 열쇠가 없어 보지 못했다 (wetherilli 275)
+
 ### 품이 좀 드는 것
 
 - [ ] 단층 `legend` 1·2 의 뜻 — VWorld 가 밝히지 않았다. 알면 `VECTOR_STYLES` 와

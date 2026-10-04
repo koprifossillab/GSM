@@ -540,6 +540,18 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 세계 광상 USGS (wetherilli 276)
+    "세계 광상 (USGS)": "Mineral deposits (USGS)", "이름 없는 곳": "Unnamed site",
+    "구리": "Copper", "금·은·백금족": "Gold, silver and PGE", "납·아연": "Lead and zinc", "철·합금 금속": "Iron and ferro-alloy metals",
+    "핵심·에너지 광물": "Critical and energy minerals", "산업 광물": "Industrial minerals",
+    "USGS 세계 반암동 광상": "USGS global porphyry copper deposits", "USGS 세계 퇴적암 호스트 구리 광상": "USGS global sediment-hosted copper deposits",
+    "USGS 세계 화산성 괴상 황화물(VMS) 광상": "USGS global volcanogenic massive sulfide (VMS) deposits",
+    "USGS 세계 포디폼 크로마이트 광상": "USGS global podiform chromite deposits", "USGS 세계 희토류 광상": "USGS global rare earth element deposits",
+    "USGS 세계 퇴적암 호스트 납·아연 광상": "USGS global sediment-hosted zinc-lead deposits",
+    "대규모": "Large", "중규모": "Medium", "소규모": "Small",
+    "마름모는 세계 광상 표와 대규모 광산, 큰 원은 생산한 곳, 작은 원은 산지·탐사지(줌 4 부터)":
+        "Diamonds: global deposit tables and large mines; large circles: past or current producers; small circles: occurrences and prospects (from zoom 4)",
+    "광상 {n} 곳 가운데 크고 가까운 것부터 (USGS)": "Largest and nearest of {n} sites (USGS)",
     # 지각 응력 World Stress Map 2025 (wetherilli 273)
     "지각 응력 (World Stress Map)": "Crustal stress (World Stress Map)", "최대 수평 응력 방향": "Maximum horizontal stress",
     "막대는 최대 수평 응력 방향, 길이는 품질(A–D)": "Bars show S_Hmax orientation; length shows quality (A–D)",
@@ -1841,12 +1853,16 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 광상 (wetherilli 276)
+    "딸린 광종": "Secondary commodities", "생산 규모": "Production size", "광상 유형": "Deposit type",
+    "광석 광물": "Ore minerals", "총 광량 (Mt)": "Tonnage (Mt)", "품위": "Grade",
     # 지각 응력 (wetherilli 273)
     "응력 체제": "Stress regime", "최대 수평 응력 방향": "S_Hmax azimuth", "일시": "Date",
     # 세계 지질구 (wetherilli 272)
     "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
     # 지열류 (wetherilli 267)
     "지열류 (mW/m²)": "Heat flow (mW/m²)", "환경": "Setting", "품질": "Quality",
+    "오차 (mW/m²)": "Uncertainty (mW/m²)", "잰 법": "Method", "자리": "Site",
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "주기": "Cycle", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
@@ -3126,7 +3142,9 @@ GROUP_EN = {
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
-    "지구물리이상도": "Geophysical anomaly maps",
+    "원본 자료 — IHFC 세계 지열류 자료 2024, CC BY 4.0": "Source — IHFC Global Heat Flow Database 2024, CC BY 4.0",
+    "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
+    "지구물리이상도": "Geophysical anomaly maps", "지구물리": "Geophysics",
     "지구물리 (ADMAP-2)": "Geophysics (ADMAP-2)",
     "지화학도": "Geochemical maps",
     "좋은물지도": "Groundwater quality maps",
@@ -3357,6 +3375,7 @@ LAYER_EN = {
     # 지구 자료 점 (wetherilli 185) — 처음에 제목을 열쇠로 적어 영어판에 한국어가 나왔다(199 에서 이름으로 고쳤다)
     "earth:pbdb_korea": "Fossil collections (PBDB)", "earth:pbdb_antarctica": "Fossil collections (PBDB)", "earth:pbdb_arctic": "Fossil collections (PBDB)",
     "earth:gvp_korea": "Holocene volcanoes (GVP)", "earth:gvp_antarctica": "Holocene volcanoes (GVP)", "earth:gvp_arctic": "Holocene volcanoes (GVP)",
+    "earth:heatflow_korea": "Heat flow (IHFC)", "earth:heatflow_antarctica": "Heat flow (IHFC)", "earth:heatflow_arctic": "Heat flow (IHFC)",
     "earth:quakes_korea": "Earthquakes M5+ (USGS)", "earth:quakes_antarctica": "Earthquakes M5+ (USGS)", "earth:quakes_arctic": "Earthquakes M5+ (USGS)",
     "earth:neotoma_korea": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_antarctica": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_arctic": "Quaternary paleoecology sites (Neotoma)",
     # 국토지리원 주제 타일 (wetherilli 172)
