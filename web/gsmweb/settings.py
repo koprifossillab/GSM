@@ -159,6 +159,9 @@ GSI_WMS_URL = env("GSM_GSI_WMS_URL", "https://gsi.geodata.gov.ie/server/services
 GSNI_WMS_URL = env("GSM_GSNI_WMS_URL", "https://map.bgs.ac.uk/arcgis/services/GeoIndex_GSNI/GSNI_Geology_Landsat_WMS/MapServer/WmsServer")
 #: 남미 지질도 — SGC ArcGIS WMS 의 판 앞 주소 (wetherilli 188). 열쇠가 없다
 SGC_WMS_URL = env("GSM_SGC_WMS_URL", "https://srvags.sgc.gov.co/arcgis/services")
+#: 브라질 지질도 — SGB GeoServer 둘 (wetherilli 191). 1:100만·1:25만은 geoservicos, 2025 년판 1:250만은 opendata. 열쇠가 없다
+SGB_GEOSERVICOS_URL = env("GSM_SGB_GEOSERVICOS_URL", "https://geoservicos.sgb.gov.br/geoserver/ows")
+SGB_OPENDATA_URL = env("GSM_SGB_OPENDATA_URL", "https://opendata.sgb.gov.br/geoserver/ows")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -247,6 +250,8 @@ KOPRI_DIR = env("GSM_KOPRI_DIR") or str(_data_dir() / "kopri")
 #: KIGAM 오픈플랫폼의 자료 목록·상세(`/openapi/data`) — `manage.py fetch_kigam_data` 가 1 초 간격으로 모아 둔 것과 행정구역을
 #: 찾은 자리. 저장소·이미지에 두지 않는다. 지도에 무엇을 올릴지는 아직 정하지 않았다(이슈 #153, wetherilli 169).
 KIGAM_DATA_DIR = env("GSM_KIGAM_DATA_DIR") or str(_data_dir() / "kigam_data")
+#: 브라질 SGB 의 단위 이름표 — 범례에 이름·시대를 붙인다(`manage.py fetch_sgb_units`, wetherilli 191). 없어도 범례는 기호로 뜬다
+SGB_DIR = env("GSM_SGB_DIR") or str(_data_dir() / "sgb")
 #: KIGAM 5만 지질도의 층리·엽리·절리 등 — GeoServer WFS 에서 한 번 받아 둔 것(`raw/<YYYYMMDD>/`).
 #: 저장소·이미지에 두지 않는다. 없으면 자세 기호에 커서가 안 바뀔 뿐 뷰어는 돈다 (jikhanjung 004).
 KIGAM50K_DIR = env("GSM_KIGAM50K_DIR") or str(_data_dir() / "kigam50k")
@@ -395,6 +400,8 @@ GSI_CATALOG_SEED = REPO_DIR / "data" / "gsi_layers.json"
 GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 #: 남미 (wetherilli 188)
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
+#: 브라질 (wetherilli 191)
+SGB_CATALOG_SEED = REPO_DIR / "data" / "sgb_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

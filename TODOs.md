@@ -26,8 +26,10 @@
 
 - [ ] **(사람) 남미 1:500만의 CGMW 이용 조건** — 남미 탭은 SGC 로 섰다(wetherilli 188). CGMW 는 지도를 판다 — 정적 판·밖에 열기 전에 읽는다.
       읽고 되면 정적 판에 싣는다(CORS 가 열려 있어 `static-kinds.js` 한 갈래)
-- [ ] 브라질 SGB GeoServer — 1:100만 전국+1:250만(2025), 속성이 가장 풍부, CORS `*`. GetFeatureInfo 에 `propertyName` 을
-      붙인다(안 붙이면 2.2 MB). 범례가 225×46 700 이라 보는 범위의 범례를 뜬다. 하루
+- [ ] (사람) 운영에서 `manage.py fetch_sgb_units` 를 한 번 — 브라질 범례에 단위 이름·시대가 붙는다(없으면 기호만). 1:100만은
+      WFS 열 번 남짓·1 초 간격 (wetherilli 191)
+- [ ] 브라질 SGB 의 점 레이어 — 노두·연대측정·화석 산지(`geosgb:afloramentos`·`geocronologia`·`ocorrencias_fossiliferas`). 지역 탭의
+      점 레이어나 온 지구의 점 후보. 조건은 CC BY-NC 4.0 이라 정적 판에는 싣지 않는다
 - [ ] 페루 INGEMMET 1:5만 통합판 — 남미에서 가장 자세한 전국판, 3857 타일 캐시도 있다. 반나절–하루. (사람) 메타데이터가 CC BY-NC-SA
 - [ ] 아르헨티나 SEGEMAR 1:250만·우루과이 1:50만 — CORS 가 없어 서버 문으로만. 남쪽 원뿔을 채운다
 - 막힌 것: 칠레 SERNAGEOMIN(연결 거부 — 남미 1:500만이 메운다), 베네수엘라(서비스 없음), 볼리비아(8080 거부 — 다른 망에서 한 번 더)

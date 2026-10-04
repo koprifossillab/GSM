@@ -1842,7 +1842,7 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --hi: #123a28; --hi-deep: #0a2418; --on-hi: #f3fbf7; --hi-ink: #1d8a5a;
   --glass: rgba(250, 253, 251, .95); --glass-line: #cfe0d7;
 }
-/* 남미 — 안데스의 구리빛 (wetherilli 188) */
+/* 남미(묶음) — 안데스의 구리빛 (wetherilli 188) */
 :root[data-region="south_america"] {
   --bg: #17110d; --panel: #1f1712; --panel-tint: #120d0a; --raise: #2a1f18;
   --ink: #f6ece4; --ink-soft: #cdb4a2; --ink-faint: #8e7464;
@@ -2246,3 +2246,43 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .key-check.bad { color: var(--direct-ink); font-weight: 600; }
 .key-forget { display: flex; gap: 6px; align-items: center; font-size: 12px; margin: 0 0 12px; }
 .key-buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* ── 콜롬비아 (wetherilli 191) — 커피 열매의 진홍: 볶은 원두 바탕 ── */
+:root[data-region="colombia"] {
+  --bg: #161010; --panel: #1f1615; --panel-tint: #120c0c; --raise: #2b1e1d;
+  --ink: #f7ecea; --ink-soft: #d3b5b1; --ink-faint: #93736f;
+  --line: #3c2826; --line-soft: #2b1e1d;
+  --gold: #d2414b; --gold-bright: #f08d93; --gold-muted: #b23a43;
+  --gold-wash: rgba(210, 65, 75, .13); --gold-edge: rgba(210, 65, 75, .42);
+  --hi: #d2414b; --hi-deep: #f08d93; --on-hi: #120c0c; --hi-ink: #f08d93;
+  --glass: rgba(18, 12, 12, .93); --glass-line: rgba(210, 65, 75, .35);
+}
+:root[data-region="colombia"][data-theme="light"] {
+  --bg: #f8efee; --panel: #fefbfb; --panel-tint: #faf3f2; --raise: #efe0de;
+  --ink: #2a1413; --ink-soft: #63443f; --ink-faint: #9e817d;
+  --line: #e6d2cf; --line-soft: #efe0de;
+  --gold: #a92a33; --gold-bright: #831c24; --gold-muted: #9c5258;
+  --gold-wash: #f8e2e3; --gold-edge: #e8b0b4;
+  --hi: #4e1418; --hi-deep: #300a0d; --on-hi: #fdf4f4; --hi-ink: #a92a33;
+  --glass: rgba(254, 251, 251, .95); --glass-line: #e6d2cf;
+}
+
+/* ── 브라질 (wetherilli 191) — 이페(ipê-amarelo) 꽃의 노랑: 대서양림의 짙은 초록 바탕 ── */
+:root[data-region="brazil"] {
+  --bg: #0f140d; --panel: #161c13; --panel-tint: #0b0f09; --raise: #20281b;
+  --ink: #f3f5e8; --ink-soft: #c5cbad; --ink-faint: #858c6c;
+  --line: #2c3524; --line-soft: #20281b;
+  --gold: #e9c21d; --gold-bright: #f6dd72; --gold-muted: #c7a51c;
+  --gold-wash: rgba(233, 194, 29, .12); --gold-edge: rgba(233, 194, 29, .4);
+  --hi: #e9c21d; --hi-deep: #f6dd72; --on-hi: #0b0f09; --hi-ink: #f6dd72;
+  --glass: rgba(11, 15, 9, .93); --glass-line: rgba(233, 194, 29, .33);
+}
+:root[data-region="brazil"][data-theme="light"] {
+  --bg: #f4f5ea; --panel: #fdfdf8; --panel-tint: #f8f9f0; --raise: #e7e9d6;
+  --ink: #1b2010; --ink-soft: #4f5638; --ink-faint: #868c6c;
+  --line: #dcdfc6; --line-soft: #e7e9d6;
+  --gold: #8f7400; --gold-bright: #6d5800; --gold-muted: #8a7a3a;
+  --gold-wash: #f6efc9; --gold-edge: #e3d27f;
+  --hi: #23300f; --hi-deep: #141d07; --on-hi: #fbfcf2; --hi-ink: #8f7400;
+  --glass: rgba(253, 253, 248, .95); --glass-line: #dcdfc6;
+}

@@ -33,8 +33,8 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgc, usage
-from . import earthpoints, pointvalues, profileband, static_tables
+from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, sgb, sgc, usage
+from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -362,8 +362,8 @@ def map_view(request):
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
 MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
-             # 남미 SGC(wetherilli 188) — 3857 로 그린다
-             "sgc")
+             # 남미 SGC(wetherilli 188)·브라질 SGB(191) — 3857 로 그린다
+             "sgc", "sgb")
 
 
 @require_GET
@@ -2297,6 +2297,14 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "sgb" and sgb.knows(layer.name):
+        # 브라질 SGB(wetherilli 191) — GeoServer 라 3857 을 그대로. 1:100만·1:25만은 가까이서만 그린다. 범례 그림이 225×46 700 이라
+        # 보는 범위의 범례를 뜬다(`sgb/legend/`) — 대만과 같은 꼴이다. 구조선은 범례가 없다
+        first, last = sgb.zooms(layer.name)
+        legend = ({"legend": "extent", "legendUrl": "sgb/legend/"} if layer.name in sgb.legend_layers()
+                  else {"noLegend": True})
+        return {"attribution": sgb.ATTRIBUTION, "projection": "EPSG:3857", **legend,
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
     if layer.upstream == "gsni":
         return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
@@ -2375,7 +2383,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, basemaps.BasemapError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2413,15 +2421,15 @@ class _Door:
                "bgs": bgs, "brgm": brgm, "egdi": egdi,
                # 독일·스페인·아일랜드(wetherilli 147). GSNI 는 BGS 서버가 내주어 문이 bgs.py 다
                "bgr": bgr, "igme": igme, "gsi": gsi, "gsni": bgs.GSNI,
-               # 남미·콜롬비아(wetherilli 188)
-               "sgc": sgc}
+               # 남미·콜롬비아(wetherilli 188)·브라질(191)
+               "sgc": sgc, "sgb": sgb}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3015,6 +3023,44 @@ def gsmma_legend(request):
     return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
 
 
+@require_GET
+@browser_cached
+def sgb_legend(request):
+    """`?layer=sgb:1m&bbox=서,남,동,북` — 브라질 지질도의 보는 범위 범례 (wetherilli 191).
+
+    범례 그림이 225×46 700 이라 GeoServer 에 그 범위에 칠해진 칸만 묻는다(`sgb.extent_legend`). 이름·시대는 모아 둔
+    이름표(`fetch_sgb_units`)가 있으면 붙는다. 범위는 대만(`gsmma_legend`)처럼 소수 둘째 자리로 잘라 캐시가 맞게 한다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in sgb.legend_layers():
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    span = sgb.legend_span(name)
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("sgb-legend", f"{name}/{bbox}")
+    rows = (_cached_json(key) or {}).get("rows")
+    if rows is None:
+        west, south = tilegrid.lonlat_to_3857(bbox[0], bbox[1])
+        east, north = tilegrid.lonlat_to_3857(bbox[2], bbox[3])
+        try:
+            rows = sgb.extent_legend(name, (west, south, east, north))
+        except sgb.SgbError as exc:
+            rows = (_cached_json(key, stale=True) or {}).get("rows")
+            if rows is None:
+                log.info("브라질 범례를 받지 못했다 (%s): %s", name, exc)
+                return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
+    units = sgb.load_units().get(name) or {}
+    shown = [sgb.legend_row(r, units, lang) for r in rows[:sgb.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
 def _immutable(request, response, version: str):
     """주소의 판(`?v=`)이 지금 판과 같으면 브라우저가 오래 들고 있게 한다 (wetherilli 151).
 
@@ -3252,6 +3298,8 @@ def feature_info(request):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
+        elif door.name == "sgb":
+            props = sgb.friendly(props, lang)        # 브라질 — 포르투갈어 시대만 옮기고 이름·설명은 그대로 (wetherilli 191)
         elif door.name == "npolar":
             # NAME → 이름 …, 한국어판이면 지질시대(영문 ICS)를 옮긴다
             props = npolar.friendly(props, lang)
