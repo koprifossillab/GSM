@@ -2404,9 +2404,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({"legend": "extent", "legendUrl": "ga/legend/"} if unit else {"noLegend": True, "queryable": False})}
     if austates.knows(layer.upstream, layer.name):
         # 호주의 주 판(wetherilli 225) — 퀸즐랜드는 REST export, 빅토리아·남호주는 GeoServer. 모두 3857. 넓게 보면 비거나 느려
-        # 처음 줌을 둔다. 범례는 빅토리아만 보는 범위의 것(`gsv/legend/`) — 퀸즐랜드·남호주는 아직 없다
+        # 처음 줌을 둔다. 단위 면은 보는 범위의 범례(`austates/legend/`, 232), 구조선은 범례·누르기가 없다
         first = austates.first_zoom(layer.upstream, layer.name)
-        legend = ({"legend": "extent", "legendUrl": "gsv/legend/"} if layer.upstream == "gsv" else {"noLegend": True})
+        legend = ({"legend": "extent", "legendUrl": "austates/legend/"} if austates.is_unit(layer.upstream, layer.name)
+                  else {"noLegend": True, "queryable": False})
         return {"attribution": austates.UPSTREAMS[layer.upstream][2], "projection": "EPSG:3857", **legend,
                 **({"minZoom": first} if first else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):
@@ -3515,27 +3516,29 @@ def ga_legend(request):
 
 @require_GET
 @browser_cached
-def gsv_legend(request):
-    """`?layer=gsv:250k&bbox=서,남,동,북` — 빅토리아 지질도의 보는 범위 범례 (wetherilli 225). GeoServer 가 그 범위에 칠한 칸만 이름과 함께
-    준다(`austates.extent_legend`). 꼴은 브라질(`sgb_legend`)과 같다"""
+def austates_legend(request):
+    """`?layer=gsq:state&bbox=서,남,동,북` — 호주 주 판의 보는 범위 범례 (wetherilli 225·232). 빅토리아는 GeoServer 의 빈 규칙 빼기,
+    퀸즐랜드는 REST 통계와 칠하기 규칙, 남호주는 WFS 와 SLD 의 규칙으로 뜬다(`austates.extent_legend`). 꼴은 브라질(`sgb_legend`)과 같다"""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
-    if name not in austates.GSV_LAYERS:
+    upstream = name.split(":", 1)[0]
+    if not austates.knows(upstream, name) or not austates.is_unit(upstream, name):
         return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
     parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
     if len(parts) != 4 or None in parts:
         return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
     bbox = [round(v, 2) for v in parts]
-    if bbox[2] - bbox[0] > austates.LEGEND_SPAN or bbox[3] - bbox[1] > austates.LEGEND_SPAN:
+    span = austates.LEGEND_SPAN[upstream]
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
         return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
                             status=422)
-    key = tilecache.key_text("gsv-legend", f"{name}/{bbox}")
+    key = tilecache.key_text("austates-legend", f"{name}/{bbox}/{lang}")
     rows = _cached_json(key)
     if rows is None:
         try:
-            rows = austates.extent_legend(name, austates.legend_bbox(*bbox))
+            rows = austates.extent_legend(upstream, name, tuple(bbox), lang)
         except austates.AuStatesError as exc:
-            log.info("빅토리아 범례를 받지 못했다 (%s): %s", name, exc)
+            log.info("호주 주 판 범례를 받지 못했다 (%s): %s", name, exc)
             return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
         tilecache.put(key, json.dumps(rows, ensure_ascii=False).encode("utf-8"), ".json")
     shown = rows[:austates.MAX_LEGEND]

@@ -3036,6 +3036,8 @@ LAYER_EN = {
     "gsq:state": "Queensland geology (1:2M)", "gsq:detailed": "Queensland detailed geology (1:100k)",
     "gsv:250k": "Victoria geology (1:250k, seamless)", "gsv:50k": "Victoria geology (1:50k, seamless)",
     "gssa:units": "South Australia geological units",
+    "gsq:state_structure": "Queensland faults and folds (1:2M)", "gsq:faults": "Queensland faults and shear zones (1:100k)",
+    "gsq:folds": "Queensland folds (1:100k)", "gssa:faults": "South Australia faults",
     "segemar:e1M.NOA.Geol": "Northwest — geological units (1:1M)",
     "segemar:e1M.NOA.Fallas": "Northwest — faults (1:1M)",
     "segemar:e1M.SH21.Geol": "Corrientes — geological units (1:1M, SH21)",
