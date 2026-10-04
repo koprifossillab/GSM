@@ -134,6 +134,12 @@ class Command(BaseCommand):
                 # 브리티시컬럼비아 BCGS(캐나다 탭)·캘리포니아 CGS(미국 탭) (wetherilli 231)
                 (settings.BCGS_CATALOG_SEED, "브리티시컬럼비아 (BCGS)", "canada", "bcgs"),
                 (settings.CALGS_CATALOG_SEED, "캘리포니아 (CGS)", "usa", "calgs"),
+                # 유럽 — 오스트리아 GeoSphere·폴란드 PIG·네덜란드 TNO·벨기에(플랑드르 DOV·왈로니아 SPW) (wetherilli 237)
+                (settings.GEOSPHERE_CATALOG_SEED, "오스트리아 (GeoSphere)", "austria", "geosphere"),
+                (settings.PIG_CATALOG_SEED, "폴란드 (PIG-PIB)", "poland", "pig"),
+                (settings.TNO_CATALOG_SEED, "네덜란드 (TNO)", "netherlands", "tno"),
+                (settings.DOV_CATALOG_SEED, "플랑드르 (DOV)", "belgium", "dov"),
+                (settings.SPW_CATALOG_SEED, "왈로니아 (SPW)", "belgium", "spw"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),

@@ -216,6 +216,12 @@ YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/servi
 BCGS_WMS_URL = env("GSM_BCGS_WMS_URL", "https://openmaps.gov.bc.ca/geo/pub/WHSE_MINERAL_TENURE.GEOL_BEDROCK_UNIT_POLY_SVW/ows")
 #: 캘리포니아 지질도 1:75만 — CGS ArcGIS 의 앞 주소 (`viewer/calgs.py`, wetherilli 231). 열쇠가 없다
 CALGS_URL = env("GSM_CALGS_URL", "https://gis.conservation.ca.gov/server")
+#: 유럽 — 오스트리아 GeoSphere·폴란드 PIG·네덜란드 TNO·플랑드르 DOV·왈로니아 SPW (wetherilli 237). 열쇠가 없다
+GEOSPHERE_URL = env("GSM_GEOSPHERE_URL", "https://gis.geosphere.at/maps")
+PIG_URL = env("GSM_PIG_URL", "https://cbdgmapa.pgi.gov.pl/arcgis")
+TNO_WMS_URL = env("GSM_TNO_WMS_URL", "https://www.gdngeoservices.nl/inspire/geoserver/geomap_as_is/ows")
+DOV_WMS_URL = env("GSM_DOV_WMS_URL", "https://www.dov.vlaanderen.be/geoserver/wms")
+SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -490,6 +496,12 @@ YGS_CATALOG_SEED = REPO_DIR / "data" / "ygs_layers.json"
 #: 브리티시컬럼비아·캘리포니아 (wetherilli 231)
 BCGS_CATALOG_SEED = REPO_DIR / "data" / "bcgs_layers.json"
 CALGS_CATALOG_SEED = REPO_DIR / "data" / "calgs_layers.json"
+#: 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237)
+GEOSPHERE_CATALOG_SEED = REPO_DIR / "data" / "geosphere_layers.json"
+PIG_CATALOG_SEED = REPO_DIR / "data" / "pig_layers.json"
+TNO_CATALOG_SEED = REPO_DIR / "data" / "tno_layers.json"
+DOV_CATALOG_SEED = REPO_DIR / "data" / "dov_layers.json"
+SPW_CATALOG_SEED = REPO_DIR / "data" / "spw_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 호주의 주 판 — 퀸즐랜드·빅토리아·남호주 (wetherilli 225)

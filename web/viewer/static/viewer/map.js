@@ -321,6 +321,33 @@
                    base: ["swisstopo:geologische_karte", "swisstopo:geocover"],
                    first: "swisstopo:geologische_karte",
                    borrow: { uk: ["egdi"] } },
+    // ── 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237) ──
+    // GeoSphere 1:100만, PIG-PIB 1:50만(세 층을 겹친다), TNO 지표 지질도, 벨기에는 플랑드르 DOV 와 왈로니아 SPW 를 한 탭에.
+    // 넷 다 3857 이고 유럽 묶음에 든다. EGDI 1:100만은 영국에서 빌린다(바다를 낀 둘은 EMODnet 도)
+    austria: { title: "오스트리아", proj: "EPSG:3857", center: [13.3, 47.6], zoom: 7, vworld: false,
+               home: [1058000, 5837000, 1915000, 6283000],
+               basemap: "eox_terrain", example: "47.561, 13.648 · Hallstatt",
+               base: ["geosphere:geology", "geosphere:faults"],
+               first: ["geosphere:geology", "geosphere:faults"],
+               borrow: { uk: ["egdi"] } },
+    poland: { title: "폴란드", proj: "EPSG:3857", center: [19.2, 52.0], zoom: 6, vworld: false,
+              home: [1570000, 6275000, 2694000, 7342000],
+              basemap: "eox_terrain", example: "50.061, 19.937 · Kraków",
+              base: ["pig:mgp500k", "pig:faults"],
+              first: "pig:mgp500k",
+              borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    netherlands: { title: "네덜란드", proj: "EPSG:3857", center: [5.3, 52.2], zoom: 7, vworld: false,
+                   home: [367000, 6568000, 813000, 7095000],
+                   basemap: "eox_terrain", example: "52.090, 5.121 · Utrecht",
+                   base: ["tno:geology"],
+                   first: "tno:geology",
+                   borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    belgium: { title: "벨기에", proj: "EPSG:3857", center: [4.5, 50.6], zoom: 8, vworld: false,
+               home: [278000, 6352000, 718000, 6719000],
+               basemap: "eox_terrain", example: "50.879, 4.701 · Leuven",
+               base: ["dov:tertiair_50k", "dov:quartair_200k", "spw:geology", "spw:faults"],
+               first: ["dov:tertiair_50k", "spw:geology"],
+               borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
     // ── 남미 (wetherilli 188·191) ──
     // 나라 탭 둘(콜롬비아·브라질)과 묶음 "남미". SGC 가 내는 남미 1:500만(CGMW 2019)이 대륙 바탕이다 — 콜롬비아 지역에 두고
     // 브라질이 그 레이어군만 빌린다(`borrow` 의 `sgc:sa:` — 이름 앞머리로). 칠레·페루처럼 나라 판이 없는 곳은 묶음에서 1:500만이 메운다
@@ -426,9 +453,10 @@
                base: ["ga:lithostratigraphy", "gns:NZL_GNS_1M_geological_units", "gns:qmap"],
                first: ["ga:lithostratigraphy", "gns:NZL_GNS_1M_geological_units", "gns:qmap"] },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
-              includes: ["uk", "ireland", "france", "germany", "spain", "portugal", "italy", "switzerland"],
-              // 이탈리아(풀리아·시칠리아)까지 — 동쪽을 넓혔다 (wetherilli 211)
-              home: [-1225000, 4232000, 2100000, 8626000],
+              includes: ["uk", "ireland", "france", "germany", "spain", "portugal", "italy", "switzerland",
+                         "austria", "poland", "netherlands", "belgium"],
+              // 이탈리아(풀리아·시칠리아)·폴란드 동쪽 끝까지 — 동쪽을 넓혔다 (wetherilli 211·237)
+              home: [-1225000, 4232000, 2700000, 8626000],
               basemap: "eox_terrain",
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
@@ -508,7 +536,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "mongolia", "india", "saudi", "indonesia", "malaysia", "philippines", "thailand", "southeast_asia", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia", "new_zealand", "oceania", "austria", "poland", "netherlands", "belgium"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -1009,6 +1037,12 @@
     sgs: { source: npolarSource, info: wmsInfoUrl },
     // 동남아(wetherilli 228) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다. 말레이시아는 문이 REST export 로 옮긴다
     // 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 카탈로그 행의 투영(3978)으로 서버 문을 거친다
+    // 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다
+    geosphere: { source: npolarSource, info: wmsInfoUrl },
+    pig: { source: npolarSource, info: wmsInfoUrl },
+    tno: { source: npolarSource, info: wmsInfoUrl },
+    dov: { source: npolarSource, info: wmsInfoUrl },
+    spw: { source: npolarSource, info: wmsInfoUrl },
     bcgs: { source: npolarSource, info: wmsInfoUrl },
     calgs: { source: npolarSource, info: wmsInfoUrl },
     esdm: { source: npolarSource, info: wmsInfoUrl },
@@ -1486,7 +1520,8 @@
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france",
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
-              "indonesia", "malaysia", "philippines", "thailand"],
+              "indonesia", "malaysia", "philippines", "thailand",
+              "austria", "poland", "netherlands", "belgium"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
@@ -1495,7 +1530,8 @@
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france",
               "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa", "canada", "australia",
               "italy", "portugal", "switzerland", "new_zealand", "mongolia", "india", "saudi",
-              "indonesia", "malaysia", "philippines", "thailand"],
+              "indonesia", "malaysia", "philippines", "thailand",
+              "austria", "poland", "netherlands", "belgium"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2489,7 +2525,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2504,7 +2540,8 @@
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
-    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"), calgs: T("캘리포니아 지질조사소"),
+    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"),
+    geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
