@@ -1,6 +1,7 @@
 """ArcGIS WMS 를 중계하는 문들이 함께 쓰는 틀 (wetherilli 228). **문이 아니다** — `requests` 를 쓰지 않는다.
 
-동남아 문(`esdm.py`·`mgb.py`·`dmr.py`)이 같은 꼴이라 여기 모았다. 문은 제 `_get`(상류로 나가는 길)을 넘기고, 이 틀은 WMS 변수를 고치고
+동남아 문(`esdm.py`·`mgb.py`·`dmr.py`)과 유럽 문(`geosphere.py`·`pig.py`·`tno.py`·`dov.py`·`spw.py`, wetherilli 237)이 같은 꼴이라
+여기 모았다. 이름은 ArcGIS 지만 GeoServer WMS 도 이 틀로 돈다. 문은 제 `_get`(상류로 나가는 길)을 넘기고, 이 틀은 WMS 변수를 고치고
 응답을 읽기만 한다. ArcGIS WMS 의 GetFeatureInfo 는 판에 따라 geojson 을 주기도 하고 ESRI XML(`<FIELDS a="…"/>`)만 주기도 한다 — 둘 다 읽는다.
 """
 import xml.etree.ElementTree as ET
@@ -9,9 +10,11 @@ import xml.etree.ElementTree as ET
 class Door:
     """`layers` — 우리 이름 → 상류 WMS 이름. `queryable` — 누를 수 있는 우리 이름. `info_format` — 상류가 주는 속성 꼴"""
 
-    def __init__(self, *, url, layers: dict, queryable=(), info_format="application/geojson", get, error):
+    def __init__(self, *, url, layers: dict, queryable=(), info_format="application/geojson", get, error, info_params=None):
         self.url, self.layers, self.queryable = url, layers, tuple(queryable)
         self.info_format, self._get, self.Error = info_format, get, error
+        #: 속성을 물을 때 더 붙일 변수 — `{우리 이름: {...}}`. GeoServer 의 `propertyName`(모양째 오는 것을 피한다, wetherilli 237)
+        self.info_params = info_params or {}
 
     def knows(self, name: str) -> bool:
         return bool(name) and all(n.strip() in self.layers for n in str(name).split(","))
@@ -50,6 +53,7 @@ class Door:
             raise self.Error(f"누를 수 없는 레이어다: {name}")
         params = self._wms(params, "GetFeatureInfo")
         params["info_format"] = self.info_format
+        params.update(self.info_params.get(name, {}))
         if "i" in params and "x" not in params:
             params["x"], params["y"] = params.pop("i"), params.pop("j", "0")
         r = self._get(self.url(), params)

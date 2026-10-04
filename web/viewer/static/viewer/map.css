@@ -2794,3 +2794,80 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #1e2c12; --hi-deep: #121a0b; --on-hi: #fdfcfb; --hi-ink: #557a34;
   --glass: rgba(253, 252, 251, .95); --glass-line: #e4efdb;
 }
+
+/* ── 오스트리아 (wetherilli 237) — 할슈타트 소금의 분홍빛 석회: 다흐슈타인 석회암의 짙은 회 바탕 ── */
+:root[data-region="austria"] {
+  --bg: #141415; --panel: #1d1d1e; --panel-tint: #0f0f10; --raise: #29292a;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #3a3a3a; --line-soft: #29292a;
+  --gold: #d97a8c; --gold-bright: #eab6c0; --gold-muted: #b86877;
+  --gold-wash: rgba(217, 122, 140, .13); --gold-edge: rgba(217, 122, 140, .42);
+  --hi: #d97a8c; --hi-deep: #eab6c0; --on-hi: #0f0f10; --hi-ink: #eab6c0;
+  --glass: rgba(15, 15, 16, .93); --glass-line: rgba(217, 122, 140, .35);
+}
+:root[data-region="austria"][data-theme="light"] {
+  --bg: #fdf7f8; --panel: #fdfcfb; --panel-tint: #fdfafa; --raise: #faecef;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #f7e4e8; --line-soft: #faecef;
+  --gold: #985562; --gold-bright: #77434d; --gold-muted: #93646d;
+  --gold-wash: #f9ebee; --gold-edge: #eec3cb;
+  --hi: #361e23; --hi-deep: #211215; --on-hi: #fdfcfb; --hi-ink: #985562;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #f7e4e8;
+}
+/* ── 폴란드 (wetherilli 237) — 발트해 호박(앰버)의 꿀빛: 비엘리치카 암염 동굴의 어두운 바탕 ── */
+:root[data-region="poland"] {
+  --bg: #141210; --panel: #1d1b1a; --panel-tint: #0f0e0c; --raise: #292726;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #3a3836; --line-soft: #292726;
+  --gold: #e0a03a; --gold-bright: #eecb93; --gold-muted: #be8831;
+  --gold-wash: rgba(224, 160, 58, .13); --gold-edge: rgba(224, 160, 58, .42);
+  --hi: #e0a03a; --hi-deep: #eecb93; --on-hi: #0f0e0c; --hi-ink: #eecb93;
+  --glass: rgba(15, 14, 12, .93); --glass-line: rgba(224, 160, 58, .35);
+}
+:root[data-region="poland"][data-theme="light"] {
+  --bg: #fdf9f3; --panel: #fdfcfb; --panel-tint: #fefbf7; --raise: #fbf2e3;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #f9ecd8; --line-soft: #fbf2e3;
+  --gold: #9d7029; --gold-bright: #7b5820; --gold-muted: #977746;
+  --gold-wash: #faf1e1; --gold-edge: #f1d4a6;
+  --hi: #38280e; --hi-deep: #221809; --on-hi: #fdfcfb; --hi-ink: #9d7029;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #f9ecd8;
+}
+/* ── 네덜란드 (wetherilli 237) — 튤립 밭의 주홍: 북해 갯벌의 회청 바탕 ── */
+:root[data-region="netherlands"] {
+  --bg: #121417; --panel: #1b1d20; --panel-tint: #0e0f11; --raise: #27292c;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #383a3c; --line-soft: #27292c;
+  --gold: #ef6a3a; --gold-bright: #f6ad93; --gold-muted: #cb5a31;
+  --gold-wash: rgba(239, 106, 58, .13); --gold-edge: rgba(239, 106, 58, .42);
+  --hi: #ef6a3a; --hi-deep: #f6ad93; --on-hi: #0e0f11; --hi-ink: #f6ad93;
+  --glass: rgba(14, 15, 17, .93); --glass-line: rgba(239, 106, 58, .35);
+}
+:root[data-region="netherlands"][data-theme="light"] {
+  --bg: #fef6f3; --panel: #fdfcfb; --panel-tint: #fef9f7; --raise: #fdeae3;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #fce1d8; --line-soft: #fdeae3;
+  --gold: #a74a29; --gold-bright: #833a20; --gold-muted: #9e5d46;
+  --gold-wash: #fde9e1; --gold-edge: #f8bca6;
+  --hi: #3c1a0e; --hi-deep: #241009; --on-hi: #fdfcfb; --hi-ink: #a74a29;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #fce1d8;
+}
+/* ── 벨기에 (wetherilli 237) — 아르덴 점판암의 청회 위 붉은 대리석: 뫼즈 강 석회암의 바탕 ── */
+:root[data-region="belgium"] {
+  --bg: #131314; --panel: #1c1c1d; --panel-tint: #0e0e0f; --raise: #282829;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #39393a; --line-soft: #282829;
+  --gold: #b8564a; --gold-bright: #d8a29b; --gold-muted: #9c493f;
+  --gold-wash: rgba(184, 86, 74, .13); --gold-edge: rgba(184, 86, 74, .42);
+  --hi: #b8564a; --hi-deep: #d8a29b; --on-hi: #0e0e0f; --hi-ink: #d8a29b;
+  --glass: rgba(14, 14, 15, .93); --glass-line: rgba(184, 86, 74, .35);
+}
+:root[data-region="belgium"][data-theme="light"] {
+  --bg: #fbf5f4; --panel: #fdfcfb; --panel-tint: #fcf8f8; --raise: #f5e7e6;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #f1dddb; --line-soft: #f5e7e6;
+  --gold: #813c34; --gold-bright: #652f29; --gold-muted: #83534d;
+  --gold-wash: #f4e6e4; --gold-edge: #dfb3ae;
+  --hi: #2e1612; --hi-deep: #1c0d0b; --on-hi: #fdfcfb; --hi-ink: #813c34;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #f1dddb;
+}
