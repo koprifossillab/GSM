@@ -39,6 +39,10 @@ STATIC_ATTRIBUTION = ('Mapa Geológico de Colombia 2023 (<a href="https://www.sg
 TIMEOUT = 45
 
 
+#: 메타타일로 받는 판과 가장 깊은 격자 줌 (wetherilli 284) — 넓은 줌에서는 요청 값(3 초 남짓)이 그림 크기보다 커 1 024 px 한 장(3.5 초)이
+#: 512 px 넷(12 초 남짓)의 3 분의 1 이다. 가까이(줌 7 부터)는 칸이 작아 한 칸씩 받는다. `metatile.limit` 의 표
+METATILE = {"sgc:sa:": 6, "sgc:co:": 6}
+
 class SgcError(RuntimeError):
     pass
 
@@ -79,7 +83,7 @@ def _get(sheet: str, params: dict):
         usage.record("sgc", ok=False)
         raise SgcError(f"SGC 에 닿지 못했다: {exc}") from exc
     log.info("SGC %s -> %s", r.url, r.status_code)
-    usage.record("sgc", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("sgc", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

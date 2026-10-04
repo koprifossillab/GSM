@@ -163,6 +163,10 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 - [ ] **(사람)** RGI 7.0 빙하 **윤곽** — NSIDC-0770 은 NASA Earthdata 로그인 뒤에만 받힌다. 계정을 만들어 `RGI2000-v7.0-G-global` 셰이프를 받아 NAS
       `sources/earth/rgi7/` 에 두면 `glaciers.py` 의 점을 면으로 바꾼다(지금은 속성 표의 가운데·넓이로 넓이만 한 원) (wetherilli 289)
+- [ ] **(사람)** GEOROC 암석 지화학 시료(wetherilli 293 으로 받은 일) — 조건은 **CC BY-SA 4.0**(GEOROC Compilation 미리 엮은 파일, 일에 적힌 CC BY 가
+      아니다). 파일은 모두 GRO.data(`data.goettingen-research-online.de`, "Rock Types" doi:10.25625/2JETOA, 356 MB zip 90 개)에 있는데 **이 서버에서는
+      TLS 연결이 끊긴다**(2026-10-05, 여러 번·CA 묶음으로도 SSLEOF). GEOROC 2.0 API 는 접근 열쇠가 든다. 다른 망에서 zip 을 받아 NAS
+      `sources/earth/georoc/` 에 두면 지열류 꼴의 점 sqlite 로 굽는다
 
 - [ ] **(사람)** 충돌구의 자세한 표 — Kenkmann 2021(MAPS, 75 항목·연대·지름)은 **CC BY-NC 4.0**, Osinski 외 2022(Impact Earth)는 **CC BY-NC-ND 4.0** 이다.
       지금은 Wikidata(CC0, 지름 3 분의 1·연대 열 곳)뿐이다. 비상업 조건을 받아들이면 Kenkmann 표로 바꿔 충돌구도 그때의 지구에 옮길 수 있다 (wetherilli 283)

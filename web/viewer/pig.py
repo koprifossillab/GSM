@@ -24,6 +24,8 @@ from . import arcwms, i18n, usage
 log = logging.getLogger(__name__)
 
 PREFIX = "pig:"
+#: 메타타일로 받는다 (wetherilli 287) — 1:50만 512 px 3.6–5.4 초, 1 024 px 7.9 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"pig:": None}
 ATTRIBUTION = ('<a href="https://www.pgi.gov.pl/" target="_blank" rel="noopener">PIG-PIB</a> — Mapa geologiczna Polski 1:500 000 (2022)')
 MAX_ZOOM = 12
 FAULTS_MIN_ZOOM = 10
@@ -46,7 +48,7 @@ def _get(url: str, params: dict):
         usage.record("pig", ok=False)
         raise PigError(f"PIG-PIB 에 닿지 못했다: {exc}") from exc
     log.info("PIG %s -> %s", r.url, r.status_code)
-    usage.record("pig", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("pig", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

@@ -20,6 +20,8 @@ from . import arcwms, i18n, tilecache, usage
 log = logging.getLogger(__name__)
 
 PREFIX = "sgs:"
+#: 메타타일로 받는다 (wetherilli 287) — 512 px 2.6–12.0 초, 1 024 px 4.4 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"sgs:": None}
 ATTRIBUTION = ('<a href="https://ngd.sgs.gov.sa/" target="_blank" rel="noopener">Saudi Geological Survey</a> '
                "(National Geological Database, 1:250,000)")
 LAYERS = {"sgs:geology": "Geology_250K_Standard"}
@@ -77,7 +79,7 @@ def _get(url: str, params: dict):
         usage.record("sgs", ok=False)
         raise SgsError(f"SGS 에 닿지 못했다: {exc}") from exc
     log.info("SGS %s -> %s", r.url, r.status_code)
-    usage.record("sgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("sgs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 

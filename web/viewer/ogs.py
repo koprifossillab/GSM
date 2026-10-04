@@ -59,7 +59,7 @@ def _get(url: str, params: dict):
         usage.record("ogs", ok=False)
         raise OgsError(f"OGS 에 닿지 못했다: {exc}") from exc
     log.info("OGS %s -> %s", r.url, r.status_code)
-    usage.record("ogs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("ogs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 
