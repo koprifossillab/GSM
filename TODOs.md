@@ -65,6 +65,10 @@
       ArcGIS Online 피처 서비스(`Metallic_Mineral_Occurrences`·`Industrial_Mineral_Occurrences`)뿐이라 그림 길이 없다 — 파나마(stri)처럼 한 덩이로 받아
       화면이 그릴지. 노바스코샤는 광물 산지 서비스를 찾지 못했다. 퀘벡의 광물 산지(gîte)는 WMS 에 없다(SIGÉOM 의 다른 서비스를 찾을 것)
 
+- [ ] 미국 주 지질도(wetherilli 291) — 네바다·워싱턴·오리건은 섰다. 남은 것: 유타 UGS(`webmaps.geology.utah.gov/arcgis/rest/services/GeolMap/500k_State`)와
+      애리조나 AZGS(`services.azgs.az.gov`)는 이 서버에서 연결이 시간 초과다(나라 밖을 막는 듯) — 미국 안의 길이 생기면. 알래스카 DGGS 는 지질도가
+      SIM 3340(mrdata)과 겹쳐 두지 않았고 광물 산지(`Mineral_Occurrences_2020_MIL1`)는 따로 볼 것. 세 주 모두 조건 문구를 읽지 않았다 — 정적 판에 싣기 전에
+
 - [ ] 아시아 광물(wetherilli 280) — 인도네시아·필리핀·태국·사우디·몽골 희토류는 섰다. 남은 것: 말레이시아 MyGEMS 는 `rest/services` 목록이 허브 쪽으로
       넘어가 광물 서비스를 찾지 못했다, 인도 GSI 는 Bhukosh 가 나라 밖에서 닿지 않는다. 몽골 `Atlas/AtlasPoints` 의 광상 레이어(6–9)는 우물 자료를
       돌려준다 — 고쳐지면 금속·비금속·연료·전략 광상. 태국 지구물리 탐사 지점·사우디 지구물리 사업 범위는 범위뿐이라 뺐다.
