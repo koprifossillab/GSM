@@ -425,9 +425,9 @@
               home: [-2900000, -4300000, 6000000, 4600000],
               basemap: "eox_terrain", example: "-1.29, 36.82 · Nairobi",
               base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology", "cgs:geology_1m",
-                     "gsn:NAM_GSN_1M_BLS"],
+                     "gsn:NAM_GSN_1M_BLS", "bumigeb:BFA_BUMIGEB_FR_1M_BLS", "irgm:CMR_IRGM_1M_UnitesGeologiques"],
               first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits",
-              // 나라 판(남아공·나미비아, wetherilli 209)은 제 나라만 덮는다 — 묶음 탭처럼 범위 밖 타일을 묻지 않는다
+              // 나라 판(남아공·나미비아, wetherilli 209 · 부르키나파소·카메룬, 246)은 제 나라만 덮는다 — 묶음 탭처럼 범위 밖 타일을 묻지 않는다
               clip: true },
     // 호주(wetherilli 212) — Geoscience Australia 지표 지질도. 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가 축척에 맞는 판을
     // 그린다. 화면은 3857 — GA 가 3577(호주 알베르스)을 그려 주지 않고 남위 10–44° 라 많이 부풀지 않는다
@@ -1058,6 +1058,9 @@
     // 아프리카 나라 판(wetherilli 209) — 남아공 CGS(서버가 REST export 로 옮긴다)·나미비아 GSN
     cgs: { source: npolarSource, info: wmsInfoUrl },
     gsn: { source: npolarSource, info: wmsInfoUrl },
+    // 부르키나파소 BUMIGEB(BGS)·카메룬 IRGM(BRGM, 4326 으로 받아 옮겨 그린다) 1:100만 (wetherilli 246)
+    bumigeb: { source: npolarSource, info: wmsInfoUrl },
+    irgm: { source: npolarSource, info: wmsInfoUrl },
     // 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. OGS 속성은 문이 REST identify 로 바꾼다
     nrcan: { source: npolarSource, info: wmsInfoUrl },
     ogs: { source: npolarSource, info: wmsInfoUrl },
@@ -2586,7 +2589,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", ineter: "INETER", usgscarib: "USGS", stri: "STRI", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2608,7 +2611,7 @@
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
-    cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",
+    cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), bumigeb: T("부르키나파소 지질광업국"), irgm: T("카메룬 지질광업연구소"), ga: "Geoscience Australia",
     gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),

@@ -125,6 +125,9 @@ class Command(BaseCommand):
                 # 아프리카 나라 판 — 남아공 CGS·나미비아 GSN 1:100만 (wetherilli 209). 탭은 아프리카 하나에 얹는다
                 (settings.CGS_CATALOG_SEED, "남아공 (CGS)", "africa", "cgs"),
                 (settings.GSN_CATALOG_SEED, "나미비아 (GSN)", "africa", "gsn"),
+                # 부르키나파소 BUMIGEB·카메룬 IRGM 1:100만 (wetherilli 246)
+                (settings.BUMIGEB_CATALOG_SEED, "부르키나파소 (BUMIGEB)", "africa", "bumigeb"),
+                (settings.IRGM_CATALOG_SEED, "카메룬 (IRGM)", "africa", "irgm"),
                 # 캐나다 — NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 (wetherilli 204)
                 (settings.NRCAN_CATALOG_SEED, "캐나다 (NRCan)", "canada", "nrcan"),
                 (settings.OGS_CATALOG_SEED, "온타리오 (OGS)", "canada", "ogs"),
