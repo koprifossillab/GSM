@@ -246,6 +246,40 @@
     CATALOG.filter(function (g) { return g.flux; })[0].layers.push(
       { name: "araon", title: "아라온호 항적", track: true, src: "KOPRI · RV Araon live position" });
   }
+  // ── 레이어군을 주제로 묶는다 (wetherilli 278) ──
+  // 레이어가 늘며 자료마다 레이어군이 하나씩(열일곱) 생기고, 덧붙인 차례대로 끼워 넣어 차례가 뒤섞였다. 위에서 자료마다 지은 레이어를
+  // 그대로 두고, 패널의 레이어군만 주제로 다시 묶는다. 출처는 레이어 카드의 `src` 가 적는다.
+  // **패널의 차례만 바뀐다** — 지도에 쌓는 차례와 누를 때 묻는 차례는 켠 차례(`active`)를 따르고, 처음 켜는 것은 그대로다(지질 단위).
+  // 새 레이어는 아래 표에 이름을 적는다. 적지 않으면 맨 끝 "그 밖" 에 선다(시험 `test_earth_panel` 이 적었는지 본다)
+  var THEMES = [
+    ["지질", ["geology", "glim", "seaage", "sediment"]],
+    ["구조·판", ["tbound", "gemfaults", "tprov", "plates", "stress"]],
+    ["지구물리", ["crust", "heatflow", "mantle"]],
+    ["자원", []],                                     // 세계 광상(USGS)의 광종 칸은 `mineral` 로 여기 선다 (wetherilli 276)
+    ["화산·지진", ["volcanoes", "pleistocene", "quake6", "quake55", "quake5"]],
+    ["화석·고생태", ["fossils"]],                      // 고생태 산지(Neotoma)의 자료형 칸은 `neo` 로 여기 선다
+    ["그때의 지구", ["coast", "icemargins"]],
+    ["움직이는 지구", ["wind", "cloud", "satcloud", "ocean", "araon"]],
+    ["지리", ["names", "water", "ice"]],
+  ];
+  CATALOG = (function (groups) {
+    var theme = {};
+    THEMES.forEach(function (t, i) { t[1].forEach(function (n) { theme[n] = i; }); });
+    var out = THEMES.map(function (t) { return { group: t[0], layers: [] }; }).concat([{ group: "그 밖", layers: [] }]);
+    var rows = [];
+    groups.forEach(function (g) { g.layers.forEach(function (l) { rows.push(l); }); });
+    THEMES.forEach(function (t, i) {                   // 주제 안의 차례는 표의 차례
+      t[1].forEach(function (n) { rows.forEach(function (l) { if (l.name === n) out[i].layers.push(l); }); });
+    });
+    rows.forEach(function (l) {
+      if (theme[l.name] !== undefined) return;
+      // 이름이 자료에서 오는 칸 — 고생태 산지(Neotoma)의 자료형, 세계 광상의 광종
+      var by = l.neo ? "화석·고생태" : l.mineral ? "자원" : "";
+      out[by ? THEMES.findIndex(function (t) { return t[0] === by; }) : out.length - 1].layers.push(l);
+    });
+    out[THEMES.findIndex(function (t) { return t[0] === "움직이는 지구"; })].flux = true;
+    return out.filter(function (g) { return g.layers.length; });
+  })(CATALOG);
   var LAYER = {};
   CATALOG.forEach(function (g) { g.layers.forEach(function (l) { LAYER[l.name] = l; }); });
   var ALL_NAMES = Object.keys(LAYER);
