@@ -1455,6 +1455,12 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   #scalebar { left: 8px; bottom: 54px; transform: scale(.82); transform-origin: left bottom; }
   .ol-attribution { bottom: 52px !important; right: 8px !important; max-width: calc(100% - 16px); }
   .popup { min-width: 0; width: min(320px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: 50vh; }
+  /* 닫기 단추가 × 글자 크기(11 px)라 손가락에 작았다 — 32 px 네모로, 첫 줄이 그 밑에 들지 않게 비킨다 (wetherilli 193) */
+  .popup-close { top: 2px; right: 2px; width: 32px; height: 32px; }
+  /* 팝업이 도구 묶음(z 6) 밑에 깔려 닫기 단추가 가려졌다 — 공유 단추(189)로 묶음이 길어져 드러났다. 팝업은 OpenLayers 가 인라인
+     z-index 0 을 건 겹 안에 있어 올릴 수 없다. 좁은 화면에서는 팝업이 지도를 거의 덮으니 열린 동안 묶음을 숨긴다 (wetherilli 193) */
+  #map-wrap.popup-open #toolbar { visibility: hidden; }
+  .popup > #popup-body > :first-child { padding-right: 28px; }
 }
 
 /* 범위잡기 — 끄는 동안의 네모. 다 그리면 지도 위의 금색 네모(rangeStyle)로 바뀐다 */
@@ -2285,6 +2291,26 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --gold-wash: #f6efc9; --gold-edge: #e3d27f;
   --hi: #23300f; --hi-deep: #141d07; --on-hi: #fbfcf2; --hi-ink: #8f7400;
   --glass: rgba(253, 253, 248, .95); --glass-line: #dcdfc6;
+}
+
+/* ── 페루 (wetherilli 195) — 티티카카 호수의 쪽빛: 알티플라노의 밤 ── */
+:root[data-region="peru"] {
+  --bg: #0e1118; --panel: #151a24; --panel-tint: #0a0d13; --raise: #1f2633;
+  --ink: #edf1f9; --ink-soft: #b5c0d6; --ink-faint: #74809a;
+  --line: #2a3345; --line-soft: #1f2633;
+  --gold: #5b8ce6; --gold-bright: #a7c2f3; --gold-muted: #4f78c2;
+  --gold-wash: rgba(91, 140, 230, .13); --gold-edge: rgba(91, 140, 230, .42);
+  --hi: #5b8ce6; --hi-deep: #a7c2f3; --on-hi: #0a0d13; --hi-ink: #a7c2f3;
+  --glass: rgba(10, 13, 19, .93); --glass-line: rgba(91, 140, 230, .35);
+}
+:root[data-region="peru"][data-theme="light"] {
+  --bg: #eff2f8; --panel: #fbfcfe; --panel-tint: #f4f6fb; --raise: #e1e7f1;
+  --ink: #121a2b; --ink-soft: #46526b; --ink-faint: #7f8aa1;
+  --line: #d3dbe9; --line-soft: #e1e7f1;
+  --gold: #2d5bb5; --gold-bright: #1f4389; --gold-muted: #4f6896;
+  --gold-wash: #e1e9f8; --gold-edge: #a9c0ea;
+  --hi: #15264a; --hi-deep: #0b162e; --on-hi: #f5f8fd; --hi-ink: #2d5bb5;
+  --glass: rgba(251, 252, 254, .95); --glass-line: #d3dbe9;
 }
 
 /* ── 아르헨티나 (wetherilli 196) — 페리토 모레노 빙하의 청록: 파타고니아 고원의 회갈 바탕 ── */

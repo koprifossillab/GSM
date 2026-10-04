@@ -85,6 +85,8 @@ class Command(BaseCommand):
                 (settings.SGC_CATALOG_SEED, "남미 (SGC)", "colombia", "sgc"),
                 # 브라질 — SGB 1:250만(2025)·1:100만·1:25만 (wetherilli 191)
                 (settings.SGB_CATALOG_SEED, "브라질 (SGB)", "brazil", "sgb"),
+                # 페루 — INGEMMET 1:5만·1:10만 통합판 (wetherilli 195)
+                (settings.INGEMMET_CATALOG_SEED, "페루 (INGEMMET)", "peru", "ingemmet"),
                 # 아르헨티나 SEGEMAR 1:250만·1:25만, 우루과이 DINAMIGE 1:50만 (wetherilli 196)
                 (settings.SEGEMAR_CATALOG_SEED, "아르헨티나 (SEGEMAR)", "argentina", "segemar"),
                 (settings.DINAMIGE_CATALOG_SEED, "우루과이 (DINAMIGE)", "uruguay", "dinamige"),

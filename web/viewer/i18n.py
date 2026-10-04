@@ -416,6 +416,9 @@ EN = {
     # 홀로세 화산 (wetherilli 134)
     "화산 (GVP)": "Volcanoes (GVP)",
     "홀로세 화산": "Holocene volcanoes",
+    "플라이스토세 화산": "Pleistocene volcanoes",   # wetherilli 194
+    "플라이스토세 화산 — 분화 기록이 없다": "Pleistocene volcano — no eruption on record",   # wetherilli 194
+    "플라이스토세": "Pleistocene",   # wetherilli 194
     "세모의 색은 마지막 분화": "Triangle colour is the last eruption",
     "화산 {n} 곳 가운데 가까운 것부터": "Nearest of {n} volcanoes",
     "GVP 에서 보기": "Open in GVP",
@@ -650,6 +653,9 @@ EN = {
     "콜롬비아": "Colombia",
     "브라질": "Brazil",
     "브라질 지질조사소": "Geological Survey of Brazil (SGB)",
+    # 페루 (wetherilli 195)
+    "페루": "Peru",
+    "페루 지질광업야금연구소": "INGEMMET (Geological, Mining and Metallurgical Institute of Peru)",
     # 아르헨티나·우루과이 (wetherilli 196)
     "아르헨티나": "Argentina",
     "우루과이": "Uruguay",
@@ -1710,6 +1716,7 @@ PROP_EN = {
     "얼음이 버틸 깊이 — 오늘의 자전축": "Ice stability depth — today's spin axis",
     "얼음이 버틸 깊이 — 옛 자전축": "Ice stability depth — paleo spin axis",
     "높이 — 화성 기준면(아레오이드)": "Elevation — above the Mars areoid",   # 화성 표고 판의 값 (wetherilli 192)
+    "높이 — 수성 기준구 2439.4 km": "Elevation — above the 2,439.4 km Mercury sphere",   # 수성 (wetherilli 194)
     "티타늄": "Titanium",
     "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)
@@ -2670,6 +2677,7 @@ GROUP_EN = {
     "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
     "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
+    "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
@@ -2729,6 +2737,9 @@ LAYER_EN = {
     "sgb:2500k_structures": "Structures (1:2.5M, 2025)",
     "sgb:1m": "Lithostratigraphic units (1:1M)",
     "sgb:250k": "Lithostratigraphic units (1:250k, published sheets)",
+    # 페루 (wetherilli 195)
+    "ingemmet:50k": "Geological map 1:50k (integrated)",
+    "ingemmet:100k": "Geological map 1:100k (integrated)",
     # 아르헨티나·우루과이 (wetherilli 196)
     "segemar:e2.5M.UnidadesGeologicas": "Geological units (1:2.5M)",
     "segemar:e2.5M.Estructuras": "Structures (1:2.5M)",

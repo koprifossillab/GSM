@@ -13,9 +13,12 @@
 브라우저에서 끊는다.
 """
 import os
+import re
 import unittest
+from pathlib import Path
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.core.management import call_command
 
 try:
     from playwright.sync_api import sync_playwright
@@ -144,6 +147,46 @@ class PhoneScreenTests(StaticLiveServerTestCase):
 
     def test_남극(self):
         self.check_map_screen("map/?region=antarctica")
+
+    def test_모든_지역_탭(self):
+        """지역 탭마다 패널 구성·범례·투영이 다르다 — 한국·남극 밖의 탭도 다 연다 (wetherilli 193). 탭 목록은 `map.js` 의
+        `REGIONS` 에서 읽는다 — 새 지역(남미 따위)이 들어오면 저절로 돈다. 카탈로그가 있어야 탭이 서서 씨앗을 넣는다"""
+        call_command("seed_catalog", stdout=open(os.devnull, "w"))
+        js = (Path(__file__).resolve().parents[1] / "static/viewer/map.js").read_text(encoding="utf-8")
+        regions = [r for r in re.findall(r"^    (\w+): \{ title: \"[^\"]+\", proj:", js, re.M)
+                   if r not in ("korea", "antarctica")]
+        self.assertIn("france", regions)
+        for region in regions:
+            with self.subTest(region=region):
+                page = self.check_map_screen(f"map/?region={region}")
+                page.context.close()
+
+    def test_팝업이_화면_안에_선다(self):
+        """속성 팝업 하나를 띄워 390 px 안에 서는지, 닫기 단추가 손에 닿는지 본다. 상류를 끊으므로 점묶음의 점을 지도
+        한가운데(한국 탭의 처음 자리)에 두고 누른다"""
+        from viewer.models import Point, PointSet
+        ps = PointSet.objects.create(name="휴대폰 팝업", color="#e4572e")
+        Point.objects.create(pointset=ps, lat=36.2, lon=127.8, label="가운데",
+                             props={"암상": "화강암", "비고": "아주 긴 설명이 붙은 시료 — " * 6})
+        page, errors = self.open("map/", settle=2500)
+        box = page.locator("#map").bounding_box()
+        page.touchscreen.tap(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        page.wait_for_selector("#popup.on", timeout=5000)
+        page.wait_for_timeout(600)          # 지도가 팝업을 보이게 옮기는 동안(autoPan 200 ms)을 기다린다
+        self.assertEqual(errors, [])
+        m = page.evaluate(MEASURE, PARTS + ["#popup", "#popup-close"])
+        self.assertFits(m, "map/ (팝업)")
+        close = m["parts"]["#popup-close"]
+        self.assertIsNotNone(close, "닫기 단추가 보이지 않는다")
+        self.assertGreaterEqual(min(close["width"], close["height"]), 20, "닫기 단추가 손가락에 작다")
+        # 다른 것(도구 묶음 따위)이 닫기 단추를 덮지 않는다
+        self.assertTrue(page.evaluate("""() => { const c = document.getElementById('popup-close'), b = c.getBoundingClientRect();
+            const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return c === hit || c.contains(hit); }"""),
+                        "닫기 단추가 다른 것에 덮인다")
+        page.tap("#popup-close")
+        page.wait_for_timeout(300)
+        self.assertFalse(page.locator("#popup.on").count(), "팝업이 닫히지 않는다")
+        self.assertTrue(page.locator("#toolbar").is_visible(), "팝업을 닫으면 도구 묶음이 돌아온다")
 
     def test_구_화면은_범례가_접혀_열린다(self):
         for path in ("earth/", "moon/", "mars/", "mercury/"):

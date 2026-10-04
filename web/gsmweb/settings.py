@@ -162,6 +162,8 @@ SGC_WMS_URL = env("GSM_SGC_WMS_URL", "https://srvags.sgc.gov.co/arcgis/services"
 #: 브라질 지질도 — SGB GeoServer 둘 (wetherilli 191). 1:100만·1:25만은 geoservicos, 2025 년판 1:250만은 opendata. 열쇠가 없다
 SGB_GEOSERVICOS_URL = env("GSM_SGB_GEOSERVICOS_URL", "https://geoservicos.sgb.gov.br/geoserver/ows")
 SGB_OPENDATA_URL = env("GSM_SGB_OPENDATA_URL", "https://opendata.sgb.gov.br/geoserver/ows")
+#: 페루 지질도 — INGEMMET GEOCATMIN ArcGIS 의 서비스 앞 주소 (wetherilli 195). 열쇠가 없다
+INGEMMET_URL = env("GSM_INGEMMET_URL", "https://geocatmin.ingemmet.gob.pe/arcgis/rest/services")
 #: 아르헨티나 SEGEMAR SIGAM GeoServer·우루과이 DINAMIGE ArcGIS (wetherilli 196). 둘 다 CORS 가 없어 서버 문으로만 간다
 SEGEMAR_WMS_URL = env("GSM_SEGEMAR_WMS_URL", "https://sigam.segemar.gov.ar/geoserver217/ows")
 DINAMIGE_URL = env("GSM_DINAMIGE_URL", "https://geoportal.miem.gub.uy/arcgis1091")
@@ -405,6 +407,8 @@ GSNI_CATALOG_SEED = REPO_DIR / "data" / "gsni_layers.json"
 SGC_CATALOG_SEED = REPO_DIR / "data" / "sgc_layers.json"
 #: 브라질 (wetherilli 191)
 SGB_CATALOG_SEED = REPO_DIR / "data" / "sgb_layers.json"
+#: 페루 (wetherilli 195)
+INGEMMET_CATALOG_SEED = REPO_DIR / "data" / "ingemmet_layers.json"
 SEGEMAR_CATALOG_SEED = REPO_DIR / "data" / "segemar_layers.json"
 DINAMIGE_CATALOG_SEED = REPO_DIR / "data" / "dinamige_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
