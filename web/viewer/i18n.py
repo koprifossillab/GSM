@@ -79,6 +79,9 @@ EN = {
     # 캐나다 (wetherilli 204)
     "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
     "캐나다 람베르트": "Canada Atlas Lambert",
+    # 북미 묶음·퀘벡·유콘 (wetherilli 210)
+    "북미": "North America", "퀘벡 지질 광업 정보 체계": "SIGÉOM (Québec geomining information system)",
+    "유콘 지질조사소": "Yukon Geological Survey", "지구조 요소": "Tectonic element",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
     "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
@@ -2727,6 +2730,8 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
+    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
+    "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
@@ -2819,7 +2824,10 @@ GROUP_EN = {
 LAYER_EN = {
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
-    "ogs:1": "Ontario Quaternary geology", "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
+    "ogs:1": "Ontario Quaternary geology",
+    "sigeom:generale": "General geology (Québec)", "sigeom:regionale": "Regional geology (Québec, 1:20k–1:250k)",
+    "sigeom:failles": "Faults (Québec)", "ygs:47": "Bedrock (Yukon 1:250k)", "ygs:50": "Faults (Yukon)",
+    "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",
     "ispra:100k:1": "Italy geological units (1:100k)", "ispra:100k:2": "Italy tectonics (1:100k)",

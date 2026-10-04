@@ -192,6 +192,9 @@ SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM
 NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/server_serveur/services/NRCan/"
                     "geological_map_canada_wheeler_en/MapServer/WMSServer")
 OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
+#: 캐나다의 주 판 — 퀘벡 SIGÉOM(GeoServer 앞단, WMS 1.1.1)·유콘 YGS(ArcGIS WMS) (wetherilli 210). 열쇠가 없다
+SIGEOM_WMS_URL = env("GSM_SIGEOM_WMS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WMS/service.svc/get")
+YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/services/GeoYukon/GY_Geological/MapServer/WMSServer")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -460,6 +463,9 @@ SGM_CATALOG_SEED = REPO_DIR / "data" / "sgm_layers.json"
 #: 캐나다 (wetherilli 204)
 NRCAN_CATALOG_SEED = REPO_DIR / "data" / "nrcan_layers.json"
 OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
+#: 캐나다의 주 판 — 퀘벡·유콘 (wetherilli 210)
+SIGEOM_CATALOG_SEED = REPO_DIR / "data" / "sigeom_layers.json"
+YGS_CATALOG_SEED = REPO_DIR / "data" / "ygs_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 뉴질랜드, 남극 남빅토리아랜드 (wetherilli 218)
