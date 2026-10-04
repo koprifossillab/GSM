@@ -1273,6 +1273,7 @@ EN = {
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    "영국 남극조사소": "British Antarctic Survey",
     # 대앤틸리스 — USGS SIM 3534 를 우리가 굽는다 (wetherilli 254)
     "대앤틸리스 지질도 파일이 서버에 없다": "The Greater Antilles geologic map file is not on the server",
     "덮인 단층": "Concealed fault",
@@ -3015,6 +3016,7 @@ GROUP_EN = {
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
     "카리브 지질도 (USGS 1:250만)": "Geology of the Caribbean (USGS 1:2.5M)",
+    "빙하 아래 (Bedmap3)": "Beneath the ice (Bedmap3)",
     "대앤틸리스 지질도 (USGS SIM 3534)": "Geology of the Greater Antilles (USGS SIM 3534)",
     "파나마 지질도 (STRI·MICI 1:25만)": "Geology of Panama (STRI · MICI 1:250k)",
     "니카라과 지질도 (INETER)": "Geology of Nicaragua (INETER)", "도미니카공화국 지질도 (SGN 1:25만)": "Geology of the Dominican Republic (SGN 1:250k)",
@@ -3158,6 +3160,7 @@ LAYER_EN = {
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
+    "bas:bedmap3_bed": "Bed topography", "bas:bedmap3_thickness": "Ice thickness", "bas:bedmap3_surface": "Ice surface",
     "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
     "sim3534:units": "Geologic units",
     "sim3534:faults": "Faults",
