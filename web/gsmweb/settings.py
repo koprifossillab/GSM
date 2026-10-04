@@ -188,6 +188,9 @@ SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM
 NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/server_serveur/services/NRCan/"
                     "geological_map_canada_wheeler_en/MapServer/WMSServer")
 OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
+#: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
+GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
+GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -446,6 +449,8 @@ SGM_CATALOG_SEED = REPO_DIR / "data" / "sgm_layers.json"
 #: 캐나다 (wetherilli 204)
 NRCAN_CATALOG_SEED = REPO_DIR / "data" / "nrcan_layers.json"
 OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
+#: 호주 (wetherilli 212)
+GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

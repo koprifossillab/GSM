@@ -97,6 +97,8 @@ class Command(BaseCommand):
                 (settings.MRDATA_CATALOG_SEED, "미국 (USGS)", "usa", "mrdata"),
                 # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
                 (settings.SGM_CATALOG_SEED, "멕시코 (SGM)", "mexico", "sgm"),
+                # 호주 — Geoscience Australia 1:250만·1:100만 (wetherilli 212)
+                (settings.GA_CATALOG_SEED, "호주 (GA)", "australia", "ga"),
                 # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
                 (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
                 (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),

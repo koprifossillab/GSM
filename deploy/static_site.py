@@ -51,7 +51,9 @@ OPTIONAL = {"colombia": (["colombia"], ["sgc"]),
             # 미국(wetherilli 205): USGS SGMC·알래스카 — 공공 도메인, CORS `*`. 브라우저가 mrdata 를 곧장 부른다
             "usa": (["usa"], ["mrdata"]),
             # 스웨덴(wetherilli 213): SGU 기반암 — CC0, CORS `*`. 노르웨이·스웨덴·핀란드 탭에 SGU 만 선다(NGU·GTK 는 서버 판에만)
-            "sweden": (["fennoscandia"], ["sgu"])}
+            "sweden": (["fennoscandia"], ["sgu"]),
+            # 호주(wetherilli 212): Geoscience Australia — CC BY 4.0, Origin 을 되비춘다. 브라우저가 GA WMS 를 곧장 부른다
+            "australia": (["australia"], ["ga"])}
 
 
 def baked_spec(baked: pathlib.Path) -> dict:
