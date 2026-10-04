@@ -2071,6 +2071,10 @@ PROP_EN = {
     "해석": "Interpretation",
     "광물": "Mineral",
     "측정법": "Technique",
+    # 브라질 SGB 의 노두·연대측정·화석 산지 (wetherilli 215)
+    "야외 번호": "Field number", "과제": "Project", "분석 재료": "Material analysed", "자료 공개": "Access level",
+    "분류": "Systematics", "분류군": "Taxon", "재료": "Material", "암층서 단위": "Lithostratigraphic unit",
+    "층서 시대": "Chronostratigraphy", "산출 양상": "Mode of occurrence",
     "계산법": "Approach",
     "암상": "Lithology",
     # 남아공 CGS·나미비아 GSN (wetherilli 209)
@@ -2770,6 +2774,7 @@ GROUP_EN = {
     "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
     "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
+    "브라질 지질 자료 점 (SGB)": "Brazil geological data points (SGB)",
     "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
@@ -2851,6 +2856,9 @@ LAYER_EN = {
     "sgb:2500k_structures": "Structures (1:2.5M, 2025)",
     "sgb:1m": "Lithostratigraphic units (1:1M)",
     "sgb:250k": "Lithostratigraphic units (1:250k, published sheets)",
+    "sgb:outcrops": "Outcrops (close zooms only)",
+    "sgb:geochronology": "Geochronology samples",
+    "sgb:fossils": "Fossil occurrences",
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
