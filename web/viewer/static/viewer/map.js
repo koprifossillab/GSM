@@ -3370,7 +3370,13 @@
   // 아래 가운데 판에 그린다. 표고는 타일로만 읽는다 — 일본은 국토지리원, 나머지(극지도)는 AWS Terrarium. 점 사이에 맞춘 줌이라
   // 긴 선은 거칠다. 그래프 위를 훑으면 그 자리를 지도에 찍는다
   var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
-  var profileSeq = 0, profileData = null, profileSource = null;
+  var profileSeq = 0, profileData = null, profileSource = null, profileBand = null;
+  // 지질 띠 (wetherilli 180) — 켠 레이어 가운데 맨 위의, 우리 파일로 그리는 것(`band`)만. 상류뿐인 곳은 띠가 없다
+  function bandLayer() {
+    if (STATIC || !window.GSMBand) return null;
+    var top = active.filter(function (e) { return e.layer.getVisible() && byName[e.name] && byName[e.name].band; })[0];
+    return top ? top.name : null;
+  }
   function profileMark(ll) {
     if (!profileSource) {
       profileSource = new ol.source.Vector();
@@ -3391,8 +3397,10 @@
   function showProfile(coords) {
     var seq = ++profileSeq, box = document.getElementById("profile");
     profileData = null;
+    profileBand = null;
     box.hidden = false;
     document.getElementById("profile-svg").innerHTML = "";
+    if (window.GSMBand) GSMBand.reset(document.getElementById("profile-svg"), PROFILE);
     document.getElementById("profile-sum").textContent = "";
     document.getElementById("profile-read").textContent = T("높이를 읽는 중…");
     var length = ol.sphere.getLength(new ol.geom.LineString(coords), { projection: "EPSG:4326" });
@@ -3401,7 +3409,19 @@
     var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
     fetch(BASE + "elevation/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { if (seq === profileSeq) drawProfile(d); })
+      .then(function (d) {
+        if (seq !== profileSeq) return;
+        drawProfile(d);
+        var layer = bandLayer();
+        if (!layer || !profileData) return;
+        GSMBand.load(BASE, layer, line, n).then(function (band) {
+          if (seq !== profileSeq || !band || !profileData) return;
+          profileBand = band;
+          GSMBand.draw(document.getElementById("profile-svg"), PROFILE, profileData.X, d, band, T("지질"));
+          profileData.read = T("{read} · 지질 띠 — {layer}", { read: profileData.read, layer: layerTitle(layer) });
+          document.getElementById("profile-read").textContent = profileData.read;
+        });
+      })
       .catch(function () { if (seq === profileSeq) document.getElementById("profile-read").textContent = T("높이를 읽지 못했다"); });
   }
   function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
@@ -3472,8 +3492,9 @@
         dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
         dot.setAttribute("visibility", "visible");
       } else dot.setAttribute("visibility", "hidden");
-      document.getElementById("profile-read").textContent = T("거리 {d} · 높이 {h}", {
-        d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]) });
+      var unit = window.GSMBand ? GSMBand.unitAt(profileBand, best) : "";
+      var at = { d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]), unit: unit };
+      document.getElementById("profile-read").textContent = unit ? T("거리 {d} · 높이 {h} · {unit}", at) : T("거리 {d} · 높이 {h}", at);
       profileMark([d.lon[best], d.lat[best]]);
     });
     svg.addEventListener("mouseleave", function () {

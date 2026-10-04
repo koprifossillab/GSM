@@ -32,7 +32,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
-from . import static_tables
+from . import profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -634,6 +634,34 @@ def elevation_profile(request):
             return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
         if any(v is not None for v in data["elev"]):
             tilecache.put(key, json.dumps(data).encode("utf-8"), ".json")
+    return JsonResponse(data)
+
+
+@require_GET
+def profile_band(request):
+    """`?layer=geomap_simple_geology&line=경도,위도;…&n=256` — 높이 그래프 밑의 지질 띠 (wetherilli 180, `profileband.band`).
+    점은 높이 그래프와 같은 셈으로 찍는다. 우리 파일로 그리는 레이어만 받는다 — 상류에 점마다 묻지 않는다."""
+    lang = i18n.lang_of(request)
+    layer = request.GET.get("layer") or ""
+    if not profileband.knows(layer) or _lab_only(layer):
+        return JsonResponse({"error": i18n.t(msg("띠를 그리지 않는 레이어다"), lang)}, status=404)
+    vertices = []
+    for part in (request.GET.get("line") or "").split(";"):
+        lon, _, lat = part.partition(",")
+        lon, lat = _float(lon), _float(lat)
+        if lon is None or lat is None or not (-90 <= lat <= 90 and -540 <= lon <= 540):
+            vertices = []
+            break
+        vertices.append((lon, lat))
+    if not 2 <= len(vertices) <= profileband.MAX_VERTICES:
+        return JsonResponse({"error": i18n.t(msg("선이 없다"), lang)}, status=400)
+    if not profileband.available(layer):
+        return JsonResponse({"error": i18n.t(msg("지질 띠를 그릴 자료가 서버에 없다"), lang)}, status=503)
+    try:
+        data = profileband.band(layer, vertices, int(_float(request.GET.get("n")) or 256), lang)
+    except profileband.BandError as exc:
+        log.warning("지질 띠를 읽지 못했다 (%s): %s", layer, exc)
+        return JsonResponse({"error": i18n.t(msg("지질 띠를 읽지 못했다"), lang)}, status=500)
     return JsonResponse(data)
 
 
@@ -2065,7 +2093,7 @@ def _point_fields(layer) -> dict:
         spec = geo3al.LAYERS[layer.name]
         return {"kind": "points", "queryable": False, "style": spec["style"], "render": "image",
                 "source": geo3al.SOURCE_URL, "attribution": geo3al.ATTRIBUTION,
-                "opacity": spec["opacity"]}
+                "opacity": spec["opacity"], "band": True}
     if layer.upstream == "grportal" and grportal.knows(layer.name):
         spec = {"kind": "points", "queryable": False, "style": grportal.LAYERS[layer.name]["style"],
                 "source": grportal.source_url(layer.name), "portal": grportal.WEBMAP,
@@ -2136,7 +2164,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": geomap.ATTRIBUTION,
                 # 판을 주소에 넣는다 — 브라우저가 오래 들고 있어도 판이 바뀌면 새 주소다 (wetherilli 151)
                 "tiles": _versioned_url(f"geomap/{layer.name}/{{z}}/{{x}}/{{y}}.png", geomap_version()),
-                "projection": "EPSG:3031"}
+                "projection": "EPSG:3031",
+                # 높이 그래프 밑에 지질 띠를 그릴 수 있다 (wetherilli 180)
+                **({"band": True} if layer.name in geomap.BAND_LAYERS else {})}
     if layer.upstream == "npolar" and npolar.knows(layer.name):
         spec = npolar.TILES[layer.name]
         return {"attribution": npolar.ATTRIBUTION, "projection": spec["projection"],
