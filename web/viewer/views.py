@@ -2478,6 +2478,10 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({"minZoom": first} if first else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):
         # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
+        if layer.name in nrcan.SERVICES:
+            # 같은 서버의 다른 서비스(wetherilli 250) — 편찬 지질도·유망도는 래스터라 누르지 않고 범례 그림만
+            return {"attribution": nrcan.OTHER_ATTRIBUTION, "projection": "EPSG:3978",
+                    **({} if nrcan.queryable(layer.name) else {"queryable": False})}
         return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
     if layer.upstream == "ogs" and ogs.knows(layer.name):
         # 온타리오 OGS(wetherilli 204) — 3978 로 다시 그려 준다. 속성은 REST identify(문이 WMS 꼴을 바꾼다)
