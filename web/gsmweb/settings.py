@@ -144,6 +144,8 @@ GSMMA_API_URL = env("GSM_GSMMA_API_URL", "https://www.geologycloud.tw/api/v1/zh-
 EMODNET_WMS_URL = env("GSM_EMODNET_WMS_URL", "https://drive.emodnet-geology.eu/geoserver/ows")
 #: 조건이 열린 배경 — NASA GIBS(Blue Marble)·GEBCO 해저 지형. 서버가 받아 캐시에 담는다 (`viewer/basemaps.py`, wetherilli 184). 열쇠가 없다
 GIBS_URL = env("GSM_GIBS_URL", "https://gibs.earthdata.nasa.gov")
+#: NPI 의 스발바르 배경 타일 — 조건이 CC BY 4.0 이라 서버가 담는다 (wetherilli 200)
+NPI_TILE_URL = env("GSM_NPI_TILE_URL", "https://geodata.npolar.no/arcgis/rest/services/Basisdata")
 GEBCO_WMS_URL = env("GSM_GEBCO_WMS_URL", "https://wms.gebco.net/mapserv")
 #: 노르웨이·핀란드 기반암 지질도 — NGU MapServer·GTK ArcGIS WMS (`viewer/ngu.py`·`viewer/gtk.py`, wetherilli 140). 열쇠가 없다
 NGU_WMS_URL = env("GSM_NGU_WMS_URL", "https://geo.ngu.no/mapserver/BerggrunnWMS3")

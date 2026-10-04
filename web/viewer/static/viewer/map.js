@@ -1536,7 +1536,9 @@
     for (var z = 0; z < 18; z++) resolutions.push(21674.7100160867 / Math.pow(2, z));
     return new ol.layer.Tile({
       source: new ol.source.XYZ({
-        url: "https://geodata.npolar.no/arcgis/rest/services/Basisdata/" + service + "/MapServer/tile/{z}/{y}/{x}",
+        // 조건이 CC BY 4.0 이라 서버가 담는다 — 정적 판만 곧장 (wetherilli 200)
+        url: STATIC ? "https://geodata.npolar.no/arcgis/rest/services/Basisdata/" + service + "/MapServer/tile/{z}/{y}/{x}"
+                    : BASE + "npi/" + service + "/{z}/{y}/{x}",
         projection: "EPSG:25833",
         tileGrid: new ol.tilegrid.TileGrid({
           origin: [-5120900, 9998100],

@@ -2679,6 +2679,16 @@ def gibs_tile(request, epsg, layer, z, y, x):
                          512, "GIBS")
 
 
+@require_GET
+def npi_tile(request, service, z, y, x):
+    """NPI 의 스발바르 지형도·위성 모자이크 — `npi/<서비스>/<z>/<y>/<x>` (wetherilli 200). 조건이 CC BY 4.0 이라 담는다."""
+    z, y, x = int(z), int(y), int(x)
+    if not basemaps.knows_npi_tile(service, z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    return _open_basemap(tilecache.key_text("npi-tile", f"{service}/{z}/{y}/{x}"),
+                         lambda: basemaps.npi_tile(service, z, x, y), 256, "NPI")
+
+
 def _open_wms(request, kind, layers, fetch, label):
     params = kigam.clean_params(request.GET)
     if not basemaps.wms_ok(params, layers):
