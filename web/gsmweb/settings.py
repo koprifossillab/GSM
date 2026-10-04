@@ -279,6 +279,8 @@ MARS_ZHURONG_FILE = BASE_DIR.parent / "data" / "mars_zhurong.json"
 PALEOMAP_FILE = BASE_DIR.parent / "data" / "paleomap2016.json"
 #: 지각 두께 CRUST 2.0 — 1° 격자 (`viewer/crust.py`, wetherilli 101, `manage.py build_crust <zip>`). CC BY 4.0 이라 저장소에 둔다
 CRUST_FILE = BASE_DIR.parent / "data" / "crust2_thickness.json"
+#: 판 경계·세계 지질구 Hasterok 외 2022 (wetherilli 272) — `manage.py build_tectonics` 가 굽는다. CC BY 4.0
+TECTONICS_FILE = BASE_DIR.parent / "data" / "earth_tectonics.json"
 #: 온 지구의 지명·강·호수·빙하 — Natural Earth 10 m (`viewer/naturalearth.py`, wetherilli 102, `manage.py build_natural_earth`).
 #: 퍼블릭 도메인이라 저장소에 둔다
 EARTH_PLACES_FILE = BASE_DIR.parent / "data" / "earth_places.json"

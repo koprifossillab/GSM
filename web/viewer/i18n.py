@@ -538,6 +538,16 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272)
+    "판·지질구 (Hasterok 2022)": "Plates & provinces (Hasterok 2022)", "판 경계": "Plate boundaries", "세계 지질구": "Geologic provinces",
+    "여기에는 지질구가 없다": "No geologic province here",
+    "확장 중심 (해령)": "Spreading centre (ridge)", "확장대·열곡": "Extensional zone / rift", "섭입대": "Subduction zone",
+    "충상 (대륙 충돌)": "Thrust (continental collision)", "좌수향 변환 단층": "Sinistral transform", "우수향 변환 단층": "Dextral transform",
+    "추정 경계": "Inferred boundary",
+    "강괴 (크라톤)": "Craton", "순상지": "Shield", "수동형 대륙 연변": "Passive margin", "부가 복합체": "Accretionary complex", "분지": "Basin",
+    "전면 분지": "Foredeep basin", "조산대": "Orogenic belt", "좁은 열곡": "Narrow rift", "넓은 열곡": "Wide rift", "화산호": "Volcanic arc",
+    "배호 분지": "Back-arc basin", "오피올라이트 복합체": "Ophiolite complex", "거대 화성 구역": "Magmatic province", "해양 고원": "Oceanic plateau",
+    "해양 배호 분지": "Oceanic back-arc basin", "해양 지각": "Oceanic crust", "대륙 지각": "Continental crust", "전이 지각": "Transitional crust",
     # 바다 밑 — 해양 지각 연대·퇴적층 두께 (wetherilli 264)
     "바다 밑 (Seton 2020 · GlobSed)": "Beneath the sea (Seton 2020 · GlobSed)",
     "해양 지각 연대": "Ocean crust age",
@@ -1801,6 +1811,8 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 지질구 (wetherilli 272)
+    "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "주기": "Cycle", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
