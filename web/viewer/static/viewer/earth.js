@@ -237,6 +237,7 @@
     ["지질", ["geology", "glim", "seaage", "sediment"]],
     ["구조·판", ["tbound", "tprov", "plates", "stress"]],
     ["지구물리", ["crust", "heatflow", "mantle"]],
+    ["자원", []],                                     // 세계 광상(USGS)의 광종 칸은 `mineral` 로 여기 선다 (wetherilli 276)
     ["화산·지진", ["volcanoes", "pleistocene", "quake6", "quake55", "quake5"]],
     ["화석·고생태", ["fossils"]],                      // 고생태 산지(Neotoma)의 자료형 칸은 `neo` 로 여기 선다
     ["그때의 지구", ["coast", "icemargins"]],
@@ -254,7 +255,9 @@
     });
     rows.forEach(function (l) {
       if (theme[l.name] !== undefined) return;
-      out[l.neo ? THEMES.findIndex(function (t) { return t[0] === "화석·고생태"; }) : out.length - 1].layers.push(l);
+      // 이름이 자료에서 오는 칸 — 고생태 산지(Neotoma)의 자료형, 세계 광상의 광종
+      var by = l.neo ? "화석·고생태" : l.mineral ? "자원" : "";
+      out[by ? THEMES.findIndex(function (t) { return t[0] === by; }) : out.length - 1].layers.push(l);
     });
     out[THEMES.findIndex(function (t) { return t[0] === "움직이는 지구"; })].flux = true;
     return out.filter(function (g) { return g.layers.length; });
