@@ -78,8 +78,8 @@
       WMS 는 지질 단위·단층뿐이고, BGS ArcGIS 의 아프리카 폴더는 지하수뿐이다(`Ghana`·`Kenya` 폴더는 비었다). CGS 자신의 서버(`maps.geoscience.org.za`)는
       여전히 시간 초과다. 광상 점은 SIGAfrique(BRGM)·나라 지질조사소 포털에 물어야 한다
 
-- [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
-      가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
+- [ ] 오세아니아 광물·지구물리(wetherilli 269·302) — 퀸즐랜드·빅토리아(중력 측점·선형 셋 포함)·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
+      가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 남호주 지구물리(SARIG 영상)
 
 - [ ] 북유럽 광물·지구물리(wetherilli 270) — GTK·FODD·SGU 는 섰다. 노르웨이 NGU 의 광물·지구물리 서비스 주소를 못 찾았다(`geo.ngu.no/mapserver/*` 이름 짐작은 404·빈 map). 스웨덴 중력은 측정 범위뿐
 
