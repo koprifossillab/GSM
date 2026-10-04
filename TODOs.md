@@ -64,6 +64,8 @@
 - [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
       가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
 
+- [ ] 북유럽 광물·지구물리(wetherilli 270) — GTK·FODD·SGU 는 섰다. 노르웨이 NGU 의 광물·지구물리 서비스 주소를 못 찾았다(`geo.ngu.no/mapserver/*` 이름 짐작은 404·빈 map). 스웨덴 중력은 측정 범위뿐
+
 ### 아프리카
 
 - [ ] **(사람) 아프리카 1:1000만의 CGMW 이용 조건** — 아프리카 탭은 CGMW–BRGM 1:1000만과 BGS 지하수 지도책으로 섰다(wetherilli 207).
@@ -154,6 +156,9 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 (2026-09-30 운영 `/srv/GSM/db/earth/` 에 옛 해안선·화석 산지·맨틀을 두었다. 화석 산지는 가끔 `fetch_pbdb` 로 새로 받는다)
 
+- [ ] **(사람)** 전 지구 변형률 GSRM v2.1(Kreemer 외 2014, `geodesy.unr.edu/GSRM/` — 0.1° 격자 87 MB·셀 평균 3.7 MB, 압축 `.Z`)은
+      README 가 "인용해 달라" 고만 하고 **이용 조건을 적지 않는다**. 저자(UNR)에게 묻거나 조건이 적힌 판을 찾으면 지각 두께 꼴의 격자로 둔다 (wetherilli 273)
+
 
 ## 인증키 뒤에 남은 것
 
@@ -176,6 +181,8 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 ## VWorld 로 더 할 것 — 값 대비 쓸모 차례 (004)
 
 조사는 끝났고 **쏴 보고 확인한 것들**이다. 자세한 것은 devlog 004.
+
+- [ ] (운영) VWorld GetCapabilities 를 2026-09-27 의 187 종과 다시 견준다 — 개발 기계에는 열쇠가 없어 보지 못했다 (wetherilli 275)
 
 ### 품이 좀 드는 것
 

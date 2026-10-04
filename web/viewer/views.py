@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1486,6 +1486,11 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 지각 응력 World Stress Map 2025 (wetherilli 273) — 구운 것이 있을 때만 레이어가 선다
+                                   "stress": stress.legend(lang) if stress.available() else [],
+                                   # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272) — 파일이 있을 때만 레이어가 선다
+                                   "tectonics": ({"boundaries": tectonics.legend("boundaries", lang),
+                                                  "provinces": tectonics.legend("provinces", lang)} if tectonics.available() else {}),
                                    # 세계 암상 GLiM·지열류 IHFC (wetherilli 267) — 구운 것이 있을 때만 레이어가 선다
                                    "glim": glim.legend(lang) if glim.grid() else [],
                                    "heatflow": heatflow.legend(lang) if heatflow.available() else [],
@@ -1966,6 +1971,42 @@ def earth_seafloor_at(request):
     return JsonResponse({"value": value, "text": text, "credit": seafloor.KINDS[kind][4]})
 
 
+#: 온 지구 화면의 레이어 이름 → 판 (wetherilli 272). `plates` 는 판 회전의 조각 경계라 이름을 갈랐다
+TECTONIC_LAYERS = {"tbound": "boundaries", "tprov": "provinces"}
+
+
+@require_GET
+def earth_tectonics_tile(request, layer, z, x, y):
+    """`earth/tectonics/<tbound|tprov>/<z>/<x>/<y>.png` — Hasterok 2022 판 경계·세계 지질구, 경위도 격자 (`tectonics.render_tile`)"""
+    kind, z, x, y = TECTONIC_LAYERS.get(layer), int(z), int(x), int(y)
+    if kind is None or not tectonics.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not tectonics.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    version = tectonics_version()
+    key = tilecache.key_text("tectonics", f"{kind}/{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = tectonics.render_tile(kind, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_tectonics_at(request):
+    """`?lon=&lat=` — 누른 자리의 세계 지질구(Hasterok 2022)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    got = tectonics.province_at(lon, lat, lang)
+    text = "" if got else i18n.t(msg("여기에는 지질구가 없다"), lang)
+    return JsonResponse({"province": got, "text": text, "credit": tectonics.CITE})
+
+
 @require_GET
 def earth_glim_tile(request, z, x, y):
     """`earth/glim/tiles/<z>/<x>/<y>.png` — GLiM 세계 암상 0.5° 격자, 경위도 격자 (`glim.render_tile`, wetherilli 267)"""
@@ -2037,6 +2078,48 @@ def earth_heatflow_at(request):
         out.append({"id": h["id"], "name": i18n.t(msg("지열류 {q} mW/m²", q=f"{h['q']:g}"), lang), "rows": rows,
                     "at": [h["lon"], h["lat"]]})
     return JsonResponse({"hits": out, "credit": heatflow.CREDIT, "link": heatflow.DOI})
+
+
+@require_GET
+def earth_stress_tile(request, z, x, y):
+    """`earth/stress/tiles/<z>/<x>/<y>.png` — World Stress Map 2025 의 S_Hmax 막대 (`stress.render_tile`, wetherilli 273)"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not stress.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = stress_version()
+    key = tilecache.key_text("stress", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = stress.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_stress_at(request):
+    """`?lon=&lat=&r=` — 누른 자리 둘레(`r`°)의 응력 측정, 가까운 것부터 다섯"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for s in stress.near(lon, lat, r):
+        regime = stress.REGIMES.get(s["regime"], stress.REGIMES["U"])[1]
+        kind = stress.TYPES.get(s["type"])
+        rows = [("최대 수평 응력 방향", f"N{s['azi']:.0f}°E"), ("응력 체제", i18n.t(regime, lang)), ("품질", s["quality"]),
+                ("측정법", i18n.t(kind, lang) if kind else s["type"]), ("깊이 (km)", f"{s['depth']:g}" if s["depth"] is not None else ""),
+                ("곳", " · ".join(x for x in (s["locality"], s["country"]) if x)), ("규모", s["mag"]), ("일시", s["date"]),
+                ("참고 문헌", s["ref"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+        out.append({"id": s["id"], "name": i18n.t(msg("응력 N{azi}°E", azi=f"{s['azi']:.0f}"), lang), "rows": rows,
+                    "at": [s["lon"], s["lat"]], "color": "#%02x%02x%02x" % stress.colour(s["regime"])})
+    return JsonResponse({"hits": out, "credit": stress.CREDIT, "link": stress.DOI})
 
 
 @require_GET
@@ -2551,6 +2634,7 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "sgu" and sgu.knows(layer.name):
         # 스웨덴 SGU(wetherilli 213) — GeoServer 가 3413 도 그려 준다. 레이어 하나가 1:100만·5만 판을 함께 부른다
         return {"attribution": sgu.ATTRIBUTION, "projection": "EPSG:3413",
+                **({"minZoom": sgu.MIN_ZOOM[layer.name]} if layer.name in sgu.MIN_ZOOM else {}),
                 **({} if layer.name in sgu.QUERYABLE else {"queryable": False})}
     if layer.upstream == "natt" and natt.knows(layer.name):
         # 아이슬란드 NÍ(wetherilli 216) — GeoServer 가 3413 으로 다시 그려 준다. 선·점 레이어는 속성이 부호뿐이라 누르지 않는다
@@ -2558,7 +2642,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({} if natt.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
-        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
+        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413",
+                **({"queryable": False} if layer.name in gtk.NOT_QUERYABLE else {})}
     if layer.upstream == "bgsgi" and bgs.geoindex_knows(layer.name):
         # 영국 GeoIndex(wetherilli 258) — 3857 로. 지구물리는 줌 9 까지(상류 1:62만 5천), 광산은 줌 10 부터. 범례는 상류 그림
         first, last = bgs.GEOINDEX_ZOOMS.get(layer.name, (None, None))
@@ -4168,6 +4253,8 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "stress": stress_version(),
+                "tectonics": tectonics_version(),
                 "seaage": seafloor_version("age"), "sediment": seafloor_version("sediment"),
                 "glim": glim_version(), "heatflow": heatflow_version()}
     return {}
@@ -4221,6 +4308,12 @@ def heatflow_version() -> str:
 
 def seafloor_version(kind: str) -> str:
     return _stamp(seafloor.RENDERER, *(_content_stamp(p) for p in seafloor.files(kind)[::2]))
+
+
+def stress_version() -> str:
+    return _stamp(stress.RENDERER, stress.built(), _file_stamp(stress.path()))
+def tectonics_version() -> str:
+    return _stamp(tectonics.RENDERER, _content_stamp(settings.TECTONICS_FILE))
 
 
 def crust_version() -> str:

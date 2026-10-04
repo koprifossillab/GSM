@@ -538,6 +538,30 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 지각 응력 World Stress Map 2025 (wetherilli 273)
+    "지각 응력 (World Stress Map)": "Crustal stress (World Stress Map)", "최대 수평 응력 방향": "Maximum horizontal stress",
+    "막대는 최대 수평 응력 방향, 길이는 품질(A–D)": "Bars show S_Hmax orientation; length shows quality (A–D)",
+    "응력 N{azi}°E": "Stress N{azi}°E", "측정 {n} 곳 가운데 가까운 것부터 (WSM)": "Nearest of {n} measurements (WSM)",
+    "World Stress Map (GFZ)": "World Stress Map (GFZ)",
+    "정단층형": "Normal faulting", "정단층·주향이동형": "Normal with strike-slip", "주향이동형": "Strike-slip faulting",
+    "역단층·주향이동형": "Thrust with strike-slip", "역단층형": "Thrust faulting", "체제 모름": "Unknown regime",
+    "단일 지진 초점 메커니즘": "Single focal mechanism", "평균 초점 메커니즘": "Average focal mechanism",
+    "초점 메커니즘 역산": "Focal mechanism inversion", "시추공 붕락": "Borehole breakouts", "시추공 붕락 (캘리퍼)": "Borehole breakouts (caliper)",
+    "시추공 붕락 (영상)": "Borehole breakouts (imaging)", "시추공 미끄럼": "Borehole slotter", "시추 유도 인장 균열": "Drilling-induced tensile fractures",
+    "수압 파쇄": "Hydraulic fracturing", "수압 파쇄 (지구물리)": "Hydraulic fracturing (geophysical)",
+    "수압 파쇄 (탄성 역산)": "Hydraulic fracturing (elastic inversion)", "수압 파쇄 (기존 균열)": "Hydraulic tests on pre-existing fractures",
+    "코어 덧씌워 떼기": "Overcoring", "지질 — 단층 미끄럼 역산": "Geology — fault-slip inversion", "지질 — 단층 미끄럼": "Geology — fault slip",
+    "지질 — 단층 미끄럼 (단일)": "Geology — single fault slip", "지질 — 화산 배열": "Geology — volcanic vent alignment", "횡파 분리": "Shear-wave splitting",
+    # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272)
+    "판·지질구 (Hasterok 2022)": "Plates & provinces (Hasterok 2022)", "판 경계": "Plate boundaries", "세계 지질구": "Geologic provinces",
+    "여기에는 지질구가 없다": "No geologic province here",
+    "확장 중심 (해령)": "Spreading centre (ridge)", "확장대·열곡": "Extensional zone / rift", "섭입대": "Subduction zone",
+    "충상 (대륙 충돌)": "Thrust (continental collision)", "좌수향 변환 단층": "Sinistral transform", "우수향 변환 단층": "Dextral transform",
+    "추정 경계": "Inferred boundary",
+    "강괴 (크라톤)": "Craton", "순상지": "Shield", "수동형 대륙 연변": "Passive margin", "부가 복합체": "Accretionary complex", "분지": "Basin",
+    "전면 분지": "Foredeep basin", "조산대": "Orogenic belt", "좁은 열곡": "Narrow rift", "넓은 열곡": "Wide rift", "화산호": "Volcanic arc",
+    "배호 분지": "Back-arc basin", "오피올라이트 복합체": "Ophiolite complex", "거대 화성 구역": "Magmatic province", "해양 고원": "Oceanic plateau",
+    "해양 배호 분지": "Oceanic back-arc basin", "해양 지각": "Oceanic crust", "대륙 지각": "Continental crust", "전이 지각": "Transitional crust",
     # 세계 암상 GLiM·지열류 IHFC (wetherilli 267)
     "암상 (GLiM)": "Lithology (GLiM)", "세계 암상": "Global lithology",
     "{name} — GLiM, 0.5° 칸에서 가장 넓은 암상": "{name} — GLiM, the most extensive lithology in the 0.5° cell",
@@ -1815,8 +1839,13 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 지각 응력 (wetherilli 273)
+    "응력 체제": "Stress regime", "최대 수평 응력 방향": "S_Hmax azimuth", "일시": "Date",
+    # 세계 지질구 (wetherilli 272)
+    "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
     # 지열류 (wetherilli 267)
     "지열류 (mW/m²)": "Heat flow (mW/m²)", "환경": "Setting", "품질": "Quality",
+    "오차 (mW/m²)": "Uncertainty (mW/m²)", "잰 법": "Method", "자리": "Site",
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "주기": "Cycle", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
@@ -2352,6 +2381,8 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
+    "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
     "시대 기호": "Age code", "자원량": "Resources",
     "영국 격자": "British National Grid",
     # 남미 광물 자원 (wetherilli 265)
@@ -3031,6 +3062,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
+    "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
     "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
     "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
     "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
@@ -3094,7 +3127,9 @@ GROUP_EN = {
     "IBCSO 해저지형": "IBCSO bathymetry",
     "지질도": "Geological maps",
     "탄전지질도": "Coalfield geological maps",
-    "지구물리이상도": "Geophysical anomaly maps",
+    "원본 자료 — IHFC 세계 지열류 자료 2024, CC BY 4.0": "Source — IHFC Global Heat Flow Database 2024, CC BY 4.0",
+    "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
+    "지구물리이상도": "Geophysical anomaly maps", "지구물리": "Geophysics",
     "지구물리 (ADMAP-2)": "Geophysics (ADMAP-2)",
     "지화학도": "Geochemical maps",
     "좋은물지도": "Groundwater quality maps",
@@ -3174,6 +3209,10 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 북유럽 광물·지구물리 (wetherilli 270)
+    "gtk:aeromagneettinen_anomaliakartta": "Aeromagnetic anomaly", "gtk:aeroradiometrinen_yhdistelmakartta": "Aeroradiometric ternary (K·Th·U)",
+    "gtk:fennoscandia_mineral_deposit": "Ore deposits (Norway, Sweden, Finland, NW Russia)",
+    "sgu:minerals": "Mineral and rock occurrences", "sgu:magnetic": "Magnetic anomaly",
     # 페루 광물·지구물리 (wetherilli 277)
     "ingemmet:deposits": "Mineral deposits (Yacimientos mineros)", "ingemmet:projects": "Mining projects and operations",
     "ingemmet:occ_metal": "Metallic mineral occurrences (10–18° S)", "ingemmet:occ_nonmetal": "Non-metallic mineral occurrences (10–18° S)",
@@ -3326,6 +3365,7 @@ LAYER_EN = {
     # 지구 자료 점 (wetherilli 185) — 처음에 제목을 열쇠로 적어 영어판에 한국어가 나왔다(199 에서 이름으로 고쳤다)
     "earth:pbdb_korea": "Fossil collections (PBDB)", "earth:pbdb_antarctica": "Fossil collections (PBDB)", "earth:pbdb_arctic": "Fossil collections (PBDB)",
     "earth:gvp_korea": "Holocene volcanoes (GVP)", "earth:gvp_antarctica": "Holocene volcanoes (GVP)", "earth:gvp_arctic": "Holocene volcanoes (GVP)",
+    "earth:heatflow_korea": "Heat flow (IHFC)", "earth:heatflow_antarctica": "Heat flow (IHFC)", "earth:heatflow_arctic": "Heat flow (IHFC)",
     "earth:quakes_korea": "Earthquakes M5+ (USGS)", "earth:quakes_antarctica": "Earthquakes M5+ (USGS)", "earth:quakes_arctic": "Earthquakes M5+ (USGS)",
     "earth:neotoma_korea": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_antarctica": "Quaternary paleoecology sites (Neotoma)", "earth:neotoma_arctic": "Quaternary paleoecology sites (Neotoma)",
     # 국토지리원 주제 타일 (wetherilli 172)

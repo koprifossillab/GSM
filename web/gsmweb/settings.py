@@ -153,8 +153,11 @@ GEBCO_WMS_URL = env("GSM_GEBCO_WMS_URL", "https://wms.gebco.net/mapserv")
 #: 노르웨이·핀란드 기반암 지질도 — NGU MapServer·GTK ArcGIS WMS (`viewer/ngu.py`·`viewer/gtk.py`, wetherilli 140). 열쇠가 없다
 NGU_WMS_URL = env("GSM_NGU_WMS_URL", "https://geo.ngu.no/mapserver/BerggrunnWMS3")
 GTK_WMS_URL = env("GSM_GTK_WMS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Kalliopera_WMS/MapServer/WMSServer")
+#: GTK 의 다른 서비스 — 지구물리 영상, 북유럽 광상 FODD 가 든 모음 (wetherilli 270)
+GTK_GEOPHYSICS_URL = env("GSM_GTK_GEOPHYSICS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Geofysiikka_WMS/MapServer/WMSServer")
+GTK_KOKOAVA_URL = env("GSM_GTK_KOKOAVA_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/kokoavaWMS/MapServer/WMSServer")
 #: 스웨덴 기반암 지질도 — SGU GeoServer (`viewer/sgu.py`, wetherilli 213). 열쇠가 없다. 안내 문서의 resource.sgu.se 주소는 Capabilities 만 준다
-SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
+SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/ows")
 #: 아이슬란드 지질도 — 자연사연구소(NÍ) GeoServer WMS (`viewer/natt.py`, wetherilli 216). 열쇠가 없다
 NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 뉴질랜드·남빅토리아랜드 지질도 — GNS Science GeoServer WMS (`viewer/gns.py`, wetherilli 218). 열쇠가 없다
@@ -281,6 +284,8 @@ MARS_ZHURONG_FILE = BASE_DIR.parent / "data" / "mars_zhurong.json"
 PALEOMAP_FILE = BASE_DIR.parent / "data" / "paleomap2016.json"
 #: 지각 두께 CRUST 2.0 — 1° 격자 (`viewer/crust.py`, wetherilli 101, `manage.py build_crust <zip>`). CC BY 4.0 이라 저장소에 둔다
 CRUST_FILE = BASE_DIR.parent / "data" / "crust2_thickness.json"
+#: 판 경계·세계 지질구 Hasterok 외 2022 (wetherilli 272) — `manage.py build_tectonics` 가 굽는다. CC BY 4.0
+TECTONICS_FILE = BASE_DIR.parent / "data" / "earth_tectonics.json"
 #: 세계 암상 GLiM 0.5° 격자 (wetherilli 267) — `manage.py build_glim` 이 굽는다. CC BY 3.0
 GLIM_FILE = BASE_DIR.parent / "data" / "glim_05deg.json"
 #: 온 지구의 지명·강·호수·빙하 — Natural Earth 10 m (`viewer/naturalearth.py`, wetherilli 102, `manage.py build_natural_earth`).

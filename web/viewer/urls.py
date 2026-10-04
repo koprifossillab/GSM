@@ -84,6 +84,13 @@ urlpatterns = [
     re_path(r"^earth/crust/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_crust_tile,
             name="earth-crust-tile"),
     path("earth/crust/at/", views.earth_crust_at, name="earth-crust-at"),
+    # 지각 응력 World Stress Map 2025 (stress.py, wetherilli 273)
+    re_path(r"^earth/stress/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_stress_tile, name="earth-stress-tile"),
+    path("earth/stress/at/", views.earth_stress_at, name="earth-stress-at"),
+    # 판 경계·세계 지질구 (tectonics.py, wetherilli 272)
+    re_path(r"^earth/tectonics/(?P<layer>tbound|tprov)/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+            views.earth_tectonics_tile, name="earth-tectonics-tile"),
+    path("earth/tectonics/at/", views.earth_tectonics_at, name="earth-tectonics-at"),
     # 세계 암상 GLiM·지열류 IHFC (glim.py·heatflow.py, wetherilli 267)
     re_path(r"^earth/glim/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_glim_tile, name="earth-glim-tile"),
     path("earth/glim/at/", views.earth_glim_at, name="earth-glim-at"),
