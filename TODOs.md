@@ -37,7 +37,7 @@
 
 ### 북미
 
-- [ ] 캐나다 NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 — ArcGIS, CORS, OGL. 온타리오 속성은 REST identify. 반나절씩
+- [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
 - [ ] 미국 USGS SGMC(주 지질도 합본)·알래스카 SIM 3340 — 공공 도메인, CORS `*`. SGMC 는 GetFeatureInfo 가 막혀 WFS 로 속성.
       온 지구의 Macrostrat 이 미국 본토는 이미 SGMC 라 미국 탭을 세우는 값이다. 하루
 - [ ] 멕시코 SGM 1:25만·1:5만 — CC BY 4.0. WMS 는 400 이라 ArcGIS REST export·identify. 범례 888·2 571 칸이라 보는 범위의 범례. 하루

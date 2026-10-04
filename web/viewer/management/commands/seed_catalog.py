@@ -92,6 +92,9 @@ class Command(BaseCommand):
                 (settings.DINAMIGE_CATALOG_SEED, "우루과이 (DINAMIGE)", "uruguay", "dinamige"),
                 # 에콰도르 — IIGE 일반 지질도 (wetherilli 198)
                 (settings.IIGE_CATALOG_SEED, "에콰도르 (IIGE)", "ecuador", "iige"),
+                # 캐나다 — NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 (wetherilli 204)
+                (settings.NRCAN_CATALOG_SEED, "캐나다 (NRCan)", "canada", "nrcan"),
+                (settings.OGS_CATALOG_SEED, "온타리오 (OGS)", "canada", "ogs"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # KIGAM 5만 구조 요소 — 받아 둔 WFS 파일의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)

@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, ngu, segemar, sgb, sgc, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, ngu, nrcan, ogs, segemar, sgb, sgc, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -365,7 +365,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 남미 SGC(wetherilli 188)·브라질 SGB(191)·아르헨티나 SEGEMAR·우루과이 DINAMIGE(196) — 3857 로 그린다
              "sgc", "sgb", "segemar", "dinamige",
              # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 가 3857 로 그린다
-             "iige")
+             "iige",
+             # 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
+             "nrcan", "ogs")
 
 
 @require_GET
@@ -2323,6 +2325,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "nrcan" and nrcan.knows(layer.name):
+        # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
+        return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
+    if layer.upstream == "ogs" and ogs.knows(layer.name):
+        # 온타리오 OGS(wetherilli 204) — 3978 로 다시 그려 준다. 속성은 REST identify(문이 WMS 꼴을 바꾼다)
+        return {"attribution": ogs.ATTRIBUTION, "projection": "EPSG:3978"}
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}
@@ -2430,7 +2438,8 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, basemaps.BasemapError)
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, nrcan.NrcanError, ogs.OgsError,
+                   basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2475,14 +2484,16 @@ class _Door:
                # 아르헨티나·우루과이(wetherilli 196)
                "segemar": segemar, "dinamige": dinamige,
                # 에콰도르(wetherilli 198)
-               "iige": iige}
+               "iige": iige,
+               # 캐나다(wetherilli 204)
+               "nrcan": nrcan, "ogs": ogs}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "nrcan", "ogs"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3538,6 +3549,9 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
+        elif door.name in ("nrcan", "ogs"):
+            # 캐나다(wetherilli 204) — 열 이름은 한국어로, 지질시대(ICS 영어)는 한국어판에서 옮긴다. 암상·층서는 영어 그대로
+            props = {"nrcan": nrcan, "ogs": ogs}[door.name].friendly(props, lang)
         elif door.name == "sgb":
             props = sgb.friendly(props, lang)        # 브라질 — 포르투갈어 시대만 옮기고 이름·설명은 그대로 (wetherilli 191)
         elif door.name in ("segemar", "dinamige"):
