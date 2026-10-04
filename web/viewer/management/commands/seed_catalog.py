@@ -153,6 +153,10 @@ class Command(BaseCommand):
                 (settings.IGME_DR_CATALOG_SEED, "도미니카공화국 (SGN)", "dominican_republic", "igme"),
                 # 카리브 — USGS 카리브 지질도(French & Schenk 2004), 면을 한 덩이로 (wetherilli 248)
                 (settings.USGSCARIB_CATALOG_SEED, "카리브 (USGS)", "caribbean", "usgscarib"),
+                # 대앤틸리스 — USGS SIM 3534(옛 판 OFR 2019-1036), 우리가 구운 sqlite (wetherilli 254)
+                (settings.SIM3534_CATALOG_SEED, "대앤틸리스 (USGS)", "caribbean", "sim3534"),
+                # 파나마 — STRI 의 MICI 1990 1:25만, 면·단층을 한 덩이로 (wetherilli 253)
+                (settings.STRI_CATALOG_SEED, "파나마 (STRI)", "panama", "stri"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),

@@ -102,7 +102,9 @@ EN = {
     # 동남아 (wetherilli 228)
     "인도네시아": "Indonesia", "말레이시아": "Malaysia", "필리핀": "Philippines", "태국": "Thailand", "동남아": "Southeast Asia",
     # 중앙아메리카·카리브 (wetherilli 242)
-    "니카라과": "Nicaragua", "도미니카공화국": "Dominican Republic", "카리브": "Caribbean",
+    "니카라과": "Nicaragua", "도미니카공화국": "Dominican Republic", "카리브": "Caribbean", "파나마": "Panama",
+    "스미스소니언 열대연구소 (STRI)": "Smithsonian Tropical Research Institute (STRI)",
+    "파나마 지질도(STRI)를 받지 못했다": "Could not fetch the geologic map of Panama (STRI)",
     "USGS 카리브 지질도를 받지 못했다": "Could not fetch the USGS Caribbean geologic map",
     "중미·카리브": "Central America & Caribbean", "니카라과 국토연구원 (INETER)": "Nicaraguan Institute of Territorial Studies (INETER)",
     # 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237)
@@ -1271,6 +1273,10 @@ EN = {
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    # 대앤틸리스 — USGS SIM 3534 를 우리가 굽는다 (wetherilli 254)
+    "대앤틸리스 지질도 파일이 서버에 없다": "The Greater Antilles geologic map file is not on the server",
+    "덮인 단층": "Concealed fault",
+    "단층 (변위 모름)": "Fault (displacement uncertain)",
     "범례가 없는 레이어다": "This layer has no legend",
     "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
@@ -3010,6 +3016,8 @@ GROUP_EN = {
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
     "카리브 지질도 (USGS 1:250만)": "Geology of the Caribbean (USGS 1:2.5M)",
+    "대앤틸리스 지질도 (USGS SIM 3534)": "Geology of the Greater Antilles (USGS SIM 3534)",
+    "파나마 지질도 (STRI·MICI 1:25만)": "Geology of Panama (STRI · MICI 1:250k)",
     "니카라과 지질도 (INETER)": "Geology of Nicaragua (INETER)", "도미니카공화국 지질도 (SGN 1:25만)": "Geology of the Dominican Republic (SGN 1:250k)",
     "오스트리아 지질도 (GeoSphere 1:100만)": "Geology of Austria (GeoSphere 1:1M)", "폴란드 지질도 (PIG-PIB 1:50만)": "Geology of Poland (PIG-PIB 1:500k)",
     "오스트리아 지질도 1:5만 (GeoSphere)": "Geology of Austria 1:50k (GeoSphere)",
@@ -3164,7 +3172,9 @@ LAYER_EN = {
     # 사우디아라비아 (wetherilli 227)
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
-    "usgscarib:geology": "Geology (1:2.5M)",
+    "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
+    "sim3534:units": "Geologic units",
+    "sim3534:faults": "Faults",
     "ineter:geology": "Geology", "ineter:faults": "Faults", "igme:sgnrd:0": "Geological units (1:250k)",
     "igme:sgnrd:1": "Structures (1:250k)",
     "geosphere:geology": "Geology (1:1M)", "geosphere:faults": "Faults and nappe boundaries (1:1M)",

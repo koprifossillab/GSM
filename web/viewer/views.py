@@ -32,8 +32,8 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, swisstopo, tno, usage, usgscarib, ygs
+from . import arcpoints, caribmap, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import ags, austates, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -422,7 +422,7 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
-                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2191,7 +2191,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534"),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2223,6 +2223,11 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
+    if layer.upstream == "stri" and stri.knows(layer.name):
+        # 파나마 STRI(wetherilli 253) — 카리브와 같은 꼴, 면과 단층을 한 덩이씩
+        return {"kind": "points", "queryable": False, "style": "unit" if layer.name == stri.GEOLOGY else "line",
+                "render": "image", "source": stri.SOURCE_URL, "attribution": stri.ATTRIBUTION,
+                "opacity": 0.75 if layer.name == stri.GEOLOGY else 1}
     if layer.upstream == "usgscarib" and usgscarib.knows(layer.name):
         # USGS 카리브 지질도(wetherilli 248) — 피처 서비스라 면(6 343)을 한 덩이로 받아 화면이 구워 그린다(geo3al 과 같은 꼴)
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
@@ -2533,6 +2538,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
                 "maxZoom": ingemmet.STRUCTURES_MAX, "noLegend": True, "queryable": False,
                 **({"minZoom": first} if first else {})}
+    if layer.upstream == "sim3534" and caribmap.knows(layer.name):
+        # 대앤틸리스(wetherilli 254) — 우리가 구운 3857 z/x/y. 누른 자리는 위경도로(`sim3534/info/`), 범례는 보는 범위의 것. 단층은 누르지 않는다
+        unit = layer.name == "sim3534:units"
+        return {"attribution": caribmap.ATTRIBUTION, "maxZoom": caribmap.MAX_ZOOM,
+                "tiles": _versioned_url(f"sim3534/{caribmap.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png", sim3534_version()),
+                "legend": "extent", "legendUrl": "sim3534/legend/", **({} if unit else {"queryable": False})}
     if layer.upstream == "ingemmet" and layer.name in ingemmet.UNITS:
         # 페루 1:5만 지질 단위만(wetherilli 234) — 암상 레이어만 export 로. 느려 줌 9 부터. 누른 자리·범례는 1:5만 통합판의 것
         return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
@@ -3962,6 +3973,77 @@ def _versioned_url(url: str, version: str) -> str:
     return f"{url}?v={version}" if version else url
 
 
+def sim3534_version() -> str:
+    """대앤틸리스 타일 주소의 판 — 구운 파일의 때와 그리는 법 (wetherilli 254)"""
+    if not caribmap.available():
+        return ""
+    return f"{int(caribmap.data_file().stat().st_mtime)}r{caribmap.RENDERER}"
+
+
+@require_GET
+def sim3534_tile(request, sheet, z, x, y):
+    """대앤틸리스 지질도 — `sim3534/<units|faults>/<z>/<x>/<y>.png` (wetherilli 254). 우리 파일에서 그린다.
+    그린 것은 캐시에 담는다 — 열쇠에 판(파일의 때·`caribmap.RENDERER`)이 들어 다시 구우면 새 것이 보인다"""
+    lang = i18n.lang_of(request)
+    name, z, x, y = f"{caribmap.PREFIX}{sheet}", int(z), int(x), int(y)
+    if not caribmap.knows(name) or not caribmap.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
+    if not caribmap.available():
+        return _tile(tiles.notice_tile(256, 256, msg("대앤틸리스 지질도 파일이 서버에 없다")), store=False)
+    key = tilecache.key_text("sim3534", f"{name}/{sim3534_version()}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), sim3534_version())
+    try:
+        png = caribmap.render_tile(name, z, x, y)
+    except (caribmap.CaribMapError, OSError, ValueError) as exc:
+        log.warning("대앤틸리스 타일을 그리지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    return _immutable(request, _tile(png), sim3534_version())
+
+
+@require_GET
+@browser_cached
+def sim3534_info(request):
+    """`?layer=sim3534:units&lat=18.2&lon=-66.4` — 누른 자리의 단위 (wetherilli 254). 팝업이 받는 꼴은 `/featureinfo/` 와 같다"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if request.GET.get("layer") != "sim3534:units" or lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []}, status=400)
+    if not caribmap.available():
+        return JsonResponse({"error": i18n.t(msg("대앤틸리스 지질도 파일이 서버에 없다"), lang), "features": []}, status=503)
+    unit = caribmap.identify(lon, lat)
+    if not unit:
+        return JsonResponse({"features": []})
+    props = caribmap.friendly(unit, lang)
+    if lang == "en":
+        props = i18n.props_en(props)
+    return JsonResponse({"features": [{"id": unit["label"], "props": props}]})
+
+
+@require_GET
+@browser_cached
+def sim3534_legend(request):
+    """`?layer=sim3534:units&bbox=서,남,동,북` — 보는 범위의 단위 (wetherilli 254). 단층은 갈래 다섯의 고정 목록"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name == "sim3534:faults":
+        return JsonResponse({"rows": caribmap.fault_legend(lang), "more": 0, "fixed": True})
+    if name != "sim3534:units":
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    if parts[2] - parts[0] > caribmap.LEGEND_SPAN or parts[3] - parts[1] > caribmap.LEGEND_SPAN:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []}, status=422)
+    if not caribmap.available():
+        return JsonResponse({"error": i18n.t(msg("대앤틸리스 지질도 파일이 서버에 없다"), lang), "rows": []}, status=503)
+    rows = caribmap.extent_legend(*parts, lang=lang)
+    shown = rows[:caribmap.MAX_LEGEND]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
 def geomap_version() -> str:
     """GeoMAP 타일 주소의 판 — 자료의 판과 그리는 법. 캐시 열쇠(`geomap_tile_key`)와 같은 둘이다"""
     return f"{geomap.data_version()}r{geomap.RENDERER}" if geomap.available() else ""
@@ -4381,6 +4463,8 @@ def point_layer(request):
         return _geo3al_layer(name, lang)
     if usgscarib.knows(name):
         return _usgscarib_layer(name, lang)
+    if stri.knows(name):
+        return _stri_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -4485,6 +4569,19 @@ def _usgscarib_layer(name, lang):
     except usgscarib.UsgsCaribError as exc:
         log.warning("USGS 카리브 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("USGS 카리브 지질도를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _stri_layer(name, lang):
+    """파나마 STRI 지질도 한 덩이 (wetherilli 253). 꼴은 `_usgscarib_layer` 와 같다"""
+    try:
+        content = stri.body(name, lang)
+    except stri.StriError as exc:
+        log.warning("STRI 파나마 지질도를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("파나마 지질도(STRI)를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
