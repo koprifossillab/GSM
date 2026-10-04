@@ -131,3 +131,29 @@ class Views(TestCase):
         self.assertIs(rows["geomap_simple_geology"].get("band"), True)
         self.assertNotIn("band", rows["geomap_faults"])
         self.assertNotIn("band", rows.get("L_250K_Geology_Map", {}))
+
+
+class EarthCrust(SimpleTestCase):
+    """온 지구의 지각 두께 띠 (wetherilli 186) — 범례의 10 km 칸으로 묶는다"""
+
+    def test_칸으로_묶는다(self):
+        from viewer import crust
+        with mock.patch.object(crust, "at", side_effect=lambda lon, lat: None if lon > 0.5 else 35.2):
+            got = profileband.band("earth:crust", [(0, 0), (1, 0)], 11)
+        self.assertEqual(runs(got), ["30–40 km", None])
+        self.assertEqual(got["units"][0]["color"], crust.legend()[3]["color"])
+
+
+class Pages(TestCase):
+    """온 지구의 높이 그래프와 달·화성·수성의 "그리기가 멈췄다" 안내 (wetherilli 186)"""
+
+    def test_온_지구에_높이_그래프(self):
+        page = self.client.get(reverse("viewer:earth")).content.decode()
+        self.assertIn('id="profile"', page)
+        self.assertIn("profile-band.js", page)
+
+    def test_세_화면에_멈춤_안내(self):
+        for name in ("moon", "mars", "mercury"):
+            page = self.client.get(reverse(f"viewer:{name}")).content.decode()
+            self.assertIn('id="render-failed"', page, name)
+            self.assertIn('id="render-failed-flat"', page, name)
