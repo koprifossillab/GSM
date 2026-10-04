@@ -535,6 +535,13 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 바다 밑 — 해양 지각 연대·퇴적층 두께 (wetherilli 264)
+    "바다 밑 (Seton 2020 · GlobSed)": "Beneath the sea (Seton 2020 · GlobSed)",
+    "해양 지각 연대": "Ocean crust age",
+    "해저 퇴적층 두께": "Seafloor sediment thickness",
+    "여기는 바다 지각이 아니거나 값이 없다": "Not ocean crust here, or no value",
+    "약 {ma} Ma — Seton 외 2020, 해령에서 굳은 때": "About {ma} Ma — Seton et al. 2020, when it formed at the ridge",
+    "약 {m} m — GlobSed v3, 해저면에서 음향 기반암까지": "About {m} m — GlobSed v3, seafloor to acoustic basement",
     "이 칸에는 값이 없다": "No value in this cell",
     "2° 칸의 모형이다 — 관측이 아니다": "A model on 2° cells — not an observation",
     # 지명·강·호수·빙하 (wetherilli 102)
