@@ -59,7 +59,7 @@ def _get(params: dict):
         usage.record("ygs", ok=False)
         raise YgsError(f"유콘에 닿지 못했다: {exc}") from exc
     log.info("YGS %s -> %s", r.url, r.status_code)
-    usage.record("ygs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]))
+    usage.record("ygs", ok=r.status_code == 200, blocked=usage.looks_blocked(r.status_code, r.content[:1000]), elapsed=r.elapsed)
     return r
 
 
