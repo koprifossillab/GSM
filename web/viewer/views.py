@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1486,6 +1486,9 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 충돌구·거대 화성암 지대 (wetherilli 283) — 파일이 있을 때만 레이어가 선다
+                                   "impacts": ({"impacts": impacts.legend("impacts", lang), "lips": impacts.legend("lips", lang)}
+                                               if impacts.available() else {}),
                                    # 세계 활성단층 GEM (wetherilli 279) — 구운 것이 있을 때만 레이어가 선다
                                    "faults": faults.legend(lang) if faults.available() else [],
                                    # 세계 광상 USGS (wetherilli 276) — 구운 것이 있을 때만. 광종 칸 여섯이 레이어가 된다
@@ -2198,6 +2201,55 @@ def earth_faults_at(request):
     r = min(2.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
     got = faults.near(lon, lat, r, lang)
     return JsonResponse({"fault": got, "text": "" if got else i18n.t(msg("여기에는 활성단층이 없다"), lang), "credit": faults.CITE})
+
+
+@require_GET
+def earth_impacts_tile(request, layer, ma, z, x, y):
+    """`earth/impacts/<impacts|lips>/<Ma>/<z>/<x>/<y>.png` — 충돌구(오늘만)·거대 화성암 지대(그 연대의 자리로) (wetherilli 283)"""
+    ma, z, x, y = int(ma), int(z), int(x), int(y)
+    if layer not in ("impacts", "lips") or not impacts.valid_tile(z, x, y) or ma > 1100 or (layer == "impacts" and ma):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not impacts.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = impacts_version()
+    key = tilecache.key_text("impacts", f"{version}/{layer}/{ma}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = impacts.render_tile(layer, float(ma), z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_impacts_at(request):
+    """`?lon=&lat=&z=&layer=impacts|lips` — 누른 자리의 충돌구(그 줌의 8 화소 또는 충돌구 둘레 안)·거대 화성암 지대(오늘의 자리)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = _float(request.GET.get("z"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    rows, name = [], ""
+    if request.GET.get("layer") == "lips":
+        lip = impacts.lip_at(lon, lat)
+        if lip:
+            name = lip["name"] or i18n.t(msg("이름 없는 화성암 지대"), lang)
+            rows = [("생긴 때 (Ma)", f"{lip['ma']:g}"), ("지질시대", i18n.t(impacts.period_of(lip["ma"])[2], lang)),
+                    ("그때의 지구", i18n.t(msg("판 회전으로 옮긴다"), lang) if lip["pid"] is not None else i18n.t(msg("바다 밑이라 옮기지 않는다"), lang))]
+        credit = impacts.CITE_LIPS
+    else:
+        r = min(2.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
+        hit = impacts.impact_near(lon, lat, r)
+        if hit:
+            name = hit["name"] or hit["id"]
+            rows = [("지름 (km)", f"{hit['km']:g}" if hit["km"] else ""), ("생긴 때 (Ma)", f"{hit['ma']:g}" if hit["ma"] else ""),
+                    ("나라", hit["country"]), ("Wikidata", hit["id"])]
+        credit = impacts.CITE_IMPACTS
+    rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+    text = "" if name else i18n.t(msg("여기에는 없다"), lang)
+    return JsonResponse({"name": name, "rows": rows, "text": text, "credit": credit})
 
 
 @require_GET
@@ -4353,6 +4405,7 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "impacts": impacts_version(),
                 "faults": faults_version(),
                 "minerals": minerals_version(),
                 "stress": stress_version(),
@@ -4424,6 +4477,10 @@ def minerals_version() -> str:
 
 def faults_version() -> str:
     return _stamp(faults.RENDERER, _content_stamp(settings.FAULTS_FILE))
+
+
+def impacts_version() -> str:
+    return _stamp(impacts.RENDERER, _content_stamp(settings.IMPACTS_FILE), paleo.RENDERER)
 
 
 def crust_version() -> str:
