@@ -404,7 +404,8 @@
     australia: { title: "호주", proj: "EPSG:3857", center: [134.0, -26.0], zoom: 4, vworld: false,
                  home: [12523000, -5465000, 17143000, -1006000],
                  basemap: "eox_terrain", example: "-31.95, 115.86 · Perth",
-                 base: ["ga:lithostratigraphy", "ga:age", "ga:lithology", "ga:faults"],
+                 base: ["ga:lithostratigraphy", "ga:age", "ga:lithology", "ga:faults", "gsq:state", "gsq:detailed", "gsv:250k",
+                        "gsv:50k", "gssa:units"],
                  first: "ga:lithostratigraphy" },
     // 뉴질랜드(wetherilli 218) — GNS Science 의 QMAP 1:25만 합본과 1:100만. 합본은 넓게 보면 느려 줌 7 부터이고, 그보다 넓으면
     // 1:100만이 바탕이다. 둘 다 켜 두면 가까이 갈 때 합본이 위에 얹힌다
@@ -985,6 +986,10 @@
     ygs: { source: npolarSource, info: wmsInfoUrl },
     // 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`ga/legend/`)
     ga: { source: npolarSource, info: wmsInfoUrl },
+    // 호주의 주 판(wetherilli 225) — 퀸즐랜드(REST export 를 문이 옮긴다)·빅토리아·남호주, 모두 3857
+    gsq: { source: npolarSource, info: wmsInfoUrl },
+    gsv: { source: npolarSource, info: wmsInfoUrl },
+    gssa: { source: npolarSource, info: wmsInfoUrl },
     // 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 유럽 문처럼 카탈로그 행의 투영(3857)으로 서버 문을 거친다
     ispra: { source: npolarSource, info: wmsInfoUrl },
     lneg: { source: npolarSource, info: wmsInfoUrl },
@@ -2481,7 +2486,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", ga: "GA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2502,6 +2507,7 @@
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
     cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",
+    gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
@@ -4489,6 +4495,21 @@
     };
   }
 
+  /** 방향 기호(wetherilli 223) — 위(북)를 가리키는 SVG. `arrow` 는 선구조의 침강 방향 화살, `strike` 는 주향선과 경사 방향의 짧은 눈금.
+   *  지도에서는 서버의 `azimuth`(°)만큼 돌린다 — 화살은 침강 방향, 주향 기호는 경사 방향이 위다. */
+  function attitudeSvg(shape, color, size) {
+    var c = esc(color || "#888"), h = size / 2;
+    var body = shape === "arrow"
+      ? '<line x1="' + h + '" y1="' + (size - 2) + '" x2="' + h + '" y2="5" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="' + h + '" y1="' + (size - 2) + '" x2="' + h + '" y2="5" stroke="' + c + '" stroke-width="2"/>' +
+        '<path d="M' + h + ' 1 L' + (h - 4) + ' 8 L' + (h + 4) + ' 8 Z" fill="' + c + '" stroke="#fff" stroke-width="0.8"/>'
+      : '<line x1="2" y1="' + h + '" x2="' + (size - 2) + '" y2="' + h + '" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="' + h + '" y1="' + h + '" x2="' + h + '" y2="' + (h - 6) + '" stroke="#fff" stroke-width="4"/>' +
+        '<line x1="2" y1="' + h + '" x2="' + (size - 2) + '" y2="' + h + '" stroke="' + c + '" stroke-width="2"/>' +
+        '<line x1="' + h + '" y1="' + h + '" x2="' + h + '" y2="' + (h - 6) + '" stroke="' + c + '" stroke-width="2"/>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">' + body + "</svg>";
+  }
+
   /** 극지연구소(053–056) — 서버가 갈래(`code`)마다 색·모양을 준다. 점은 모양대로, 범위(면·선)는
    *  같은 색의 테두리와 옅은 속으로 그린다. 멀리서는 점을 작게 — 암석 시료가 빅토리아랜드에 몰려 있다. */
   function classStyle(feature, resolution, getLayer, cache) {
@@ -4501,7 +4522,8 @@
       fade = periodFade(periods, ago);
       if (!fade) return null;
     }
-    var key = code + "|" + type + (far ? "f" : "n") + fade;
+    var azimuth = feature.get("azimuth");
+    var key = code + "|" + type + (far ? "f" : "n") + fade + (azimuth != null ? "|" + Math.round(azimuth / 5) * 5 : "");
     if (cache[key]) return cache[key];
     var spec = {};
     (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
@@ -4516,6 +4538,11 @@
       // 5만 단층·습곡(wetherilli 202) — 굵기·끊김을 서버의 표가 준다. 선이 수천이라 테두리 없이 가늘게
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: spec.width || 1.4,
                                                                 lineDash: spec.dash || undefined }) });
+    } else if ((spec.shape === "arrow" || spec.shape === "strike") && azimuth != null) {
+      // 5만 선구조·유동구조(wetherilli 223) — 방향을 돌린 기호. 5° 칸으로 담아 둔다
+      style = new ol.style.Style({ image: new ol.style.Icon({
+        src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(attitudeSvg(spec.shape, color, 22)),
+        rotation: (Math.round(azimuth / 5) * 5) * Math.PI / 180, rotateWithView: true, scale: far ? 0.6 : 1 }) });
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 1.6, lineDash: [6, 4] }) });
@@ -4571,6 +4598,10 @@
         sw.className = "sw-line";
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.shape === "dash" ? '1.6" stroke-dasharray="6 4' : "2.5") + '"/></svg>';
+      } else if (row.style === "class" && (r.shape === "arrow" || r.shape === "strike")) {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = attitudeSvg(r.shape, r.color, 16).replace("<svg ", '<svg aria-hidden="true" ');
       } else if (row.style === "class") {
         sw = document.createElement("span");
         sw.className = "sw " + ({ square: "box", star: "star", diamond: "diamond", triangle: "triangle" }[r.shape] || "dot");
