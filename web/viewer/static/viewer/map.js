@@ -848,6 +848,12 @@
     return BASE + "featureinfo/?" + q.toString();
   }
 
+  /** 남극 자력 이상(ADMAP-2)의 속성 주소 — 누른 자리의 위경도로 묻는다(`admap/info/`, wetherilli 262). */
+  function admapInfoUrl(source, coordinate) {
+    var ll = toLL(coordinate);
+    return BASE + "admap/info/?" + new URLSearchParams({ lat: ll[1].toFixed(6), lon: ll[0].toFixed(6) }).toString();
+  }
+
   /** IBCSO 자료 출처(TID)의 속성 주소 — 누른 자리의 위경도로 묻는다(`ibcso/info/`, 071). */
   function ibcsoInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -930,6 +936,19 @@
     var row = byName[name] || {};
     return new ol.source.XYZ({
       url: row.tiles, crossOrigin: "anonymous", maxZoom: row.maxZoom || 16, transition: 0,
+      attributions: row.attribution || undefined,
+    });
+  }
+
+  /** Esri 극 격자의 타일(남극 Bedmap3, wetherilli 261) — 3031 이지만 원점·해상도가 우리 격자와 달라 카탈로그 행의 `grid` 로 받는다.
+   *  주소는 상류의 것을 그대로(`…/tile/{z}/{y}/{x}`), 마지막 줌 위는 OpenLayers 가 늘린다. 첫 줌 밑은 첫 줌을 줄여 그린다 */
+  function esriGridSource(name) {
+    var row = byName[name] || {}, g = row.grid || {};
+    return new ol.source.XYZ({
+      url: row.tiles, projection: "EPSG:3031", crossOrigin: "anonymous", transition: 0,
+      // `minZoom` 밑은 캐시가 없다(404) — OpenLayers 가 그 줌의 타일을 줄여 그린다
+      tileGrid: new ol.tilegrid.TileGrid({ origin: g.origin, extent: g.extent, resolutions: g.resolutions, minZoom: g.minZoom || 0,
+                                           tileSize: 256 }),
       attributions: row.attribution || undefined,
     });
   }
@@ -1023,6 +1042,8 @@
   var LAYER_KINDS = {
     kigam: { source: wmsSource, info: wmsInfoUrl },
     geus: { source: wmsSource, info: wmsInfoUrl },
+    // GEUS 의 ArcGIS — 자력 편찬·DTU 부게 중력·지질구(wetherilli 259). 카탈로그 행의 투영(3413)으로
+    geusarc: { source: npolarSource, info: wmsInfoUrl },
     vworld: { source: wmsSource, info: wmsInfoUrl },
     geomap: { source: geomapSource, info: geomapInfoUrl },
     grportal: { source: null, info: null },
@@ -1063,6 +1084,8 @@
     sgu: { source: npolarSource, info: wmsInfoUrl },
     // 영국 BGS·프랑스 BRGM·범유럽 EGDI(wetherilli 143) — 3857 이지만 출처를 카탈로그 행에서 받으려고 같은 틀을 쓴다
     bgs: { source: npolarSource, info: wmsInfoUrl },
+    // 영국 GeoIndex — 자력·중력·광산·광물 산지(wetherilli 258)
+    bgsgi: { source: npolarSource, info: wmsInfoUrl },
     brgm: { source: npolarSource, info: wmsInfoUrl },
     egdi: { source: npolarSource, info: wmsInfoUrl },
     // 독일 BGR·스페인 IGME(1:100만은 4326)·아일랜드 GSI·북아일랜드 GSNI(wetherilli 147) — 카탈로그 행의 투영으로 받는다
@@ -1104,6 +1127,8 @@
     skgs: { source: npolarSource, info: wmsInfoUrl },
     nsgs: { source: npolarSource, info: wmsInfoUrl },
     ags: { source: gsiTileSource, info: pointInfoUrl },
+    // 남극 Bedmap3(wetherilli 261) — BAS 의 Esri 극 격자 타일을 곧장. 누르기는 없다
+    bas: { source: esriGridSource, info: null },
     // 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`ga/legend/`)
     ga: { source: npolarSource, info: wmsInfoUrl },
     // 호주의 주 판(wetherilli 225) — 퀸즐랜드(REST export 를 문이 옮긴다)·빅토리아·남호주, 모두 3857
@@ -1145,6 +1170,8 @@
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
     ibcso: { source: geomapSource, info: ibcsoInfoUrl },
+    // 남극 자력 이상 ADMAP-2(wetherilli 262) — 우리가 잘라 둔 3031 타일, 누른 자리는 위경도로
+    admap: { source: geomapSource, info: admapInfoUrl },
   };
 
   function layerKind(name) {
@@ -2622,25 +2649,25 @@
 
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
-    kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", gsjows: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", georep: "NC", ineter: "INETER", usgscarib: "USGS", sim3534: "USGS", stri: "STRI", vmme: "VMME", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", geusarc: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", gsjows: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", bgsgi: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", bumigeb: "BUMIGEB", irgm: "IRGM", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", georep: "NC", ineter: "INETER", usgscarib: "USGS", bas: "BAS", sim3534: "USGS", stri: "STRI", vmme: "VMME", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO", admap: "ADMAP",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
     kigam50k: "KIGAM",
   };
   var UPSTREAM_NAMES = {
-    kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
+    kigam: T("한국지질자원연구원"), vworld: T("브이월드(국토교통부)"), geus: T("덴마크·그린란드 지질조사소"), geusarc: T("덴마크·그린란드 지질조사소"), grportal: T("그린란드 정부 포털"),
     npolar: T("노르웨이 극지연구소"), janmayen: T("노르웨이 극지연구소"), gsj: T("일본 지질조사종합센터"), gsitile: T("일본 국토지리원"), gsjows: T("일본 지질조사종합센터"), geonavi: T("일본 지질조사종합센터"), ccop: "CCOP",
     gsmma: T("대만 지질조사·광업관리중심"),
     emodnet: "EMODnet Geology",
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"), sgu: T("스웨덴 지질조사소"),
-    bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
+    bgs: T("영국 지질조사소"), bgsgi: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"),
     georep: T("누벨칼레도니 정부 (Géorep)"),
-    ineter: T("니카라과 국토연구원 (INETER)"), usgscarib: T("미국 지질조사국"), stri: T("스미스소니언 열대연구소 (STRI)"), vmme: T("파라과이 광업·에너지 차관실 (VMME)"), geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
+    ineter: T("니카라과 국토연구원 (INETER)"), usgscarib: T("미국 지질조사국"), bas: T("영국 남극조사소"), sim3534: T("미국 지질조사국"), stri: T("스미스소니언 열대연구소 (STRI)"), vmme: T("파라과이 광업·에너지 차관실 (VMME)"), geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
     skgs: T("사스카치원 지질조사소"), nsgs: T("노바스코샤 자연자원·재생에너지부"), ags: T("앨버타 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
@@ -2650,7 +2677,7 @@
     gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
-    ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
+    ibcso: "IBCSO", admap: "ADMAP-2", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
     earth: T("온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma"),
     kigam50k: T("한국지질자원연구원 5만 수치지질도"),
   };

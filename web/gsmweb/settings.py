@@ -340,6 +340,8 @@ PENINSULA_DIR = env("GSM_PENINSULA_DIR") or str(_data_dir() / "peninsula")
 #: `<여기>/IBCSO_v2_{bed,ice-surface}_RGB.tif` 를 `manage.py build_ibcso` 가 `<여기>/tiles-{bed,ice}/`
 #: 로 자른다. 340 MB 라 저장소·이미지에 두지 않는다. 없으면 안내 타일이 뜰 뿐 뷰어는 돈다.
 IBCSO_DIR = env("GSM_IBCSO_DIR") or str(_data_dir() / "ibcso")
+#: 남극 자력 이상 ADMAP-2 를 칠해 잘라 둔 것 (wetherilli 262). 원본은 NAS `sources/admap2/grid.zip`
+ADMAP_DIR = env("GSM_ADMAP_DIR") or str(_data_dir() / "admap2")
 #: 극지연구소(KOPRI)에서 모아 둔 것 — 암석 시료 목록(`rock.json`)과 KPDC 자료 목록·상세(`kpdc.json`).
 #: `manage.py fetch_kopri` 가 천천히 모아 여기 쓴다(두 시간 남짓, 다음부터는 새 것만). 저장소·이미지에
 #: 두지 않는다. 없으면 그 레이어에 "자료가 없다" 가 뜰 뿐 뷰어는 돈다 (devlog 053·055). 기본은 `<DB 옆>/kopri/`.
@@ -462,6 +464,8 @@ CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 KIGAM_COMPOSED_CATALOG_SEED = REPO_DIR / "data" / "kigam_composed_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
+#: 그린란드 — GEUS ArcGIS 의 자력·중력·지질구 (wetherilli 259)
+GEUSARC_CATALOG_SEED = REPO_DIR / "data" / "geusarc_layers.json"
 #: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)
 VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 #: 그린란드 정부 포털의 점 레이어 씨앗. 역시 seed_catalog 가 함께 넣는다
@@ -493,6 +497,8 @@ SGU_CATALOG_SEED = REPO_DIR / "data" / "sgu_layers.json"
 NATT_CATALOG_SEED = REPO_DIR / "data" / "natt_layers.json"
 #: 영국·프랑스 — BGS·BRGM 지질도, 그리고 둘이 함께 까는 EGDI 1:100만 (wetherilli 143)
 BGS_CATALOG_SEED = REPO_DIR / "data" / "bgs_layers.json"
+#: 영국 GeoIndex — 자력·중력·광산·광물 산지 (wetherilli 258)
+BGSGI_CATALOG_SEED = REPO_DIR / "data" / "bgsgi_layers.json"
 BRGM_CATALOG_SEED = REPO_DIR / "data" / "brgm_layers.json"
 EGDI_CATALOG_SEED = REPO_DIR / "data" / "egdi_layers.json"
 #: 독일·스페인·아일랜드 (wetherilli 147)
@@ -585,7 +591,11 @@ PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
 #: 남극 IBCSO 자료 출처(TID) — 우리가 잘라 둔 3031 타일 (071)
 IBCSO_CATALOG_SEED = REPO_DIR / "data" / "ibcso_layers.json"
+ADMAP_CATALOG_SEED = REPO_DIR / "data" / "admap_layers.json"
 #: PGC 경사·등고선 — 지질도 위에 겹치는 극지 레이어 (wetherilli 099). 지역이 셋이라 씨앗도 셋이다
+#: 남극 — BAS 의 Bedmap3 타일(ArcGIS Online, wetherilli 261)
+BAS_TILES_URL = env("GSM_BAS_TILES_URL", "https://tiles.arcgis.com/tiles/tPxy1hrFDhJfZ0Mf/arcgis/rest/services")
+BAS_CATALOG_SEED = REPO_DIR / "data" / "bas_antarctica_layers.json"
 PGC_CATALOG_SEEDS = tuple(REPO_DIR / "data" / f"pgc_{r}_layers.json" for r in ("greenland", "svalbard", "antarctica"))
 #: 극지연구소(KOPRI) — 지역마다 한 장: 남극(시료·KPDC 자료·기지·해안선), 스발바르·그린란드(암석 시료·KPDC 자료),
 #: 북극해(KPDC 자료) (053–057·075·076)

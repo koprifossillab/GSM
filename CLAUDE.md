@@ -306,7 +306,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
   상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·페루·에콰도르·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·195·196·198)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·kigam50k·geus·vworld·grportal·npolar·gsj·gsitile·ccop·gsjows·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·vmme·georep·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·kigam50k·geus·geusarc·vworld·grportal·npolar·gsj·gsitile·ccop·gsjows·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·bgsgi·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·vmme·georep·bas·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -369,7 +369,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   018), 얀마옌 지질도(`GSM_NPOLAR_DIR`, 기본 `<DB 옆>/npolar`, 022), 중국 USGS geo3al
   (`GSM_USGS_DIR`, 기본 `<DB 옆>/usgs`, 025), 한반도 지질도 음영판·민판(`GSM_PENINSULA_DIR`,
   기본 `<DB 옆>/peninsula`, 027·028 — PDF·PNG 를 `manage.py build_peninsula` 로 잘라 둔다), 남극 해저·빙저 지형
-  IBCSO v2(`GSM_IBCSO_DIR`, 기본 `<DB 옆>/ibcso`, 047 — 칠한 GeoTIFF 둘을 `manage.py build_ibcso` 로 3031 에 잘라 둔다), 화성 크레이터
+  IBCSO v2(`GSM_IBCSO_DIR`, 기본 `<DB 옆>/ibcso`, 047 — 칠한 GeoTIFF 둘을 `manage.py build_ibcso` 로 3031 에 잘라 둔다), 남극 자력 이상 ADMAP-2(`GSM_ADMAP_DIR`, 기본 `<DB 옆>/admap2`, wetherilli 262 — `manage.py build_admap <grid.zip>`), 화성 크레이터
   목록 Robbins 2012(`GSM_MARS_DIR`, 기본 `<DB 옆>/mars`, 067 — `manage.py build_mars_craters <zip>` 이 sqlite 한 장으로 굽고 타일은 그때그때 그린다), 화성 옛 지질도·지역도 — I-1802·SIM 2888·I-2650·MTM(같은 자리, 068·wetherilli 079 —
   `manage.py build_mars_originals <zip…>`, 달 원도의 틀을 빌렸다), 수성 지질도 — USGS 1:500만 도폭 합본(`GSM_MERCURY_DIR`, 기본
   `<DB 옆>/mercury`, wetherilli 144 — `manage.py build_mercury_geology <zip>`), 온 지구의 옛 해안선(`GSM_EARTH_DIR`, 기본 `<DB 옆>/earth`,
@@ -428,7 +428,7 @@ web/gsmweb/       Django 설정
 web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   kigam.py        KIGAM 으로 나가는 문 (지질도 타일·속성·범례, 자료 API `/openapi/data` — 모아 둔다 `fetch_kigam_data`, 5만 구조 요소 WFS — 사람이 가끔 부른다 `fetch_kigam50k`, cron 에 두지 않는다)
   vworld.py       VWorld 로 나가는 문 (주소·장소 검색, 좌표→주소, 주소→좌표, 지질 참고 WMS·WFS)
-  geus.py         GEUS 로 나가는 문 (그린란드 지질도)
+  geus.py         GEUS 로 나가는 문 (그린란드 지질도. 같은 기관의 ArcGIS 의 자력 편찬·DTU 부게 중력·지질구도 — 상류 `geusarc`, wetherilli 259)
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS, 지질도Navi 판 목록,
@@ -441,7 +441,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   natt.py         아이슬란드 자연사연구소(NÍ)로 나가는 문 (1:60만 기반암·1:10만 GeoServer WMS). 3413 으로 곧장, 1:60만의 부호는 범례 이름으로 푼다
   bgs.py          영국 지질조사소(BGS)로 나가는 문 (그레이트브리튼 1:5만 ArcGIS WMS, 줌 13 부터). 같은 서버의 북아일랜드 GSNI 1:25만도,
                   아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
-                  (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도
+                  (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도,
+                  영국 GeoIndex 의 자력·중력 이상·광산·광물 산지(`bgsgi`, OGL, wetherilli 258)도
   cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
                   CGMW–BRGM 아프리카 1:1000만(`cgmw`, 속성은 GML, 범례는 정적 PNG, wetherilli 207)·카메룬 IRGM 1:100만(`irgm`, 4326 만, 246)도
@@ -485,6 +486,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   skgs.py         사스카치원 지질조사소로 나가는 문 (기반암 1:100만·1:25만 ArcGIS WMS 를 3978 로 — WMS 번호가 REST 와 거꾸로다, wetherilli 235)
   nsgs.py         노바스코샤 자연자원부로 나가는 문 (기반암 1:50만 Keppie 2000 — WMS 가 없어 REST export·identify 로 옮긴다, 화면의 투영 그대로, wetherilli 235)
   ags.py          앨버타 지질조사소로 나가는 문 (기반암 1:100만 Map 600 의 누른 자리만 — 피처 서비스 query. 타일은 ArcGIS Online 의 3857 z/x/y 를 화면이 곧장, wetherilli 235)
+  bas.py          영국 남극조사소(BAS)로 나가는 문 (Bedmap3 빙저 지형·얼음 두께·윗면의 범례만 — 타일은 ArcGIS Online 의 Esri 극 격자(3031)를 화면이 곧장, wetherilli 261)
   bcgs.py         브리티시컬럼비아 지질조사소(BCGS)로 나가는 문 (BC Digital Geology GeoServer WMS 를 3978 로. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터, 속성은 열을 골라)
   calgs.py        캘리포니아 지질조사소(CGS)로 나가는 문 (1:75만 ArcGIS REST — WMS 가 없어 export·identify 를 3978 로. 상류가 레이어 지정을 무시해 인쇄도 한 장. `cgs` 는 남아공)
   geosphere.py    GeoSphere Austria(옛 GBA)로 나가는 문 (1:100만 지질·단층 ArcGIS WMS 두 서비스, 3857 로. 시대는 "암상; 시대" 의 독일어에서. 1:5만은 WMS 가 없어 REST export·identify, 줌 11 부터)
@@ -524,6 +526,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   kigamdata.py    KIGAM 오픈플랫폼의 자료(시료·분석·조사·주제도) 목록·상세를 모아 둔 JSON. 지도에 올리는 것은 아직(#153). 문이 아니다
   kigam50k.py     KIGAM 5만 지질도의 층리·엽리·편리·절리·화석산지·시료·광산·광종·도폭 틀·단층·습곡·선구조·신장광물·습곡축·유동구조·변질대 — 받아 둔 WFS 파일(<DB 옆>/kigam50k/raw/날짜/)에서 자리와 값, 장미도. 문이 아니다
   ibcso.py        남극 해저·빙저 지형 IBCSO v2 — 칠한 GeoTIFF(9354) -> 3031 타일(미리 잘라 둔다). 문이 아니다
+  admap.py        남극 자력 이상 ADMAP-2 — Geosoft 압축 격자(numpy 없이) -> 칠한 3031 타일(미리 잘라 둔다)·누른 자리의 nT. 문이 아니다
   marscraters.py  화성 크레이터 38 만 개(Robbins 2012) -> sqlite(3 차원 R*Tree) -> 화성 경위도·극 타일. 문이 아니다
   marsmap.py      화성 옛 지질도·지역도(USGS I-1802·SIM 2888·I-2650·MTM) 셰이프파일 -> sqlite -> 화성 경위도·극 타일. moonmap 의 짝. 문이 아니다
   mercurymap.py   수성 지질도(USGS 1:500만 도폭 아홉의 합본) 셰이프파일 -> sqlite -> 수성 경위도 타일·누른 자리·범례. marsmap 의 짝. 문이 아니다
@@ -562,11 +565,11 @@ web/.tilecache/   받아둔 타일. 커밋하지 않는다 (운영은 /data/GSM/
 devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 ```
 
-**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`sgu.py`·`natt.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`cgs.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`ingemmet.py`·`iige.py`·`mrdata.py`·`sgm.py`·`ga.py`·`austates.py`·`gns.py`·`mris.py`·`gsiindia.py`·`sgs.py`·`esdm.py`·`jmg.py`·`mgb.py`·`dmr.py`·`segemar.py`·`dinamige.py`·`ispra.py`·`lneg.py`·`swisstopo.py`·`nrcan.py`·`ogs.py`·`sigeom.py`·`ygs.py`·`skgs.py`·`nsgs.py`·`ags.py`·`bcgs.py`·`calgs.py`·`geosphere.py`·`pig.py`·`tno.py`·`dov.py`·`spw.py`·`ineter.py`·`stri.py`·`usgscarib.py`·`vmme.py`·`georep.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
-이 일흔넷 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
+**상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`sgu.py`·`natt.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`cgs.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`ingemmet.py`·`iige.py`·`mrdata.py`·`sgm.py`·`ga.py`·`austates.py`·`gns.py`·`mris.py`·`gsiindia.py`·`sgs.py`·`esdm.py`·`jmg.py`·`mgb.py`·`dmr.py`·`segemar.py`·`dinamige.py`·`ispra.py`·`lneg.py`·`swisstopo.py`·`nrcan.py`·`ogs.py`·`sigeom.py`·`ygs.py`·`skgs.py`·`nsgs.py`·`ags.py`·`bas.py`·`bcgs.py`·`calgs.py`·`geosphere.py`·`pig.py`·`tno.py`·`dov.py`·`spw.py`·`ineter.py`·`stri.py`·`usgscarib.py`·`vmme.py`·`georep.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
+이 일흔다섯 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
 굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
-닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`caribmap.py`·`ibcso.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는
+닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`caribmap.py`·`ibcso.py`·`admap.py`·`kigam50k.py`·`kigamdata.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`naturalearth.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
 주소 검색은 KIGAM 을 거치지 않고, KIGAM 인증키도 쓰지 않는다.
 
