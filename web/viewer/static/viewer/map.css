@@ -2949,3 +2949,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #122034; --hi-deep: #0b131f; --on-hi: #fdfcfb; --hi-ink: #345992;
   --glass: rgba(253, 252, 251, .95); --glass-line: #dbe5f6;
 }
+
+/* ── 파나마 (wetherilli 253) — 황금 개구리(파나마 황금두꺼비)의 노랑: 운하 둘레 열대림의 짙은 초록 바탕 ── */
+:root[data-region="panama"] {
+  --bg: #111510; --panel: #1b1e1a; --panel-tint: #0d100c; --raise: #262a26;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #373a36; --line-soft: #262a26;
+  --gold: #e3c02e; --gold-bright: #f0dc8c; --gold-muted: #c1a327;
+  --gold-wash: rgba(227, 192, 46, .13); --gold-edge: rgba(227, 192, 46, .42);
+  --hi: #e3c02e; --hi-deep: #f0dc8c; --on-hi: #0d100c; --hi-ink: #f0dc8c;
+  --glass: rgba(13, 16, 12, .93); --glass-line: rgba(227, 192, 46, .35);
+}
+:root[data-region="panama"][data-theme="light"] {
+  --bg: #fdfbf2; --panel: #fdfcfb; --panel-tint: #fefcf7; --raise: #fbf6e2;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #f9f2d5; --line-soft: #fbf6e2;
+  --gold: #9f8620; --gold-bright: #7d6a19; --gold-muted: #98873f;
+  --gold-wash: #fbf6e0; --gold-edge: #f2e3a1;
+  --hi: #39300c; --hi-deep: #221d07; --on-hi: #fdfcfb; --hi-ink: #9f8620;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #f9f2d5;
+}
