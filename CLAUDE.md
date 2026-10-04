@@ -454,7 +454,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
                   (축척마다 갈린 상류 레이어는 `+` 로 잇는다, 독일 탭에 두고 유럽 나라 탭이 빌린다, wetherilli 217)
   igme.py         스페인 지질광물연구소(IGME)로 나가는 문 (1:100만은 4326, MAGNA 1:5만은 3857 ArcGIS WMS). 이름은 `igme:<판>:<번호>` 같은 서버 PSysmin 폴더의 도미니카공화국 SGN 1:25만(판 `sgnrd`, wetherilli 242)도
   gsi.py          아일랜드 지질조사소(GSI)로 나가는 문 (섬 전체 1:100만·공화국 1:10만 ArcGIS WMS)
-  sgc.py          콜롬비아 지질조사소(SGC)로 나가는 문 (남미 1:500만 CGMW 2019·콜롬비아 1:50만 2023 ArcGIS WMS, 3857 로). 이름은 `sgc:<판>:<번호>`
+  sgc.py          콜롬비아 지질조사소(SGC)로 나가는 문 (남미 1:500만 CGMW 2019·콜롬비아 1:50만 2023 ArcGIS WMS, 3857 로. 금속광상도·지구물리 이상 2022 도 — wetherilli 265). 이름은 `sgc:<판>:<번호>`
   ingemmet.py     페루 지질광업야금연구소(INGEMMET)로 나가는 문 (GEOCATMIN 1:5만·1:10만 통합판 — 그림은 REST 타일 캐시 z/x/y 중계, 누른 자리는 REST query, 범례는 보는 범위의 통계 질의. 단층·습곡은 SERV_GEOLOGIA_FALLAS 의 export 를 타일 칸으로, 1:5만 지질 단위만은 암상 레이어 export — 줌 9 부터, wetherilli 234)
   ispra.py        이탈리아 지질조사소(ISPRA)로 나가는 문 (1:100만·1:10만 ArcGIS WMS 를 3857 로, 속성은 GeoJSON. 1:100만은 WMS·REST 번호가 거꾸로)
   lneg.py         포르투갈 국립 에너지·지질연구소(LNEG)로 나가는 문 (1:50만 ArcGIS WMS 를 3857 로, 속성은 ESRI XML)
@@ -499,8 +499,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   usgscarib.py    USGS World Energy Project 지질도로 나가는 문 — 카리브(French & Schenk 2004)와 남미(Schenk 외 1999, wetherilli 256). ArcGIS Online 피처 서비스라 면을 한 덩이로 받아 캐시에 30 일, 화면이 그린다
   vmme.py         파라과이 광업·에너지 차관실(VMME)로 나가는 문 (개략 지질도 피처 서비스 — 면 61 을 한 덩이로, 색은 우리가 붙인다)
   georep.py       누벨칼레도니 정부 Géorep 으로 나가는 문 (DIMENC 지질도 1:100만·1:20만·1:5만 ArcGIS WMS 를 3857 로 — 축척마다 상류가 판을 바꾼다. 속성은 REST identify, 범례는 REST 목록)
-  sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`). 노두·연대측정·화석 산지 점도 같은 WMS 로
-  segemar.py      아르헨티나 지질광업조사소(SEGEMAR)로 나가는 문 (SIGAM GeoServer — 1:250만 단위·구조선·화산, 1:25만 간행 도폭, 지역 판 1:100만·주별 1:75만·국경 1:50만·포클랜드(말비나스), 제4기 변형·화산 위험도). 이름은 `segemar:<상류 이름>`. CORS 가 없다
+  sgb.py          브라질 지질조사소(SGB)로 나가는 문 (GeoServer 둘 — 1:250만 2025·1:100만·1:25만, 속성은 `propertyName` 으로, 범례는 보는 범위의 것). 단위 이름표는 모아 둔다(`fetch_sgb_units`). 노두·연대측정·화석 산지·광물 산출(wetherilli 265) 점도 같은 WMS 로
+  segemar.py      아르헨티나 지질광업조사소(SEGEMAR)로 나가는 문 (SIGAM GeoServer — 1:250만 단위·구조선·화산, 1:25만 간행 도폭, 지역 판 1:100만·주별 1:75만·국경 1:50만·포클랜드(말비나스), 제4기 변형·화산 위험도, 금속·산업 광상 1:25만 — wetherilli 265). 이름은 `segemar:<상류 이름>`. CORS 가 없다
   dinamige.py     우루과이 광업지질국(DINAMIGE, MIEM)으로 나가는 문 (1:50만 ArcGIS WMS, 3857 로). 이름은 WMS 번호 — REST 와 거꾸로다. 범례는 REST 를 목록으로
   pbdb.py         Paleobiology Database 로 나가는 문 (화석 산지를 통째로 한 번). 모아 둔다(`fetch_pbdb`)
   gvp.py          스미스소니언 Global Volcanism Program 으로 나가는 문 (홀로세 화산 WFS 를 통째로 한 번). 모아 둔다(`fetch_gvp`)
