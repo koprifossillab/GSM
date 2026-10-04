@@ -405,7 +405,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
 ```
 web/gsmweb/       Django 설정
 web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
-  kigam.py        KIGAM 으로 나가는 문 (지질도 타일·속성·범례, 자료 API `/openapi/data` — 모아 둔다 `fetch_kigam_data`, 5만 구조 요소 WFS — 모아 둔다 `fetch_kigam50k`)
+  kigam.py        KIGAM 으로 나가는 문 (지질도 타일·속성·범례, 자료 API `/openapi/data` — 모아 둔다 `fetch_kigam_data`, 5만 구조 요소 WFS — 사람이 가끔 부른다 `fetch_kigam50k`, cron 에 두지 않는다)
   vworld.py       VWorld 로 나가는 문 (주소·장소 검색, 좌표→주소, 주소→좌표, 지질 참고 WMS·WFS)
   geus.py         GEUS 로 나가는 문 (그린란드 지질도)
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
