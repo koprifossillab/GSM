@@ -90,6 +90,10 @@ EN = {
     "아이슬란드": "Iceland", "아이슬란드 자연사연구소": "Icelandic Institute of Natural History",
     # 뉴질랜드·오세아니아 (wetherilli 218)
     "뉴질랜드": "New Zealand", "오세아니아": "Oceania", "뉴질랜드 지질·핵과학연구소 (GNS)": "GNS Science (New Zealand)",
+    # 몽골 (wetherilli 221)
+    "몽골": "Mongolia", "몽골 국가지질조사소 (MonGeoCat)": "National Geological Survey of Mongolia (MonGeoCat)",
+    # 인도 (wetherilli 226)
+    "인도": "India", "인도 지질조사소 (그림: BGS)": "Geological Survey of India (map by BGS)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -1748,7 +1752,7 @@ PROP_EN = {
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
-    "초층군": "Supergroup",
+    "초층군": "Supergroup", "지구조 대구역": "Tectonic megazone",
     "고지자기": "Magnetic polarity",                     # 아이슬란드 1:10만의 `segultimatal`(BRUN 따위, wetherilli 216)
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
@@ -2249,6 +2253,9 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    # 멕시코 광상 (wetherilli 219)
+    "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
+    "광산 지구": "Mining district",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -2464,7 +2471,12 @@ AGES_ES = {
     "cuaternario": "Quaternary", "terciario": "Tertiary",
     "paleoceno": "Paleocene", "eoceno": "Eocene", "oligoceno": "Oligocene", "mioceno": "Miocene", "plioceno": "Pliocene",
     "pleistoceno": "Pleistocene", "holoceno": "Holocene",
+    # 멕시코 지질 연대 점(wetherilli 219)
+    "hadeano": "Hadean", "eoarqueano": "Eoarchean", "paleoarqueano": "Paleoarchean", "mesoarqueano": "Mesoarchean",
+    "neoarqueano": "Neoarchean", "titoniano": "Tithonian", "precambrico": "Precambrian",
 }
+#: `Triásico Superior` 의 뒤 낱말 → ICS 의 앞 낱말 (wetherilli 219)
+_ES_PART = {"superior": "Late", "medio": "Middle", "inferior": "Early", "tardio": "Late", "temprano": "Early"}
 
 
 #: 프랑스어 시대 이름(악센트를 뗀 소문자) → ICS 영문 — 퀘벡 SIGÉOM (wetherilli 224)
@@ -2528,6 +2540,9 @@ def age_es(value: str) -> str:
     folded = "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
     if folded in AGES_ES:
         return AGES_ES[folded]
+    head, _, part = folded.rpartition(" ")
+    if head in AGES_ES and part in _ES_PART:
+        return f"{_ES_PART[part]} {AGES_ES[head]}"
     if folded.endswith("iano") and folded.isalpha():
         return folded[:-1].capitalize()
     return text
@@ -2795,6 +2810,8 @@ GROUP_EN = {
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
     "뉴질랜드 지질도 (GNS)": "Geology of New Zealand (GNS)", "뉴질랜드 구조 (GNS 1:25만)": "New Zealand structures (GNS 1:250k)",
     "남빅토리아랜드 1:25만 (GNS)": "Southern Victoria Land 1:250k (GNS)",
+    "몽골 지질도 (MonGeoCat)": "Geology of Mongolia (MonGeoCat)",
+    "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2880,6 +2897,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)",
 }
 
 LAYER_EN = {
@@ -2908,6 +2926,10 @@ LAYER_EN = {
     "gns:NZL_GNS_250K_folds": "Fold axes (1:250k)", "gns:NZL_GNS_250K_metamorphic_zones": "Metamorphic zones (1:250k)",
     "gns:ATA_SVL_GNS_250K_geological_units": "Southern Victoria Land geological units (1:250k)",
     "gns:ATA_SVL_GNS_250K_faults": "Southern Victoria Land faults (1:250k)",
+    # 몽골 (wetherilli 221)
+    "mris:geology:1": "Geological map (National Geological Atlas)", "mris:faults:0": "Faults (1:500k)",
+    # 인도 (wetherilli 226)
+    "gsiindia:geology": "Geology (1:2M)", "gsiindia:faults": "Faults (1:2M)", "gsiindia:thrusts": "Thrusts (1:2M)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
@@ -3031,6 +3053,9 @@ LAYER_EN = {
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
+    # 멕시코 SGM 의 다른 서비스 (wetherilli 219)
+    "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
+    "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
     # 스웨덴 기반암 (wetherilli 213)
     "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
     "sgu:deformation": "Deformation zones (1:1M)",

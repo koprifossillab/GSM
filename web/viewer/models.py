@@ -60,7 +60,11 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 아이슬란드 — 자연사연구소(NÍ) 1:60만·1:10만 (wetherilli 216). 3413 이라 북극 묶음에 든다
            ("iceland", "아이슬란드"),
            # 뉴질랜드 — GNS Science QMAP 1:25만·1:100만 (wetherilli 218). 호주와 묶음 "오세아니아" 에 든다(묶음은 DB 에 없다)
-           ("new_zealand", "뉴질랜드"))
+           ("new_zealand", "뉴질랜드"),
+           # 몽골 — 국가지질조사소 MonGeoCat 의 국가지질도첩 (wetherilli 221). 동아시아 묶음에 든다
+           ("mongolia", "몽골"),
+           # 인도 — GSI 1:200만 (wetherilli 226)
+           ("india", "인도"))
 
 
 class LayerGroup(models.Model):
@@ -127,6 +131,8 @@ class Layer(models.Model):
     #: ispra → `ispra.py`·lneg → `lneg.py`·swisstopo → `swisstopo.py` (이탈리아·포르투갈·스위스 지질도, wetherilli 211)
     #: natt → `natt.py` (아이슬란드 지질도 1:60만·1:10만, wetherilli 216)
     #: gns → `gns.py` (뉴질랜드 QMAP·1:100만, 남극 남빅토리아랜드, wetherilli 218)
+    #: mris → `mris.py` (몽골 국가지질도첩 지질도·단층, wetherilli 221)
+    #: gsiindia → `gsiindia.py` (인도 1:200만 — 그림 BGS, 속성 GSI, wetherilli 226)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다
