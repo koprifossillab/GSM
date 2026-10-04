@@ -463,7 +463,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   sgm.py          멕시코 지질조사소(SGM)로 나가는 문 (1:25만·1:5만 ArcGIS REST — WMS 가 400 이라 WMS 변수를 export·identify 로 옮긴다, 범례는 보는 범위)
                   같은 서버의 지질 연대 측정·고생물 산지·광상 1:25만도(`sgm:<서비스>:<번호>`, `SERVICES`, wetherilli 219), 지화학·원소 이상·광산 1:5만도
                   (원소 이상의 범례는 REST 범례의 기호 그림 — 함량 구간, wetherilli 233)
-  mrdata.py       USGS mrdata 로 나가는 문 (미국 본토 SGMC·알래스카 SIM 3340·하와이·푸에르토리코(wetherilli 238) MapServer WMS. 본토의 속성은 WFS 1.0, 알래스카는 WMS text/plain.
+  mrdata.py       USGS mrdata 로 나가는 문 (미국 본토 SGMC·알래스카 SIM 3340·하와이·푸에르토리코(wetherilli 238)·광물 자원 MRDS·광산 기호 USMIN·
+                  지질 연대·자력·중력(wetherilli 247) MapServer WMS. 본토의 속성은 WFS 1.0, 알래스카는 WMS text/plain.
                   알래스카의 물 면은 받은 그림에서 지운다 — 고침의 판이 캐시 열쇠에 든다 `views.map_cache_key`, wetherilli 224)
   iige.py         에콰도르 지질·에너지 연구소(IIGE)로 나가는 문 (일반 지질도 ArcGIS WMS 를 3857 로, 범례는 보는 범위의 REST 통계 질의)
   nrcan.py        캐나다 천연자원부(NRCan·GSC)로 나가는 문 (캐나다 지질도 1:500만 Wheeler ArcGIS WMS 를 3978 로, 속성은 GeoJSON)
