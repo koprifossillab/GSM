@@ -1648,6 +1648,7 @@ PROP_EN = {
     "FeO (북극)": "FeO (north pole)",
     "얼음이 버틸 깊이 — 오늘의 자전축": "Ice stability depth — today's spin axis",
     "얼음이 버틸 깊이 — 옛 자전축": "Ice stability depth — paleo spin axis",
+    "높이 — 화성 기준면(아레오이드)": "Elevation — above the Mars areoid",   # 화성 표고 판의 값 (wetherilli 192)
     "티타늄": "Titanium",
     "지각 두께": "Crustal thickness",
     # 화석 산지 (wetherilli 098)
