@@ -12,6 +12,9 @@
   // 지도는 `map/` 에 산다 — 뿌리는 소개 화면이다 (wetherilli 113). 다른 갈래는 뿌리 밑이다
   // 정적 판의 영어판은 `en/map/` 에 산다 — 뿌리(구운 파일이 있는 곳)는 언어와 상관없이 같다 (wetherilli 167)
   var BASE = location.pathname.replace(/\/(?:en\/)?map\/?$/, "/");
+  // 이 파일 곁의 정적 자료(일본 시군구 표 따위)를 부를 주소 — map.js 를 부른 주소의 폴더와 판(`?v=`)을 그대로 쓴다
+  var ASSET = (function (src) { return { dir: src.replace(/[?#].*$/, "").replace(/[^/]*$/, ""), v: (src.match(/\?v=[^#&]*/) || [""])[0] }; })(
+    (document.currentScript && document.currentScript.src) || "");
 
   // ── 말 ───────────────────────────────────────────────────────────
   //
@@ -5272,15 +5275,23 @@
     }
 
     // 주소는 VWorld 열쇠가 있을 때만 묻는다. 바다처럼 주소가 없는 자리면 줄을 두지 않는다.
-    // 극지는 묻지 않는다 — VWorld 는 우리나라 주소만 안다
-    if (vworldKey && REGIONS[region].vworld) {
+    // 극지는 묻지 않는다 — VWorld 는 우리나라 주소만 안다. 일본 탭은 국토지리원에 묻고, 동아시아 탭은 VWorld 가 모르는 자리를
+    // 국토지리원에 다시 묻는다 (wetherilli 230)
+    var korea = vworldKey && REGIONS[region].vworld;
+    var japan = region === "japan" || (region === "eastasia" && nearJapan(ll[0], ll[1]));
+    if (korea || japan) {
       var addr = document.createElement("p");
       addr.className = "popup-addr";
       body.appendChild(addr);
-      addressFor(ll[0], ll[1]).then(function (d) {
+      var lookup = !korea ? japanAddressFor(ll[0], ll[1]) : addressFor(ll[0], ll[1]).then(function (d) {
+        return japan && !d.road && !d.parcel ? japanAddressFor(ll[0], ll[1]) : d;
+      });
+      lookup.then(function (d) {
         var lines = [d.road, d.parcel && d.parcel !== d.road ? d.parcel : ""].filter(Boolean);
-        if (lines.length) addr.textContent = lines.join(" · ");
-        else addr.remove();
+        if (lines.length) {
+          addr.textContent = lines.join(" · ");
+          if (d.source === "gsi") addr.title = T("주소: 국토지리원 (지리원 지도)");
+        } else addr.remove();
       });
     }
 
@@ -7185,6 +7196,40 @@
         .catch(function () { return {}; });
     }
     return addressMemo[key];
+  }
+
+  /** 일본 — 좌표 → 주소 (wetherilli 230). 국토지리원의 역지오코더(지리원 지도가 쓰는 것)를 브라우저가 곧장 부른다 — 주소 찾기
+   *  (wetherilli 155)와 같은 까닭이다(열쇠가 없고 CORS 가 열렸고, 서버가 대신 부르면 서버 IP 하나에 몰린다). 상류는 시군구 코드와
+   *  동네 이름(`lv01Nm`)만 주어 코드 → 이름 표(`japan-muni.json`, `manage.py build_japan_muni`)를 처음 한 번 받는다. 바다·경계가 정해지지
+   *  않은 곳(후지산 꼭대기)은 빈 답이다 */
+  var GSI_REVERSE = "https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress";
+  var japanMuni = null;
+  function japanAddressFor(lon, lat) {
+    var key = "jp:" + lat.toFixed(5) + "," + lon.toFixed(5);
+    if (!addressMemo[key]) {
+      if (!japanMuni) {
+        japanMuni = fetch(ASSET.dir + "japan-muni.json" + ASSET.v)
+          .then(function (r) { return r.ok ? r.json() : {}; })
+          .catch(function () { return {}; });
+      }
+      addressMemo[key] = Promise.all([
+        fetch(GSI_REVERSE + "?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5))
+          .then(function (r) { return r.ok ? r.json() : {}; }),
+        japanMuni,
+      ]).then(function (got) {
+        var res = (got[0] || {}).results;
+        if (!res || !res.muniCd) return {};
+        var town = res.lv01Nm && res.lv01Nm !== "－" ? res.lv01Nm : "";
+        var city = got[1][String(parseInt(res.muniCd, 10))] || "";
+        return { road: (city + town) || "", source: "gsi" };
+      }).catch(function () { return {}; });
+    }
+    return addressMemo[key];
+  }
+
+  /** 일본 땅의 대강(한반도도 든다) — 동아시아 탭에서 VWorld 가 모르는 자리를 국토지리원에 다시 물을지 가른다 */
+  function nearJapan(lon, lat) {
+    return lon >= 122.5 && lon <= 154.5 && lat >= 20 && lat <= 46;
   }
 
   function wireUpload() {

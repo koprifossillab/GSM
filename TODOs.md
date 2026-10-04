@@ -160,7 +160,6 @@ Jarðfeingi 는 조건을 묻고 나서. 막힌 것: 인도 Bhukosh·러시아 V
 
 ### 빨리 되는 것 — 씨앗·배경 한 줄
 
-- [ ] 일본 좌표→주소(`mreversegeocoder`) — 시군구 코드만 줘 표가 들고 문도 든다(반나절). 주소 찾기는 섰다(wetherilli 155)
 
 ### 달 — Trek ImageServer
 

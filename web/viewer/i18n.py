@@ -1160,6 +1160,7 @@ EN = {
     "좌표·주소·지명으로 이동 — {example}": "Go to coordinates, an address or a place name — {example}",
     "주소·지명": "Address/place",
     "주소·지명 검색: 국토지리원 (지리원 지도)": "Address & place search: GSI Japan (GSI Maps)",
+    "주소: 국토지리원 (지리원 지도)": "Address: GSI Japan (GSI Maps)",
     "좌표로 이동 — 위도, 경도 (예: {example})": "Go to coordinates — latitude, longitude (e.g. {example})",
     "지명 검색: 노르웨이 극지연구소 (스발바르)": "Place names: Norwegian Polar Institute (Svalbard)",
     "찾은 것이 없다 — 이 지역의 지명을 넣어 본다": "Nothing found — try a place name in this region",
