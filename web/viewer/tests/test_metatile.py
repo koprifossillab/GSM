@@ -184,3 +184,19 @@ class Wider(TestCase):
         self.assertEqual(sent, ["1024,1024"])
         self.assertEqual(got.status_code, 200)
         self.assertEqual(Image.open(io.BytesIO(got.content)).convert("RGBA").getpixel((5, 5)), (140, 140, 0, 255))
+
+
+class Table(TestCase):
+    """메타타일 표의 줄마다 (wetherilli 287) — 카탈로그의 레이어에 걸리고, 3857 WMS 이고(브라우저가 곧장 받는 타일·점이 아니다),
+    서버 캐시에 담지 않는 상류(`NO_STORE`)가 아니다 — 메타타일은 조각을 캐시에 담는다"""
+
+    def test_줄마다_맞는_레이어(self):
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        rows = [l for g in views._catalog("ko") for l in g["layers"]]
+        for entry in views.METATILE:
+            hit = [l for l in rows if l["name"] == entry or (entry.endswith(":") and l["name"].startswith(entry))]
+            self.assertTrue(hit, entry)
+            for l in hit:
+                self.assertEqual(l.get("projection"), "EPSG:3857", l["name"])
+                self.assertFalse(l.get("tiles") or l.get("kind") == "points", l["name"])
+                self.assertNotIn(l["upstream"], views.NO_STORE, l["name"])

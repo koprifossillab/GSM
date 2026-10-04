@@ -22,6 +22,8 @@ from . import i18n, usage
 log = logging.getLogger(__name__)
 
 PREFIX = "mris:"
+#: 메타타일로 받는다 (wetherilli 287) — 512 px 4.3–6.9 초, 1 024 px 7.0 초. 큰 장 하나가 칸 넷보다 싸다. `metatile.limit` 의 표
+METATILE = {"mris:": None}
 ATTRIBUTION = ('<a href="https://webgis.mris.mn/" target="_blank" rel="noopener">MonGeoCat</a> — '
                "National Geological Survey of Mongolia")
 #: 우리 이름 → (서비스, WMS 번호, REST 번호). 국경(WMS 0)은 부르지 않는다
