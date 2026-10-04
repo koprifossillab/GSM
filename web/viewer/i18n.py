@@ -558,6 +558,13 @@ EN = {
         "Colour shows emplacement age. Continental ones move with plate rotation — computed, not observed",
     "신생대 (66 Ma 안쪽)": "Cenozoic (under 66 Ma)", "데본기·실루리아기": "Devonian–Silurian", "오르도비스기·캄브리아기": "Ordovician–Cambrian",
     "원생대": "Proterozoic",
+    # 화석 산지 밀도 (wetherilli 286)
+    "화석 산지 밀도": "Fossil locality density",
+    "드물다": "Sparse",
+    "몇 곳": "A few",
+    "많다": "Many",
+    "가장 많은 칸": "Densest cell",
+    "1° 칸의 산지 수(로그) — 조사가 몰린 곳이 진하다": "Localities per 1° cell (log) — darker where sampling concentrates",
     # 세계 활성단층 GEM (wetherilli 279)
     "활성단층 (GEM)": "Active faults (GEM)", "역단층·섭입": "Reverse / subduction", "주향이동·변환": "Strike-slip / transform",
     "사교 (주향이동+경사이동)": "Oblique (strike-slip + dip-slip)", "확장 해령": "Spreading ridge", "습곡·갈래 모름": "Fold / unknown",

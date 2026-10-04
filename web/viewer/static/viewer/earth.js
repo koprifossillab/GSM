@@ -104,6 +104,9 @@
     { group: "화석 산지 (PBDB)", layers: [
       { name: "fossils", title: "화석 산지", grid: "ll", always: true, legend: "geology",
         src: "Paleobiology Database · CC BY 4.0" },
+      // 같은 산지를 1° 칸에 세어 로그로 칠한 것 — 점이 서로를 덮어 몰린 곳이 안 보일 때. 모든 연대에, 옛 연대는 그때의 자리로 (wetherilli 286)
+      { name: "fossilheat", title: "화석 산지 밀도", grid: "ll", always: true, legend: "fossilheat", max: 5,
+        src: "Paleobiology Database · CC BY 4.0 — 산지 수(채집 편향이 든다)" },
     ] },
     // 지구 속 — 구에서만. 땅을 비치게 하고 그 밑에 그린다. 모든 연대에 뜬다(가장 가까운 20 Myr 시점) (106)
     { group: "지구 속 (OPT1 모의)", layers: [
@@ -263,7 +266,7 @@
     ["지구물리", ["crust", "heatflow", "mantle"]],
     ["자원", []],                                     // 세계 광상(USGS)의 광종 칸은 `mineral` 로 여기 선다 (wetherilli 276)
     ["화산·지진", ["volcanoes", "pleistocene", "lips", "quake6", "quake55", "quake5"]],
-    ["화석·고생태", ["fossils"]],                      // 고생태 산지(Neotoma)의 자료형 칸은 `neo` 로 여기 선다
+    ["화석·고생태", ["fossils", "fossilheat"]],                      // 고생태 산지(Neotoma)의 자료형 칸은 `neo` 로 여기 선다
     ["그때의 지구", ["coast", "icemargins"]],
     ["움직이는 지구", ["wind", "cloud", "satcloud", "ocean", "araon"]],
     ["지리", ["names", "water", "ice", "glaciers"]],
@@ -308,6 +311,7 @@
     if (name === "icemargins") return BASE + "earth/icemargins/tiles/" + Math.min(1000, Math.round(age * 1000)) + "/{z}/{x}/{y}.png" + vq("icemargins");
     if (name === "water" || name === "ice") return BASE + "earth/ne/tiles/" + name + "/{z}/{x}/{y}.png" + vq("ne");
     if (name === "fossils") return BASE + "earth/fossils/tiles/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png" + vq("fossils");
+    if (name === "fossilheat") return BASE + "earth/fossils/density/" + Math.round(age * 1000) + "/{z}/{x}/{y}.png" + vq("fossildensity");
     if (name === "volcanoes") return BASE + "earth/volcanoes/tiles/{z}/{x}/{y}.png" + vq("volcanoes");
     if (name === "pleistocene") return BASE + "earth/volcanoes/pleistocene/tiles/{z}/{x}/{y}.png" + vq("pleistocene");
     if (LAYER[name].neo) return BASE + "earth/neotoma/tiles/" + name + "/" + Math.min(999, Math.round(age * 1000)) + "/{z}/{x}/{y}.png" + vq("neotoma");
@@ -342,7 +346,7 @@
     if (name === "gemfaults") return FAULT_CREDIT;
     if (LAYER[name] && LAYER[name].mineral) return MIN_CREDIT;
     if (LAYER[name] && LAYER[name].neo) return NEO_CREDIT;
-    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT, stress: STRESS_CREDIT, tbound: TECT_CREDIT, tprov: TECT_CREDIT, glim: GLIM_CREDIT, heatflow: HEATFLOW_CREDIT, seaage: SEAAGE_CREDIT, sediment: SEDIMENT_CREDIT,
+    return { geology: GEO_CREDIT, plates: PALEO_CREDIT, coast: COAST_CREDIT, fossils: PBDB_CREDIT, fossilheat: PBDB_CREDIT, volcanoes: GVP_CREDIT, pleistocene: GVP_CREDIT, quake6: QUAKE_CREDIT, quake55: QUAKE_CREDIT, quake5: QUAKE_CREDIT, crust: CRUST_CREDIT, stress: STRESS_CREDIT, tbound: TECT_CREDIT, tprov: TECT_CREDIT, glim: GLIM_CREDIT, heatflow: HEATFLOW_CREDIT, seaage: SEAAGE_CREDIT, sediment: SEDIMENT_CREDIT,
              names: NE_CREDIT, water: NE_CREDIT, ice: NE_CREDIT, icemargins: ICE_CREDIT, mantle: MANTLE_CREDIT }[name];
   }
   // 판 조각 타일 — 서버가 연대마다 돌려 그린다(`paleo.render_tile`). 경위도 격자, 줌 0 이 180° 두 장이다
@@ -2476,6 +2480,13 @@
     if (kind === "mineral") {
       legends[kind] = '<li class="empty">' + esc(T("마름모는 세계 광상 표와 대규모 광산, 큰 원은 생산한 곳, 작은 원은 산지·탐사지(줌 4 부터)")) + "</li>" +
         (THEN.minerals || []).map(function (row) {
+          return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
+        }).join("");
+      return Promise.resolve(legends[kind]);
+    }
+    if (kind === "fossilheat") {
+      legends[kind] = '<li class="empty">' + esc(T("1° 칸의 산지 수(로그) — 조사가 몰린 곳이 진하다")) + "</li>" +
+        (THEN.fossildensity || []).map(function (row) {
           return '<li><span class="chip" style="background:' + esc(row.color) + '"></span>' + esc(row.name) + "</li>";
         }).join("");
       return Promise.resolve(legends[kind]);
