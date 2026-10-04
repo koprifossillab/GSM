@@ -359,7 +359,9 @@ def map_view(request):
 
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
 MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
-             "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi")
+             "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
+             # 남미 SGC(wetherilli 188) — 3857 로 그린다
+             "sgc")
 
 
 @require_GET
