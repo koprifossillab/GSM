@@ -82,6 +82,9 @@ EN = {
     # 북미 묶음·퀘벡·유콘 (wetherilli 210)
     "북미": "North America", "퀘벡 지질 광업 정보 체계": "SIGÉOM (Québec geomining information system)",
     "유콘 지질조사소": "Yukon Geological Survey", "지구조 요소": "Tectonic element",
+    # 캐나다 주 판 둘째 (wetherilli 235)
+    "사스카치원 지질조사소": "Saskatchewan Geological Survey", "노바스코샤 자연자원·재생에너지부": "Nova Scotia Natural Resources and Renewables",
+    "앨버타 지질조사소": "Alberta Geological Survey",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
     "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
@@ -2275,6 +2278,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "서열": "Rank",
     # 멕시코 광상 (wetherilli 219)
     "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
     "광산 지구": "Mining district",
@@ -2856,6 +2860,8 @@ GROUP_EN = {
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
+    "사스카치원 지질도 (SGS)": "Saskatchewan geology (SGS)", "노바스코샤 지질도 (1:50만)": "Nova Scotia geology (1:500k)",
+    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
@@ -2962,6 +2968,10 @@ LAYER_EN = {
     "ogs:1": "Ontario Quaternary geology",
     "sigeom:generale": "General geology (Québec)", "sigeom:regionale": "Regional geology (Québec, 1:20k–1:250k)",
     "sigeom:failles": "Faults (Québec)", "ygs:47": "Bedrock (Yukon 1:250k)", "ygs:50": "Faults (Yukon)",
+    # 캐나다 주 판 둘째 (wetherilli 235)
+    "skgs:2": "Bedrock (Saskatchewan 1:1M)", "skgs:3": "Bedrock (Saskatchewan 1:250k, Shield)",
+    "skgs:11": "Major faults and shear zones (Saskatchewan 1:1M)", "nsgs:11": "Bedrock (Nova Scotia 1:500k)",
+    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)",
     "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",

@@ -33,7 +33,11 @@
 ### 북미
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
-- [ ] 브리티시컬럼비아(BCGS) — 줌 12 남짓부터만 색이 들고 CORS 가 없고 첫 요청이 9.5 초라 미뤘다(wetherilli 210). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)도 아직
+- [ ] 브리티시컬럼비아(BCGS) — 줌 12 남짓부터만 색이 들고 CORS 가 없고 첫 요청이 9.5 초라 미뤘다(wetherilli 210)
+- [ ] 캐나다 주 판 — 앨버타·사스카치원·노바스코샤는 섰다(wetherilli 235). **(사람)** 뉴브런즈윅(`gis-erd-der.gnb.ca/…/OpenData/NBGS_Bedrock_Geology`
+      WMS·WFS 가 열려 있다)·뉴펀들랜드래브라도(`dnrmaps.gov.nl.ca/…/GeoAtlas/Bedrock_Geology_All` WMS)는 조건을 읽지 못했다 — 뉴브런즈윅 조건
+      쪽은 우리에게 403, WMS 의 조건 칸은 둘 다 비었다. 매니토바(`maps.gov.mb.ca`)는 2026-10-04 에 502. 노스웨스트준주는 ArcGIS Online 의
+      피처 서비스(`MapD1860A_NWTGeology`)뿐이라 그림이 없다 — 우리가 그려야 한다. 누나부트는 서비스를 찾지 못했다
 - [ ] 미국 — 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 USGS mrdata 같은 서버에 있다
 - [ ] 멕시코 SGM — 지질 연대·고생물·광상 1:25만은 섰다(wetherilli 219). 남은 것: 같은 서버의 지화학(`SUNGeoquimica`)·자기 이상
       (`SUNAnomalias250`)·광산 1:5만(`SUNYacimientosMinerales`, 4 만 6 천 점). 고생물·광산 점은 그림 기호라 범례가 없다

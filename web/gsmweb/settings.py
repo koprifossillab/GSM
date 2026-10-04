@@ -212,6 +212,11 @@ OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 캐나다의 주 판 — 퀘벡 SIGÉOM(GeoServer 앞단, WMS 1.1.1)·유콘 YGS(ArcGIS WMS) (wetherilli 210). 열쇠가 없다
 SIGEOM_WMS_URL = env("GSM_SIGEOM_WMS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WMS/service.svc/get")
 YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/services/GeoYukon/GY_Geological/MapServer/WMSServer")
+#: 캐나다의 주 판 둘째 — 사스카치원(ArcGIS WMS)·노바스코샤(ArcGIS REST)·앨버타(ArcGIS Online 피처 서비스, 타일은 화면이 곧장) (wetherilli 235)
+SKGS_WMS_URL = env("GSM_SKGS_WMS_URL", "https://gis.saskatchewan.ca/arcgis/services/Economy/Geology/MapServer/WMSServer")
+NSGS_URL = env("GSM_NSGS_URL", "https://fletcher.novascotia.ca/arcgis/rest/services/geoscience/bedrockgeologyprovscale_new/MapServer")
+AGS_FEATURE_URL = env("GSM_AGS_FEATURE_URL", "https://services2.arcgis.com/jQV6VMr2Loovu7GU/arcgis/rest/services/"
+                      "Bedrock_Geology_of_Alberta_POLY_DIG_2013_0018/FeatureServer/0")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -483,6 +488,10 @@ OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
 #: 캐나다의 주 판 — 퀘벡·유콘 (wetherilli 210)
 SIGEOM_CATALOG_SEED = REPO_DIR / "data" / "sigeom_layers.json"
 YGS_CATALOG_SEED = REPO_DIR / "data" / "ygs_layers.json"
+#: 캐나다의 주 판 둘째 — 사스카치원·노바스코샤·앨버타 (wetherilli 235)
+SKGS_CATALOG_SEED = REPO_DIR / "data" / "skgs_layers.json"
+NSGS_CATALOG_SEED = REPO_DIR / "data" / "nsgs_layers.json"
+AGS_CATALOG_SEED = REPO_DIR / "data" / "ags_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 호주의 주 판 — 퀸즐랜드·빅토리아·남호주 (wetherilli 225)
