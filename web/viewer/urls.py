@@ -143,6 +143,8 @@ urlpatterns = [
     re_path(r"^gibs/(?P<epsg>4326|3413|3031)/(?P<layer>\w+)/(?P<z>\d{1,2})/(?P<y>\d{1,5})/(?P<x>\d{1,5})\.jpeg$",
             views.gibs_tile, name="gibs-tile"),
     path("gibs/wms/", views.gibs_wms, name="gibs-wms"),
+    # NPI 스발바르 배경 타일 — 서버가 담는다 (basemaps.py, wetherilli 200)
+    re_path(r"^npi/(?P<service>NP_\w+)/(?P<z>\d{1,2})/(?P<y>\d{1,6})/(?P<x>\d{1,6})$", views.npi_tile, name="npi-tile"),
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
     # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
     path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
