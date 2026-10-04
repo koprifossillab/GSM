@@ -45,9 +45,6 @@
 
 - [ ] 니카라과 INETER·도미니카공화국 SGN 1:25만은 섰다(wetherilli 242, 묶음 "중앙아메리카·카리브" — 푸에르토리코는 미국 탭의 것을 빌린다). **(사람)** INETER·SGN 의
       조건 문구가 없다(AccessConstraints NONE·빈 칸) — 밖에 열기 전에 읽는다
-- [ ] USGS 카리브 지질도(Caribbean_Geology, 1:250만)는 카리브 탭에 섰다(wetherilli 248 — 면 한 덩이). SIM 3534(Wilson & Labay 2025, 대앤틸리스 1:30만 급)는
-      웹서비스가 없고 ScienceBase 가 403 이다. 옛 판 OFR 2019-1036 의 셰이프 zip(`pubs.usgs.gov/of/2019/1036/ofr20191036_spatialdata.zip`)은
-      196 MB 다 — 쓰려면 받아 굽는 꼴(moonmap·geomap 틀: 파일 → sqlite → 타일)이 맞다. 이틀 남짓이라 두었다
 - [ ] 프랑스령 앤틸리스 BRGM 1:5만 스캔(`GEOL_MART`·`GEOL_GUAD_*`) — `brgm.py` 에 이름만, 줌 12 부터. 탭을 어디에 둘지(묶음에 지역 하나 더)
 - [ ] **(사람)** 자메이카 MGD 웹맵의 지질 면(조건 없음)·트리니다드 Latinum(교육용 한정) — 조건을 묻는다
 - 막힌 것: 과테말라·온두라스·벨리즈·쿠바(서비스 없음·DNS·시간 초과), 엘살바도르 SNET(522 — 다시 볼 것), 코스타리카(UCR 여백 붙은 스캔·DGM 빈 응답)

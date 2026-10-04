@@ -280,6 +280,8 @@ ICE_MARGINS_FILE = BASE_DIR.parent / "data" / "ice_margins.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")
+#: 카리브 — USGS 대앤틸리스 지질도(OFR 2019-1036 · SIM 3534)를 구운 sqlite (wetherilli 254). 원본은 NAS `sources/caribbean/`
+CARIBBEAN_DIR = env("GSM_CARIBBEAN_DIR") or str(_data_dir() / "caribbean")
 #: 화성 크레이터 목록(Robbins & Hynek 2012)을 구운 sqlite(`mars_craters.sqlite`)와 옛 지질도(`mars_originals.sqlite`,
 #: 068)가 있는 곳 (`viewer/marscraters.py`·`marsmap.py`, devlog 067). 우리 디스크의 파일이다. 없으면 크레이터 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/mars
 MARS_DIR = env("GSM_MARS_DIR") or str(_data_dir() / "mars")
@@ -528,6 +530,7 @@ SPW_CATALOG_SEED = REPO_DIR / "data" / "spw_layers.json"
 INETER_CATALOG_SEED = REPO_DIR / "data" / "ineter_layers.json"
 #: 카리브 — USGS 카리브 지질도 (wetherilli 248)
 USGSCARIB_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_layers.json"
+SIM3534_CATALOG_SEED = REPO_DIR / "data" / "sim3534_layers.json"
 #: 파나마 — STRI (wetherilli 253)
 STRI_CATALOG_SEED = REPO_DIR / "data" / "stri_layers.json"
 IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
