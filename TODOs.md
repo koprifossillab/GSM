@@ -102,6 +102,11 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
       항적이 따로 있는지 KPDC 에 묻는다. Midtre Lovénbreen 의 경도 부호(075 §5)와 같은 메일에 (076)
 - [ ] 암석 시료의 상세(암상·박편·3D 모델) — 상세 페이지가 로그인 없이는 비어 있다. 극지연구소에 묻는다 (053)
 - [ ] KPDC 의 다른 묶음 — PAMC 미생물 균주(2 만 2 천)·KVH 식물 표본(3 천 8 백). 지질과 거리가 있어 미뤘다 (053)
+- [ ] **(사람)** BAS 의 ArcGIS Online 피처 서비스 — 암석 표본 목록 `geology_collection`(14 만 3 천)·해양·호수·이탄 코어(966·…)·빙하 코어(84)·
+      SCAR 지명 사전 `SCAR_CGA_PLACE_NAMES_SIMPLIFIED`(남극 전체의 지명 찾기 — 지금은 드로닝모드랜드뿐). 열려 있고 CORS 도 되지만 항목에
+      **이용 조건 글이 없다**. BAS·SCAR 에 묻거나 UK PDC 의 원자료 조건을 읽고 정한다. 14 만 점은 한 덩이로 받기 무거워 극지연구소처럼 모아 둔다 (wetherilli 261)
+- [ ] ADMAP-2 자력 이상(PANGAEA 892723, CC BY 3.0) — 서비스가 없고 Surfer grd 파일뿐이다. IBCSO 처럼 칠해 3031 타일로 굽는 꼴이 맞지만
+      grd 를 읽어 칠하는 굽기(numpy)가 따로 든다. 하루 남짓 (wetherilli 261)
 
 ## 지역 — 일본·동아시아 (024)
 
