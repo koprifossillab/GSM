@@ -484,6 +484,7 @@ EN = {
         "This piece does not survive to the present — 'today' is where its plate would be",
     # 옛 해안선 (wetherilli 097)
     "그때의 지구": "The Earth then",
+    "구조·판": "Tectonics", "자원": "Resources", "지구물리": "Geophysics", "화산·지진": "Volcanoes and earthquakes", "화석·고생태": "Fossils and palaeoecology", "지리": "Geography",
     "옛 해안선": "Palaeocoastlines",
     "옛 해안선은 이 연대에 없다 (0–535 Ma, 가까운 시점 10 Myr 안)":
         "No palaeocoastline for this age (0–535 Ma, nearest within 10 Myr)",
@@ -2405,6 +2406,7 @@ PROP_EN = {
     "성인": "Genesis",
     "딸린 광종": "Other commodities", "채굴 기간": "Years mined", "총 광량 (Mt)": "Total tonnage (Mt)", "광석 광물": "Ore minerals",
     "광화 시기": "Age of mineralisation", "광상 유형": "Deposit type", "생산 끝": "Production ended",
+    "시대 기호": "Age code", "자원량": "Resources",
     "영국 격자": "British National Grid",
     # 남미 광물 자원 (wetherilli 265)
     "중요도": "Importance", "광산": "Mine status", "모암": "Host rock", "광체 형태": "Ore body form", "광화 지역": "Mineral province",
@@ -3085,6 +3087,7 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "핀란드 지구물리 (GTK)": "Finland geophysics (GTK)", "북유럽 광상 (FODD)": "Fennoscandian ore deposits (FODD)",
     "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
+    "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
     "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
     "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
@@ -3233,6 +3236,11 @@ LAYER_EN = {
     "gtk:aeromagneettinen_anomaliakartta": "Aeromagnetic anomaly", "gtk:aeroradiometrinen_yhdistelmakartta": "Aeroradiometric ternary (K·Th·U)",
     "gtk:fennoscandia_mineral_deposit": "Ore deposits (Norway, Sweden, Finland, NW Russia)",
     "sgu:minerals": "Mineral and rock occurrences", "sgu:magnetic": "Magnetic anomaly",
+    # 페루 광물·지구물리 (wetherilli 277)
+    "ingemmet:deposits": "Mineral deposits (Yacimientos mineros)", "ingemmet:projects": "Mining projects and operations",
+    "ingemmet:occ_metal": "Metallic mineral occurrences (10–18° S)", "ingemmet:occ_nonmetal": "Non-metallic mineral occurrences (10–18° S)",
+    "ingemmet:belts": "Metallogenic belts (Franjas metalogenéticas)", "ingemmet:bouguer": "Bouguer gravity anomaly",
+    "ingemmet:aeromag": "Aeromagnetics",
     # 영국 GeoIndex (wetherilli 258)
     "bgsgi:magnetic": "Magnetic anomalies (colour shaded)", "bgsgi:gravity": "Gravity anomalies (colour shaded)",
     "bgsgi:mines": "Mines and quarries (BritPits)", "bgsgi:occurrences": "Mineral occurrences (MINGOL)",

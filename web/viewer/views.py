@@ -2884,6 +2884,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": caribmap.ATTRIBUTION, "maxZoom": caribmap.MAX_ZOOM,
                 "tiles": _versioned_url(f"sim3534/{caribmap.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png", sim3534_version()),
                 "legend": "extent", "legendUrl": "sim3534/legend/", **({} if unit else {"queryable": False})}
+    if layer.upstream == "ingemmet" and layer.name in ingemmet.RESOURCES:
+        # 페루 광물·지구물리(wetherilli 277) — 단층·습곡처럼 다른 서비스의 export 를 타일 칸으로. 산지·광상·광화대는 위경도로 누른다
+        first = ingemmet.first_zoom(layer.name)
+        return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
+                "maxZoom": ingemmet.STRUCTURES_MAX, "noLegend": True, **({"minZoom": first} if first else {}),
+                **({} if ingemmet.knows_resource(layer.name) else {"queryable": False})}
     if layer.upstream == "ingemmet" and layer.name in ingemmet.UNITS:
         # 페루 1:5만 지질 단위만(wetherilli 234) — 암상 레이어만 export 로. 느려 줌 9 부터. 누른 자리·범례는 1:5만 통합판의 것
         return {"attribution": ingemmet.ATTRIBUTION, "tiles": f"ingemmet/{ingemmet.sheet_of(layer.name)}/{{z}}/{{x}}/{{y}}.png",
@@ -3847,6 +3853,8 @@ def ingemmet_info(request):
     lang = i18n.lang_of(request)
     name = ingemmet.base_of(request.GET.get("layer", ""))       # 지질 단위만의 판은 통합판에 묻는다 (wetherilli 234)
     lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if ingemmet.knows_resource(name) and lat is not None and lon is not None:
+        return _ingemmet_resource_info(request, name, lat, lon, lang)
     if not ingemmet.knows(name) or lat is None or lon is None:
         return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []}, status=400)
     # 1e-5° 는 1 m 남짓이다. 같은 자리를 다시 누르면 상류를 타지 않는다
@@ -3871,6 +3879,31 @@ def ingemmet_info(request):
         props = i18n.props_en(props)
     return JsonResponse({"features": [{"id": props.get("기호", ""), "props": props}]})
 
+
+
+def _ingemmet_resource_info(request, name, lat, lon, lang):
+    """페루 광물 산지·광상·광화대(wetherilli 277) — 점은 누른 둘레(`r`°, 화면이 8 픽셀만큼 보낸다)의 것, 면은 그 점을 품은 것"""
+    radius = round(min(0.5, max(1e-4, _float(request.GET.get("r")) or 0.01)), 4)
+    key = tilecache.key_text("ingemmet-resource", f"{name}/{lat:.5f},{lon:.5f}/{radius}")
+    raw = _cached_json(key)
+    if raw is None:
+        try:
+            raw = {"rows": ingemmet.resource_attributes(name, lat, lon, radius)}
+        except ingemmet.IngemmetError as exc:
+            raw = _cached_json(key, stale=True)
+            if raw is None:
+                log.warning("페루 광물 속성을 읽지 못했다: %s", exc)
+                error = str(exc) if lang == "ko" else i18n.t(msg("상류에서 받지 못했다"), lang)
+                return JsonResponse({"error": error, "features": []}, status=502)
+        else:
+            tilecache.put(key, json.dumps(raw, ensure_ascii=False).encode("utf-8"), ".json")
+    out = []
+    for row in raw.get("rows") or []:
+        props = ingemmet.resource_friendly(name, row, lang)
+        if lang == "en":
+            props = i18n.props_en(props)
+        out.append({"id": props.get("이름", props.get("Name", "")), "props": props})
+    return JsonResponse({"features": out})
 
 @require_GET
 @browser_cached
