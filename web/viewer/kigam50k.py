@@ -204,6 +204,46 @@ LAYERS = {
         ("adit", ("갱도", "갱구"), msg("갱도·갱구"), "#252525", "dot"),
         ("closed", (), msg("폐광·휴광"), "#bdbdbd", "dot"),
     )),
+    # 선·면 (wetherilli 202) — 단층·습곡은 선(`stroke`: 굵기·끊김은 표의 마지막 칸), 변질대·변성대는 면. 광종은 점
+    "kigam50k:fault": ("fault", (("type", "갈래"), ("fault_kr", "단층 이름"), ("dipangle", "경사"), ("dipazi", "경사 방향"),
+                                 ("comt", "설명"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("thrust", ("드러스트",), msg("드러스트"), "#c0392b", "stroke", {"width": 1.8}),
+        ("thrust_q", ("추정드러스트", "추정드러스"), msg("추정 드러스트"), "#c0392b", "stroke", {"width": 1.4, "dash": [5, 4]}),
+        ("normal", ("정단층",), msg("정단층"), "#2166ac", "stroke", {"width": 1.6}),
+        ("normal_q", ("추정정단층",), msg("추정 정단층"), "#2166ac", "stroke", {"width": 1.3, "dash": [5, 4]}),
+        ("strike", ("주향이동단층",), msg("주향이동단층"), "#762a83", "stroke", {"width": 1.6}),
+        ("strike_q", ("추정주향이동단층",), msg("추정 주향이동단층"), "#762a83", "stroke", {"width": 1.3, "dash": [5, 4]}),
+        ("fault_q", ("추정단층",), msg("추정 단층"), "#3a3a3a", "stroke", {"width": 1.1, "dash": [5, 4]}),
+        ("fault", (), msg("단층"), "#1a1a1a", "stroke", {"width": 1.4}),
+    )),
+    "kigam50k:fold": ("fold", (("type", "갈래"), ("comt", "설명"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("anticline", ("배사",), msg("배사"), "#d6604d", "stroke", {"width": 1.8}),
+        ("syncline", ("향사",), msg("향사"), "#4393c3", "stroke", {"width": 1.8}),
+        ("o_anticline", ("역전등사배사",), msg("역전 등사 배사"), "#b2182b", "stroke", {"width": 1.8, "dash": [8, 3]}),
+        ("o_syncline", ("역전등사향사",), msg("역전 등사 향사"), "#2166ac", "stroke", {"width": 1.8, "dash": [8, 3]}),
+        ("p_anticline", ("침강배사",), msg("침강 배사"), "#f4a582", "stroke", {"width": 1.6}),
+        ("p_syncline", ("침강향사",), msg("침강 향사"), "#92c5de", "stroke", {"width": 1.6}),
+        ("other", (), msg("그 밖의 습곡"), "#7b3294", "stroke", {"width": 1.6}),
+    )),
+    "kigam50k:oretype": ("oretype", (("type", "광종"), ("광종", "광종 기호"), ("comt", "설명"), ("mapname", "도폭"),
+                                     ("mapidx", "도폭 번호")), (
+        ("precious", ("금", "은"), msg("금·은"), "#e6ab02", "diamond"),
+        ("coal", ("석탄", "무연탄", "갈탄"), msg("석탄"), "#252525", "square"),
+        ("iron", ("철", "티탄철", "자철"), msg("철"), "#a6611a", "dot"),
+        ("base", ("동", "연(납)", "아연", "연", "연·아연", "중석", "몰리브덴", "니켈", "코발트", "망간", "혼합광"),
+         msg("동·연·아연 따위"), "#1b9e77", "dot"),
+        ("other", (), msg("비금속·그 밖"), "#7570b3", "dot"),
+    )),
+    "kigam50k:zones": (("alterationzone", "metamorphismzone"),
+                       (("type", "갈래"), ("lithoname", "지층"), ("lithoidx", "지층 기호"), ("age", "시대"),
+                        ("refrock", "대표 암상"), ("mapname", "도폭"), ("mapidx", "도폭 번호")), (
+        ("thermal", ("열변성대",), msg("열변성대"), "#e08214", "square"),
+        ("contact_alt", ("접촉변질대",), msg("접촉변질대"), "#b35806", "square"),
+        ("alteration", ("변질대",), msg("변질대"), "#8073ac", "square"),
+        ("hydrothermal", ("열수광화대",), msg("열수광화대"), "#d01c8b", "square"),
+        ("contact_meta", ("접촉변성대",), msg("접촉변성대"), "#542788", "square"),
+        ("other", (), msg("그 밖의 변질·변성대"), "#999999", "square"),
+    )),
     "kigam50k:frame": ("frame", (("mapname", "도폭"), ("mapidx", "도폭 번호"), ("surveyor", "조사자"),
                                  ("suryear", "조사연도"), ("comt", "비고"), ("doi", "DOI")), (
         ("frame", (), msg("5만 도폭"), "#8a6d3b", "square"),
@@ -211,16 +251,26 @@ LAYERS = {
 }
 LINKS = ("doi",)
 ATTRIBUTION = "KIGAM 1:50,000 digital geological map (CC BY-NC) · data.kigam.re.kr"
-DIGITS = 6
+#: 소수 다섯 자리 — 1 m 남짓. 단층 덩이가 여섯 자리면 4 MB, 다섯 자리면 3.4 MB(줄이면 0.6 MB)다 (wetherilli 202)
+DIGITS = 5
 
 
 def knows_file(name: str) -> bool:
     return name in LAYERS
 
 
+def _files(name: str) -> tuple:
+    files = LAYERS[name][0]
+    return files if isinstance(files, tuple) else (files,)
+
+
 def file_available(name: str) -> bool:
     folder = latest()
-    return bool(folder) and (folder / f"{LAYERS[name][0]}.geojson.gz").exists()
+    return bool(folder) and all((folder / f"{f}.geojson.gz").exists() for f in _files(name))
+
+
+#: 선이 많아 화면이 한 장으로 굽는 것 (`render: image`, 중국 geo3al 과 같다) — 끌 때 다시 칠하지 않는다
+IMAGE = {"kigam50k:fault", "kigam50k:fold"}
 
 
 def _features(kind: str) -> list:
@@ -242,13 +292,28 @@ def _code(table, value) -> str:
     return table[-1][0]
 
 
+_body_cache = {}
+
+
 def layer_body(name: str) -> bytes:
-    """레이어 하나의 GeoJSON. 파일이 없으면 FileNotFoundError."""
+    """레이어 하나의 GeoJSON. 파일이 없으면 FileNotFoundError. 단층(8 263 선)은 짓는 데 1 초 남짓이라 받아 둔 판(폴더)마다 한 번만
+    짓는다 (wetherilli 202)."""
     if not file_available(name):
         raise FileNotFoundError(name)
-    kind, cols, table = LAYERS[name]
+    key = (name, str(latest()))
+    with _lock:
+        hit = _body_cache.get(key)
+    if hit is None:
+        hit = _build(name)
+        with _lock:
+            _body_cache[key] = hit
+    return hit
+
+
+def _build(name: str) -> bytes:
+    _, cols, table = LAYERS[name]
     out, counts = [], {}
-    for i, f in enumerate(_features(kind)):
+    for i, f in enumerate(f for kind in _files(name) for f in _features(kind)):
         geom = f.get("geometry") or {}
         coords = geom.get("coordinates")
         if not coords:
@@ -259,13 +324,18 @@ def layer_body(name: str) -> bytes:
             geom = {"type": geom.get("type"), "coordinates": _round(coords)}
         p = f.get("properties") or {}
         props = {key: str(p[key]).strip() for key, _ in cols if p.get(key) not in (None, "")}
+        # 단층의 경사 0 은 "적지 않음" 이다 — 경사·경사 방향이 0 이거나 없으면 뺀다
+        for key in ("dipangle", "dipazi"):
+            if props.get(key) in ("0", "0.0"):
+                del props[key]
         if "doi" in props and not props["doi"].lower().startswith(("http://", "https://")):
             del props["doi"]
         props["code"] = _code(table, p.get("type"))
         counts[props["code"]] = counts.get(props["code"], 0) + 1
         out.append({"type": "Feature", "id": i, "geometry": geom, "properties": props})
-    legend = [{"code": code, "label": str(label), "color": color, "shape": shape, "count": counts[code]}
-              for code, _, label, color, shape in table if counts.get(code)]
+    legend = [dict({"code": code, "label": str(label), "color": color, "shape": shape, "count": counts[code]},
+                   **(rest[0] if rest else {}))
+              for code, _, label, color, shape, *rest in table if counts.get(code)]
     return json.dumps({"type": "FeatureCollection", "style": "class", "labels": dict(cols), "links": list(LINKS),
                        "legend": legend, "features": out}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 

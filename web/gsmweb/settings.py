@@ -169,6 +169,8 @@ INGEMMET_URL = env("GSM_INGEMMET_URL", "https://geocatmin.ingemmet.gob.pe/arcgis
 #: 아르헨티나 SEGEMAR SIGAM GeoServer·우루과이 DINAMIGE ArcGIS (wetherilli 196). 둘 다 CORS 가 없어 서버 문으로만 간다
 SEGEMAR_WMS_URL = env("GSM_SEGEMAR_WMS_URL", "https://sigam.segemar.gov.ar/geoserver217/ows")
 DINAMIGE_URL = env("GSM_DINAMIGE_URL", "https://geoportal.miem.gub.uy/arcgis1091")
+#: 에콰도르 지질도 — IIGE ArcGIS 의 앞 주소(`services/…/WMSServer`·`rest/services/…`) (wetherilli 198). 열쇠가 없다
+IIGE_URL = env("GSM_IIGE_URL", "https://capas.geoenergia.gob.ec/arcgis")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -413,6 +415,8 @@ SGB_CATALOG_SEED = REPO_DIR / "data" / "sgb_layers.json"
 INGEMMET_CATALOG_SEED = REPO_DIR / "data" / "ingemmet_layers.json"
 SEGEMAR_CATALOG_SEED = REPO_DIR / "data" / "segemar_layers.json"
 DINAMIGE_CATALOG_SEED = REPO_DIR / "data" / "dinamige_layers.json"
+#: 에콰도르 (wetherilli 198)
+IIGE_CATALOG_SEED = REPO_DIR / "data" / "iige_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

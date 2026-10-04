@@ -2368,3 +2368,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
 .rose-svg .petal, .dip-svg .bar { fill: var(--hi); fill-opacity: .75; stroke: var(--hi-ink); stroke-width: .6; }
 .rose-svg .tick, .dip-svg .tick { font-size: 9px; fill: var(--ink-faint); text-anchor: middle; dominant-baseline: middle; }
 .rose-foot { margin: 2px 0 0; font-size: 11px; color: var(--ink-faint); line-height: 1.45; }
+
+/* ── 에콰도르 (wetherilli 198) — 갈라파고스 푸른발부비새의 하늘청록: 화산섬의 현무암 바탕 ── */
+:root[data-region="ecuador"] {
+  --bg: #0d1315; --panel: #141b1e; --panel-tint: #0a0f11; --raise: #1d272b;
+  --ink: #ecf6f7; --ink-soft: #b0c8cc; --ink-faint: #6f8a8f;
+  --line: #27363a; --line-soft: #1d272b;
+  --gold: #3fbfd1; --gold-bright: #96e0ea; --gold-muted: #39a4b3;
+  --gold-wash: rgba(63, 191, 209, .12); --gold-edge: rgba(63, 191, 209, .4);
+  --hi: #3fbfd1; --hi-deep: #96e0ea; --on-hi: #0a0f11; --hi-ink: #96e0ea;
+  --glass: rgba(10, 15, 17, .93); --glass-line: rgba(63, 191, 209, .33);
+}
+:root[data-region="ecuador"][data-theme="light"] {
+  --bg: #eef6f7; --panel: #fbfdfd; --panel-tint: #f3f9fa; --raise: #dfecee;
+  --ink: #102024; --ink-soft: #435c61; --ink-faint: #7c9499;
+  --line: #d0e2e5; --line-soft: #dfecee;
+  --gold: #1a8798; --gold-bright: #116675; --gold-muted: #4d8890;
+  --gold-wash: #dcf1f4; --gold-edge: #9fd6de;
+  --hi: #0e3a42; --hi-deep: #07232a; --on-hi: #f2fafb; --hi-ink: #1a8798;
+  --glass: rgba(251, 253, 253, .95); --glass-line: #d0e2e5;
+}

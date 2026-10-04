@@ -266,12 +266,25 @@
                base: ["sgc:sa:8", "dinamige:0"],
                first: "dinamige:0",
                borrow: { colombia: ["sgc:sa:"] } },
+    // 에콰도르(wetherilli 198) — IIGE 일반 지질도. 남부는 거의 다, 북부는 도폭 조각만이라 1:500만이 밑을 채운다
+    ecuador: { title: "에콰도르", proj: "EPSG:3857", center: [-78.5, -1.6], zoom: 7, vworld: false,
+               home: [-9039000, -568000, -8360000, 167000],
+               basemap: "eox_terrain", example: "-0.180, -78.468 · Quito",
+               base: ["sgc:sa:8", "iige:geologia_general"],
+               first: ["sgc:sa:8", "iige:geologia_general"],
+               borrow: { colombia: ["sgc:sa:"] } },
+    // 남미 묶음 — 레이어군은 북에서 남으로(콜롬비아·에콰도르·페루·브라질·우루과이·아르헨티나) 선다. **처음 켜는 것**은 대륙 바탕
+    // 1:500만을 맨 밑에 두고, 나라마다 넓게 봐도 빨리 그려지는 판 하나씩을 그 위에 얹는다 — 브라질 1:250만(1:100만은 줌 6 부터)·
+    // 아르헨티나 1:250만·페루 1:5만(타일 캐시)·콜롬비아 1:50만·우루과이 1:50만. 나라 판끼리는 국경에서만 겹친다. 에콰도르는 넓은 줌의
+    // 한 장이 7 초를 넘고 북부가 비어 처음에는 켜지 않는다 (wetherilli 198)
     south_america: { title: "남미", proj: "EPSG:3857", center: [-60.0, -15.0], zoom: 3, vworld: false,
-                     includes: ["colombia", "brazil", "peru", "argentina", "uruguay"],
+                     includes: ["colombia", "ecuador", "peru", "brazil", "uruguay", "argentina"],
                      home: [-9128198, -7558416, -3784863, 1516914],
                      basemap: "eox_terrain", example: "4.711, -74.072 · Bogotá",
-                     base: ["sgc:sa:8", "sgc:co:3", "sgb:2500k", "segemar:e2.5M.UnidadesGeologicas", "dinamige:0"],
-                     first: ["sgc:sa:8", "sgb:2500k"] },
+                     base: ["sgc:sa:8", "sgc:co:3", "iige:geologia_general", "ingemmet:50k", "sgb:2500k", "dinamige:0",
+                            "segemar:e2.5M.UnidadesGeologicas"],
+                     first: ["sgc:sa:8", "sgb:2500k", "segemar:e2.5M.UnidadesGeologicas", "ingemmet:50k", "sgc:co:3",
+                             "dinamige:0"] },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
               includes: ["uk", "ireland", "france", "germany", "spain"],
               home: [-1225000, 4232000, 1781000, 8626000],
@@ -335,7 +348,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "south_america"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -789,6 +802,8 @@
     sgb: { source: npolarSource, info: wmsInfoUrl },
     // 페루 INGEMMET(wetherilli 195) — 우리 서버가 중계하는 REST 캐시의 z/x/y. 그리는 손은 일본의 것과 같다
     ingemmet: { source: gsjSource, info: ingemmetInfoUrl },
+    // 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로
+    iige: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -1257,14 +1272,14 @@
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2257,7 +2272,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2271,7 +2286,7 @@
     ngu: T("노르웨이 지질조사소"), gtk: T("핀란드 지질조사소"),
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
-    sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"),
+    sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
@@ -4281,6 +4296,10 @@
       // 항적(아라온호, koprifossillab 006) — 범례가 선이라 적은 갈래는 굵게, 테두리를 둘러 바다 위에서 보이게
       style = [new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(0,0,0," + 0.55 * fade + ")", width: 4.5 }) }),
                new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 2.5 }) })];
+    } else if (spec.shape === "stroke") {
+      // 5만 단층·습곡(wetherilli 202) — 굵기·끊김을 서버의 표가 준다. 선이 수천이라 테두리 없이 가늘게
+      style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: spec.width || 1.4,
+                                                                lineDash: spec.dash || undefined }) });
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 1.6, lineDash: [6, 4] }) });
@@ -4324,6 +4343,12 @@
         sw.className = "sw-line";
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.6) + '"' +
+          (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
+      } else if (row.style === "class" && r.shape === "stroke") {
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
+          esc(r.color || "#888") + '" stroke-width="' + (r.width || 1.4) + '"' +
           (r.dash ? ' stroke-dasharray="' + r.dash.join(" ") + '"' : "") + "/></svg>";
       } else if (row.style === "class" && (r.shape === "line" || r.shape === "dash")) {
         sw = document.createElement("span");

@@ -155,6 +155,8 @@ urlpatterns = [
     path("ingemmet/legend/", views.ingemmet_legend, name="ingemmet-legend"),
     # 우루과이 — REST 범례를 목록으로 (dinamige.py, wetherilli 196)
     path("dinamige/legend/", views.dinamige_legend, name="dinamige-legend"),
+    # 에콰도르 — 보는 범위의 범례 (iige.py, wetherilli 198)
+    path("iige/legend/", views.iige_legend, name="iige-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다

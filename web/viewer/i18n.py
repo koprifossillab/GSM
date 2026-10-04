@@ -76,6 +76,18 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
+    "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
+    "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
+    "단층": "Fault",
+    "배사": "Anticline", "향사": "Syncline", "역전 등사 배사": "Overturned isoclinal anticline",
+    "역전 등사 향사": "Overturned isoclinal syncline", "침강 배사": "Plunging anticline", "침강 향사": "Plunging syncline",
+    "그 밖의 습곡": "Other folds",
+    "금·은": "Gold and silver", "석탄": "Coal", "철": "Iron", "동·연·아연 따위": "Copper, lead, zinc and others",
+    "비금속·그 밖": "Non-metallic and other",
+    "열변성대": "Thermal metamorphic zone", "접촉변질대": "Contact alteration zone", "변질대": "Alteration zone",
+    "열수광화대": "Hydrothermal mineralized zone", "접촉변성대": "Contact metamorphic zone",
+    "그 밖의 변질·변성대": "Other alteration or metamorphic zones",
     # KIGAM 5만 구조 요소 레이어 (wetherilli 199)
     "유공충": "Foraminifera", "식물화석": "Plant fossils", "화석산지": "Fossil locality",
     "SHRIMP 연대": "SHRIMP dating", "K-Ar 연대": "K-Ar dating", "연대측정": "Dating", "지구화학 분석": "Geochemistry",
@@ -90,7 +102,6 @@ EN = {
     "장미도를 받지 못했다": "Could not load the rose diagram",
     "{name} 도폭 ({no}) — 자세 기호": "{name} sheet ({no}) — attitude symbols",
     "잡은 범위 — 자세 기호": "Selected extent — attitude symbols",
-    "자세 기호": "Attitude symbols",
     "이 자리에는 받아 둔 층리·엽리·절리가 없다": "No stored bedding, foliation or joints here",
     "받은 날 {date}": "Fetched {date}",
     "경사 미상 {n}": "Dip unknown {n}",
@@ -682,6 +693,9 @@ EN = {
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
+    # 에콰도르 (wetherilli 198)
+    "에콰도르": "Ecuador",
+    "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -1701,8 +1715,10 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
+    "경제적 쓰임": "Economic interest",    # 에콰도르 IIGE (wetherilli 198)
     "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
     "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
@@ -2704,9 +2720,13 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
+    "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
 }
 
 LAYER_EN = {
+    # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
+    "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
+    "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
     # KIGAM 5만 구조 요소 (wetherilli 199). 열쇠는 레이어 이름이다
     "kigam50k:frame": "1:50k map sheet frames", "kigam50k:fossil": "Fossil localities (1:50k)",
     "kigam50k:sample": "Dating and geochemistry samples (1:50k)", "kigam50k:mine": "Mines (1:50k)",
@@ -2777,6 +2797,7 @@ LAYER_EN = {
     "dinamige:0": "Geological units (1:500k)",
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
+    "iige:geologia_general": "General geological map",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
