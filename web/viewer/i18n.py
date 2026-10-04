@@ -76,6 +76,10 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 이탈리아·포르투갈·스위스 (wetherilli 211)
+    "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
+    "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
+    "스위스 연방 지형청": "swisstopo (Switzerland)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -1724,6 +1728,7 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
@@ -2688,6 +2693,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
+    "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2768,6 +2775,12 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 이탈리아·포르투갈·스위스 (wetherilli 211)
+    "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",
+    "ispra:100k:1": "Italy geological units (1:100k)", "ispra:100k:2": "Italy tectonics (1:100k)",
+    "lneg:500k:2": "Portugal geology (1:500k)", "lneg:500k:1": "Portugal structures (1:500k)",
+    "lneg:500k:4": "Portugal shelf geology (1:500k)", "lneg:500k:3": "Portugal shelf structures (1:500k)",
+    "swisstopo:geologische_karte": "Geological map of Switzerland (1:500k)", "swisstopo:geocover": "GeoCover (1:25k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",

@@ -232,6 +232,26 @@
                       "gsni:5"],
                first: "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM",
                borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    // ── 이탈리아·포르투갈·스위스 (wetherilli 211) ──
+    // ISPRA 1:100만·1:10만, LNEG 1:50만, swisstopo 1:50만·GeoCover. EGDI 1:100만(과 바다를 낀 둘은 EMODnet)은 영국에서 빌린다
+    italy: { title: "이탈리아", proj: "EPSG:3857", center: [12.5, 42.0], zoom: 6, vworld: false,
+             home: [723577, 4369641, 2070543, 5958412],
+             basemap: "eox_terrain", example: "41.902, 12.496 · Roma",
+             base: ["ispra:1m:0", "ispra:100k:1"],
+             first: "ispra:1m:0",
+             borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    portugal: { title: "포르투갈", proj: "EPSG:3857", center: [-8.0, 39.6], zoom: 7, vworld: false,
+                home: [-1068667, 4425177, -679049, 5190986],
+                basemap: "eox_terrain", example: "38.722, -9.139 · Lisboa",
+                base: ["lneg:500k:2", "lneg:500k:4"],
+                first: "lneg:500k:2",
+                borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+    switzerland: { title: "스위스", proj: "EPSG:3857", center: [8.2, 46.8], zoom: 8, vworld: false,
+                   home: [656785, 5748357, 1168855, 6073646],
+                   basemap: "eox_terrain", example: "46.948, 7.447 · Bern",
+                   base: ["swisstopo:geologische_karte", "swisstopo:geocover"],
+                   first: "swisstopo:geologische_karte",
+                   borrow: { uk: ["egdi"] } },
     // ── 남미 (wetherilli 188·191) ──
     // 나라 탭 둘(콜롬비아·브라질)과 묶음 "남미". SGC 가 내는 남미 1:500만(CGMW 2019)이 대륙 바탕이다 — 콜롬비아 지역에 두고
     // 브라질이 그 레이어군만 빌린다(`borrow` 의 `sgc:sa:` — 이름 앞머리로). 칠레·페루처럼 나라 판이 없는 곳은 묶음에서 1:500만이 메운다
@@ -294,8 +314,9 @@
               base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology"],
               first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits" },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
-              includes: ["uk", "ireland", "france", "germany", "spain"],
-              home: [-1225000, 4232000, 1781000, 8626000],
+              includes: ["uk", "ireland", "france", "germany", "spain", "portugal", "italy", "switzerland"],
+              // 이탈리아(풀리아·시칠리아)까지 — 동쪽을 넓혔다 (wetherilli 211)
+              home: [-1225000, 4232000, 2100000, 8626000],
               basemap: "eox_terrain",
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
@@ -370,7 +391,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "africa", "usa", "mexico"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "africa", "italy", "portugal", "switzerland", "usa", "mexico"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -833,6 +854,10 @@
     // 아프리카(wetherilli 207) — 카탈로그 행의 투영(3857)으로 서버 문을 거쳐 받는다
     cgmw: { source: npolarSource, info: wmsInfoUrl },
     aga: { source: npolarSource, info: wmsInfoUrl },
+    // 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 유럽 문처럼 카탈로그 행의 투영(3857)으로 서버 문을 거친다
+    ispra: { source: npolarSource, info: wmsInfoUrl },
+    lneg: { source: npolarSource, info: wmsInfoUrl },
+    swisstopo: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -1301,14 +1326,16 @@
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa",
+              "italy", "portugal", "switzerland"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa",
+              "italy", "portugal", "switzerland"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2301,7 +2328,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2316,6 +2343,7 @@
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
+    ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
     gsni: T("북아일랜드 지질조사소"),
