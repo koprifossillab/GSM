@@ -349,7 +349,8 @@
     australia: { title: "호주", proj: "EPSG:3857", center: [134.0, -26.0], zoom: 4, vworld: false,
                  home: [12523000, -5465000, 17143000, -1006000],
                  basemap: "eox_terrain", example: "-31.95, 115.86 · Perth",
-                 base: ["ga:lithostratigraphy", "ga:age", "ga:lithology", "ga:faults"],
+                 base: ["ga:lithostratigraphy", "ga:age", "ga:lithology", "ga:faults", "gsq:state", "gsq:detailed", "gsv:250k",
+                        "gsv:50k", "gssa:units"],
                  first: "ga:lithostratigraphy" },
     // 뉴질랜드(wetherilli 218) — GNS Science 의 QMAP 1:25만 합본과 1:100만. 합본은 넓게 보면 느려 줌 7 부터이고, 그보다 넓으면
     // 1:100만이 바탕이다. 둘 다 켜 두면 가까이 갈 때 합본이 위에 얹힌다
@@ -927,6 +928,10 @@
     ygs: { source: npolarSource, info: wmsInfoUrl },
     // 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`ga/legend/`)
     ga: { source: npolarSource, info: wmsInfoUrl },
+    // 호주의 주 판(wetherilli 225) — 퀸즐랜드(REST export 를 문이 옮긴다)·빅토리아·남호주, 모두 3857
+    gsq: { source: npolarSource, info: wmsInfoUrl },
+    gsv: { source: npolarSource, info: wmsInfoUrl },
+    gssa: { source: npolarSource, info: wmsInfoUrl },
     // 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 유럽 문처럼 카탈로그 행의 투영(3857)으로 서버 문을 거친다
     ispra: { source: npolarSource, info: wmsInfoUrl },
     lneg: { source: npolarSource, info: wmsInfoUrl },
@@ -2407,7 +2412,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", gns: "GNS", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2427,6 +2432,7 @@
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
     cgs: T("남아프리카공화국 지질조사소"), gsn: T("나미비아 지질조사소"), ga: "Geoscience Australia",
+    gsq: T("퀸즐랜드 지질조사소"), gsv: T("빅토리아 지질조사소"), gssa: T("남호주 지질조사소"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),

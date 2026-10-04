@@ -101,6 +101,10 @@ class Command(BaseCommand):
                 (settings.SGM_CATALOG_SEED, "멕시코 (SGM)", "mexico", "sgm"),
                 # 호주 — Geoscience Australia 1:250만·1:100만 (wetherilli 212)
                 (settings.GA_CATALOG_SEED, "호주 (GA)", "australia", "ga"),
+                # 호주의 주 판 — 퀸즐랜드 GSQ·빅토리아 GSV·남호주 GSSA (wetherilli 225)
+                (settings.GSQ_CATALOG_SEED, "퀸즐랜드 (GSQ)", "australia", "gsq"),
+                (settings.GSV_CATALOG_SEED, "빅토리아 (GSV)", "australia", "gsv"),
+                (settings.GSSA_CATALOG_SEED, "남호주 (GSSA)", "australia", "gssa"),
                 # 뉴질랜드 GNS QMAP 1:25만·1:100만, 같은 서버의 남극 남빅토리아랜드 1:25만 (wetherilli 218)
                 (settings.GNS_CATALOG_SEED, "뉴질랜드 (GNS)", "new_zealand", "gns"),
                 (settings.GNS_ANTARCTICA_CATALOG_SEED, "남빅토리아랜드 (GNS)", "antarctica", "gns"),

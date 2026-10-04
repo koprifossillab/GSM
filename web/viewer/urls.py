@@ -163,6 +163,7 @@ urlpatterns = [
     path("sgm/legend/", views.sgm_legend, name="sgm-legend"),
     # 호주 — 보는 범위의 범례 (ga.py, wetherilli 212)
     path("ga/legend/", views.ga_legend, name="ga-legend"),
+    path("gsv/legend/", views.gsv_legend, name="gsv-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다

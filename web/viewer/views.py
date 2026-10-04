@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gns, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
+from . import austates, basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gns, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, sigeom, swisstopo, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -376,8 +376,8 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "nrcan", "ogs",
              # 퀘벡 SIGÉOM·유콘 YGS(wetherilli 210) — 둘 다 3857 도 그린다
              "sigeom", "ygs",
-             # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다
-             "ga",
+             # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다. 주 판 셋(225)도 3857 이다
+             "ga", "gsq", "gsv", "gssa",
              # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
              "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
@@ -2383,6 +2383,13 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         unit = layer.name in ga.legend_layers()
         return {"attribution": ga.ATTRIBUTION, "projection": "EPSG:3857",
                 **({"legend": "extent", "legendUrl": "ga/legend/"} if unit else {"noLegend": True, "queryable": False})}
+    if austates.knows(layer.upstream, layer.name):
+        # 호주의 주 판(wetherilli 225) — 퀸즐랜드는 REST export, 빅토리아·남호주는 GeoServer. 모두 3857. 넓게 보면 비거나 느려
+        # 처음 줌을 둔다. 범례는 빅토리아만 보는 범위의 것(`gsv/legend/`) — 퀸즐랜드·남호주는 아직 없다
+        first = austates.first_zoom(layer.upstream, layer.name)
+        legend = ({"legend": "extent", "legendUrl": "gsv/legend/"} if layer.upstream == "gsv" else {"noLegend": True})
+        return {"attribution": austates.UPSTREAMS[layer.upstream][2], "projection": "EPSG:3857", **legend,
+                **({"minZoom": first} if first else {})}
     if layer.upstream == "nrcan" and nrcan.knows(layer.name):
         # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
         return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
@@ -2523,7 +2530,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError, sgu.SguError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError,
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError,
                    basemaps.BasemapError)
 
@@ -2589,6 +2596,8 @@ class _Door:
                "sigeom": sigeom, "ygs": ygs,
                # 호주(wetherilli 212)
                "ga": ga,
+               # 호주의 주 판(wetherilli 225) — 한 파일(`austates.py`)에 문 셋
+               "gsq": austates.GSQ, "gsv": austates.GSV, "gssa": austates.GSSA,
                # 이탈리아·포르투갈·스위스(wetherilli 211)
                "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo,
                # 아이슬란드(wetherilli 216)
@@ -2603,7 +2612,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3409,6 +3418,35 @@ def ga_legend(request):
 
 @require_GET
 @browser_cached
+def gsv_legend(request):
+    """`?layer=gsv:250k&bbox=서,남,동,북` — 빅토리아 지질도의 보는 범위 범례 (wetherilli 225). GeoServer 가 그 범위에 칠한 칸만 이름과 함께
+    준다(`austates.extent_legend`). 꼴은 브라질(`sgb_legend`)과 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in austates.GSV_LAYERS:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    if bbox[2] - bbox[0] > austates.LEGEND_SPAN or bbox[3] - bbox[1] > austates.LEGEND_SPAN:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("gsv-legend", f"{name}/{bbox}")
+    rows = _cached_json(key)
+    if rows is None:
+        try:
+            rows = austates.extent_legend(name, austates.legend_bbox(*bbox))
+        except austates.AuStatesError as exc:
+            log.info("빅토리아 범례를 받지 못했다 (%s): %s", name, exc)
+            return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        tilecache.put(key, json.dumps(rows, ensure_ascii=False).encode("utf-8"), ".json")
+    shown = rows[:austates.MAX_LEGEND]
+    return JsonResponse({"rows": shown, "more": max(0, len(rows) - len(shown))})
+
+
+@require_GET
+@browser_cached
 def sgm_legend(request):
     """`?layer=sgm:8&bbox=서,남,동,북` — 멕시코 지질도의 보는 범위 범례 (wetherilli 206). 꼴은 페루(`ingemmet_legend`)와 같다"""
     lang = i18n.lang_of(request)
@@ -3756,6 +3794,8 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":
             props = ga.friendly(props, lang)         # 호주 — 시대만 옮기고 이름·설명은 영어 그대로 (wetherilli 212)
+        elif door.name in ("gsq", "gsv", "gssa"):
+            props = austates.UPSTREAMS[door.name][0].friendly(props, lang)     # 호주의 주 판 — 시대만 옮긴다 (wetherilli 225)
         elif door.name in ("ispra", "lneg", "swisstopo"):
             # 이탈리아·포르투갈·스위스(wetherilli 211) — 열 이름만 한국어로, 값은 그 나라 말 그대로
             props = {"ispra": ispra, "lneg": lneg, "swisstopo": swisstopo}[door.name].friendly(props, lang)
