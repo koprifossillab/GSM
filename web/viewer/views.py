@@ -360,7 +360,7 @@ def map_view(request):
 
 
 #: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
-MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
+MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsjows", "gsmma",
              "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi",
              # 남미 SGC(wetherilli 188)·브라질 SGB(191)·아르헨티나 SEGEMAR·우루과이 DINAMIGE(196) — 3857 로 그린다
              "sgc", "sgb", "segemar", "dinamige",
@@ -2577,6 +2577,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 범유럽 1:100만(wetherilli 143) — 속성 서버가 오류를 내서 누르지 않는다
         return {"attribution": egdi.ATTRIBUTION, "projection": "EPSG:3857",
                 **({} if egdi.QUERYABLE else {"queryable": False})}
+    if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
+        # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
+        return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
     if layer.upstream == "gsitile" and layer.name in GSI_TILES:
         # 국토지리원 주제 타일(wetherilli 172) — 서버를 거치지 않고 브라우저가 곧장 부르는 카탈로그 레이어의 첫 선례다.
         # 지리원 타일은 열쇠가 없고 CORS 가 열려 있어 배경(BASEMAPS gsi_*)과 같은 길이다. 속성이 없고 범례는 그림이 아니다
@@ -2686,6 +2689,8 @@ class _Door:
                "pgc": elevation,
                # CCOP 200만 지질도(wetherilli 108) — GSJ 새 호스트의 WMS. 문은 gsj.py 다
                "ccop": gsj.CCOP,
+               # GSJ 의 다른 WMS — 1:200만·중력·지구화학도(wetherilli 255)
+               "gsjows": gsj.OWS,
                # 대만 지질도(wetherilli 136) — 그림은 4326 WMS, 속성은 지질운 GeoJSON. 문은 gsmma.py 다
                "gsmma": gsmma.DOOR,
                # EMODnet 해저 지질(wetherilli 135) — 북극해. NPI 처럼 3413 으로 곧장 받는다
@@ -2750,7 +2755,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()

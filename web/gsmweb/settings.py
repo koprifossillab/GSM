@@ -131,6 +131,9 @@ NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
 GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
 #: CCOP 동·동남아시아 200만 지질도 — GSJ 의 새 호스트 MapServer WMS (`gsj.py` 의 CCOP, wetherilli 108)
 CCOP_WMS_URL = env("GSM_CCOP_WMS_URL", "https://ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms")
+#: GSJ 의 다른 WMS — 새 호스트(1:200만 지질도·중력)와 옛 호스트(지구화학도) (`gsj.py` 의 OWS, wetherilli 255)
+GSJ_OWS_URL = env("GSM_GSJ_OWS_URL", "https://ows.gsj.jp/ows")
+GSJ_GBANK_OWS_URL = env("GSM_GSJ_GBANK_OWS_URL", "https://gbank.gsj.jp/ows")
 #: 정적 판(연구소 밖, GitHub Pages)을 그릴 때만 켠다 — `deploy/static_site.py` 가 override_settings 로 (wetherilli P11·162).
 #: 켜지면 지도 화면이 서버 없이 도는 꼴로 그려진다 — 키는 각자, 상류는 브라우저가 곧장. 운영에서는 늘 꺼져 있다
 STATIC_SITE = None
@@ -458,6 +461,8 @@ GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 #: 일본 — 국토지리원 주제 타일 가운데 겹치는 것(활단층도·화산토지조건도, wetherilli 172)
 GSITILE_CATALOG_SEED = REPO_DIR / "data" / "gsi_tiles_layers.json"
 CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
+#: 일본 — GSJ 의 다른 WMS (wetherilli 255)
+GSJOWS_CATALOG_SEED = REPO_DIR / "data" / "gsjows_layers.json"
 #: 대만 — GSMMA 지질도 (wetherilli 136)
 GSMMA_CATALOG_SEED = REPO_DIR / "data" / "gsmma_layers.json"
 #: 북극해 — EMODnet 해저 지질 (wetherilli 135)
