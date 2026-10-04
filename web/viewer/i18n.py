@@ -682,6 +682,9 @@ EN = {
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
+    # 에콰도르 (wetherilli 198)
+    "에콰도르": "Ecuador",
+    "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -1703,6 +1706,7 @@ EN = {
 PROP_EN = {
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
+    "경제적 쓰임": "Economic interest",    # 에콰도르 IIGE (wetherilli 198)
     "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
     "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
@@ -2704,6 +2708,7 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
+    "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
 }
 
 LAYER_EN = {
@@ -2777,6 +2782,7 @@ LAYER_EN = {
     "dinamige:0": "Geological units (1:500k)",
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
+    "iige:geologia_general": "General geological map",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
