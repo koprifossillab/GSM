@@ -142,6 +142,7 @@ class Layer(models.Model):
     #: gsiindia → `gsiindia.py` (인도 1:200만 — 그림 BGS, 속성 GSI, wetherilli 226)
     #: sgs → `sgs.py` (사우디 1:25만 합본, wetherilli 227)
     #: esdm·jmg·mgb·dmr → `esdm.py`·`jmg.py`·`mgb.py`·`dmr.py` (인도네시아·말레이시아·필리핀·태국, wetherilli 228)
+    #: bcgs → `bcgs.py` (브리티시컬럼비아, 캐나다 탭), calgs → `calgs.py` (캘리포니아, 미국 탭 — `cgs` 는 남아공이 쓴다, wetherilli 231)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

@@ -208,6 +208,10 @@ OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 캐나다의 주 판 — 퀘벡 SIGÉOM(GeoServer 앞단, WMS 1.1.1)·유콘 YGS(ArcGIS WMS) (wetherilli 210). 열쇠가 없다
 SIGEOM_WMS_URL = env("GSM_SIGEOM_WMS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WMS/service.svc/get")
 YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/services/GeoYukon/GY_Geological/MapServer/WMSServer")
+#: 브리티시컬럼비아 BC Digital Geology — openmaps GeoServer WMS (`viewer/bcgs.py`, wetherilli 231). 열쇠가 없다
+BCGS_WMS_URL = env("GSM_BCGS_WMS_URL", "https://openmaps.gov.bc.ca/geo/pub/WHSE_MINERAL_TENURE.GEOL_BEDROCK_UNIT_POLY_SVW/ows")
+#: 캘리포니아 지질도 1:75만 — CGS ArcGIS 의 앞 주소 (`viewer/calgs.py`, wetherilli 231). 열쇠가 없다
+CALGS_URL = env("GSM_CALGS_URL", "https://gis.conservation.ca.gov/server")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
@@ -479,6 +483,9 @@ OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
 #: 캐나다의 주 판 — 퀘벡·유콘 (wetherilli 210)
 SIGEOM_CATALOG_SEED = REPO_DIR / "data" / "sigeom_layers.json"
 YGS_CATALOG_SEED = REPO_DIR / "data" / "ygs_layers.json"
+#: 브리티시컬럼비아·캘리포니아 (wetherilli 231)
+BCGS_CATALOG_SEED = REPO_DIR / "data" / "bcgs_layers.json"
+CALGS_CATALOG_SEED = REPO_DIR / "data" / "calgs_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 #: 뉴질랜드, 남극 남빅토리아랜드 (wetherilli 218)

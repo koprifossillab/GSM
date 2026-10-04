@@ -365,7 +365,7 @@
     canada: { title: "캐나다", proj: "EPSG:3978", center: [-96.0, 60.0], zoom: 4, vworld: false,
               home: [-2400000, -900000, 3100000, 4600000],
               basemap: "eox_terrain", example: "45.42, -75.70 · Ottawa",
-              base: ["nrcan:wheeler", "ogs:3", "ogs:1", "sigeom:generale", "sigeom:regionale", "ygs:47"],
+              base: ["nrcan:wheeler", "ogs:3", "ogs:1", "sigeom:generale", "sigeom:regionale", "ygs:47", "bcgs:bedrock"],
               first: "nrcan:wheeler" },
     // 북미 묶음(wetherilli 210) — 캐나다·미국·멕시코를 캐나다 람베르트(3978) 한 화면에 모은다. 알래스카와 북극 섬이 부풀지 않고 멕시코(북위
     // 15° 남짓)도 크게 비틀리지 않는다. 처음 켜는 것은 나라마다 넓게 봐도 그려지는 판 하나 — 캐나다 1:500만·미국 SGMC·멕시코 1:25만.
@@ -435,7 +435,7 @@
     usa: { title: "미국", proj: "EPSG:3978", center: [-105.0, 45.0], zoom: 3, vworld: false,
            home: [-4204000, -2746000, 3309000, 3650000],
            basemap: "eox_terrain", example: "39.74, -104.99 · Denver",
-           base: ["mrdata:sgmc2:sgmc2", "mrdata:sgmc2:sgmc2structure", "mrdata:sim3340:units"],
+           base: ["mrdata:sgmc2:sgmc2", "mrdata:sgmc2:sgmc2structure", "mrdata:sim3340:units", "calgs:geology"],
            first: "mrdata:sgmc2:sgmc2" },
     // 멕시코(wetherilli 206) — SGM 1:25만(전국)·1:5만(광업 지구). WMS 가 막혀 서버가 REST export 로 받는다
     mexico: { title: "멕시코", proj: "EPSG:3857", center: [-102.0, 23.5], zoom: 5, vworld: false,
@@ -1000,6 +1000,9 @@
     // 사우디 SGS(wetherilli 227) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다. 범례는 보는 범위의 것(`sgs/legend/`)
     sgs: { source: npolarSource, info: wmsInfoUrl },
     // 동남아(wetherilli 228) — 카탈로그 행의 투영(3857)으로 서버 문을 거친다. 말레이시아는 문이 REST export 로 옮긴다
+    // 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 카탈로그 행의 투영(3978)으로 서버 문을 거친다
+    bcgs: { source: npolarSource, info: wmsInfoUrl },
+    calgs: { source: npolarSource, info: wmsInfoUrl },
     esdm: { source: npolarSource, info: wmsInfoUrl },
     jmg: { source: npolarSource, info: wmsInfoUrl },
     mgb: { source: npolarSource, info: wmsInfoUrl },
@@ -2478,7 +2481,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", ga: "GA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2493,7 +2496,7 @@
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
-    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"),
+    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"), calgs: T("캘리포니아 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
