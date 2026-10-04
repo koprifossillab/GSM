@@ -271,14 +271,14 @@
           base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "bgs:BGS.50k.Superficial.deposits"],
           first: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock"],
           // 바다 — EMODnet 의 해저 퇴적물·기반암은 북극해 지역에 있다. 제4기 퇴적층·지질 사건은 영국 지역에 둔다 (wetherilli 176)
-          borrow: { arctic_ocean: ["emodnet"] } },
+          borrow: { germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     france: { title: "프랑스", proj: "EPSG:3857", center: [2.5, 46.5], zoom: 6, vworld: false,
               home: [-590000, 5060000, 1080000, 6650000],
               basemap: "eox_terrain", example: "48.857, 2.352 · Paris",
               base: ["brgm:SCAN_F_GEOL1M", "brgm:SCAN_F_GEOL250", "brgm:SCAN_H_GEOL50", "brgm:LITHO_1M_SIMPLIFIEE"],
               first: "brgm:SCAN_F_GEOL1M",
               // 범유럽 1:100만(EGDI)·유럽 바다(EMODnet)는 영국 지역에 들어 있다 — 그 상류의 레이어군만 빌린다
-              borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+              borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     // ── 독일·스페인·아일랜드 (wetherilli 147) ──
     // BGR·IGME·GSI 를 중계한다. 판마다 그리는 줌이 좁아 넓게 볼 때는 EGDI 1:100만을 빌려 깐다. 아일랜드는 섬 전체 —
     // GSI 1:100만이 이미 섬 하나로 이어져 있고, 북아일랜드 1:25만(GSNI, BGS 서버)을 같은 레이어군에 둔다
@@ -293,14 +293,14 @@
              basemap: "eox_terrain", example: "40.417, -3.704 · Madrid",
              base: ["igme:geologico1m:0", "igme:magna50:0", "igme:magna50:2"],
              first: "igme:geologico1m:0",
-             borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+             borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     ireland: { title: "아일랜드", proj: "EPSG:3857", center: [-7.8, 53.4], zoom: 7, vworld: false,
                home: [-1191000, 6675000, -601000, 7460000],
                basemap: "eox_terrain", example: "53.35, -6.26 · Dublin",
                base: ["gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM", "gsi:100k:IE_GSI_Bedrock_Geology_100K_IE26_ITM",
                       "gsni:5"],
                first: "gsi:1m:IE_GSI_GSNI_Bedrock_Geology_1M_IE32_ITM",
-               borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+               borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     // ── 이탈리아·포르투갈·스위스 (wetherilli 211) ──
     // ISPRA 1:100만·1:10만, LNEG 1:50만, swisstopo 1:50만·GeoCover. EGDI 1:100만(과 바다를 낀 둘은 EMODnet)은 영국에서 빌린다
     italy: { title: "이탈리아", proj: "EPSG:3857", center: [12.5, 42.0], zoom: 6, vworld: false,
@@ -308,19 +308,19 @@
              basemap: "eox_terrain", example: "41.902, 12.496 · Roma",
              base: ["ispra:1m:0", "ispra:100k:1"],
              first: "ispra:1m:0",
-             borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+             borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     portugal: { title: "포르투갈", proj: "EPSG:3857", center: [-8.0, 39.6], zoom: 7, vworld: false,
                 home: [-1068667, 4425177, -679049, 5190986],
                 basemap: "eox_terrain", example: "38.722, -9.139 · Lisboa",
                 base: ["lneg:500k:2", "lneg:500k:4"],
                 first: "lneg:500k:2",
-                borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+                borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     switzerland: { title: "스위스", proj: "EPSG:3857", center: [8.2, 46.8], zoom: 8, vworld: false,
                    home: [656785, 5748357, 1168855, 6073646],
                    basemap: "eox_terrain", example: "46.948, 7.447 · Bern",
                    base: ["swisstopo:geologische_karte", "swisstopo:geocover"],
                    first: "swisstopo:geologische_karte",
-                   borrow: { uk: ["egdi"] } },
+                   borrow: { uk: ["egdi"], germany: ["bgr:igme5000:"] } },
     // ── 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237) ──
     // GeoSphere 1:100만, PIG-PIB 1:50만(세 층을 겹친다), TNO 지표 지질도, 벨기에는 플랑드르 DOV 와 왈로니아 SPW 를 한 탭에.
     // 넷 다 3857 이고 유럽 묶음에 든다. EGDI 1:100만은 영국에서 빌린다(바다를 낀 둘은 EMODnet 도)
@@ -329,25 +329,25 @@
                basemap: "eox_terrain", example: "47.561, 13.648 · Hallstatt",
                base: ["geosphere:geology", "geosphere:faults"],
                first: ["geosphere:geology", "geosphere:faults"],
-               borrow: { uk: ["egdi"] } },
+               borrow: { uk: ["egdi"], germany: ["bgr:igme5000:"] } },
     poland: { title: "폴란드", proj: "EPSG:3857", center: [19.2, 52.0], zoom: 6, vworld: false,
               home: [1570000, 6275000, 2694000, 7342000],
               basemap: "eox_terrain", example: "50.061, 19.937 · Kraków",
               base: ["pig:mgp500k", "pig:faults"],
               first: "pig:mgp500k",
-              borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+              borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     netherlands: { title: "네덜란드", proj: "EPSG:3857", center: [5.3, 52.2], zoom: 7, vworld: false,
                    home: [367000, 6568000, 813000, 7095000],
                    basemap: "eox_terrain", example: "52.090, 5.121 · Utrecht",
                    base: ["tno:geology"],
                    first: "tno:geology",
-                   borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+                   borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     belgium: { title: "벨기에", proj: "EPSG:3857", center: [4.5, 50.6], zoom: 8, vworld: false,
                home: [278000, 6352000, 718000, 6719000],
                basemap: "eox_terrain", example: "50.879, 4.701 · Leuven",
                base: ["dov:tertiair_50k", "dov:quartair_200k", "spw:geology", "spw:faults"],
                first: ["dov:tertiair_50k", "spw:geology"],
-               borrow: { uk: ["egdi", "emodnet"], arctic_ocean: ["emodnet"] } },
+               borrow: { uk: ["egdi", "emodnet"], germany: ["bgr:igme5000:"], arctic_ocean: ["emodnet"] } },
     // ── 남미 (wetherilli 188·191) ──
     // 나라 탭 둘(콜롬비아·브라질)과 묶음 "남미". SGC 가 내는 남미 1:500만(CGMW 2019)이 대륙 바탕이다 — 콜롬비아 지역에 두고
     // 브라질이 그 레이어군만 빌린다(`borrow` 의 `sgc:sa:` — 이름 앞머리로). 칠레·페루처럼 나라 판이 없는 곳은 묶음에서 1:500만이 메운다
@@ -395,7 +395,7 @@
     canada: { title: "캐나다", proj: "EPSG:3978", center: [-96.0, 60.0], zoom: 4, vworld: false,
               home: [-2400000, -900000, 3100000, 4600000],
               basemap: "eox_terrain", example: "45.42, -75.70 · Ottawa",
-              base: ["nrcan:wheeler", "ogs:3", "ogs:1", "sigeom:generale", "sigeom:regionale", "ygs:47", "bcgs:bedrock"],
+              base: ["nrcan:wheeler", "ags:bedrock", "skgs:2", "ogs:3", "ogs:1", "sigeom:generale", "sigeom:regionale", "nsgs:11", "ygs:47", "bcgs:bedrock"],
               first: "nrcan:wheeler" },
     // 북미 묶음(wetherilli 210) — 캐나다·미국·멕시코를 캐나다 람베르트(3978) 한 화면에 모은다. 알래스카와 북극 섬이 부풀지 않고 멕시코(북위
     // 15° 남짓)도 크게 비틀리지 않는다. 처음 켜는 것은 나라마다 넓게 봐도 그려지는 판 하나 — 캐나다 1:500만·미국 SGMC·멕시코 1:25만.
@@ -458,7 +458,8 @@
               // 이탈리아(풀리아·시칠리아)·폴란드 동쪽 끝까지 — 동쪽을 넓혔다 (wetherilli 211·237)
               home: [-1225000, 4232000, 2700000, 8626000],
               basemap: "eox_terrain",
-              base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
+              // IGME5000(BGR 1:500만, wetherilli 217)은 독일 탭에 레이어군을 두고 유럽의 다른 나라 탭이 모두 빌린다 — 러시아 유럽부·우랄·튀르키예까지 덮는다
+              base: ["egdi:GeologicUnitView_Age", "bgr:igme5000:37", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
               borrow: { arctic_ocean: ["emodnet"] } },
     // ── 북미 (wetherilli 205·210) ──
@@ -934,6 +935,17 @@
     }).toString();
   }
 
+  /** 타일 소스(WMS 가 아닌 것)의 속성 주소 — 누른 자리 둘레 101 픽셀 네모로 WMS GetFeatureInfo 꼴을 지어 `/featureinfo/` 로 보낸다.
+   *  문이 그 네모의 가운데를 누른 자리로 읽는다 — 앨버타(wetherilli 235) */
+  function pointInfoUrl(source, coordinate, view) {
+    var half = view.getResolution() * 50.5, c = coordinate, name = source.get("gsmName");
+    return BASE + "featureinfo/?" + new URLSearchParams({
+      service: "WMS", version: "1.3.0", request: "GetFeatureInfo", layers: name, query_layers: name,
+      crs: view.getProjection().getCode(), bbox: [c[0] - half, c[1] - half, c[0] + half, c[1] + half].join(","),
+      width: 101, height: 101, i: 50, j: 50, info_format: "application/json",
+    }).toString();
+  }
+
   /** 일본 지질도의 속성 주소 — WMS 가 아니라 누른 자리의 위경도로 묻는다(`gsj/info/`). */
   function gsjInfoUrl(source, coordinate) {
     var ll = toLL(coordinate);
@@ -1015,6 +1027,10 @@
     // 퀘벡 SIGÉOM·유콘 YGS(wetherilli 210) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. 퀘벡은 Origin 을 보내면 403 이라 문으로만
     sigeom: { source: npolarSource, info: wmsInfoUrl },
     ygs: { source: npolarSource, info: wmsInfoUrl },
+    // 사스카치원(WMS)·노바스코샤(문이 REST export 로)는 3978 로, 앨버타는 ArcGIS Online 의 3857 타일을 곧장 받아 옮겨 그린다 (wetherilli 235)
+    skgs: { source: npolarSource, info: wmsInfoUrl },
+    nsgs: { source: npolarSource, info: wmsInfoUrl },
+    ags: { source: gsiTileSource, info: pointInfoUrl },
     // 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`ga/legend/`)
     ga: { source: npolarSource, info: wmsInfoUrl },
     // 호주의 주 판(wetherilli 225) — 퀸즐랜드(REST export 를 문이 옮긴다)·빅토리아·남호주, 모두 3857
@@ -1241,16 +1257,15 @@
     // 수 있어 0.5° 넉넉히 둔다. 극지 묶음(북극)은 위경도 네모가 부채꼴이라 두지 않는다 (024)
     // 지질도Navi 판은 도폭 하나라 좁다 — 어느 탭에서든 범위 밖을 묻지 않는다 (wetherilli 171)
     // 나라 판을 대륙 탭 하나에 얹은 아프리카(`clip`, wetherilli 209)도 같다
-    if (row && row.bbox && (REGIONS[region].includes || REGIONS[region].clip || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()) {
+    // 캐나다 탭(3978)의 주 판(wetherilli 235)도 — 앨버타 타일은 주 밖이 404 이고, 사스카치원·노바스코샤도 주 밖은 빈 그림이다.
+    // 람베르트에서도 위경도 네모의 가장자리를 따라 옮기므로(`transformExtent`) 주를 덮는다
+    // 미국 탭의 하와이·푸에르토리코(카탈로그 행의 `clip`, wetherilli 238)도 같다 — 섬 둘레만 묻는다
+    var provincial = row && (row.clip || ["ags", "skgs", "nsgs"].indexOf(row.upstream) >= 0) && viewProj().getCode() === "EPSG:3978";
+    if (row && row.bbox && (provincial || ((REGIONS[region].includes || REGIONS[region].clip || row.upstream === "gsmma" || row.upstream === "geonavi") && isMercator()))) {
       // 지질도Navi 판은 Capabilities 의 범위가 판 그대로라 넉넉히 두지 않는다 — 둘레의 없는 타일(404)을 묻지 않게
       var b = row.bbox, pad = row.upstream === "geonavi" ? 0 : 0.5;
       tile.setExtent(ol.proj.transformExtent([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad],
                                              "EPSG:4326", viewProj()));
-    }
-    // 미국 탭(3978)의 하와이·푸에르토리코(`clip`, wetherilli 238) — 투영이 메르카토르가 아니어도 섬 둘레만 묻는다
-    if (row && row.clip && row.bbox && !isMercator()) {
-      var c = row.bbox;
-      tile.setExtent(ol.proj.transformExtent([c[0] - 0.5, c[1] - 0.5, c[2] + 0.5, c[3] + 0.5], "EPSG:4326", viewProj()));
     }
     return tile;
   }
@@ -2530,7 +2545,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", skgs: "SGS-SK", nsgs: "NSNRR", ags: "AGS", bcgs: "BCGS", calgs: "CGS", geosphere: "GSA", pig: "PIG", tno: "TNO", dov: "DOV", spw: "SPW", ga: "GA", gsq: "GSQ", gsv: "GSV", gssa: "GSSA", gns: "GNS", mris: "NGS", gsiindia: "GSI-IN", sgs: "SGS", esdm: "ESDM", jmg: "JMG", mgb: "MGB", dmr: "DMR", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2547,6 +2562,7 @@
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"), bcgs: T("브리티시컬럼비아 지질조사소"),
     geosphere: "GeoSphere Austria", pig: T("폴란드 지질연구소 (PIG-PIB)"), tno: T("네덜란드 지질조사부 (TNO)"), dov: T("플랑드르 지하 자료은행 (DOV)"), spw: T("왈로니아 공공서비스 (SPW)"), calgs: T("캘리포니아 지질조사소"),
+    skgs: T("사스카치원 지질조사소"), nsgs: T("노바스코샤 자연자원·재생에너지부"), ags: T("앨버타 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"), gns: T("뉴질랜드 지질·핵과학연구소 (GNS)"), mris: T("몽골 국가지질조사소 (MonGeoCat)"), gsiindia: T("인도 지질조사소 (그림: BGS)"), sgs: T("사우디 지질조사소"),
     esdm: T("인도네시아 지질청 (ESDM)"), jmg: T("말레이시아 광물지구과학국"), mgb: T("필리핀 광산지질국"), dmr: T("태국 광물자원국"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
@@ -4382,7 +4398,8 @@
         if (!res.ok) throw new Error(res.d.error || "");
         var rows = res.d.rows || [];
         box.innerHTML = "";
-        if (row.legend === "extent") {
+        // `fixed` — 보는 범위와 무관한 범례(멕시코 원소 이상의 함량 구간, wetherilli 233)는 "범위에 든 것" 을 적지 않는다
+        if (row.legend === "extent" && !res.d.fixed) {
           box.appendChild(note(rows.length ? T("지금 보는 범위에 든 것 {n}칸", { n: rows.length + (res.d.more || 0) })
             : T("지금 보는 범위에는 칠해진 것이 없다")));
         }

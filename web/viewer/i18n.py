@@ -82,6 +82,9 @@ EN = {
     # 북미 묶음·퀘벡·유콘 (wetherilli 210)
     "북미": "North America", "퀘벡 지질 광업 정보 체계": "SIGÉOM (Québec geomining information system)",
     "유콘 지질조사소": "Yukon Geological Survey", "지구조 요소": "Tectonic element",
+    # 캐나다 주 판 둘째 (wetherilli 235)
+    "사스카치원 지질조사소": "Saskatchewan Geological Survey", "노바스코샤 자연자원·재생에너지부": "Nova Scotia Natural Resources and Renewables",
+    "앨버타 지질조사소": "Alberta Geological Survey",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
     "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
@@ -2308,9 +2311,16 @@ PROP_EN = {
     "성인": "Genesis",
     # 하와이 (wetherilli 238)
     "조성": "Composition", "섬": "Island", "화산 성장 단계": "Volcano stage",
+    "서열": "Rank",
+    "변성암": "Metamorphic rock",
+    "화성암": "Igneous rock",
+    "해양 지질": "Marine geology",
+    "경계·구조선": "Boundary or structure line",
     # 멕시코 광상 (wetherilli 219)
     "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
     "광산 지구": "Mining district",
+    # 멕시코 지화학 (wetherilli 233)
+    "원소": "Element", "함량 (ppm)": "Content (ppm)",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -2965,6 +2975,8 @@ GROUP_EN = {
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
+    "사스카치원 지질도 (SGS)": "Saskatchewan geology (SGS)", "노바스코샤 지질도 (1:50만)": "Nova Scotia geology (1:500k)",
+    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
@@ -3040,6 +3052,7 @@ GROUP_EN = {
     "프랑스 지질 (BRGM)": "France geology (BRGM)",
     "유럽 지질 (EGDI 1:100만)": "Europe geology (EGDI 1:1M)",
     "독일 지질 (BGR)": "Germany geology (BGR)",
+    "유럽 1:500만 (IGME5000)": "Europe 1:5M (IGME5000)",
     "스페인 지질 (IGME)": "Spain geology (IGME)",
     "아일랜드 기반암 (GSI·GSNI)": "Ireland bedrock (GSI · GSNI)",
     "남미 지질도 (CGMW 1:500만)": "South America geology (CGMW 1:5M)",
@@ -3066,7 +3079,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
-    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)", "멕시코 지화학 (SGM)": "Mexico geochemistry (SGM)",
 }
 
 LAYER_EN = {
@@ -3075,6 +3088,10 @@ LAYER_EN = {
     "ogs:1": "Ontario Quaternary geology",
     "sigeom:generale": "General geology (Québec)", "sigeom:regionale": "Regional geology (Québec, 1:20k–1:250k)",
     "sigeom:failles": "Faults (Québec)", "ygs:47": "Bedrock (Yukon 1:250k)", "ygs:50": "Faults (Yukon)",
+    # 캐나다 주 판 둘째 (wetherilli 235)
+    "skgs:2": "Bedrock (Saskatchewan 1:1M)", "skgs:3": "Bedrock (Saskatchewan 1:250k, Shield)",
+    "skgs:11": "Major faults and shear zones (Saskatchewan 1:1M)", "nsgs:11": "Bedrock (Nova Scotia 1:500k)",
+    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)",
     "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",
@@ -3147,6 +3164,13 @@ LAYER_EN = {
     "bgr:guek250:7": "Stratigraphy (1:250k)",
     "bgr:guek250:4": "Lithology (1:250k)",
     "bgr:guek250:11": "Structural lines (1:250k)",
+    "bgr:igme5000:37": "Geology — age, onshore (1:5M)",
+    "bgr:igme5000:3": "Seafloor geology — age (1:5M)",
+    "bgr:igme5000:43+44": "Metamorphic rocks (1:5M)",
+    "bgr:igme5000:39": "Igneous rocks (1:5M)",
+    "bgr:igme5000:41": "Ophiolite complexes (1:5M)",
+    "bgr:igme5000:46+47+48": "Faults and geological boundaries (1:5M)",
+    "bgr:igme5000:51+53+55+57": "Age symbols (1:5M)",
     "igme:geologico1m:0": "Lithology (1:1M)",
     "igme:magna50:0": "MAGNA lithology (1:50k)",
     "igme:magna50:2": "MAGNA contacts & faults (1:50k)",
@@ -3246,6 +3270,11 @@ LAYER_EN = {
     # 멕시코 SGM 의 다른 서비스 (wetherilli 219)
     "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
     "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
+    # 멕시코 지화학·광상 나머지 (wetherilli 233)
+    "sgm:geoq:0": "Stream-sediment geochemistry samples",
+    "sgm:anom250:0": "Silver (Ag) anomalies (1:250k)", "sgm:anom250:1": "Cobalt (Co) anomalies (1:250k)", "sgm:anom250:2": "Copper (Cu) anomalies (1:250k)", "sgm:anom250:3": "Manganese (Mn) anomalies (1:250k)", "sgm:anom250:4": "Lead (Pb) anomalies (1:250k)", "sgm:anom250:5": "Zinc (Zn) anomalies (1:250k)",
+    "sgm:anom50:0": "Silver (Ag) anomalies (1:50k)", "sgm:anom50:1": "Cobalt (Co) anomalies (1:50k)", "sgm:anom50:2": "Copper (Cu) anomalies (1:50k)", "sgm:anom50:3": "Manganese (Mn) anomalies (1:50k)", "sgm:anom50:4": "Lead (Pb) anomalies (1:50k)", "sgm:anom50:5": "Zinc (Zn) anomalies (1:50k)",
+    "sgm:yac:1": "Alteration zones", "sgm:yac:4": "Non-metallic mineralized regions", "sgm:yac50:0": "Mines and deposits (1:50k)",
     # 스웨덴 기반암 (wetherilli 213)
     "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
     "sgu:deformation": "Deformation zones (1:1M)",
