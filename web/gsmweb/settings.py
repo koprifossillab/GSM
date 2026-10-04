@@ -153,8 +153,11 @@ GEBCO_WMS_URL = env("GSM_GEBCO_WMS_URL", "https://wms.gebco.net/mapserv")
 #: 노르웨이·핀란드 기반암 지질도 — NGU MapServer·GTK ArcGIS WMS (`viewer/ngu.py`·`viewer/gtk.py`, wetherilli 140). 열쇠가 없다
 NGU_WMS_URL = env("GSM_NGU_WMS_URL", "https://geo.ngu.no/mapserver/BerggrunnWMS3")
 GTK_WMS_URL = env("GSM_GTK_WMS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Kalliopera_WMS/MapServer/WMSServer")
+#: GTK 의 다른 서비스 — 지구물리 영상, 북유럽 광상 FODD 가 든 모음 (wetherilli 270)
+GTK_GEOPHYSICS_URL = env("GSM_GTK_GEOPHYSICS_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/GTK_Geofysiikka_WMS/MapServer/WMSServer")
+GTK_KOKOAVA_URL = env("GSM_GTK_KOKOAVA_URL", "https://gtkdata.gtk.fi/arcgis/services/Rajapinnat/kokoavaWMS/MapServer/WMSServer")
 #: 스웨덴 기반암 지질도 — SGU GeoServer (`viewer/sgu.py`, wetherilli 213). 열쇠가 없다. 안내 문서의 resource.sgu.se 주소는 Capabilities 만 준다
-SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
+SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/ows")
 #: 아이슬란드 지질도 — 자연사연구소(NÍ) GeoServer WMS (`viewer/natt.py`, wetherilli 216). 열쇠가 없다
 NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 뉴질랜드·남빅토리아랜드 지질도 — GNS Science GeoServer WMS (`viewer/gns.py`, wetherilli 218). 열쇠가 없다

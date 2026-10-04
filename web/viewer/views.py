@@ -2551,6 +2551,7 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "sgu" and sgu.knows(layer.name):
         # 스웨덴 SGU(wetherilli 213) — GeoServer 가 3413 도 그려 준다. 레이어 하나가 1:100만·5만 판을 함께 부른다
         return {"attribution": sgu.ATTRIBUTION, "projection": "EPSG:3413",
+                **({"minZoom": sgu.MIN_ZOOM[layer.name]} if layer.name in sgu.MIN_ZOOM else {}),
                 **({} if layer.name in sgu.QUERYABLE else {"queryable": False})}
     if layer.upstream == "natt" and natt.knows(layer.name):
         # 아이슬란드 NÍ(wetherilli 216) — GeoServer 가 3413 으로 다시 그려 준다. 선·점 레이어는 속성이 부호뿐이라 누르지 않는다
@@ -2558,7 +2559,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
                 **({} if natt.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "gtk":
         # 핀란드 GTK(wetherilli 140) — ArcGIS 가 3413 도 그려 준다
-        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413"}
+        return {"attribution": gtk.ATTRIBUTION, "projection": "EPSG:3413",
+                **({"queryable": False} if layer.name in gtk.NOT_QUERYABLE else {})}
     if layer.upstream == "bgsgi" and bgs.geoindex_knows(layer.name):
         # 영국 GeoIndex(wetherilli 258) — 3857 로. 지구물리는 줌 9 까지(상류 1:62만 5천), 광산은 줌 10 부터. 범례는 상류 그림
         first, last = bgs.GEOINDEX_ZOOMS.get(layer.name, (None, None))
