@@ -3150,7 +3150,7 @@ GROUP_EN = {
     "스웨덴 광물·지구물리 (SGU)": "Sweden minerals and geophysics (SGU)",
     "페루 광물 자원 (INGEMMET)": "Peru mineral resources (INGEMMET)", "페루 지구물리 (INGEMMET)": "Peru geophysics (INGEMMET)",
     "영국 지구물리 (BGS)": "UK geophysics (BGS)", "영국 광물 자원 (BGS)": "UK mineral resources (BGS)",
-    "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)",
+    "그린란드 지구물리·지질구 (GEUS)": "Greenland geophysics and provinces (GEUS)", "그린란드 지질도 1:250만·1:10만 (GEUS)": "Greenland geological maps 1:2.5M and 1:100k (GEUS)",
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
     "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)",
@@ -3321,6 +3321,10 @@ LAYER_EN = {
     # GEUS ArcGIS (wetherilli 259)
     "geusarc:magnetic": "Magnetic anomaly compilation", "geusarc:bouguer": "Bouguer gravity anomaly (DTU)",
     "geusarc:provinces": "Geological provinces (1:2.5M)",
+    "geusarc:aeromag": "Airborne magnetics AEROMAG 1992–2013", "geusarc:aeromag_tilt": "Airborne magnetics tilt derivative",
+    "geusarc:awi": "Airborne magnetics AWI 1993–96 (east)", "geusarc:aem": "Helicopter magnetic surveys (local)",
+    "geusarc:g2500k": "Geological map 1:2.5M", "geusarc:g100k_ssw": "South-West Greenland geological map 1:100k",
+    "geusarc:g100k_karrat": "Karrat geological map 1:100k",
     # 남미 광물·지구물리 (wetherilli 265)
     "sgb:mineral_occurrences": "Mineral occurrences (SGB)",
     "sgc:met:11": "Mineral deposits (Metallogenic map 2022)", "sgc:met:10": "Metallogenic belts (2022)", "sgc:met:8": "Metallogenic districts (2022)",
