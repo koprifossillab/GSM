@@ -85,3 +85,57 @@ class Kigam50k(TestCase):
         self.assertTrue(views._is_noise(fid))
         self.assertFalse(views._is_noise("l_50k_geology_litho_latest.1"))
         self.assertTrue(views._is_noise("admin_boundary_SGG_201907_NGII.267"))
+
+
+class Rose(TestCase):
+    """도폭 하나·고른 범위의 장미도 (wetherilli 197, jikhanjung P01 §5)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.override = override_settings(KIGAM50K_DIR=str(self.root))
+        self.override.enable()
+        kigam50k._cache.update(folder=None, rows=None)
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.override.disable)
+        self.addCleanup(kigam50k._cache.update, folder=None, rows=None)
+        day = self.root / "raw" / "20260930"
+        _write(day, "bedding", [
+            _pt(127.30, 36.30, roangle=100, dipangle=30, mapname="대전", mapidx="GF11"),   # 주향 10°
+            _pt(127.31, 36.31, roangle=280, dipangle=35, mapname="대전", mapidx="GF11"),   # 주향 190° → 축으로 10°
+            _pt(127.32, 36.32, roangle=95, dipangle=-99, mapname="대전", mapidx="GF11"),   # 경사 미상
+            _pt(127.60, 36.60, roangle=0, dipangle=80, mapname="옥천", mapidx="GF12"),
+        ])
+        _write(day, "joint", [_pt(127.33, 36.33, roangle=45, dipangle=89, mapname="대전", mapidx="GF11")])
+
+    def test_칸으로_센다(self):
+        data = kigam50k.rose(kigam50k.in_sheet("GF11"))
+        self.assertEqual(data["n"], {"bedding": 3, "joint": 1})
+        self.assertEqual(data["strike"]["bedding"][1], 2)          # 10–20° 칸에 주향 10° 둘(190° 는 축이라 10°)
+        self.assertEqual(data["strike"]["bedding"][0], 1)          # 주향 5°
+        self.assertEqual(data["dipdir"]["bedding"][10], 1)          # 100°
+        self.assertEqual(data["dipdir"]["bedding"][28], 1)          # 280°
+        self.assertEqual(data["dip"]["bedding"][3], 2)              # 30·35°
+        self.assertEqual(data["nodip"]["bedding"], 1)
+        self.assertEqual(data["dip"]["joint"][8], 1)                # 89° 는 마지막 칸
+
+    def test_누른_자리의_도폭(self):
+        r = self.client.get("/GSM/kigam50k/rose/", {"lat": 36.305, "lon": 127.305})
+        data = r.json()
+        self.assertEqual(data["sheet"], {"no": "GF11", "name": "대전"})
+        self.assertEqual(data["n"]["bedding"], 3)
+        self.assertEqual(data["fetched"], "2026-09-30")
+
+    def test_고른_범위(self):
+        data = self.client.get("/GSM/kigam50k/rose/", {"bbox": "127.5,36.5,127.7,36.7"}).json()
+        self.assertIsNone(data["sheet"])
+        self.assertEqual(data["n"], {"bedding": 1})
+
+    def test_기호가_먼_자리는_빈_것(self):
+        data = self.client.get("/GSM/kigam50k/rose/", {"lat": 35.0, "lon": 129.0}).json()
+        self.assertEqual((data["sheet"], data["n"]), (None, {}))
+
+    def test_파일이_없으면_503(self):
+        kigam50k._cache.update(folder=None, rows=None)
+        with override_settings(KIGAM50K_DIR=tempfile.mkdtemp()):
+            self.assertEqual(self.client.get("/GSM/kigam50k/rose/", {"lat": 36.3, "lon": 127.3}).status_code, 503)

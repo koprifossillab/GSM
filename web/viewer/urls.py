@@ -160,6 +160,7 @@ urlpatterns = [
     path("gsmma/legend/", views.gsmma_legend, name="gsmma-legend"),
     # 5만 지질도의 층리·엽리·절리 자리 — 커서와 팝업 (jikhanjung 004)
     path("kigam50k/attitudes/", views.kigam50k_attitudes, name="kigam50k-attitudes"),
+    path("kigam50k/rose/", views.kigam50k_rose, name="kigam50k-rose"),
 
     path("catalog/", views.catalog_json, name="catalog"),
     path("patchnotes/", views.patch_notes, name="patchnotes"),

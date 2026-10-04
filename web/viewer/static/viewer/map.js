@@ -3089,8 +3089,10 @@
     updateToolOut();
     // 팝업은 위경도의 한가운데에 띄운다 — 표의 "중앙" 과 첫 줄 위경도가 같아야 한다.
     // 지도 좌표(3857)의 한가운데는 위도가 몇 백만 분의 1 도 어긋난다
+    var ll = ol.proj.transformExtent(extent, viewProj(), "EPSG:4326");
     showPopup(fromLL(facts.center),
-              [{ title: T("범위 {n}", { n: feature.get("no") }), props: rangeRows(facts) }], "");
+              [{ title: T("범위 {n}", { n: feature.get("no") }), props: rangeRows(facts) }], "",
+              { rose: attitudeLayersOn() ? "bbox=" + ll.map(function (v) { return v.toFixed(5); }).join(",") : "" });
   }
 
   function showMeasure(got, done) {
@@ -4625,6 +4627,127 @@
     return active.some(function (e) { return ATTITUDE_LAYERS.indexOf(e.name) >= 0; });
   }
 
+  function attitudeLayersOn() {
+    return isMercator() && active.some(function (e) { return ATTITUDE_LAYERS.indexOf(e.name) >= 0; });
+  }
+
+  // ── 장미도 — 도폭 하나(또는 잡은 범위)의 층리·엽리·편리·절리 (wetherilli 197, jikhanjung P01 §5 의 5 단계) ──
+  //
+  // 서버(`kigam50k/rose/`)가 각도를 10° 칸으로 세어 주고 여기서 SVG 로 그린다. 주향은 축이라 열여덟 칸을 마주 보게 겹쳐
+  // 그리고, 경사 방향은 서른여섯 칸 그대로다. 꽃잎의 길이는 수의 제곱근 — 넓이가 수에 비례한다(등면적 장미도)
+  var ROSE_KINDS = [["bedding", "층리"], ["foliation", "엽리"], ["schistosity", "편리"], ["joint", "절리"]];
+
+  function roseBlock(query, isRange) {
+    var box = document.createElement("div");
+    box.className = "rose-block";
+    var open = document.createElement("button");
+    open.type = "button";
+    open.className = "rose-open";
+    open.textContent = isRange ? T("이 범위의 층리·엽리 장미도") : T("이 도폭의 층리·엽리 장미도");
+    box.appendChild(open);
+    open.addEventListener("click", function () {
+      open.disabled = true;
+      fetch(BASE + "kigam50k/rose/?" + query)
+        .then(function (r) { return r.json(); })
+        .then(function (data) { box.innerHTML = ""; drawRoseBlock(box, data, isRange); popupOverlay.panIntoView({ animation: { duration: 200 }, margin: popupMargin() }); })
+        .catch(function () { open.disabled = false; open.textContent = T("장미도를 받지 못했다"); });
+    });
+    return box;
+  }
+
+  function drawRoseBlock(box, data, isRange) {
+    var kinds = ROSE_KINDS.filter(function (k) { return (data.n || {})[k[0]]; });
+    var head = document.createElement("h3");
+    head.textContent = data.sheet ? T("{name} 도폭 ({no}) — 자세 기호", { name: data.sheet.name, no: data.sheet.no })
+      : isRange ? T("잡은 범위 — 자세 기호") : T("자세 기호");
+    box.appendChild(head);
+    if (data.error || !kinds.length) {
+      var none = document.createElement("p");
+      none.className = "none";
+      none.textContent = data.error || T("이 자리에는 받아 둔 층리·엽리·절리가 없다");
+      box.appendChild(none);
+      return;
+    }
+    var state = { kind: kinds.slice().sort(function (a, b) { return data.n[b[0]] - data.n[a[0]]; })[0][0], axis: "strike" };
+    var tabs = document.createElement("div");
+    tabs.className = "rose-tabs";
+    var axes = document.createElement("div");
+    axes.className = "rose-tabs";
+    var pic = document.createElement("div");
+    pic.className = "rose-pic";
+    var foot = document.createElement("p");
+    foot.className = "rose-foot";
+    function tab(host, label, on, pick) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.classList.toggle("on", on);
+      b.addEventListener("click", function () { pick(); render(); });
+      host.appendChild(b);
+    }
+    function render() {
+      tabs.innerHTML = "";
+      axes.innerHTML = "";
+      kinds.forEach(function (k) {
+        tab(tabs, T(k[1]) + " " + data.n[k[0]], state.kind === k[0], function () { state.kind = k[0]; });
+      });
+      tab(axes, T("주향"), state.axis === "strike", function () { state.axis = "strike"; });
+      tab(axes, T("경사 방향"), state.axis === "dipdir", function () { state.axis = "dipdir"; });
+      var bins = data[state.axis][state.kind];
+      pic.innerHTML = roseSvg(state.axis === "strike" ? bins.concat(bins) : bins) + dipSvg(data.dip[state.kind]);
+      var bits = [T("받은 날 {date}", { date: data.fetched || "?" })];
+      if (data.nodip[state.kind]) bits.push(T("경사 미상 {n}", { n: data.nodip[state.kind] }));
+      if (state.axis === "strike") bits.push(T("주향은 경사 방향 − 90° (오른손 법칙)"));
+      foot.textContent = bits.join(" · ");
+    }
+    box.append(tabs, axes, pic, foot);
+    render();
+  }
+
+  /** 꽃잎 서른여섯(10° 칸) — 북이 위, 시계 방향. 꽃잎 길이는 수의 제곱근 */
+  function roseSvg(bins) {
+    var size = 140, c = size / 2, R = c - 13;
+    var max = Math.max.apply(null, bins) || 1;
+    function at(deg, r) {
+      var a = deg * Math.PI / 180;
+      return (c + r * Math.sin(a)).toFixed(1) + "," + (c - r * Math.cos(a)).toFixed(1);
+    }
+    var out = ['<svg class="rose-svg" viewBox="0 0 ' + size + " " + size + '" width="' + size + '" height="' + size + '" role="img">'];
+    out.push('<circle cx="' + c + '" cy="' + c + '" r="' + R + '" class="ring"/>');
+    out.push('<circle cx="' + c + '" cy="' + c + '" r="' + (R * Math.SQRT1_2).toFixed(1) + '" class="ring half"/>');
+    bins.forEach(function (n, i) {
+      if (!n) return;
+      var r = R * Math.sqrt(n / max);
+      out.push('<path class="petal" d="M' + c + "," + c + " L" + at(i * 10, r) + " A" + r.toFixed(1) + "," + r.toFixed(1) +
+               " 0 0 1 " + at(i * 10 + 10, r) + ' Z"><title>' + (i * 10) + "–" + (i * 10 + 10) + "° · " + n + "</title></path>");
+    });
+    [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(function (d) {
+      out.push('<text x="' + at(d[1], R + 8).split(",")[0] + '" y="' + at(d[1], R + 8).split(",")[1] +
+               '" class="tick">' + d[0] + "</text>");
+    });
+    out.push("</svg>");
+    return out.join("");
+  }
+
+  /** 경사 분포 — 10° 칸 아홉 */
+  function dipSvg(bins) {
+    var w = 108, h = 140, base = h - 20, top = 14, bw = (w - 10) / 9;
+    var max = Math.max.apply(null, bins) || 1;
+    var out = ['<svg class="dip-svg" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '" role="img">'];
+    out.push('<text x="' + (w / 2) + '" y="10" class="tick">' + esc(T("경사")) + "</text>");
+    bins.forEach(function (n, i) {
+      var bh = (base - top) * n / max;
+      out.push('<rect class="bar" x="' + (5 + i * bw + 1).toFixed(1) + '" y="' + (base - bh).toFixed(1) + '" width="' + (bw - 2).toFixed(1) +
+               '" height="' + bh.toFixed(1) + '"><title>' + (i * 10) + "–" + (i * 10 + 10) + "° · " + n + "</title></rect>");
+    });
+    out.push('<line x1="5" x2="' + (w - 5) + '" y1="' + base + '" y2="' + base + '" class="ring"/>');
+    [0, 30, 60, 90].forEach(function (d) {
+      out.push('<text x="' + (5 + d / 10 * bw).toFixed(1) + '" y="' + (base + 14) + '" class="tick">' + d + "°</text>");
+    });
+    out.push("</svg>");
+    return out.join("");
+  }
+
   function refreshAttitudes() {
     if (!attitudeLayer) return;
     var want = attitudeWanted();
@@ -4868,7 +4991,7 @@
    *  12 px (wetherilli 193). 처음 띄울 때와 속성이 늦게 와 자랐을 때 두 곳이 같은 값을 쓴다 */
   function popupMargin() { return window.innerWidth < 500 ? 12 : 72; }
 
-  function showPopup(coordinate, parts, emptyText) {
+  function showPopup(coordinate, parts, emptyText, opts) {
     var body = document.getElementById("popup-body");
     body.innerHTML = "";
 
@@ -4974,6 +5097,10 @@
         if (extras) body.appendChild(extraToggle(table, extras));
       });
     }
+    // 5만 지질도를 켜 두었으면 그 자리 도폭의 층리·엽리 장미도를 부르는 단추 (wetherilli 197). 잡은 범위는 그 범위의 것
+    var roseQuery = opts && "rose" in opts ? opts.rose
+      : attitudeLayersOn() ? "lat=" + ll[1].toFixed(5) + "&lon=" + ll[0].toFixed(5) : "";
+    if (roseQuery) body.appendChild(roseBlock(roseQuery, !!(opts && opts.rose)));
     document.getElementById("popup").classList.add("on");
     document.getElementById("map-wrap").classList.add("popup-open");
     popupOverlay.setPosition(coordinate);
