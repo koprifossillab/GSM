@@ -99,6 +99,9 @@ class Command(BaseCommand):
                 # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
                 (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
                 (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),
+                # 아프리카 나라 판 — 남아공 CGS·나미비아 GSN 1:100만 (wetherilli 209). 탭은 아프리카 하나에 얹는다
+                (settings.CGS_CATALOG_SEED, "남아공 (CGS)", "africa", "cgs"),
+                (settings.GSN_CATALOG_SEED, "나미비아 (GSN)", "africa", "gsn"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # KIGAM 5만 구조 요소 — 받아 둔 WFS 파일의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)

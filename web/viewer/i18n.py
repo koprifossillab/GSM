@@ -696,6 +696,8 @@ EN = {
     "아프리카": "Africa",
     "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
     "영국 지질조사소 — 아프리카 지하수 지도책": "British Geological Survey — Africa Groundwater Atlas",
+    "남아프리카공화국 지질조사소": "Council for Geoscience (South Africa)",
+    "나미비아 지질조사소": "Geological Survey of Namibia",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
@@ -2064,6 +2066,11 @@ PROP_EN = {
     "측정법": "Technique",
     "계산법": "Approach",
     "암상": "Lithology",
+    # 남아공 CGS·나미비아 GSN (wetherilli 209)
+    "층서 이름": "Stratigraphic unit",
+    "상위 층서": "Parent unit",
+    "누층군": "Sequence",
+    "아층군": "Subgroup",
     "연대": "Age",                      # 아프리카 CGMW 의 `AGE`("23 - 2.6 Ma") (wetherilli 207)
     "제공 기관": "Provider",
     "암석 갈래": "Rock type",
@@ -2760,6 +2767,8 @@ GROUP_EN = {
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
     "아프리카 지질도 (CGMW–BRGM 1:1000만)": "Africa geology (CGMW–BRGM 1:10M)",
     "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
+    "남아프리카공화국 지질도 (CGS 1:100만)": "South Africa geology (CGS 1:1M)",
+    "나미비아 지질도 (GSN 1:100만)": "Namibia geology (GSN 1:1M)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
@@ -2846,6 +2855,10 @@ LAYER_EN = {
     "cgmw:AFR_CGMW_BRGM_10M_Faults": "Faults (1:10M)",
     "cgmw:AFR_CGMW_BRGM_10M_Oceanic_crust_domain": "Oceanic crust (1:10M)",
     "aga:geology": "Country lithology (1:5M, 38 countries)",
+    # 아프리카 나라 판 (wetherilli 209)
+    "cgs:geology_1m": "Geology (1:1M)",
+    "gsn:NAM_GSN_1M_BLS": "Lithostratigraphy (1:1M)",
+    "gsn:NAM_GSN_1M_BA": "Age (1:1M)",
     "iige:geologia_general": "General geological map",
     # 미국 (wetherilli 205)
     "mrdata:sgmc2:sgmc2": "Geologic units (state map compilation)",
