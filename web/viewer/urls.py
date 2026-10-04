@@ -144,6 +144,8 @@ urlpatterns = [
             views.gibs_tile, name="gibs-tile"),
     path("gibs/wms/", views.gibs_wms, name="gibs-wms"),
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
+    # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
+    path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다
@@ -161,6 +163,7 @@ urlpatterns = [
     # 주소만 적힌 CSV — 화면이 주소를 나눠 보내 좌표를 받는다 (wetherilli 152)
     path("pointsets/geocode/", views.pointset_geocode, name="pointset-geocode"),
     path("pointsets/<int:pk>/geojson/", views.pointset_geojson, name="pointset-geojson"),
+    path("pointsets/<int:pk>/csv/", views.pointset_csv, name="pointset-csv"),
     path("pointsets/deleted/", views.pointset_deleted, name="pointset-deleted"),
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),

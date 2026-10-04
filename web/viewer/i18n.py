@@ -90,6 +90,12 @@ EN = {
     "고생태 산지 자료를 아직 모으지 않았다 (fetch_neotoma)": "Paleoecology sites have not been gathered yet (fetch_neotoma)",
     "모아 둔 자료를 읽지 못했다": "Could not read the gathered data",
     "온 지구 화면에 모아 둔 자료 — PBDB·GVP·USGS·Neotoma": "Data gathered for the Whole Earth view — PBDB, GVP, USGS, Neotoma",
+    # 점묶음 CSV (wetherilli 190)
+    "CSV 로 내려받는다 — 우리 파일에서 읽는 값을 열로 붙인다": "Download as CSV — with values read from our own files as extra columns",
+    "점이 {n} 개라 붙일 값은 빼고 내려받는다 — 값은 {limit} 개까지 읽는다.":
+        "This set has {n} points, so it downloads without the extra values — they are read for up to {limit} points.",
+    "점이 {n} 개라 붙일 값을 읽지 않는다 — {limit} 개까지다. extras=none 으로 부른다":
+        "{n} points is too many to read extra values for — the limit is {limit}. Call with extras=none",
     # 이름
     "대돌여지도": "Great Stone Map",
     "GSM — 한국지질자원연구원 지오빅데이터 오픈플랫폼 오픈API 지도뷰어":
@@ -643,6 +649,10 @@ EN = {
     # 남미 (wetherilli 188)
     "남미": "South America",
     "콜롬비아 지질조사소": "Colombian Geological Survey (SGC)",
+    # 남미의 나라 탭 (wetherilli 191)
+    "콜롬비아": "Colombia",
+    "브라질": "Brazil",
+    "브라질 지질조사소": "Geological Survey of Brazil (SGB)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -1663,9 +1673,22 @@ EN = {
 
 PROP_EN = {
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
+    "위계": "Rank",                        # 브라질 SGB — 층군·층·암상 따위 (wetherilli 191)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
     "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
     "USGS 지진 페이지": "USGS event page", "Neotoma 산지 페이지": "Neotoma site page",
+    # 점묶음 CSV 의 열 (wetherilli 190)
+    "위도": "Latitude", "경도": "Longitude",
+    "지질 단위(GeoMAP)": "Geological unit (GeoMAP)", "지질기호(GeoMAP)": "Map symbol (GeoMAP)",
+    "연대 Ma(GeoMAP)": "Age Ma (GeoMAP)", "지각 두께 km(CRUST 2.0)": "Crustal thickness km (CRUST 2.0)",
+    "가까운 화석 산지(PBDB)": "Nearest fossil collection (PBDB)", "산지 번호(PBDB)": "Collection no. (PBDB)",
+    "산지의 시대(PBDB)": "Collection age (PBDB)", "산지까지 km(PBDB)": "Distance to collection km (PBDB)",
+    "지질 단위(원도)": "Geological unit (original map)", "단위 이름(원도)": "Unit name (original map)",
+    "시대(원도)": "Age (original map)",
+    "지질 단위(화성 지질도)": "Geological unit (Mars map)", "단위 이름(화성 지질도)": "Unit name (Mars map)",
+    "시대(화성 지질도)": "Age (Mars map)", "화성 지질도": "Mars geologic map",
+    "지질 단위(수성 지질도)": "Geological unit (Mercury map)", "단위 무리(수성 지질도)": "Unit group (Mercury map)",
+    "도폭(수성 지질도)": "Quadrangle (Mercury map)",
     # 대만 — 지질운의 온천·시추·순향사면 (gsmma.py, wetherilli 141)
     "온천명": "Hot spring", "수질": "Water type", "수온 (°C)": "Water temperature (°C)", "pH": "pH",
     "조사 사업": "Survey project", "공번": "Borehole no.", "심도 (m)": "Depth (m)",
@@ -2644,6 +2667,8 @@ GROUP_EN = {
     "아일랜드 기반암 (GSI·GSNI)": "Ireland bedrock (GSI · GSNI)",
     "남미 지질도 (CGMW 1:500만)": "South America geology (CGMW 1:5M)",
     "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
+    "브라질 지질도 (SGB 1:250만, 2025)": "Brazil geology (SGB 1:2.5M, 2025)",
+    "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
 }
 
 LAYER_EN = {
@@ -2695,6 +2720,11 @@ LAYER_EN = {
     "sgc:co:61": "Folds (1:500k)",
     "sgc:co:66": "Volcanoes (Colombia)",
     "sgc:co:65": "Mud volcanoes",
+    # 브라질 (wetherilli 191)
+    "sgb:2500k": "Lithostratigraphic units (1:2.5M, 2025)",
+    "sgb:2500k_structures": "Structures (1:2.5M, 2025)",
+    "sgb:1m": "Lithostratigraphic units (1:1M)",
+    "sgb:250k": "Lithostratigraphic units (1:250k, published sheets)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

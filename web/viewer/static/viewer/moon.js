@@ -1778,6 +1778,17 @@
       var down = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
         location.href = BASE + "pointsets/" + ps.id + "/geojson/?download=1";
       });
+      // CSV — 엑셀로 연다. 우리 파일에서 읽는 값(지질 단위·지각 두께·가까운 화석 산지)을 열로 붙인다 (wetherilli 190).
+      // 값을 읽는 점은 서버의 `pointvalues.LIMIT`(2 000)까지 — 넘으면 값 없이 받는다고 묻는다
+      var csv = iconButton("CSV", T("CSV 로 내려받는다 — 우리 파일에서 읽는 값을 열로 붙인다"), !ps.count, function () {
+        var extras = "all";
+        if ((ps.count || 0) > 2000) {
+          if (!confirm(T("점이 {n} 개라 붙일 값은 빼고 내려받는다 — 값은 {limit} 개까지 읽는다.", { n: ps.count, limit: 2000 }))) return;
+          extras = "none";
+        }
+        location.href = BASE + "pointsets/" + ps.id + "/csv/?extras=" + extras;
+      });
+      csv.classList.add("wide");
       var del = iconButton("×", T("지운다"), false, function () {
         if (!confirm(T("'{name}' 을 지운다.", { name: ps.name }))) return;
         post(BASE + "pointsets/" + ps.id + "/delete/").then(function () {
@@ -1786,7 +1797,7 @@
           renderSets();
         }).catch(function (e) { alert((e && e.message) || ""); });
       });
-      li.append(box, swatch, text, zoom, elev, down, del);
+      li.append(box, swatch, text, zoom, elev, down, csv, del);
       host.appendChild(li);
     });
   }
