@@ -2472,7 +2472,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         # 미국 USGS(wetherilli 205) — MapServer WMS 를 3857 로. 범례는 없다(단위가 주마다 수천, GetLegendGraphic 501) — 팝업의 단위
         # 설명 링크가 갈음한다. 구조선·단층은 누르지 않는다
         return {"attribution": mrdata.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
-                **({} if layer.name in mrdata.QUERYABLE else {"queryable": False})}
+                **({} if layer.name in mrdata.QUERYABLE else {"queryable": False}),
+                # 하와이·푸에르토리코(wetherilli 238)는 미국 탭(3978)에서 제 범위 밖 타일을 묻지 않는다
+                **({"clip": True} if layer.name in mrdata.ISLANDS else {})}
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}

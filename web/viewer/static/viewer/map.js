@@ -1247,6 +1247,11 @@
       tile.setExtent(ol.proj.transformExtent([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad],
                                              "EPSG:4326", viewProj()));
     }
+    // 미국 탭(3978)의 하와이·푸에르토리코(`clip`, wetherilli 238) — 투영이 메르카토르가 아니어도 섬 둘레만 묻는다
+    if (row && row.clip && row.bbox && !isMercator()) {
+      var c = row.bbox;
+      tile.setExtent(ol.proj.transformExtent([c[0] - 0.5, c[1] - 0.5, c[2] + 0.5, c[3] + 0.5], "EPSG:4326", viewProj()));
+    }
     return tile;
   }
 

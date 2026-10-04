@@ -165,3 +165,30 @@ class AlaskaWater(SimpleTestCase):
         from PIL import Image
         self.assertEqual(ctype, "image/png")
         self.assertEqual(Image.open(io.BytesIO(body)).convert("RGBA").getpixel((0, 0))[3], 0)
+
+
+class Islands(SimpleTestCase):
+    """하와이·푸에르토리코 (wetherilli 238) — 2026-10-05 에 받은 `text/plain` 그대로"""
+    HI = {"id": "5787", "island": "Hawaii", "volcano": "mloa", "symbol": "Qk5", "age_range": "A.D. 1935", "name": "Kau Basalt",
+          "rock_type": "Lava flows", "lithology": "Pahoehoe and aa", "volc_stage": "shield", "compositio": "Tholeiitic basalt",
+          "source": "Wolfe and Morris, 1996a", "url": "https://mrdata.usgs.gov/geology/state/hi/higeo-unit.php?unit=Qk5"}
+    PR = {"fmatn": "Kmal", "name": "Malo Breccia", "age": "upper ? Cretaceous", "lith62name": "Tuff",
+          "url": "https://mrdata.usgs.gov/geology/pr/prgeo-unit.php?unit=Kmal"}
+
+    def test_하와이(self):
+        got = mrdata.friendly(self.HI)
+        self.assertEqual((got["이름"], got["지질시대"], got["암석"]), ("Kau Basalt", "A.D. 1935", "Lava flows · Pahoehoe and aa"))
+        self.assertEqual(got["단위 설명"]["links"][0]["url"], self.HI["url"])
+
+    def test_푸에르토리코(self):
+        got = mrdata.friendly(self.PR)
+        self.assertEqual((got["기호"], got["지질시대"]), ("Kmal", "백악기 후기(?)"))
+        self.assertEqual(mrdata.friendly(self.PR, "en")["지질시대"], "upper ? Cretaceous")
+
+    def test_섬은_3857_로_섬_둘레만(self):
+        params = {"layers": "mrdata:hi:units"}
+        with mock.patch.object(mrdata, "_get", return_value=answer()) as get:
+            mrdata.get_map(params)
+        self.assertTrue(get.call_args.args[0].endswith("/services/hi"))
+        self.assertIn("mrdata:pr:geol", mrdata.QUERYABLE)
+        self.assertIn("mrdata:pr:faultn", mrdata.ISLANDS)
