@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, usstates, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1489,6 +1489,8 @@ def earth_view(request):
                                                    if volcanoes.available("pleistocene") else []),
                                    # 지진 (wetherilli 138) — 구운 것이 있을 때만. 규모 칸 셋이 레이어가 된다. 범례는 깊이의 색
                                    "quakes": quakes.legend(lang) if quakes.available() else [],
+                                   # 최근 지진 (wetherilli 292) — 매시 받은 피드가 있을 때만. 범례는 지난 시간의 색
+                                   "recentquakes": recentquakes.legend(lang) if recentquakes.available() else [],
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
@@ -2494,6 +2496,46 @@ def earth_quake_at(request):
     return JsonResponse({"hits": out, "credit": usgs.CREDIT})
 
 
+# ── 최근 지진 (wetherilli 292) ─────────────────────────────────────
+
+@require_GET
+def earth_recent_quake_tile(request, z, x, y):
+    """`earth/recentquakes/tiles/<z>/<x>/<y>.png` — USGS 실시간 피드의 지난 7 일 M2.5 이상. 속이 빈 고리, 지난 시간의 색"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not recentquakes.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = recentquakes_version()
+    key = tilecache.key_text("usgs-recent", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = recentquakes.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_recent_quake_at(request):
+    """`?lon=&lat=&r=` — 누른 자리 둘레의 최근 지진, 가까운 것부터 다섯. 꼴은 `earth_quake_at` 과 같다"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    r = min(5.0, max(0.001, _float(request.GET.get("r")) or 0.1))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    out = []
+    for q in recentquakes.near(lon, lat, r):
+        rows = [("규모", f"{q['mag']:g} {q['mag_type']}".strip()), ("일시 (UTC)", recentquakes.when(q["ms"])),
+                ("깊이 (km)", f"{q['depth']:g}" if q["depth"] is not None else ""), ("곳", q["place"])]
+        rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
+        out.append({"id": q["id"], "name": i18n.t(msg("M{mag} 최근 지진", mag=f"{q['mag']:g}"), lang), "rows": rows,
+                    "link": usgs.event_url(q["id"]), "at": [q["lon"], q["lat"]]})
+    return JsonResponse({"hits": out, "credit": usgs.CREDIT})
+
+
 # ── 제4기 고생태 산지 (wetherilli 139) ───────────────────────────────
 
 @require_GET
@@ -3353,10 +3395,10 @@ def wms(request):
             return _tile(old, cached=True)
         return _tile(tiles.notice_tile(width, height, tiles.NO_KEY), store=False)
 
+    # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
+    first = (params.get("layers") or "").split(",")[0].strip()
+    last = metatile.limit(METATILE, first) if settings.METATILE else False      # 끄는 스위치(wetherilli 299)
     try:
-        # 느린 상류는 큰 장을 받아 잘라 담는다(메타타일, wetherilli 282) — 격자에 맞지 않는 칸이면 하던 대로 한 칸
-        first = (params.get("layers") or "").split(",")[0].strip()
-        last = metatile.limit(METATILE, first) if settings.METATILE else False      # 끄는 스위치(wetherilli 299)
         piece = (metatile.serve(first, params, lambda bbox, w, h: door.get_map(dict(params, bbox=bbox, width=w, height=h)),
                                 max_zoom=last, errors=UPSTREAM_ERRORS)
                  if last is not False else None)
@@ -3365,8 +3407,10 @@ def wms(request):
         else:
             content, ctype = door.get_map(params)
     except UPSTREAM_ERRORS as exc:
-        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
+        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다. 메타타일 레이어는 조각에도 옛것이 있다
         old = tilecache.get(cache_key, stale=True)
+        if old is None and last is not False:
+            old = metatile.stale(first, params)
         if old is not None:
             log.info("타일을 못 받아 옛것을 낸다: %s", exc)
             return _tile(old, cached=True)
@@ -3375,7 +3419,8 @@ def wms(request):
 
     # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
     # 자료를 파는 상류(`NO_STORE`)도 담지 않는다 — 그때그때 받아 보여 주기만 한다 (wetherilli 209)
-    if not door.nostore:
+    # 메타타일 조각으로 낸 칸도 다시 담지 않는다 — 조각 열쇠에 이미 있다(두 벌이 되지 않게, wetherilli 297)
+    if not door.nostore and piece is None:
         tilecache.put(cache_key, content)
 
     response = HttpResponse(content, content_type=ctype)
@@ -4495,7 +4540,7 @@ def tile_versions(page: str) -> dict:
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "fossildensity": fossils_version() + fossils.DENSITY_RENDERER,
-                "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
+                "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "recentquakes": recentquakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
                 "glaciers": glaciers_version(),
                 "impacts": impacts_version(),
@@ -4540,6 +4585,11 @@ def volcanoes_version(kind: str = "holocene") -> str:
 
 def quakes_version() -> str:
     return _stamp(quakes.RENDERER, quakes.built(), _file_stamp(quakes.path()))
+
+
+def recentquakes_version() -> str:
+    """최근 지진 (wetherilli 292) — 매시 새 피드를 받으면 판이 바뀌어 주소가 바뀐다"""
+    return _stamp(recentquakes.RENDERER, recentquakes.generated())
 
 
 def neotoma_version() -> str:
