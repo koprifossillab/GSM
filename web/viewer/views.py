@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, usage
+from . import basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gsi, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgu, swisstopo, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -376,6 +376,8 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "nrcan", "ogs",
              # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다
              "ga",
+             # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
+             "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
              "sgu")
 
@@ -2339,6 +2341,15 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream in ("ispra", "lneg") and {"ispra": ispra, "lneg": lneg}[layer.upstream].knows(layer.name):
+        # 이탈리아 ISPRA·포르투갈 LNEG(wetherilli 211) — ArcGIS WMS 를 3857 로. 가까이서만 그려 주는 판(1:10만·구조선)은 그 줌부터
+        mod = {"ispra": ispra, "lneg": lneg}[layer.upstream]
+        first, last = mod.ZOOMS.get(layer.name, (None, None))
+        return {"attribution": mod.ATTRIBUTION, "projection": "EPSG:3857",
+                **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "swisstopo" and swisstopo.knows(layer.name):
+        # 스위스 swisstopo(wetherilli 211) — geo.admin.ch WMS 를 3857 로. 속성은 문이 REST identify 로 바꾼다
+        return {"attribution": swisstopo.ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "ga" and ga.knows(layer.name):
         # 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로(3577 은 그리지 않는다). 레이어 하나가 1:250만·1:100만을 함께 부르고 상류가
         # 축척에 맞는 판을 그린다. 범례는 보는 범위의 것(`ga/legend/`), 단층은 범례·누르기가 없다
@@ -2484,6 +2495,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, ga.GaError,
+                   ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError,
                    basemaps.BasemapError)
 
 
@@ -2545,7 +2557,9 @@ class _Door:
                # 캐나다(wetherilli 204)
                "nrcan": nrcan, "ogs": ogs,
                # 호주(wetherilli 212)
-               "ga": ga}
+               "ga": ga,
+               # 이탈리아·포르투갈·스위스(wetherilli 211)
+               "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2554,7 +2568,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "ga", "sgu"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "ga", "ispra", "lneg", "swisstopo", "sgu"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3703,6 +3717,9 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":
             props = ga.friendly(props, lang)         # 호주 — 시대만 옮기고 이름·설명은 영어 그대로 (wetherilli 212)
+        elif door.name in ("ispra", "lneg", "swisstopo"):
+            # 이탈리아·포르투갈·스위스(wetherilli 211) — 열 이름만 한국어로, 값은 그 나라 말 그대로
+            props = {"ispra": ispra, "lneg": lneg, "swisstopo": swisstopo}[door.name].friendly(props, lang)
         elif door.name == "sgm":
             props = sgm.friendly(props, lang)        # 멕시코 — 시대만 옮기고 암상·지층은 에스파냐어 그대로 (wetherilli 206)
         elif door.name == "mrdata":

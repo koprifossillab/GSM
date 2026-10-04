@@ -191,6 +191,11 @@ OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
+#: 이탈리아 ISPRA·포르투갈 LNEG ArcGIS 의 앞 주소, 스위스 swisstopo WMS·identify (wetherilli 211). 열쇠가 없다
+ISPRA_URL = env("GSM_ISPRA_URL", "https://sgi2.isprambiente.it/arcgis")
+LNEG_URL = env("GSM_LNEG_URL", "https://sig.lneg.pt/server")
+SWISSTOPO_WMS_URL = env("GSM_SWISSTOPO_WMS_URL", "https://wms.geo.admin.ch/")
+SWISSTOPO_IDENTIFY_URL = env("GSM_SWISSTOPO_IDENTIFY_URL", "https://api3.geo.admin.ch/rest/services/api/MapServer/identify")
 #: NASA Moon Trek 의 달 서비스들 (`viewer/trek.py`, devlog 036·P05). 열쇠가 없다.
 #: 지질도(ArcGIS MapServer)·표고(ImageServer)·색인(TrekServices)이 이 밑에 있다.
 TREK_URL = env("GSM_TREK_URL", "https://trek.nasa.gov/moon")
@@ -451,6 +456,10 @@ NRCAN_CATALOG_SEED = REPO_DIR / "data" / "nrcan_layers.json"
 OGS_CATALOG_SEED = REPO_DIR / "data" / "ogs_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
+#: 이탈리아·포르투갈·스위스 (wetherilli 211)
+ISPRA_CATALOG_SEED = REPO_DIR / "data" / "ispra_layers.json"
+LNEG_CATALOG_SEED = REPO_DIR / "data" / "lneg_layers.json"
+SWISSTOPO_CATALOG_SEED = REPO_DIR / "data" / "swisstopo_layers.json"
 #: 중국 — USGS geo3al (devlog 025)
 GEO3AL_CATALOG_SEED = REPO_DIR / "data" / "geo3al_layers.json"
 #: 연구실의 암맥 기록 — phyloserver (devlog 026)

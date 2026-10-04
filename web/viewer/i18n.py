@@ -79,6 +79,10 @@ EN = {
     # 캐나다 (wetherilli 204)
     "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
     "캐나다 람베르트": "Canada Atlas Lambert",
+    # 이탈리아·포르투갈·스위스 (wetherilli 211)
+    "이탈리아": "Italy", "포르투갈": "Portugal", "스위스": "Switzerland",
+    "이탈리아 지질조사소 (ISPRA)": "Geological Survey of Italy (ISPRA)", "포르투갈 국립 에너지·지질연구소": "LNEG (Portugal)",
+    "스위스 연방 지형청": "swisstopo (Switzerland)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -720,6 +724,7 @@ EN = {
     "핀란드 지질조사소": "Geological Survey of Finland",
     "스웨덴 지질조사소": "Geological Survey of Sweden",
     "추가 지역": "Add region",
+    "그 외": "More",
     "준비 중": "coming soon",
     "이 지역을 탭에서 뺀다": "Remove this region from the tabs",
     "<b>남극 지질도는 준비 중이다.</b> 남극점을 가운데 둔 평사도법 화면과 배경지도를 먼저 띄워 둔다. GeoMAP 레이어는 곧 붙인다.":
@@ -1735,6 +1740,7 @@ EN = {
 PROP_EN = {
     "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
     "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
+    "심성암": "Plutonic intrusion", "원 설명": "Original description", "조산 주기": "Orogenic cycle",
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
@@ -2711,6 +2717,8 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
+    "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
+    "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2798,6 +2806,12 @@ LAYER_EN = {
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
     "ogs:1": "Ontario Quaternary geology", "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
+    # 이탈리아·포르투갈·스위스 (wetherilli 211)
+    "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",
+    "ispra:100k:1": "Italy geological units (1:100k)", "ispra:100k:2": "Italy tectonics (1:100k)",
+    "lneg:500k:2": "Portugal geology (1:500k)", "lneg:500k:1": "Portugal structures (1:500k)",
+    "lneg:500k:4": "Portugal shelf geology (1:500k)", "lneg:500k:3": "Portugal shelf structures (1:500k)",
+    "swisstopo:geologische_karte": "Geological map of Switzerland (1:500k)", "swisstopo:geocover": "GeoCover (1:25k)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
