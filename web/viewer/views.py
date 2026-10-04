@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1486,6 +1486,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 세계 빙하 RGI 7.0 (wetherilli 289) — 구운 것이 있을 때만 레이어가 선다
+                                   "glaciers": glaciers.legend(lang) if glaciers.available() else [],
                                    # 충돌구·거대 화성암 지대 (wetherilli 283) — 파일이 있을 때만 레이어가 선다
                                    "impacts": ({"impacts": impacts.legend("impacts", lang), "lips": impacts.legend("lips", lang)}
                                                if impacts.available() else {}),
@@ -2250,6 +2252,48 @@ def earth_impacts_at(request):
     rows = [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]
     text = "" if name else i18n.t(msg("여기에는 없다"), lang)
     return JsonResponse({"name": name, "rows": rows, "text": text, "credit": credit})
+
+
+@require_GET
+def earth_glaciers_tile(request, z, x, y):
+    """`earth/glaciers/tiles/<z>/<x>/<y>.png` — RGI 7.0 빙하, 넓이만 한 점 (`glaciers.render_tile`, wetherilli 289). 줌 3 밑은 빈 타일"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not glaciers.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = glaciers_version()
+    key = tilecache.key_text("glaciers", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = glaciers.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_glaciers_at(request):
+    """`?lon=&lat=&z=` — 누른 자리의 빙하(넓이의 원 안, 또는 그 줌의 8 화소 안)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = _float(request.GET.get("z"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    r = min(1.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
+    out = []
+    for g in glaciers.near(lon, lat, r):
+        span = f"{g['zmin']:.0f}–{g['zmax']:.0f}" if g["zmin"] is not None and g["zmax"] is not None else ""
+        rows = [("넓이 (km²)", f"{g['area']:,.2f}"), ("높이 (m)", span), ("가운데 높이 (m)", f"{g['zmed']:.0f}" if g["zmed"] is not None else ""),
+                ("경사 (°)", f"{g['slope']:.1f}" if g["slope"] is not None else ""),
+                ("끝", i18n.t(glaciers.TERMINUS[1][1], lang) if g["term"] == 1 else ""),
+                ("서지", i18n.t(glaciers.SURGE[g["surge"]], lang) if g["surge"] in glaciers.SURGE else ""),
+                ("윤곽의 날", g["date"]), ("RGI", g["id"])]
+        out.append({"name": g["name"].rstrip(",") or i18n.t(msg("이름 없는 빙하"), lang),
+                    "rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
+    return JsonResponse({"hits": out, "text": "" if out else i18n.t(msg("여기에는 빙하가 없다"), lang), "credit": glaciers.CREDIT})
 
 
 @require_GET
@@ -4389,6 +4433,7 @@ def tile_versions(page: str) -> dict:
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "glaciers": glaciers_version(),
                 "impacts": impacts_version(),
                 "faults": faults_version(),
                 "minerals": minerals_version(),
@@ -4465,6 +4510,10 @@ def faults_version() -> str:
 
 def impacts_version() -> str:
     return _stamp(impacts.RENDERER, _content_stamp(settings.IMPACTS_FILE), paleo.RENDERER)
+
+
+def glaciers_version() -> str:
+    return _stamp(glaciers.RENDERER, glaciers.built(), _file_stamp(glaciers.path()))
 
 
 def crust_version() -> str:
