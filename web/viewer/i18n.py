@@ -539,6 +539,16 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 세계 빙하 RGI 7.0 (wetherilli 289)
+    "빙하 하나하나 (RGI 7.0)": "Individual glaciers (RGI 7.0)",
+    "바다에서 끝난다 (조수 빙하)": "Marine-terminating (tidewater)",
+    "빙하 (끝의 갈래를 가리지 않았다)": "Glacier (terminus type not assigned)",
+    "서지 가능": "Possible surge",
+    "서지 그럴듯": "Probable surge",
+    "서지 관측": "Observed surge",
+    "이름 없는 빙하": "Unnamed glacier",
+    "여기에는 빙하가 없다": "No glacier here",
+    "넓이만 한 점 — 줌 3 부터. 넓게 볼 때는 빙하·빙붕(Natural Earth)": "Dots sized by area — from zoom 3. Zoomed out, see Glaciers and ice shelves (Natural Earth)",
     # 충돌구·거대 화성암 지대 (wetherilli 283)
     "충돌구·거대 화성암 지대": "Impact craters & large igneous provinces", "충돌구": "Impact craters",
     "거대 화성암 지대 (LIP)": "Large igneous provinces (LIP)", "충돌구 — 원의 크기는 지름": "Impact crater — circle size shows diameter",
@@ -548,6 +558,13 @@ EN = {
         "Colour shows emplacement age. Continental ones move with plate rotation — computed, not observed",
     "신생대 (66 Ma 안쪽)": "Cenozoic (under 66 Ma)", "데본기·실루리아기": "Devonian–Silurian", "오르도비스기·캄브리아기": "Ordovician–Cambrian",
     "원생대": "Proterozoic",
+    # 화석 산지 밀도 (wetherilli 286)
+    "화석 산지 밀도": "Fossil locality density",
+    "드물다": "Sparse",
+    "몇 곳": "A few",
+    "많다": "Many",
+    "가장 많은 칸": "Densest cell",
+    "1° 칸의 산지 수(로그) — 조사가 몰린 곳이 진하다": "Localities per 1° cell (log) — darker where sampling concentrates",
     # 세계 활성단층 GEM (wetherilli 279)
     "활성단층 (GEM)": "Active faults (GEM)", "역단층·섭입": "Reverse / subduction", "주향이동·변환": "Strike-slip / transform",
     "사교 (주향이동+경사이동)": "Oblique (strike-slip + dip-slip)", "확장 해령": "Spreading ridge", "습곡·갈래 모름": "Fold / unknown",
@@ -1865,6 +1882,13 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 세계 빙하 (wetherilli 289)
+    "넓이 (km²)": "Area (km²)",
+    "가운데 높이 (m)": "Median elevation (m)",
+    "끝": "Terminus",
+    "서지": "Surge",
+    "윤곽의 날": "Outline date",
+    "RGI": "RGI",
     # 충돌구·LIP (wetherilli 283)
     "생긴 때 (Ma)": "Age (Ma)", "그때의 지구": "Past positions", "지름 (km)": "Diameter (km)",
     # 세계 활성단층 (wetherilli 279)
