@@ -43,14 +43,15 @@
   var M_PER_DEG = Math.PI * 6378137 / 180;           // 평면(4326)의 1° — 적도 반지름으로. 축척 막대는 OpenLayers 가 잰다
   // 배경 — NASA GIBS 의 Blue Marble(500 m). 셋 다 4326·3413·3031 판이 있어 구·평면·극 평면이 같은 영상이다.
   // 구는 WMS(4326)로, 평면은 WMTS 로 받는다 — GIBS 의 4326 WMTS 는 줌 0 이 288° 한 장이라 Cesium 의 격자와 맞지 않는다
-  var GIBS_WMS = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi";
-  var GIBS_WMTS = "https://gibs.earthdata.nasa.gov/wmts/epsg{e}/best/{name}/default/500m/{z}/{y}/{x}.jpeg";
+  // 서버가 브라우저가 부르던 주소 그대로 받아 담는다(`basemaps.py`, wetherilli 184) — 상류가 한 장에 1–3 초라 두 번째부터 빠르다
+  var GIBS_WMS = BASE + "gibs/wms/";
+  var GIBS_WMTS = BASE + "gibs/{e}/{name}/{z}/{y}/{x}.jpeg";
   var BASES = {
     bm: { name: "BlueMarble_ShadedRelief_Bathymetry", credit: "Blue Marble shaded relief & bathymetry · NASA EOSDIS GIBS" },
     bmng: { name: "BlueMarble_NextGeneration", credit: "Blue Marble Next Generation · NASA EOSDIS GIBS" },
     relief: { name: "BlueMarble_ShadedRelief", credit: "Blue Marble shaded relief · NASA EOSDIS GIBS" },
     // GEBCO 해저 지형(공공 도메인, wetherilli 135) — GIBS 가 아니라 GEBCO 의 WMS 다. 4326 뿐이라 극 평면은 Blue Marble 로 갈음한다
-    gebco: { name: "GEBCO_LATEST", wms: "https://wms.gebco.net/mapserv", format: "image/png", max: 8,
+    gebco: { name: "GEBCO_LATEST", wms: BASE + "gebco/wms/", format: "image/png", max: 8,
              credit: "GEBCO Compilation Group (2026) GEBCO 2026 Grid" },
   };
   // 지질 레이어 목록 — 달·화성과 같은 꼴이다. 이름은 서버 `earth/tiles/<이름>` 의 것
@@ -2683,6 +2684,7 @@
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
     } catch (e) { /* file:// 따위 */ }
     var p = paleoOn();
+    if (p) hideProfile();                               // 높이 그래프는 오늘의 땅이다 (wetherilli 186)
     showAge();
     if (p !== wasPaleo) {
       wasPaleo = p;
@@ -3336,7 +3338,7 @@
     if (!ll) return true;
     if (tool === "point") addTemp(ll);
     else if (tool === "line" || tool === "area") {
-      if (!sketch.length) { measured = null; lastMeasure = ""; renderDrawn(); }
+      if (!sketch.length) { measured = null; lastMeasure = ""; renderDrawn(); hideProfile(); }
       sketch.push(unwrap(sketch[sketch.length - 1], ll));
     }
     return true;
@@ -3364,7 +3366,134 @@
     var got = measureOf(measured);
     renderDrawn();
     showMeasure(got, true);
+    if (kind === "line") showProfile(coords); else hideProfile();
   }
+
+  // ── 높이 그래프 (달의 것을 옮겼다, wetherilli 186) ──
+  // 거리를 다 재면 그 선의 표고를 받아(`elevation/profile/`, 지역 탭과 같은 문 — wetherilli 109) 아래 가운데 판에 그린다.
+  // 표고는 타일로만 읽는다 — 일본은 국토지리원, 나머지는 AWS Terrarium. 그래프 위를 훑으면 그 자리를 지구에도 찍는다.
+  // **오늘의 높이다** — 그때의 지구(1 Ma 부터)에서는 판이 옮겨져 화면의 자리와 오늘의 땅이 맞지 않아 그래프를 띄우지 않는다
+  var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
+  var profileSeq = 0, profileData = null, profileBand = null;
+  // 지질 띠 (wetherilli 180) — 우리 파일로 그리는 판을 켰을 때만. 지질도(Macrostrat)는 점마다 상류에 물어야 해서 띠가 없다
+  var BAND_LAYER = { crust: "earth:crust" };
+  function bandLayer() {
+    var top = active.filter(function (e) { return BAND_LAYER[e.name]; })[0];
+    return top && window.GSMBand ? BAND_LAYER[top.name] : null;
+  }
+  function hideProfile() {
+    profileSeq = (profileSeq || 0) + 1;                   // 연대를 되살릴 때 이 줄보다 먼저 불린다 — 아직 undefined 일 수 있다
+    profileData = null;
+    $("profile").hidden = true;
+  }
+  function showProfile(coords) {
+    if (paleoOn()) { hideProfile(); return; }
+    var seq = ++profileSeq, box = $("profile");
+    profileData = null;
+    box.hidden = false;
+    $("profile-svg").innerHTML = "";
+    profileBand = null;
+    if (window.GSMBand) GSMBand.reset($("profile-svg"), PROFILE);
+    $("profile-sum").textContent = "";
+    $("profile-read").textContent = T("높이를 읽는 중…");
+    // 30 m 에 한 점쯤, 64–512 점 (지역 탭과 같다)
+    var n = Math.max(64, Math.min(512, Math.round(lengthOf(coords) / 30)));
+    var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
+    fetch(BASE + "elevation/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        if (seq !== profileSeq) return;
+        drawProfile(d);
+        var layer = bandLayer();
+        if (!layer || !profileData) return;
+        GSMBand.load(BASE, layer, line, n).then(function (band) {
+          if (seq !== profileSeq || !band || !profileData) return;
+          profileBand = band;
+          GSMBand.draw($("profile-svg"), PROFILE, profileData.X, d, band, T("지각"));
+        });
+      })
+      .catch(function () { if (seq === profileSeq) $("profile-read").textContent = T("높이를 읽지 못했다"); });
+  }
+  function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
+  function drawProfile(d) {
+    var P = PROFILE, pw = P.W - P.L - P.R, ph = P.H - P.T - P.B;
+    var got = d.elev.filter(function (e) { return e !== null; });
+    if (!got.length) { $("profile-read").textContent = T("높이를 읽지 못했다"); return; }
+    var lo = Math.min.apply(null, got), hi = Math.max.apply(null, got), total = d.dist[d.dist.length - 1] || 1;
+    var pad = Math.max(10, (hi - lo) * 0.08), y0 = lo - pad, y1 = hi + pad;
+    function X(dist) { return P.L + pw * dist / total; }
+    function Y(e) { return P.T + ph * (1 - (e - y0) / (y1 - y0)); }
+    // 못 읽은 점에서 선을 끊는다
+    var path = "", area = "", run = [];
+    function flush() {
+      if (run.length > 1) {
+        path += "M" + run.join("L");
+        area += "M" + run[0].split(",")[0] + "," + (P.T + ph) + "L" + run.join("L") + "L" +
+                run[run.length - 1].split(",")[0] + "," + (P.T + ph) + "Z";
+      }
+      run = [];
+    }
+    d.elev.forEach(function (e, i) {
+      if (e === null) { flush(); return; }
+      run.push(X(d.dist[i]).toFixed(1) + "," + Y(e).toFixed(1));
+    });
+    flush();
+    var up = 0, down = 0;
+    for (var i = 1; i < d.elev.length; i++) {
+      if (d.elev[i] === null || d.elev[i - 1] === null) continue;
+      var dh = d.elev[i] - d.elev[i - 1];
+      if (dh > 0) up += dh; else down -= dh;
+    }
+    var svg = '<g>';
+    [y0 + (y1 - y0) * 0.1, (y0 + y1) / 2, y1 - (y1 - y0) * 0.1].forEach(function (e) {
+      svg += '<line class="grid" x1="' + P.L + '" x2="' + (P.W - P.R) + '" y1="' + Y(e).toFixed(1) + '" y2="' + Y(e).toFixed(1) + '"/>' +
+             '<text class="tick" x="' + (P.L - 5) + '" y="' + (Y(e) + 3.5).toFixed(1) + '" text-anchor="end">' + esc(Math.round(e).toLocaleString()) + '</text>';
+    });
+    [0, 0.5, 1].forEach(function (f) {
+      svg += '<text class="tick" x="' + X(total * f).toFixed(1) + '" y="' + (P.H - 6) + '" text-anchor="' +
+             (f === 0 ? "start" : f === 1 ? "end" : "middle") + '">' + esc(asLength(total * f)) + '</text>';
+    });
+    svg += '</g><path class="area" d="' + area + '"/><path class="line" d="' + path + '"/>' +
+           '<line class="cursor" id="profile-cursor" y1="' + P.T + '" y2="' + (P.T + ph) + '" visibility="hidden"/>' +
+           '<circle class="dot" id="profile-dot" r="3.5" visibility="hidden"/>';
+    $("profile-svg").innerHTML = svg;
+    $("profile-sum").textContent = T("최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}",
+      { lo: asHeight(lo), hi: asHeight(hi), up: asHeight(up), down: asHeight(down) });
+    var read = (d.sources || []).some(function (s) { return s.indexOf("gsi") === 0; })
+      ? T("국토지리원·AWS 표고 타일에서 읽은 해발 높이 — 바다는 수심(음수)") : T("AWS 표고 타일(SRTM·GMTED)에서 읽은 해발 높이 — 바다는 수심(음수)");
+    $("profile-read").textContent = read;
+    profileData = { d: d, X: X, Y: Y, total: total, read: read };
+  }
+  (function () {
+    var svg = $("profile-svg");
+    function at(evt) {
+      if (!profileData) return;
+      var r = svg.getBoundingClientRect(), P = PROFILE;
+      var x = (evt.clientX - r.left) * P.W / r.width;
+      var dist = Math.max(0, Math.min(1, (x - P.L) / (P.W - P.L - P.R))) * profileData.total;
+      var d = profileData.d, best = 0;
+      for (var i = 1; i < d.dist.length; i++) if (Math.abs(d.dist[i] - dist) < Math.abs(d.dist[best] - dist)) best = i;
+      var cx = profileData.X(d.dist[best]).toFixed(1), cur = $("profile-cursor"), dot = $("profile-dot");
+      cur.setAttribute("x1", cx); cur.setAttribute("x2", cx); cur.setAttribute("visibility", "visible");
+      if (d.elev[best] !== null) {
+        dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
+        dot.setAttribute("visibility", "visible");
+      } else dot.setAttribute("visibility", "hidden");
+      var unit = window.GSMBand ? GSMBand.unitAt(profileBand, best) : "";
+      var here = { d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]), unit: unit };
+      $("profile-read").textContent = unit ? T("거리 {d} · 높이 {h} · {unit}", here) : T("거리 {d} · 높이 {h}", here);
+      markAt([d.lon[best], d.lat[best]]);
+    }
+    svg.addEventListener("mousemove", at);
+    svg.addEventListener("mouseleave", function () {
+      if (!profileData) return;
+      $("profile-cursor").setAttribute("visibility", "hidden");
+      $("profile-dot").setAttribute("visibility", "hidden");
+      $("profile-read").textContent = profileData.read;
+      markAt(null);
+    });
+    $("profile-close").addEventListener("click", hideProfile);
+  })();
   function addTemp(ll) {
     var w = wrapLon(ll);
     tempSeq += 1;
@@ -3514,6 +3643,7 @@
   function clearDrawn() {
     cancelSketch();
     temps = []; ranges = []; measured = null;
+    hideProfile();
     tempSeq = rangeSeq = 0;
     lastMeasure = "";
     var out = $("measure-out");

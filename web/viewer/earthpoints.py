@@ -7,6 +7,7 @@
 """
 import functools
 import json
+import re
 
 from . import fossils, gvp, i18n, neotoma, paleoeco, pbdb, quakes, usgs, volcanoes
 from .i18n import msg
@@ -88,6 +89,15 @@ def stamp(name: str) -> str:
     conn = fossils.db()
     row = conn.execute("SELECT v FROM meta WHERE k = 'built'").fetchone() if conn else None
     return row[0] if row else ""
+
+
+#: 덩이를 짓는 법 — 열·색·네모를 고치면 올린다. 판(`version`)에 들어 주소가 바뀐다
+RENDERER = "1"
+
+
+def version(name: str) -> str:
+    """주소의 판(`?v=`) — 짓는 법과 모으거나 다시 구운 날. 바뀌면 화면이 새 주소로 묻는다 (wetherilli 183·185)."""
+    return RENDERER + "-" + re.sub(r"[^0-9A-Za-z]+", "", stamp(name))
 
 
 def _hex(rgb: tuple) -> str:

@@ -31,7 +31,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
+from . import basemaps, bgr, bgs, brgm, egdi, emodnet, gsi, gtk, igme, linked, ngu, usage
 from . import earthpoints, profileband, static_tables
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2144,7 +2144,7 @@ def _point_fields(layer) -> dict:
         src = earthpoints.source_of(layer.name)
         return {"kind": "points", "queryable": False, "style": "class",
                 "source": earthpoints.SOURCE_URLS[src], "sourceLabel": str(earthpoints.SOURCE_LABELS[src]),
-                "attribution": earthpoints.CREDITS[src]}
+                "attribution": earthpoints.CREDITS[src], "version": earthpoints.version(layer.name)}
     if layer.upstream == "npolar" and npolar.knows_points(layer.name):
         return {"kind": "points", "queryable": False, "style": npolar.POINTS[layer.name]["style"],
                 "source": npolar.source_url(layer.name), "portal": npolar.DATA_URL,
@@ -2316,7 +2316,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    npolar.NpolarError, kopri.KopriError, elevation.ElevationError, gsj.GsjError,
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
-                   bgr.BgrError, igme.IgmeError, gsi.GsiError)
+                   bgr.BgrError, igme.IgmeError, gsi.GsiError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2545,6 +2545,65 @@ def vworld_tile(request, layer, z, y, x):
     if got is None:
         return _tile(tiles.blank_tile(256, 256))
     return _tile(got[0], content_type=got[1])
+
+
+# ── 조건이 열린 배경 — NASA GIBS·GEBCO (wetherilli 184) ──
+#
+# 브라우저가 곧장 부르던 것을 서버가 받아 담는다(`basemaps.py`). 받는 것은 브라우저가 부르던 주소와 같다 — WMTS 는 같은 경로,
+# WMS 는 같은 변수다. 정적 판(서버가 없다)은 여전히 곧장 부른다(`map.js` 의 `STATIC`).
+
+def gibs_tile_key(epsg, layer, z, x, y):
+    """GIBS WMTS 타일의 캐시 열쇠."""
+    return tilecache.key_text("gibs", f"{epsg}/{layer}/{z}/{y}/{x}")
+
+
+def _open_basemap(key, fetch, size, label):
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        content = fetch()
+    except basemaps.BasemapError as exc:
+        # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다
+        old = tilecache.get(key, stale=True)
+        if old is not None:
+            return _tile(old, cached=True)
+        log.warning("%s 배경을 받지 못했다: %s", label, exc)
+        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+    tilecache.put(key, content)
+    response = _tile(content)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+@require_GET
+def gibs_tile(request, epsg, layer, z, y, x):
+    """NASA GIBS Blue Marble — `gibs/<투영>/<레이어>/<z>/<y>/<x>.jpeg`. 자리 차례는 WMTS 대로 z/y/x."""
+    z, y, x = int(z), int(y), int(x)
+    if not basemaps.knows_gibs_tile(epsg, layer, z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    return _open_basemap(gibs_tile_key(epsg, layer, z, x, y), lambda: basemaps.gibs_tile(epsg, layer, z, x, y),
+                         512, "GIBS")
+
+
+def _open_wms(request, kind, layers, fetch, label):
+    params = kigam.clean_params(request.GET)
+    if not basemaps.wms_ok(params, layers):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    size = max(_int(params.get("width"), 256), _int(params.get("height"), 256))
+    return _open_basemap(tilecache.key_for(kind, params), lambda: fetch(params), size, label)
+
+
+@require_GET
+def gibs_wms(request):
+    """NASA GIBS WMS(4326) — 온 지구의 구(Cesium)가 부른다."""
+    return _open_wms(request, "gibs", basemaps.GIBS_LAYERS, basemaps.gibs_wms, "GIBS")
+
+
+@require_GET
+def gebco_wms(request):
+    """GEBCO 해저 지형 WMS — 지역 탭의 배경과 온 지구 평면이 부른다."""
+    return _open_wms(request, "gebco", basemaps.GEBCO_LAYERS, basemaps.gebco_wms, "GEBCO")
 
 
 @require_GET
@@ -3384,7 +3443,7 @@ def point_layer(request):
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
-        return _earth_points_layer(name, lang)
+        return _earth_points_layer(request, name, lang)
     _, module = _point_door(name)
     # 지명은 레이어가 아니라 찾기 칸의 것이다 — 통째로 내주지 않는다
     if module is None or name in PLACE_FIELDS:
@@ -3513,7 +3572,7 @@ def _kopri_layer(name, lang):
     return response
 
 
-def _earth_points_layer(name, lang):
+def _earth_points_layer(request, name, lang):
     """지역 탭의 지구 자료 점(wetherilli 185) — 화석 산지·홀로세 화산·지진·고생태 산지를 지역의 네모만큼. 꼴과 까닭은
     `_kopri_layer` 와 같다. 모아 둔 파일에서 자를 뿐이라 상류를 타지 않는다."""
     try:
@@ -3526,7 +3585,8 @@ def _earth_points_layer(name, lang):
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
-    return response
+    # 모아 둔 파일에서 나오니 판이 있다 — 카탈로그가 준 `?v=` 가 맞으면 오래 둔다 (wetherilli 183)
+    return _immutable(request, response, earthpoints.version(name))
 
 
 def _geomap_legend(request, layer):

@@ -113,6 +113,16 @@ class PointsView(TestCase):
         self.assertEqual(r["Content-Type"], "application/geo+json")
         self.assertEqual(len(r.json()["features"]), 1)
 
+    @override_settings(TILE_CACHE_SECONDS=86400, TILE_IMMUTABLE_SECONDS=31536000)
+    def test_판이_맞으면_오래_둔다(self):
+        gathered(self.dir)
+        version = earthpoints.version("earth:quakes_korea")
+        url = reverse("viewer:points")
+        same = self.client.get(url, {"layer": "earth:quakes_korea", "v": version})
+        self.assertIn("immutable", same["Cache-Control"])
+        old = self.client.get(url, {"layer": "earth:quakes_korea", "v": "0-old"})
+        self.assertNotIn("immutable", old["Cache-Control"])
+
     def test_자료가_없으면_명령을_적는다(self):
         r = self.client.get(reverse("viewer:points"), {"layer": "earth:pbdb_antarctica"})
         self.assertEqual(r.status_code, 503)
@@ -141,6 +151,7 @@ class Catalog(TestCase):
             self.assertEqual((layer["kind"], layer["style"], layer["upstream"]), ("points", "class", "earth"))
         _, volcano = self.layer("earth:gvp_korea")
         self.assertIn("비상업", volcano["sourceLabel"])
+        self.assertTrue(volcano["version"].startswith(earthpoints.RENDERER + "-"))
 
     def test_정적_판에는_싣지_않는다(self):
         spec = {"regions": ["korea", "antarctica", "arctic_ocean"], "upstreams": ["kigam", "kopri", "emodnet"]}
