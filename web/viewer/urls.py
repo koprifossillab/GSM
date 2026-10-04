@@ -84,6 +84,10 @@ urlpatterns = [
     re_path(r"^earth/crust/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_crust_tile,
             name="earth-crust-tile"),
     path("earth/crust/at/", views.earth_crust_at, name="earth-crust-at"),
+    # 충돌구·거대 화성암 지대 (impacts.py, wetherilli 283)
+    re_path(r"^earth/impacts/(?P<layer>impacts|lips)/(?P<ma>\d{1,4})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
+            views.earth_impacts_tile, name="earth-impacts-tile"),
+    path("earth/impacts/at/", views.earth_impacts_at, name="earth-impacts-at"),
     # 세계 활성단층 GEM (faults.py, wetherilli 279)
     re_path(r"^earth/faults/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_faults_tile, name="earth-faults-tile"),
     path("earth/faults/at/", views.earth_faults_at, name="earth-faults-at"),
