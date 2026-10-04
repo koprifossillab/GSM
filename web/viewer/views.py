@@ -530,7 +530,7 @@ def moon_tile(request, layer, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("달 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -591,7 +591,7 @@ def moon_polar_tile(request, pole, layer, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("달 극 지질도 타일을 받지 못했다 (%s %s %s/%s/%s): %s", pole, layer, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -916,7 +916,7 @@ def trek_map_tile(request, body, label, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("Trek 판 타일을 받지 못했다 (%s %s %s/%s/%s): %s", body, label, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -944,7 +944,7 @@ def trek_map_polar_tile(request, body, label, pole, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("Trek 극지 판 타일을 받지 못했다 (%s %s %s %s/%s/%s): %s", body, label, pole, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -1094,7 +1094,7 @@ def mars_tile(request, layer, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("화성 지질도 타일을 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -1127,7 +1127,7 @@ def mars_polar_tile(request, pole, layer, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("화성 극 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", pole, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -1549,7 +1549,7 @@ def earth_tile(request, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("Macrostrat 타일을 받지 못했다 (%s/%s/%s): %s", z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)                   # 바다의 빈 타일도 담는다 — 다시 물을 까닭이 없다
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -3406,7 +3406,7 @@ def wms(request):
             content, ctype = piece, "image/png"
         else:
             content, ctype = door.get_map(params)
-    except UPSTREAM_ERRORS as exc:
+    except (*UPSTREAM_ERRORS, metatile.Busy) as exc:
         # 늙어서 다시 물었는데 상류가 못 준다 — 빈 자리보다 옛것이 낫다. 메타타일 레이어는 조각에도 옛것이 있다
         old = tilecache.get(cache_key, stale=True)
         if old is None and last is not False:
@@ -3415,7 +3415,8 @@ def wms(request):
             log.info("타일을 못 받아 옛것을 낸다: %s", exc)
             return _tile(old, cached=True)
         log.warning("타일을 받지 못했다: %s", exc)
-        return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
+        # 늦은 것(문 한계·잠금 기다림)은 "느리다" 로 가른다 — 다시 보면 나올 수 있다 (wetherilli 300)
+        return _tile(tiles.notice_tile(width, height, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
 
     # 안내 타일은 캐시에 넣지 않는다 — 위에서 store=False 로 갈라 둔 까닭이다.
     # 자료를 파는 상류(`NO_STORE`)도 담지 않는다 — 그때그때 받아 보여 주기만 한다 (wetherilli 209)
@@ -3438,7 +3439,7 @@ def _geomap_wms(params, width, height):
         content, _ = geomap.get_map(params)
     except geomap.GeomapError as exc:
         log.info("GeoMAP 을 그리지 못했다: %s", exc)
-        return _tile(tiles.notice_tile(width, height, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(width, height, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     return _tile(content)
 
 
@@ -3467,7 +3468,7 @@ def geomap_tile(request, layer, z, x, y, retina=None):
         png, cached = _geomap_png(layer, z, x, y, size)
     except (geomap.GeomapError, OSError, ValueError) as exc:
         log.warning("GeoMAP 타일을 그리지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
-        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(size, size, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     response = _immutable(request, _tile(png, cached=cached), geomap_version())
     if not cached:
         response["X-GSM-Cache"] = "miss"
@@ -3521,7 +3522,7 @@ def gsj_tile(request, layer, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("GSJ 타일을 받지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     # 빈 타일도 담는다 — 바다 한가운데를 다시 물을 까닭이 없다
     tilecache.put(key, png)
     response = _tile(png)
@@ -3542,7 +3543,7 @@ def vworld_tile(request, layer, z, y, x):
         got = vworld.get_wmts_tile(layer, int(z), int(y), int(x))
     except vworld.VWorldError as exc:
         log.warning("VWorld 배경지도를 받지 못했다: %s", exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     if got is None:
         return _tile(tiles.blank_tile(256, 256))
     return _tile(got[0], content_type=got[1])
@@ -3570,7 +3571,7 @@ def _open_basemap(key, fetch, size, label):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("%s 배경을 받지 못했다: %s", label, exc)
-        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(size, size, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, content)
     response = _tile(content)
     response["X-GSM-Cache"] = "miss"
@@ -3631,7 +3632,7 @@ def phyloserver_tile(request, layer, level, x, y):
         png = phyloserver.get_scan_tile(name, level, x, y)
     except phyloserver.PhyloserverError as exc:
         log.warning("phyloserver 타일을 받지 못했다 (%s %s/%s_%s): %s", name, level, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     if png is None:
         png = tiles.blank_tile(256, 256)
     return _tile(png)
@@ -3827,7 +3828,7 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
         png = warp.render(grid, z, x, y, size)
     except (phyloserver.PhyloserverError, geomap.GeomapError, OSError, ValueError) as exc:
         log.warning("다시 펴지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
-        return _tile(tiles.notice_tile(size, size, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(size, size, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     png = png or tiles.blank_tile(size, size)
     if key:
         tilecache.put(key, png)
@@ -4048,7 +4049,7 @@ def ingemmet_tile(request, sheet, z, x, y):
         if old is not None:
             return _tile(old, cached=True)
         log.warning("페루 타일을 받지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     png = png if png is not None else tiles.blank_tile(256, 256)
     tilecache.put(key, png)
     response = _tile(png)
@@ -4672,7 +4673,7 @@ def sim3534_tile(request, sheet, z, x, y):
         png = caribmap.render_tile(name, z, x, y)
     except (caribmap.CaribMapError, OSError, ValueError) as exc:
         log.warning("대앤틸리스 타일을 그리지 못했다 (%s %s/%s/%s): %s", name, z, x, y, exc)
-        return _tile(tiles.notice_tile(256, 256, tiles.NO_MAP), store=False)
+        return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
     tilecache.put(key, png)
     return _immutable(request, _tile(png), sim3534_version())
 

@@ -381,6 +381,12 @@ TILE_CACHE_SECONDS = env_int("GSM_TILE_CACHE_SECONDS", 86400)
 #: 상류에서 받은 것은 위의 하루 그대로이고, 지나면 ETag 로 되묻는다(304)
 TILE_IMMUTABLE_SECONDS = env_int("GSM_TILE_IMMUTABLE_SECONDS", 365 * 86400)
 UPSTREAM_TIMEOUT = env_int("GSM_UPSTREAM_TIMEOUT", 20)
+#: 시간 한계의 사슬 (wetherilli 300) — 바깥이 안보다 길어야 504 대신 우리 안내 타일이 나간다.
+#:   nginx `proxy_read_timeout` 90 초(deploy/nginx) > 문 한계 `UPSTREAM_TIMEOUT_MAX` 60 초 + 메타타일 잠금 기다림 `METATILE_LOCK_WAIT` 20 초 + 여유 10 초.
+#: 화면이 부르는 길의 문은 상류 한 번을 이것보다 길게 기다리지 않는다(`test_timeouts` 가 지킨다). 호스트·사람이 부르는 받기(바람·지진 목록·씨앗)는 따로다.
+#: gunicorn `--timeout 60` 은 요청 한계가 아니다 — 스레드 워커(gthread)에서는 워커가 살아 있는지만 본다
+UPSTREAM_TIMEOUT_MAX = env_int("GSM_UPSTREAM_TIMEOUT_MAX", 60)
+METATILE_LOCK_WAIT = env_int("GSM_METATILE_LOCK_WAIT", 20)
 
 #: 받아온 타일을 우리 디스크에 두는 자리. 비우면 캐시를 끈다.
 #: 위의 TILE_CACHE_SECONDS 와 **다른 것이다** — 저쪽은 브라우저,
