@@ -374,6 +374,8 @@ CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
 GSMMA_CATALOG_SEED = REPO_DIR / "data" / "gsmma_layers.json"
 #: 북극해 — EMODnet 해저 지질 (wetherilli 135)
 EMODNET_CATALOG_SEED = REPO_DIR / "data" / "emodnet_layers.json"
+# 유럽 바다의 제4기 퇴적층·지질 사건 — 영국에 두고 유럽 탭들이 빌린다 (wetherilli 176)
+EMODNET_EUROPE_CATALOG_SEED = REPO_DIR / "data" / "emodnet_europe_layers.json"
 #: 노르웨이·핀란드 — NGU·GTK 기반암 지질도 (wetherilli 140)
 NGU_CATALOG_SEED = REPO_DIR / "data" / "ngu_layers.json"
 GTK_CATALOG_SEED = REPO_DIR / "data" / "gtk_layers.json"

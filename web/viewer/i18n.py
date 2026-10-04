@@ -2068,6 +2068,11 @@ PROP_EN = {
     "단층 이름": "Fault name",
     "원 범례": "Original legend",
     "자료 보유 기관": "Data holder",
+    "해저 사태": "Submarine landslides",
+    "해저 화산": "Submarine volcanoes",
+    "제4기 구조운동": "Quaternary tectonics",
+    "지진해일": "Tsunamis",
+    "해저 유체 분출": "Submarine fluid emissions",
     "참고 문헌": "Reference",
 }
 
@@ -2591,6 +2596,10 @@ LAYER_EN = {
     "emodnet:cp_wp4_pre_quaternary_geology_age": "Pre-Quaternary geology — age",
     "emodnet:bgr:pre_quaternary_faults": "Pre-Quaternary faults",
     "emodnet:cp_wp3_seabed_substrate_folk_7": "Seabed substrate (Folk 7)",
+    # 유럽 바다 (wetherilli 176)
+    "emodnet:bgr:quaternary_lithology": "Quaternary deposits — lithology",
+    "emodnet:bgr:quaternary_age": "Quaternary deposits — age",
+    "emodnet:cp_wp6_geological_event_distribution_250k": "Geological event distribution (coloured by submarine landslides)",
     "EASIA_CCOP_2M_Combined_BLT_SLT_BA": "CCOP 1:2M geology (bedrock, superficial, age)",
     # 대만 (wetherilli 136)
     "gsmma:geology_50k": "1:50k geological map",
