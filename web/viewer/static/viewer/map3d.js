@@ -43,7 +43,8 @@
     try {
       var v = JSON.parse(localStorage.getItem(VIEW_KEY) || "null");
       // 극지 탭이 적은 줌은 극 평사도법의 줌이라 3D(메르카토르)에 그대로 쓰지 않는다
-      if (v && isFinite(v.lon) && (!v.proj || v.proj === "EPSG:3857")) {
+      // 캐나다 람베르트(3978, 캐나다·미국 탭)는 범위를 3857 과 같은 너비로 잡아 줌이 같은 해상도다 — 그대로 쓴다 (wetherilli 210)
+      if (v && isFinite(v.lon) && (!v.proj || v.proj === "EPSG:3857" || v.proj === "EPSG:3978")) {
         return { center: [v.lon, v.lat], zoom: Math.max(8, v.zoom) - 1 };
       }
     } catch (e) { /* 사생활 모드 */ }

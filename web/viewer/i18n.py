@@ -698,6 +698,7 @@ EN = {
     "에콰도르 지질·에너지 연구소": "IIGE (Geological and Energy Research Institute of Ecuador)",
     # 미국 (wetherilli 205)
     "미국": "United States",
+    "캐나다 람베르트": "Canada Atlas Lambert",          # 미국 탭의 화면 투영 (wetherilli 210 — 캐나다 204 와 같은 줄)
     # 멕시코 (wetherilli 206)
     "멕시코": "Mexico",
     "멕시코 지질조사소": "Mexican Geological Survey (SGM)",

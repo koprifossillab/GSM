@@ -292,11 +292,11 @@
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
               borrow: { arctic_ocean: ["emodnet"] } },
-    // ── 북미 (wetherilli 205) ──
-    // 미국 — USGS SGMC(본토 48 주, 주 지질도 합본)와 알래스카 SIM 3340. 공공 도메인. 3857 이라 알래스카는 부풀어 보인다 — 북미 묶음은
-    // 캐나다 탭(gsm-57)이 들어오면 그 투영에 맞춰 세운다
-    usa: { title: "미국", proj: "EPSG:3857", center: [-98.0, 39.0], zoom: 4, vworld: false,
-           home: [-13971000, 2753000, -7403000, 6412000],
+    // ── 북미 (wetherilli 205·210) ──
+    // 미국 — USGS SGMC(본토 48 주, 주 지질도 합본)와 알래스카 SIM 3340. 공공 도메인. 화면은 캐나다와 같은 캐나다 람베르트(3978) —
+    // 3857 이면 알래스카가 본토만큼 부푼다. 레이어는 3857 로 받아 화면이 옮겨 그린다(카탈로그 행의 `projection`, wetherilli 210)
+    usa: { title: "미국", proj: "EPSG:3978", center: [-105.0, 45.0], zoom: 3, vworld: false,
+           home: [-4204000, -2746000, 3309000, 3650000],
            basemap: "eox_terrain", example: "39.74, -104.99 · Denver",
            base: ["mrdata:sgmc2:sgmc2", "mrdata:sgmc2:sgmc2structure", "mrdata:sim3340:units"],
            first: "mrdata:sgmc2:sgmc2" },
@@ -354,6 +354,11 @@
     proj4.defs("EPSG:5179", "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
     ol.proj.get("EPSG:3575").setExtent([-9009964.76, -9009964.76, 9009964.76, 9009964.76]);
+    // 캐나다 람베르트(NAD83 / Canada Atlas Lambert, wetherilli 204) — 캐나다 탭의 화면. 3857 은 북극 섬을 크게 부풀리고 3413 은
+    // 서경 45° 가 위라 캐나다가 50° 기운다. 범위는 3857 과 같은 너비로 — 줌 번호가 같은 해상도다(서버의 `tilegrid.EXTENT` 와 같다)
+    proj4.defs("EPSG:3978", "+proj=lcc +lat_0=49 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+    ol.proj.proj4.register(proj4);
+    ol.proj.get("EPSG:3978").setExtent([-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244]);
   }
 
   //: 남극은 카탈로그에 레이어군(GeoMAP)이 없을 때만 "준비 중" 이다 — GeoMAP
@@ -2012,6 +2017,7 @@
     "EPSG:3857": "웹 메르카토르",
     "EPSG:3413": "북극 평사도법",
     "EPSG:3031": "남극 평사도법",
+    "EPSG:3978": "캐나다 람베르트",
   };
   function showProjection(changed) {
     var el = document.getElementById("projbadge");
