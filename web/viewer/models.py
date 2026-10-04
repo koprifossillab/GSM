@@ -46,7 +46,11 @@ REGIONS = (("korea", "한국"), ("greenland", "그린란드"), ("antarctica", "�
            # 미국 — USGS SGMC·알래스카 SIM 3340 (wetherilli 205). 북미 묶음은 캐나다가 들어오면 세운다
            ("usa", "미국"),
            # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
-           ("mexico", "멕시코"))
+           ("mexico", "멕시코"),
+           # 아프리카 — 대륙 판(CGMW–BRGM 1:1000만)이 바탕이라 탭 하나. 나라 판이 붙으면 그때 가른다 (wetherilli 207)
+           ("africa", "아프리카"),
+           # 캐나다 — NRCan 1:500만·온타리오 OGS (wetherilli 204). 화면은 캐나다 람베르트(3978)다. 묶음 "북미" 는 DB 에 없다(남미와 같다)
+           ("canada", "캐나다"))
 
 
 class LayerGroup(models.Model):
@@ -105,8 +109,10 @@ class Layer(models.Model):
     #: sgc → `sgc.py` (남미·콜롬비아 지질도, wetherilli 188), sgb → `sgb.py` (브라질 지질도, wetherilli 191),
     #: ingemmet → `ingemmet.py` (페루 지질도 — REST 타일 캐시, wetherilli 195)
     #: segemar → `segemar.py` (아르헨티나 지질도), dinamige → `dinamige.py` (우루과이 지질도, wetherilli 196)
-    #: iige → `iige.py` (에콰도르 지질도, wetherilli 198)
-    #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205), sgm → `sgm.py` (멕시코 지질도 — REST export, wetherilli 206)
+    #: iige → `iige.py` (에콰도르 지질도, wetherilli 198),
+    #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205), sgm → `sgm.py` (멕시코 지질도 — REST export, wetherilli 206),
+    #: cgmw → `brgm.py` 의 CGMW (아프리카 1:1000만), aga → `bgs.py` 의 AGA (아프리카 지하수 지도책 나라별 지질, wetherilli 207)
+    #: nrcan → `nrcan.py` (캐나다 1:500만), ogs → `ogs.py` (온타리오 1:25만, wetherilli 204)
     upstream = models.CharField("상류", max_length=20, default="kigam")
     #: 어떻게 그리나. wms → 상류가 그린 타일을 얹는다. vector → 모양을 받아
     #: 우리가 그린다 (단층, devlog 020). 거의 전부가 wms 다

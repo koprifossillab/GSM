@@ -76,6 +76,9 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 캐나다 (wetherilli 204)
+    "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
+    "캐나다 람베르트": "Canada Atlas Lambert",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "드러스트": "Thrust", "추정 드러스트": "Inferred thrust", "정단층": "Normal fault", "추정 정단층": "Inferred normal fault",
     "주향이동단층": "Strike-slip fault", "추정 주향이동단층": "Inferred strike-slip fault", "추정 단층": "Inferred fault",
@@ -692,6 +695,10 @@ EN = {
     "아르헨티나": "Argentina",
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
+    # 아프리카 (wetherilli 207)
+    "아프리카": "Africa",
+    "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
+    "영국 지질조사소 — 아프리카 지하수 지도책": "British Geological Survey — Africa Groundwater Atlas",
     "우루과이 광업지질국": "Uruguay National Directorate of Mining and Geology (DINAMIGE)",
     # 에콰도르 (wetherilli 198)
     "에콰도르": "Ecuador",
@@ -1721,6 +1728,8 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "시대별 암석": "Rock by age", "변성 정도": "Metamorphic grade", "지질구": "Geological province", "영역": "Domain",
+    "편집": "Compiled by", "층서": "Stratigraphy", "물질": "Material",
     "광종 기호": "Commodity symbol", "지층 기호": "Unit symbol", "대표 암상": "Representative lithology",
     "조사연도": "Survey year",
     "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
@@ -2061,6 +2070,7 @@ PROP_EN = {
     "측정법": "Technique",
     "계산법": "Approach",
     "암상": "Lithology",
+    "연대": "Age",                      # 아프리카 CGMW 의 `AGE`("23 - 2.6 Ma") (wetherilli 207)
     "제공 기관": "Provider",
     "암석 갈래": "Rock type",
     "지괴": "Terrane",
@@ -2684,6 +2694,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
+    "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
     "국토지리원 주제도": "GSI thematic maps",
@@ -2754,6 +2766,8 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
+    "아프리카 지질도 (CGMW–BRGM 1:1000만)": "Africa geology (CGMW–BRGM 1:10M)",
+    "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
     "에콰도르 지질도 (IIGE)": "Ecuador geology (IIGE)",
     "미국 본토 지질도 (USGS SGMC)": "Conterminous US geology (USGS SGMC)",
     "알래스카 지질도 (USGS SIM 3340)": "Alaska geology (USGS SIM 3340)",
@@ -2762,6 +2776,9 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 캐나다 (wetherilli 204)
+    "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
+    "ogs:1": "Ontario Quaternary geology", "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
     "kigam50k:fault": "Faults (1:50k)", "kigam50k:fold": "Folds (1:50k)",
     "kigam50k:zones": "Alteration and metamorphic zones (1:50k)", "kigam50k:oretype": "Ore commodities (1:50k)",
@@ -2835,6 +2852,11 @@ LAYER_EN = {
     "dinamige:0": "Geological units (1:500k)",
     "dinamige:1": "Faults, contacts and lineaments (1:500k)",
     "dinamige:2": "Dykes (1:500k)",
+    # 아프리카 (wetherilli 207)
+    "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits": "Geological units (1:10M)",
+    "cgmw:AFR_CGMW_BRGM_10M_Faults": "Faults (1:10M)",
+    "cgmw:AFR_CGMW_BRGM_10M_Oceanic_crust_domain": "Oceanic crust (1:10M)",
+    "aga:geology": "Country lithology (1:5M, 38 countries)",
     "iige:geologia_general": "General geological map",
     # 미국 (wetherilli 205)
     "mrdata:sgmc2:sgmc2": "Geologic units (state map compilation)",

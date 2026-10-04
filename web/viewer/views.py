@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, segemar, sgb, sgc, sgm, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -369,7 +369,11 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 미국 USGS mrdata(wetherilli 205) — MapServer WMS 가 3857 로 그린다
              "mrdata",
              # 멕시코 SGM(wetherilli 206) — 문이 WMS 변수를 REST export 로 옮긴다
-             "sgm")
+             "sgm",
+             # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
+             "cgmw", "aga",
+             # 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
+             "nrcan", "ogs")
 
 
 @require_GET
@@ -2327,6 +2331,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "nrcan" and nrcan.knows(layer.name):
+        # 캐나다 NRCan 1:500만(wetherilli 204) — 캐나다 탭의 투영(3978, 캐나다 람베르트)으로 곧장 받는다. 범례는 상류의 그림
+        return {"attribution": nrcan.ATTRIBUTION, "projection": "EPSG:3978"}
+    if layer.upstream == "ogs" and ogs.knows(layer.name):
+        # 온타리오 OGS(wetherilli 204) — 3978 로 다시 그려 준다. 속성은 REST identify(문이 WMS 꼴을 바꾼다)
+        return {"attribution": ogs.ATTRIBUTION, "projection": "EPSG:3978"}
     if layer.upstream == "sgm" and sgm.knows(layer.name):
         # 멕시코 SGM(wetherilli 206) — WMS 가 막혀 문이 REST export 로 옮긴다. 화면에는 3857 WMS 와 같다. 1:5만은 가까이서만.
         # 범례는 보는 범위의 것(`sgm/legend/`, 페루와 같은 꼴), 구조선은 범례·누르기가 없다
@@ -2368,6 +2378,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         legend = ({"legend": "list", "legendUrl": "dinamige/legend/"} if layer.name in dinamige.LEGEND_LAYERS
                   else {"noLegend": True})
         return {"attribution": dinamige.ATTRIBUTION, "projection": "EPSG:3857", **legend}
+    if layer.upstream == "cgmw":
+        # 아프리카 1:1000만(wetherilli 207) — BRGM 의 mapsref 서버, 3857 그대로. 범례는 Capabilities 의 정적 PNG(`brgm.cgmw_get_legend`)
+        return {"attribution": brgm.CGMW_ATTRIBUTION, "projection": "EPSG:3857"}
+    if layer.upstream == "aga":
+        # 아프리카 지하수 지도책의 나라별 지질(wetherilli 207) — 38 나라 레이어를 문이 이어 묻는다. 3857 그대로
+        return {"attribution": bgs.AGA_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "gsni":
         return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
@@ -2447,7 +2463,8 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, basemaps.BasemapError)
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError,
+                   basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2496,14 +2513,18 @@ class _Door:
                # 미국(wetherilli 205)
                "mrdata": mrdata,
                # 멕시코(wetherilli 206)
-               "sgm": sgm}
+               "sgm": sgm,
+               # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
+               "cgmw": brgm.CGMW, "aga": bgs.AGA,
+               # 캐나다(wetherilli 204)
+               "nrcan": nrcan, "ogs": ogs}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "nrcan", "ogs"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3579,6 +3600,10 @@ def feature_info(request):
             props = bgs.friendly(props, lang)        # LEX_D → 지층명 …, 시대를 옮긴다
         elif door.name == "brgm":
             props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
+        elif door.name == "cgmw":
+            props = brgm.cgmw_friendly(props, lang)   # 아프리카 1:1000만 — ICS 시대는 옮기고 암석은 영어 그대로 (wetherilli 207)
+        elif door.name == "aga":
+            props = bgs.aga_friendly(props, lang)     # 나라마다 다른 `…GLG` 열이 암상이다 (wetherilli 207)
         elif door.name == "gsni":
             props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
         elif door.name == "egdi":
@@ -3593,6 +3618,9 @@ def feature_info(request):
             props = mrdata.friendly(props, lang)     # 미국 — 값은 영어 그대로, 알래스카의 시대만 옮긴다 (wetherilli 205)
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
+        elif door.name in ("nrcan", "ogs"):
+            # 캐나다(wetherilli 204) — 열 이름은 한국어로, 지질시대(ICS 영어)는 한국어판에서 옮긴다. 암상·층서는 영어 그대로
+            props = {"nrcan": nrcan, "ogs": ogs}[door.name].friendly(props, lang)
         elif door.name == "sgb":
             props = sgb.friendly(props, lang)        # 브라질 — 포르투갈어 시대만 옮기고 이름·설명은 그대로 (wetherilli 191)
         elif door.name in ("segemar", "dinamige"):

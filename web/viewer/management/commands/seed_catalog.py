@@ -96,6 +96,12 @@ class Command(BaseCommand):
                 (settings.MRDATA_CATALOG_SEED, "미국 (USGS)", "usa", "mrdata"),
                 # 멕시코 — SGM 1:25만·1:5만 (wetherilli 206)
                 (settings.SGM_CATALOG_SEED, "멕시코 (SGM)", "mexico", "sgm"),
+                # 아프리카 — CGMW–BRGM 1:1000만, BGS 지하수 지도책 나라별 1:500만 지질 (wetherilli 207)
+                (settings.CGMW_CATALOG_SEED, "아프리카 (CGMW–BRGM)", "africa", "cgmw"),
+                (settings.AGA_CATALOG_SEED, "아프리카 나라별 (BGS AGA)", "africa", "aga"),
+                # 캐나다 — NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 (wetherilli 204)
+                (settings.NRCAN_CATALOG_SEED, "캐나다 (NRCan)", "canada", "nrcan"),
+                (settings.OGS_CATALOG_SEED, "온타리오 (OGS)", "canada", "ogs"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # KIGAM 5만 구조 요소 — 받아 둔 WFS 파일의 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)
