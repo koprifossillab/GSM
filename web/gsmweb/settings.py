@@ -237,6 +237,8 @@ SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
 INETER_WMS_URL = env("GSM_INETER_WMS_URL", "https://mapserveride.ineter.gob.ni/geoserver/ows")
 #: 파나마 지질도 1:25만 — STRI 피처 서비스 (`viewer/stri.py`, wetherilli 253). 열쇠가 없다
 STRI_URL = env("GSM_STRI_URL", "https://services2.arcgis.com/HRY6x8qt5qjGnAA9/arcgis/rest/services/Geologia_Panama/FeatureServer")
+#: 누벨칼레도니 정부 Géorep 의 ArcGIS 뿌리 (`viewer/georep.py`, wetherilli 260). 열쇠가 없다
+GEOREP_URL = env("GSM_GEOREP_URL", "https://carto.gouv.nc/arcgis")
 #: USGS 남미 지질도 피처 서비스 — 카리브와 같은 문 (wetherilli 256)
 USGSCARIB_SA_URL = env("GSM_USGSCARIB_SA_URL", "https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/South_America_Geology/FeatureServer/2")
 #: 파라과이 지질도 — 광업·에너지 차관실(VMME) 피처 서비스 (`viewer/vmme.py`, wetherilli 256). 열쇠가 없다
@@ -545,6 +547,9 @@ STRI_CATALOG_SEED = REPO_DIR / "data" / "stri_layers.json"
 #: 파라과이 VMME·남미 USGS (wetherilli 256)
 VMME_CATALOG_SEED = REPO_DIR / "data" / "vmme_layers.json"
 USGSCARIB_SA_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_sa_layers.json"
+#: 프랑스 해외 영토 — 누벨칼레도니 Géorep, BRGM 해외 스캔(지역마다 씨앗 하나) (wetherilli 260)
+GEOREP_CATALOG_SEED = REPO_DIR / "data" / "georep_layers.json"
+BRGM_OVERSEAS_CATALOG_SEEDS = [REPO_DIR / "data" / f"brgm_{part}_layers.json" for part in ("antilles", "polynesia", "indian_ocean", "spm")]
 IGME_DR_CATALOG_SEED = REPO_DIR / "data" / "igme_dr_layers.json"
 #: 호주 (wetherilli 212)
 GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
