@@ -32,7 +32,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
-from . import admap, arcpoints, caribmap, crust, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, spamap, ocean, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, geosphere, georep, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
@@ -1476,6 +1476,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 화석 산지 밀도 (wetherilli 286) — 같은 pbdb.sqlite 에서. 범례는 비율
+                                   "fossildensity": fossils.density_legend(lang) if fossils.available() else [],
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께
                                    "volcanoes": volcanoes.legend(lang) if volcanoes.available() else [],
                                    # 플라이스토세 화산 (wetherilli 194) — 따로 받은 것이 있을 때만 따로 레이어가 선다
@@ -1488,6 +1490,8 @@ def earth_view(request):
                                    # 제4기 고생태 산지 (wetherilli 139) — 구운 것이 있을 때만. 자료형 칸 다섯이 레이어가 된다
                                    "neotoma": paleoeco.legend(lang) if paleoeco.available() else [],
                                    "crust": crust.legend() if crust.grid() else [],
+                                   # 세계 빙하 RGI 7.0 (wetherilli 289) — 구운 것이 있을 때만 레이어가 선다
+                                   "glaciers": glaciers.legend(lang) if glaciers.available() else [],
                                    # 충돌구·거대 화성암 지대 (wetherilli 283) — 파일이 있을 때만 레이어가 선다
                                    "impacts": ({"impacts": impacts.legend("impacts", lang), "lips": impacts.legend("lips", lang)}
                                                if impacts.available() else {}),
@@ -2255,6 +2259,48 @@ def earth_impacts_at(request):
 
 
 @require_GET
+def earth_glaciers_tile(request, z, x, y):
+    """`earth/glaciers/tiles/<z>/<x>/<y>.png` — RGI 7.0 빙하, 넓이만 한 점 (`glaciers.render_tile`, wetherilli 289). 줌 3 밑은 빈 타일"""
+    z, x, y = int(z), int(x), int(y)
+    if not paleo.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not glaciers.available():
+        return _tile(tiles.blank_tile(), store=False)
+    version = glaciers_version()
+    key = tilecache.key_text("glaciers", f"{version}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = glaciers.render_tile(z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
+
+@require_GET
+def earth_glaciers_at(request):
+    """`?lon=&lat=&z=` — 누른 자리의 빙하(넓이의 원 안, 또는 그 줌의 8 화소 안)"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    z = _float(request.GET.get("z"))
+    if lat is None or lon is None:
+        return JsonResponse({"error": i18n.t(msg("lat·lon 이 없다"), lang)}, status=400)
+    r = min(1.0, max(0.002, 180.0 / 2 ** max(0, min(18, z if z is not None else 3)) / 256 * 8))
+    out = []
+    for g in glaciers.near(lon, lat, r):
+        span = f"{g['zmin']:.0f}–{g['zmax']:.0f}" if g["zmin"] is not None and g["zmax"] is not None else ""
+        rows = [("넓이 (km²)", f"{g['area']:,.2f}"), ("높이 (m)", span), ("가운데 높이 (m)", f"{g['zmed']:.0f}" if g["zmed"] is not None else ""),
+                ("경사 (°)", f"{g['slope']:.1f}" if g["slope"] is not None else ""),
+                ("끝", i18n.t(glaciers.TERMINUS[1][1], lang) if g["term"] == 1 else ""),
+                ("서지", i18n.t(glaciers.SURGE[g["surge"]], lang) if g["surge"] in glaciers.SURGE else ""),
+                ("윤곽의 날", g["date"]), ("RGI", g["id"])]
+        out.append({"name": g["name"].rstrip(",") or i18n.t(msg("이름 없는 빙하"), lang),
+                    "rows": [[i18n.PROP_EN.get(k, k) if lang == "en" else k, v] for k, v in rows if v]})
+    return JsonResponse({"hits": out, "text": "" if out else i18n.t(msg("여기에는 빙하가 없다"), lang), "credit": glaciers.CREDIT})
+
+
+@require_GET
 def earth_crust_at(request):
     """`?lon=&lat=` — 누른 자리의 지각 두께. 모형이지 관측이 아니다."""
     lang = i18n.lang_of(request)
@@ -2268,6 +2314,30 @@ def earth_crust_at(request):
 
 
 # ── 화석 산지 (wetherilli 098) ───────────────────────────────────────
+
+@require_GET
+def earth_fossil_density_tile(request, ka, z, x, y):
+    """`earth/fossils/density/<ka>/<z>/<x>/<y>.png` — 그 연대의 화석 산지 밀도(1° 칸, 로그) (wetherilli 286). 연대는 점 레이어와 같은 ka.
+    고르기도 점 레이어와 같다 — 1 Ma 부터는 그때의 자리로 옮긴 산지를 센다"""
+    z, x, y, ka = int(z), int(x), int(y), int(ka)
+    if not fossils.density_valid(z, x, y) or ka > 1100000:
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if fossils.db() is None:
+        return _tile(tiles.blank_tile(), store=False)
+    age = ka / 1000.0
+    if age >= fossils.PALEO_FROM:
+        age = float(round(age))
+    version = fossils_version() + fossils.DENSITY_RENDERER
+    key = tilecache.key_text("pbdb-density", f"{version}/{age:g}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _immutable(request, _tile(hit, cached=True), version)
+    png = fossils.render_density(age, z, x, y)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return _immutable(request, response, version)
+
 
 @require_GET
 def earth_fossil_tile(request, ka, z, x, y):
@@ -2863,6 +2933,8 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "skgs" and skgs.knows(layer.name):
         # 사스카치원(wetherilli 235) — ArcGIS WMS 를 3978 로 곧장(Capabilities 에 없지만 그린다)
         return {"attribution": skgs.ATTRIBUTION, "projection": "EPSG:3978",
+                # 광물 산지 SMDI·광산(wetherilli 288) — 다른 서비스의 REST, 범례를 두지 않는다. 넓게 보면 한 장에 10 초라 줌 6 부터
+                **({"noLegend": True, "minZoom": 6} if layer.name in skgs.RESOURCES else {}),
                 **({} if skgs.queryable(layer.name) else {"queryable": False})}
     if layer.upstream == "nsgs" and nsgs.knows(layer.name):
         # 노바스코샤(wetherilli 235) — WMS 가 없어 문이 REST export 로 옮긴다. 화면의 투영을 그대로 넘긴다
@@ -2896,6 +2968,9 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
         # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
+        if layer.name == "bcgs:minfile":
+            # MINFILE 광물 산지(wetherilli 288) — 같은 openmaps 의 점 레이어, 넓게 봐도 그린다
+            return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978"}
         return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978", "minZoom": bcgs.MIN_ZOOM}
     if layer.upstream == "calgs" and calgs.knows(layer.name):
         # 캘리포니아(wetherilli 231) — 문이 REST export 를 3978 로 받는다. 줌 12 너머는 상류가 그리지 않아 화면이 늘린다. 범례는 목록
@@ -4445,8 +4520,10 @@ def tile_versions(page: str) -> dict:
                 for name, sheet in ibcso.SHEETS.items()}
     if page == "earth":
         return {"paleo": paleo_version(), "coast": paleocoast_version(), "fossils": fossils_version(),
+                "fossildensity": fossils_version() + fossils.DENSITY_RENDERER,
                 "volcanoes": volcanoes_version(), "pleistocene": volcanoes_version("pleistocene"), "quakes": quakes_version(), "recentquakes": recentquakes_version(), "neotoma": neotoma_version(),
                 "crust": crust_version(), "ne": ne_version(), "icemargins": icemargins_version(),
+                "glaciers": glaciers_version(),
                 "impacts": impacts_version(),
                 "faults": faults_version(),
                 "minerals": minerals_version(),
@@ -4528,6 +4605,10 @@ def faults_version() -> str:
 
 def impacts_version() -> str:
     return _stamp(impacts.RENDERER, _content_stamp(settings.IMPACTS_FILE), paleo.RENDERER)
+
+
+def glaciers_version() -> str:
+    return _stamp(glaciers.RENDERER, glaciers.built(), _file_stamp(glaciers.path()))
 
 
 def crust_version() -> str:

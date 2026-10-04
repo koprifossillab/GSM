@@ -30,6 +30,8 @@ LAYERS = {
     "sigeom:generale": ("SGM:Geologie_generale", 5, True),
     "sigeom:regionale": ("SGM:Geologie_regionale", 8, True),
     "sigeom:failles": ("SGM:Failles_regionales", 8, False),
+    # 가동 광산·진행 사업(wetherilli 288) — 광물 산지(gîte) 레이어는 WMS 에 없다
+    "sigeom:mines": ("SGM:Mines_projets", 5, True),
 }
 
 
@@ -128,7 +130,9 @@ def parse_plain(text: str) -> list:
 
 
 FRIENDLY = (("NOM_ABRG_ETQT_LITH", "기호"), ("STRATIGRAPHIE", "지층"), ("DESC_ZONE_GEOLG", "암석"), ("AGE", "지질시대"),
-            ("REF_EXA", "원도"))
+            ("REF_EXA", "원도"),
+            # 가동 광산·진행 사업(wetherilli 288) — 지질 단위와 열이 겹치지 않는다
+            ("NOM_MINE_PROJE", "이름"), ("SIGN_MINR", "광종"), ("SIGN_STAT_MINE_PROJE", "개발 단계"), ("NOM_SOCIE", "회사"))
 
 
 def age(value: str, lang: str = "ko") -> str:
