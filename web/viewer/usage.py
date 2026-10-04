@@ -99,3 +99,55 @@ def reset() -> None:
     with _lock:
         _recent_blocks.clear()
         _paused_until = 0.0
+
+
+# ── 보이기 — `upstream_stats` 와 관리 화면이 함께 쓴다 (wetherilli 290·295) ─────────
+
+BUCKET_FIELDS = [f"t{i}" for i in range(len(TIME_BUCKETS) + 1)]
+
+
+def p95(counts) -> str:
+    """칸마다의 건수 → p95 가 든 칸의 위 끝(`≤3`). 마지막 칸이면 `>34`. 잰 것이 없으면 `—`"""
+    total = sum(counts)
+    if not total:
+        return "—"
+    need, run = 0.95 * total, 0
+    for i, n in enumerate(counts):
+        run += n
+        if run >= need:
+            return f"≤{TIME_BUCKETS[i]:g}" if i < len(TIME_BUCKETS) else f">{TIME_BUCKETS[-1]:g}"
+    return "—"
+
+
+def mean(seconds, timed) -> str:
+    return f"{seconds / timed:.1f}" if timed else "—"
+
+
+def summary(days: int = 7) -> list:
+    """상류마다 오늘과 지난 `days` 일(오늘 포함)의 건수·실패·잰 건수·평균·p95 — 지난 기간의 평균이 느린 차례(잰 것이 없으면 뒤).
+    `[{"name", "today": {...}, "span": {...}}]` — 칸은 `count`(성공+실패+차단)·`fail`(실패+차단)·`timed`·`mean`·`p95`. 이름과 수뿐이다"""
+    import datetime
+    from .models import UpstreamDay
+    today = timezone.localdate()
+    since = today - datetime.timedelta(days=days - 1)
+    out = {}
+    for r in UpstreamDay.objects.filter(day__gte=since):
+        row = out.setdefault(r.upstream, {"today": [0, 0, 0, 0.0, [0] * len(BUCKET_FIELDS)],
+                                          "span": [0, 0, 0, 0.0, [0] * len(BUCKET_FIELDS)]})
+        counts = [getattr(r, f) for f in BUCKET_FIELDS]
+        for part in (["today", "span"] if r.day == today else ["span"]):
+            agg = row[part]
+            agg[0] += r.ok + r.fail + r.blocked
+            agg[1] += r.fail + r.blocked
+            agg[2] += r.timed
+            agg[3] += r.seconds
+            agg[4] = [a + b for a, b in zip(agg[4], counts)]
+
+    def shape(agg):
+        count, fail, timed, seconds, counts = agg
+        return {"count": count, "fail": fail, "timed": timed, "mean": mean(seconds, timed), "p95": p95(counts),
+                "_sort": seconds / timed if timed else -1.0}
+    rows = [{"name": name, "today": shape(v["today"]), "span": shape(v["span"])} for name, v in out.items()]
+    rows.sort(key=lambda r: (-r["span"]["_sort"], r["name"]))
+    return rows
+
