@@ -28,13 +28,13 @@ urlpatterns = [
     path("moon/places/", views.moon_places, name="moon-places"),
     path("moon/landings/", views.moon_landings, name="moon-landings"),
     path("moon/eva/", views.moon_eva, name="moon-eva"),
-    # NASA Trek 의 MapServer 판 — 달·화성이 함께 쓴다 (060)
-    re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
+    # NASA Trek 의 MapServer 판 — 달·화성·수성이 함께 쓴다 (060, 수성은 wetherilli 185)
+    re_path(r"^trek/(?P<body>moon|mars|mercury)/map/(?P<label>[\w.-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.trek_map_tile, name="trek-map-tile"),
     re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/p/(?P<pole>[ns])/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",
             views.trek_map_polar_tile, name="trek-map-polar-tile"),
-    re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/info/$", views.trek_map_info, name="trek-map-info"),
-    re_path(r"^trek/(?P<body>moon|mars)/map/(?P<label>[\w.-]+)/legend/$", views.trek_map_legend,
+    re_path(r"^trek/(?P<body>moon|mars|mercury)/map/(?P<label>[\w.-]+)/info/$", views.trek_map_info, name="trek-map-info"),
+    re_path(r"^trek/(?P<body>moon|mars|mercury)/map/(?P<label>[\w.-]+)/legend/$", views.trek_map_legend,
             name="trek-map-legend"),
     path("mars/", views.mars_view, name="mars"),
     re_path(r"^mars/tiles/(?P<layer>[a-z-]+)/(?P<z>\d{1,2})/(?P<x>\d{1,5})/(?P<y>\d{1,5})\.png$",

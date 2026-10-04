@@ -1449,6 +1449,14 @@ def client_catalog(body: str) -> dict:
 _SERVICE_ROOTS = ("trekarcgis", "trekarcgis2", "trekarcgis3")
 
 
+def _service_roots(body: str) -> tuple:
+    """ArcGIS 서비스 목록의 자리 — 달·화성은 `trekarcgis*/rest/services`, 수성은 `arcgis/rest/services/mercury` 하나다
+    (`trekarcgis` 는 404, P10 · wetherilli 185)."""
+    if body == "mercury":
+        return ("arcgis/rest/services/mercury",)
+    return tuple(f"{root}/rest/services" for root in _SERVICE_ROOTS)
+
+
 def _body_base(body: str) -> str:
     """몸의 Trek 뿌리 — `trek.nasa.gov/moon`·`/mars`·`/mercury`."""
     return {"mars": settings.TREK_MARS_URL, "mercury": settings.TREK_MERCURY_URL}.get(
@@ -1469,8 +1477,8 @@ def find_mapserver(body: str, uuid: str, label: str) -> str:
             end = str(doc.get("endPoint") or "")
             if doc.get("protocol") == "ArcGISDynamic" and end.startswith(base + "/") and end.endswith("/MapServer"):
                 return end[len(base) + 1:]
-    for root in _SERVICE_ROOTS:
-        path = f"{root}/rest/services/{label}/MapServer"
+    for root in _service_roots(body):
+        path = f"{root}/{label}/MapServer"
         r = _get(path, {"f": "json"}, base=base)
         if r.status_code == 200:
             try:

@@ -820,7 +820,7 @@ def _trek_map(request, body, label):
 
 @require_GET
 def trek_map_tile(request, body, label, z, x, y):
-    """`trek/<moon|mars>/map/<판>/<z>/<x>/<y>.png` — MapServer 판의 타일."""
+    """`trek/<moon|mars|mercury>/map/<판>/<z>/<x>/<y>.png` — MapServer 판의 타일."""
     z, x, y = int(z), int(x), int(y)
     entry, error = _trek_map(request, body, label)
     if error:
