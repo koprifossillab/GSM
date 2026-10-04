@@ -2249,6 +2249,9 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    # 멕시코 광상 (wetherilli 219)
+    "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
+    "광산 지구": "Mining district",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -2464,7 +2467,12 @@ AGES_ES = {
     "cuaternario": "Quaternary", "terciario": "Tertiary",
     "paleoceno": "Paleocene", "eoceno": "Eocene", "oligoceno": "Oligocene", "mioceno": "Miocene", "plioceno": "Pliocene",
     "pleistoceno": "Pleistocene", "holoceno": "Holocene",
+    # 멕시코 지질 연대 점(wetherilli 219)
+    "hadeano": "Hadean", "eoarqueano": "Eoarchean", "paleoarqueano": "Paleoarchean", "mesoarqueano": "Mesoarchean",
+    "neoarqueano": "Neoarchean", "titoniano": "Tithonian", "precambrico": "Precambrian",
 }
+#: `Triásico Superior` 의 뒤 낱말 → ICS 의 앞 낱말 (wetherilli 219)
+_ES_PART = {"superior": "Late", "medio": "Middle", "inferior": "Early", "tardio": "Late", "temprano": "Early"}
 
 
 def age_es(value: str) -> str:
@@ -2474,6 +2482,9 @@ def age_es(value: str) -> str:
     folded = "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
     if folded in AGES_ES:
         return AGES_ES[folded]
+    head, _, part = folded.rpartition(" ")
+    if head in AGES_ES and part in _ES_PART:
+        return f"{_ES_PART[part]} {AGES_ES[head]}"
     if folded.endswith("iano") and folded.isalpha():
         return folded[:-1].capitalize()
     return text
@@ -2826,6 +2837,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)",
 }
 
 LAYER_EN = {
@@ -2977,6 +2989,9 @@ LAYER_EN = {
     "sgm:6": "Structures (1:250k)",
     "sgm:7": "Lithology (1:50k)",
     "sgm:5": "Structures (1:50k)",
+    # 멕시코 SGM 의 다른 서비스 (wetherilli 219)
+    "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
+    "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
     # 스웨덴 기반암 (wetherilli 213)
     "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
     "sgu:deformation": "Deformation zones (1:1M)",

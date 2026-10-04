@@ -2391,11 +2391,13 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         return {"attribution": ogs.ATTRIBUTION, "projection": "EPSG:3978"}
     if layer.upstream == "sgm" and sgm.knows(layer.name):
         # 멕시코 SGM(wetherilli 206) — WMS 가 막혀 문이 REST export 로 옮긴다. 화면에는 3857 WMS 와 같다. 1:5만은 가까이서만.
-        # 범례는 보는 범위의 것(`sgm/legend/`, 페루와 같은 꼴), 구조선은 범례·누르기가 없다
+        # 범례는 보는 범위의 것(`sgm/legend/`, 페루와 같은 꼴), 구조선은 범례·누르기가 없다. 같은 서버의 지질 연대·고생물·광상(wetherilli 219)은
+        # 누를 수 있고, 시대 색인 지질 연대 점만 범례가 있다
         first, last = sgm.zooms(layer.name)
         unit = layer.name in sgm.legend_layers()
         return {"attribution": sgm.ATTRIBUTION, "projection": "EPSG:3857",
-                **({"legend": "extent", "legendUrl": "sgm/legend/"} if unit else {"noLegend": True, "queryable": False}),
+                **({"legend": "extent", "legendUrl": "sgm/legend/"} if unit else {"noLegend": True}),
+                **({} if sgm.queryable(layer.name) else {"queryable": False}),
                 **({"minZoom": first} if first else {})}
     if layer.upstream == "mrdata" and mrdata.knows(layer.name):
         # 미국 USGS(wetherilli 205) — MapServer WMS 를 3857 로. 범례는 없다(단위가 주마다 수천, GetLegendGraphic 501) — 팝업의 단위
@@ -3436,7 +3438,7 @@ def sgm_legend(request):
         if rows is None:
             rows = sgm.extent_legend(name, tuple(bbox))
             tilecache.put(key, json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8"), ".json")
-        table = sgm.colors(sgm.LAYERS[name][0])
+        table = sgm.colors(name)
     except sgm.SgmError as exc:
         log.info("멕시코 범례를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
