@@ -499,7 +499,9 @@ def mars_tile_key(layer, z, x, y):
 
 
 def mars_dem_key(z, x, y):
-    return tilecache.key_text("trek-mars-dem", f"{z}/{x}/{y}")
+    """화성 표고 격자의 캐시 열쇠. 고운 판(wetherilli 274)의 장만 판 이름이 든다 — 줌 9 까지의 열쇠는 예전 그대로다"""
+    part = trek.mars_dem_part(z, x, y)
+    return tilecache.key_text("trek-mars-dem", f"{part[0]}/{z}/{x}/{y}" if part else f"{z}/{x}/{y}")
 
 
 @require_GET
@@ -1055,6 +1057,8 @@ def mars_view(request):
         "lang": lang,
         "pointsets": _script_json(_pointset_list("mars")),
         "trek_catalog": _script_json(trek.client_catalog("mars")),   # Trek 판 목록 (060)
+        # 가까이서 쓰는 고운 표고 판의 범위·줌 끝 — 달처럼 그 자리에서만 깊은 줌을 묻는다 (wetherilli 274)
+        "dem_parts": _script_json([[*part[1], part[2]] for part in trek.MARS_DEM_PARTS]),
         "i18n_json": json.dumps(i18n.client_table(lang), ensure_ascii=False),
         # 화면이 주소를 짓는 우리 타일의 판 — `?v=` 로 붙여 길게 캐시한다 (wetherilli 183)
         "tile_versions": _script_json(tile_versions("mars")),
@@ -1160,7 +1164,9 @@ def _mars_crater_tile(render):
 def mars_dem(request, z, x, y):
     """화성 표고 격자 — `mars/dem/<z>/<x>/<y>.png`, 65×65 Terrarium (MOLA–HRSC). 못 받으면 502 (달과 같다)."""
     z, x, y = int(z), int(x), int(y)
-    if not trek.valid_tile(z, x, y, trek.MARS_DEM_MAX_ZOOM):
+    # 줌 `MARS_DEM_MAX_ZOOM` 너머는 고운 판(탐사 착륙지의 HiRISE 따위)이 걸친 장만 있다 (wetherilli 274)
+    part = trek.mars_dem_part(z, x, y) if trek.valid_tile(z, x, y, trek.MARS_DEM_FINE_MAX) else None
+    if not trek.valid_tile(z, x, y, trek.MARS_DEM_MAX_ZOOM) and part is None:
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     key = mars_dem_key(z, x, y)
     hit = tilecache.get(key)
