@@ -369,7 +369,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 미국 USGS mrdata(wetherilli 205) — MapServer WMS 가 3857 로 그린다
              "mrdata",
              # 멕시코 SGM(wetherilli 206) — 문이 WMS 변수를 REST export 로 옮긴다
-             "sgm")
+             "sgm",
+             # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
+             "cgmw", "aga")
 
 
 @require_GET
@@ -2368,6 +2370,12 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         legend = ({"legend": "list", "legendUrl": "dinamige/legend/"} if layer.name in dinamige.LEGEND_LAYERS
                   else {"noLegend": True})
         return {"attribution": dinamige.ATTRIBUTION, "projection": "EPSG:3857", **legend}
+    if layer.upstream == "cgmw":
+        # 아프리카 1:1000만(wetherilli 207) — BRGM 의 mapsref 서버, 3857 그대로. 범례는 Capabilities 의 정적 PNG(`brgm.cgmw_get_legend`)
+        return {"attribution": brgm.CGMW_ATTRIBUTION, "projection": "EPSG:3857"}
+    if layer.upstream == "aga":
+        # 아프리카 지하수 지도책의 나라별 지질(wetherilli 207) — 38 나라 레이어를 문이 이어 묻는다. 3857 그대로
+        return {"attribution": bgs.AGA_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "gsni":
         return {"attribution": bgs.GSNI_ATTRIBUTION, "projection": "EPSG:3857"}
     if layer.upstream == "egdi":
@@ -2496,14 +2504,16 @@ class _Door:
                # 미국(wetherilli 205)
                "mrdata": mrdata,
                # 멕시코(wetherilli 206)
-               "sgm": sgm}
+               "sgm": sgm,
+               # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
+               "cgmw": brgm.CGMW, "aga": bgs.AGA}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3579,6 +3589,10 @@ def feature_info(request):
             props = bgs.friendly(props, lang)        # LEX_D → 지층명 …, 시대를 옮긴다
         elif door.name == "brgm":
             props = brgm.friendly(props)             # DESCR → 암상. 값은 프랑스어 그대로
+        elif door.name == "cgmw":
+            props = brgm.cgmw_friendly(props, lang)   # 아프리카 1:1000만 — ICS 시대는 옮기고 암석은 영어 그대로 (wetherilli 207)
+        elif door.name == "aga":
+            props = bgs.aga_friendly(props, lang)     # 나라마다 다른 `…GLG` 열이 암상이다 (wetherilli 207)
         elif door.name == "gsni":
             props = bgs.friendly(props, lang)        # BGS 와 같은 열(LEX_D …)
         elif door.name == "egdi":

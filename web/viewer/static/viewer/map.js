@@ -285,6 +285,14 @@
                             "segemar:e2.5M.UnidadesGeologicas"],
                      first: ["sgc:sa:8", "sgb:2500k", "segemar:e2.5M.UnidadesGeologicas", "ingemmet:50k", "sgc:co:3",
                              "dinamige:0"] },
+    // ── 아프리카 (wetherilli 207) ──
+    // 대륙 판(CGMW–BRGM 1:1000만)이 바탕이라 탭 하나다. 나라 판(남아공 CGS 따위)이 붙으면 남미처럼 나라 탭과 묶음으로 가른다(188 §3).
+    // BGS 지하수 지도책의 나라별 1:500만 암상(38 나라)을 얹는다
+    africa: { title: "아프리카", proj: "EPSG:3857", center: [20.0, 2.0], zoom: 3, vworld: false,
+              home: [-2900000, -4300000, 6000000, 4600000],
+              basemap: "eox_terrain", example: "-1.29, 36.82 · Nairobi",
+              base: ["cgmw:AFR_CGMW_BRGM_10M_GeologicUnits", "cgmw:AFR_CGMW_BRGM_10M_Faults", "aga:geology"],
+              first: "cgmw:AFR_CGMW_BRGM_10M_GeologicUnits" },
     europe: { title: "유럽", proj: "EPSG:3857", center: [0.0, 50.0], zoom: 5, vworld: false,
               includes: ["uk", "ireland", "france", "germany", "spain"],
               home: [-1225000, 4232000, 1781000, 8626000],
@@ -362,7 +370,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "usa", "mexico"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "africa", "usa", "mexico"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -822,6 +830,9 @@
     mrdata: { source: npolarSource, info: wmsInfoUrl },
     // 멕시코 SGM(wetherilli 206) — 화면에는 3857 WMS 와 같다. 서버의 문이 REST export·identify 로 옮긴다
     sgm: { source: npolarSource, info: wmsInfoUrl },
+    // 아프리카(wetherilli 207) — 카탈로그 행의 투영(3857)으로 서버 문을 거쳐 받는다
+    cgmw: { source: npolarSource, info: wmsInfoUrl },
+    aga: { source: npolarSource, info: wmsInfoUrl },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
@@ -1290,14 +1301,14 @@
     title: T("Sentinel-2 위성 (EOX)"),
     note: T("EOX · Copernicus Sentinel-2 (2023). 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa"],
     make: function () { return eoxLayer("s2cloudless-2023_3857", 16, EOX_S2); },
   };
   BASEMAPS.eox_terrain = {
     title: T("지형 음영 (EOX)"),
     note: T("EOX · OpenStreetMap. 비상업 이용만 된다. 북위 82° 위는 해안선이 거칠다 — ArcticDEM 을 쓴다"),
     regions: ["greenland", "jan_mayen", "svalbard", "arctic_ocean", "fennoscandia", "japan", "china", "taiwan", "uk", "france",
-              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico"],
+              "germany", "spain", "ireland", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "usa", "mexico", "africa"],
     make: function () { return eoxLayer("terrain-light_3857", 13, EOX_TERRAIN); },
   };
   BASEMAPS.arcticdem = {
@@ -2290,7 +2301,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", mrdata: "USGS", sgm: "SGM", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", mrdata: "USGS", sgm: "SGM", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2306,6 +2317,7 @@
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
+    cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
     gsni: T("북아일랜드 지질조사소"),
     geomap: "GeoMAP (SCAR)", geo3al: T("미국 지질조사국"), kopri: T("극지연구소"), pgc: T("미네소타대 극지공간정보센터"),
     ibcso: "IBCSO", phyloserver: T("연구실 자료"), peninsula: T("연구실 자료"),
