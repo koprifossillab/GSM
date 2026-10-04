@@ -2810,6 +2810,7 @@ GROUP_EN = {
     "브라질 지질도 (SGB 1:100만·1:25만)": "Brazil geology (SGB 1:1M · 1:250k)",
     "브라질 지질 자료 점 (SGB)": "Brazil geological data points (SGB)",
     "페루 지질도 (INGEMMET)": "Peru geology (INGEMMET)",
+    "페루 단층·습곡 (INGEMMET)": "Peru faults & folds (INGEMMET)",
     "아르헨티나 지질도 (SEGEMAR 1:250만)": "Argentina geology (SEGEMAR 1:2.5M)",
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "아르헨티나 지역 지질도 (SEGEMAR 1:100만·1:75만·1:50만)": "Argentina regional geology (SEGEMAR 1:1M · 1:750k · 1:500k)",
@@ -2920,6 +2921,11 @@ LAYER_EN = {
     # 페루 (wetherilli 195)
     "ingemmet:50k": "Geological map 1:50k (integrated)",
     "ingemmet:100k": "Geological map 1:100k (integrated)",
+    "ingemmet:faults_1m": "Faults (1:1M)",
+    "ingemmet:faults_100k": "Faults (1:100k)",
+    "ingemmet:folds_100k": "Folds (1:100k)",
+    "ingemmet:faults_50k": "Faults (1:50k)",
+    "ingemmet:folds_50k": "Folds (1:50k)",
     # 아르헨티나·우루과이 (wetherilli 196)
     "segemar:e2.5M.UnidadesGeologicas": "Geological units (1:2.5M)",
     "segemar:e2.5M.Estructuras": "Structures (1:2.5M)",
