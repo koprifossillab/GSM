@@ -2169,7 +2169,13 @@
   // 거리를 다 재면 그 선의 MOLA–HRSC 표고를 받아 아래 가운데 판에 그린다. 가로는 대원 거리(재는 수와 같다), 세로는
   // 화성 기준면(아레오이드)에서 잰 높이다. 그래프 위를 훑으면 그 자리를 지도에도 찍는다
   var PROFILE = { W: 640, H: 170, L: 50, R: 10, T: 10, B: 22 };
-  var profileSeq = 0, profileData = null;
+  var profileSeq = 0, profileData = null, profileBand = null;
+  // 지질 띠 (wetherilli 180) — 우리 파일로 그리는 판을 켰을 때만. Trek 판은 점마다 상류에 물어야 해서 띠가 없다
+  var BAND_LAYER = { "orig-units": "mars:orig-units" };
+  function bandLayer() {
+    var top = active.filter(function (e) { return BAND_LAYER[e.name]; })[0];
+    return top && window.GSMBand ? BAND_LAYER[top.name] : null;
+  }
   function hideProfile() {
     profileSeq += 1;
     profileData = null;
@@ -2180,6 +2186,8 @@
     profileData = null;
     box.hidden = false;
     $("profile-svg").innerHTML = "";
+    profileBand = null;
+    if (window.GSMBand) GSMBand.reset($("profile-svg"), PROFILE);
     $("profile-sum").textContent = "";
     $("profile-read").textContent = T("높이를 읽는 중…");
     // 표고 판 한 칸(200 m)에 한 점쯤, 64–512 점
@@ -2187,7 +2195,17 @@
     var line = coords.map(function (c) { return c[0].toFixed(5) + "," + c[1].toFixed(5); }).join(";");
     fetch(BASE + "mars/profile/?line=" + encodeURIComponent(line) + "&n=" + n)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { if (seq === profileSeq) drawProfile(d); })
+      .then(function (d) {
+        if (seq !== profileSeq) return;
+        drawProfile(d);
+        var layer = bandLayer();
+        if (!layer || !profileData) return;
+        GSMBand.load(BASE, layer, line, n).then(function (band) {
+          if (seq !== profileSeq || !band || !profileData) return;
+          profileBand = band;
+          GSMBand.draw($("profile-svg"), PROFILE, profileData.X, d, band, T("지질"));
+        });
+      })
       .catch(function () { if (seq === profileSeq) $("profile-read").textContent = T("높이를 읽지 못했다"); });
   }
   function asHeight(m) { return Math.round(m).toLocaleString() + " m"; }
@@ -2235,8 +2253,9 @@
     $("profile-svg").innerHTML = svg;
     $("profile-sum").textContent = T("최저 {lo} · 최고 {hi} · 오르막 {up} · 내리막 {down}",
       { lo: asHeight(lo), hi: asHeight(hi), up: asHeight(up), down: asHeight(down) });
-    $("profile-read").textContent = T("MOLA–HRSC 200 m · 화성 기준면(아레오이드)에서 잰 높이");
-    profileData = { d: d, X: X, Y: Y, total: total };
+    var read = T("MOLA–HRSC 200 m · 화성 기준면(아레오이드)에서 잰 높이");
+    $("profile-read").textContent = read;
+    profileData = { d: d, X: X, Y: Y, total: total, read: read };
   }
   (function () {
     var svg = $("profile-svg");
@@ -2253,8 +2272,9 @@
         dot.setAttribute("cx", cx); dot.setAttribute("cy", profileData.Y(d.elev[best]).toFixed(1));
         dot.setAttribute("visibility", "visible");
       } else dot.setAttribute("visibility", "hidden");
-      $("profile-read").textContent = T("거리 {d} · 높이 {h}", {
-        d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]) });
+      var unit = window.GSMBand ? GSMBand.unitAt(profileBand, best) : "";
+      var here = { d: asLength(d.dist[best]), h: d.elev[best] === null ? "—" : asHeight(d.elev[best]), unit: unit };
+      $("profile-read").textContent = unit ? T("거리 {d} · 높이 {h} · {unit}", here) : T("거리 {d} · 높이 {h}", here);
       markAt([d.lon[best], d.lat[best]]);
     }
     svg.addEventListener("mousemove", at);
@@ -2262,6 +2282,7 @@
       if (!profileData) return;
       $("profile-cursor").setAttribute("visibility", "hidden");
       $("profile-dot").setAttribute("visibility", "hidden");
+      $("profile-read").textContent = profileData.read;
       markAt(null);
     });
     $("profile-close").addEventListener("click", hideProfile);

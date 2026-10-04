@@ -764,6 +764,12 @@ EN = {
     "MESSENGER 665 m · 수성 기준구 2439.4 km 에서 잰 높이": "MESSENGER 665 m · height above the 2,439.4 km Mercury sphere",
     "거리 {d} · 높이 {h}": "distance {d} · elevation {h}",
     "선이 없다": "No line given",
+    # 높이 그래프 밑의 지질 띠 (wetherilli 180)
+    "거리 {d} · 높이 {h} · {unit}": "distance {d} · elevation {h} · {unit}",
+    "{read} · 지질 띠 — {layer}": "{read} · geology strip — {layer}",
+    "띠를 그리지 않는 레이어다": "This layer has no geology strip",
+    "지질 띠를 그릴 자료가 서버에 없다": "The data for the geology strip is not on the server",
+    "지질 띠를 읽지 못했다": "Could not read the geology strip",
     "지도 오른쪽 위 <b>점</b> 도구로 찍는다": "Use the <b>Point</b> tool at the top right of the map",
     "점묶음으로 저장": "Save as point set",
     "찍은 점과 잰 것을 모두 지운다": "Clear all points and measurements",

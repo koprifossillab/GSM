@@ -312,6 +312,7 @@ MESSENGER 강조색의 청회색·황갈이다(map.css 의 `data-region="mercury
 <script>window.CESIUM_BASE_URL = "{% static 'viewer/vendor/cesium/' %}";</script>
 <script src="{% static 'viewer/vendor/ol.js' %}"></script>
 <script src="{% static 'viewer/vendor/cesium/Cesium.js' %}"></script>
+<script src="{% static 'viewer/profile-band.js' %}?v={{ stamp|default:version }}"></script>
 <script src="{% static 'viewer/mercury.js' %}?v={{ stamp|default:version }}"></script>
 </body>
 </html>
