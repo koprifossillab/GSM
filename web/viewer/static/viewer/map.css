@@ -2929,3 +2929,23 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --hi: #0c2d2a; --hi-deep: #071b19; --on-hi: #fdfcfb; --hi-ink: #217f76;
   --glass: rgba(253, 252, 251, .95); --glass-line: #d5f0ee;
 }
+
+/* ── 카리브 (wetherilli 248) — 자메이카 블루마운틴의 안개 낀 남청: 산호초 석회암의 바탕 ── */
+:root[data-region="caribbean"] {
+  --bg: #111318; --panel: #1b1c21; --panel-tint: #0d0e12; --raise: #26282d;
+  --ink: #f4f2f0; --ink-soft: #c6c0ba; --ink-faint: #88827c;
+  --line: #37393d; --line-soft: #26282d;
+  --gold: #4a7fd0; --gold-bright: #9bb9e5; --gold-muted: #3f6cb1;
+  --gold-wash: rgba(74, 127, 208, .13); --gold-edge: rgba(74, 127, 208, .42);
+  --hi: #4a7fd0; --hi-deep: #9bb9e5; --on-hi: #0d0e12; --hi-ink: #9bb9e5;
+  --glass: rgba(13, 14, 18, .93); --glass-line: rgba(74, 127, 208, .35);
+}
+:root[data-region="caribbean"][data-theme="light"] {
+  --bg: #f4f7fc; --panel: #fdfcfb; --panel-tint: #f8fafd; --raise: #e6edf8;
+  --ink: #1e1b19; --ink-soft: #524c47; --ink-faint: #8c8580;
+  --line: #dbe5f6; --line-soft: #e6edf8;
+  --gold: #345992; --gold-bright: #294672; --gold-muted: #4d678f;
+  --gold-wash: #e4ecf8; --gold-edge: #aec5ea;
+  --hi: #122034; --hi-deep: #0b131f; --on-hi: #fdfcfb; --hi-ink: #345992;
+  --glass: rgba(253, 252, 251, .95); --glass-line: #dbe5f6;
+}
