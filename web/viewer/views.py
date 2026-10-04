@@ -357,20 +357,28 @@ def map_view(request):
     })
 
 
+#: 3D 가 `wms/` 의 3857 타일로 얹는 상류 (`map3d.js` 의 `wmsTiles`)
+MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
+             "emodnet", "bgs", "gsni", "brgm", "egdi", "bgr", "igme", "gsi")
+
+
 @require_GET
 def map3d_view(request):
     """3D (devlog 015, 059 에서 실험을 벗었다). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
-    # 3D 는 3857 WMS 타일만 얹는다(`map3d.js` 의 `wmsTiles`). 모양·점 레이어와, 우리가
-    # 굽거나(음영판) z/x/y·극지 투영으로 받는 것(GSJ·NPI·phyloserver)은 뺀다 —
-    # 목록에 두면 골라도 빈 화면이다
+    # 3D 는 3857 타일만 얹는다 — 대개 `wms/` 의 WMS(`map3d.js` 의 `wmsTiles`), 일본은 z/x/y. 모양·점 레이어와, 우리가
+    # 굽거나(음영판) 극지 투영으로만 받는 것(NGU·GTK·phyloserver)은 뺀다 — 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
     # 대만(GSMMA)은 상류가 4326 만 받아 문이 4326 으로 받아 3857 로 편다(`gsmma.mercator_map`, wetherilli 141)
+    # 유럽 상류(wetherilli 187)도 2D 처럼 `wms/` 로 3857 을 받는다. IGME 1:100만은 2D 가 4326 으로 받지만 문(1.1.1)으로 3857 을
+    # 물어도 그려 준다(2026-10-04 마드리드). EMODnet 의 GeoServer 는 어느 투영이든 그린다. 일본 GSJ·지리원 주제 타일은 3857 z/x/y 라
+    # 카탈로그 행의 `tiles` 를 MapLibre 가 그대로 받는다
     groups = [dict(g, layers=[l for l in g["layers"] if l.get("kind") not in ("vector", "points")
-                              and (l.get("upstream") in ("kigam", "geus", "vworld", "ccop", "gsmma")
+                              and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
-                                   or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS))])
+                                   or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
+                                   or (l.get("upstream") in ("gsj", "gsitile") and l.get("tiles")))])
               for g in _catalog(lang)]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -1722,9 +1730,46 @@ def earth_ocean_png(request, source, stamp):
 
 @require_GET
 def earth_places(request):
-    """`?q=바이칼` — 온 지구의 지명 찾기(도시·산맥·바다·호수·강). 저장소의 Natural Earth 만 뒤진다."""
+    """`?q=바이칼` — 온 지구의 찾기. 지명(Natural Earth 의 도시·산맥·바다·호수·강)에 더해 화석 산지·지층(PBDB)과 화산(GVP)의
+    이름도 찾는다(wetherilli 187). 모두 모아 둔 파일이라 상류를 타지 않는다.
+
+    결과마다 `group`(place·volcano·formation·fossil)이 붙고, `kind` 는 화면의 딱지 글이다 — 지명은 그 갈래(도시·강 …),
+    나머지는 "화산"·"지층"·"화석". 같은 이름 → 앞이 같은 것 → 들어 있는 것 차례로 섞고, 같은 차례면 지명·화산·지층·화석 순이다"""
     lang = i18n.lang_of(request)
-    return JsonResponse({"results": naturalearth.search(request.GET.get("q", "")[:80], lang)})
+    q = request.GET.get("q", "")[:80]
+    hits = [dict(h, group="place") for h in naturalearth.search(q, lang, limit=10)]
+    for v in volcanoes.search(q):
+        last = volcanoes.year_text(v["last"])
+        sub = " · ".join(x for x in (v["country"], i18n.t(msg("마지막 분화 {year}", year=i18n.t(last, lang)), lang)
+                                     if last else "") if x)
+        hits.append({"group": "volcano", "kind": i18n.t(msg("화산"), lang), "title": v["name"], "sub": sub,
+                     "lat": v["lat"], "lon": v["lon"]})
+    sites, forms = fossils.search(q)
+    for f in forms:
+        hits.append({"group": "formation", "kind": i18n.t(msg("지층"), lang), "title": f["formation"],
+                     "sub": " · ".join(x for x in (i18n.t(msg("화석 산지 {n} 곳", n=f["n"]), lang),
+                                                   _fossil_span(f["early"], f["late"], lang)) if x),
+                     "lat": f["lat"], "lon": f["lon"]})
+    for r in sites:
+        hits.append({"group": "fossil", "kind": i18n.t(msg("화석"), lang), "title": r["name"],
+                     "sub": " · ".join(x for x in (r["formation"], _fossil_span(r["early"], r["late"], lang)) if x),
+                     "lat": r["lat"], "lon": r["lon"]})
+    order = {"place": 0, "volcano": 1, "formation": 2, "fossil": 3}
+    folded = arcpoints.fold(q)
+
+    def rank(hit):
+        name = arcpoints.fold(hit["title"].split(" (")[0])
+        return (0 if name == folded else 1 if name.startswith(folded) else 2, order[hit["group"]])
+    hits = sorted(hits, key=rank)[:25]                    # 같은 차례 안에서는 갈래마다 받은 차례 그대로다(정렬이 안정하다)
+    sources = ["Natural Earth 10 m"] + (["GVP"] if any(h["group"] == "volcano" for h in hits) else []) + \
+        (["PBDB"] if any(h["group"] in ("formation", "fossil") for h in hits) else [])
+    return JsonResponse({"results": hits, "sources": sources}, json_dumps_params={"ensure_ascii": False})
+
+
+def _fossil_span(early, late, lang):
+    """PBDB 의 시대 칸 — `early – late`, 같으면 하나. 한국어판은 ICS 한글판 이름으로"""
+    span = (early or "") + (f" – {late}" if late and late != early else "")
+    return i18n.age_ko(span) if lang == "ko" and span else span
 
 
 @require_GET

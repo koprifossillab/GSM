@@ -2918,9 +2918,10 @@
   // ══ 좌표·지명으로 이동 — 좌표 막대 ══════════════════════════════
   //
   // 지명은 Natural Earth 의 도시·산맥·바다·호수·강 1 만여 이름이다(`earth/places/`, 102). 한국어·영어 이름으로 찾는다.
+  // 화석 산지·지층(PBDB)과 화산(GVP)의 이름도 함께 온다 — 결과마다 갈래(`group`)와 딱지(`kind`), 덧말(`sub`)이 붙는다(wetherilli 187).
   // 화성의 찾기(058)와 같은 꼴이다. 오늘의 자리라 옛 연대에서 고르면 오늘로 돌아온다
   var gotoForm = $("goto-form"), gotoInput = $("goto-input"), results = $("search-results");
-  var found = [], picked = -1, findTimer = null, findAsked = 0;
+  var found = [], foundFrom = [], picked = -1, findTimer = null, findAsked = 0;
   function parseLatLon(text) {
     var m = /^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(text);
     if (!m) return null;
@@ -2934,8 +2935,8 @@
       results.innerHTML = found.map(function (p, i) {
         return '<li data-i="' + i + '"' + (i === picked ? ' class="on"' : "") + '><span class="kind">' + esc(p.kind) +
                '</span><span class="title">' + esc(p.title) + '</span><span class="sub">' +
-               p.lat.toFixed(3) + ", " + p.lon.toFixed(3) + "</span></li>";
-      }).join("") + '<li class="note src">Natural Earth 10 m</li>';
+               (p.sub ? esc(p.sub) + " · " : "") + p.lat.toFixed(3) + ", " + p.lon.toFixed(3) + "</span></li>";
+      }).join("") + '<li class="note src">' + esc((foundFrom.length ? foundFrom : ["Natural Earth 10 m"]).join(" · ")) + "</li>";
     }
     results.hidden = false;
     results.querySelectorAll("li[data-i]").forEach(function (li) {
@@ -2946,8 +2947,9 @@
     results.hidden = true;
     gotoInput.value = place.title.replace(/ \(.*\)$/, "");
     if (paleoOn()) applyAge(0);
-    // 도시는 가까이, 강·호수는 조금 멀리, 산맥·바다는 멀리
-    var h = /도시|city/.test(place.kind) ? 80000 : /강|호수|river|lake/.test(place.kind) ? 400000 : 1500000;
+    // 화석 산지·화산·도시는 가까이, 지층·강·호수는 조금 멀리, 산맥·바다는 멀리
+    var h = place.group === "fossil" ? 30000 : place.group === "volcano" ? 60000 : place.group === "formation" ? 400000
+          : /도시|city/.test(place.kind) ? 80000 : /강|호수|river|lake/.test(place.kind) ? 400000 : 1500000;
     goTo(place.lon, place.lat, h);
   }
   gotoInput.addEventListener("input", function () {
@@ -2959,6 +2961,7 @@
       fetch(BASE + "earth/places/?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (data) {
         if (mine !== findAsked) return;
         found = data.results || [];
+        foundFrom = data.sources || [];
         picked = found.length ? 0 : -1;
         renderFound();
       });

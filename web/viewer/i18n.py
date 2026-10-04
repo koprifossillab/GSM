@@ -1045,6 +1045,12 @@ EN = {
     "지명 검색: 노르웨이 극지연구소 · 그린란드 정부": "Place names: Norwegian Polar Institute · Government of Greenland",
     "지명 검색": "Place names",
     "지명": "Place name",
+    # 온 지구의 찾기 칸 — 결과의 갈래 딱지 (wetherilli 187)
+    "화산": "Volcano",
+    "지층": "Formation",
+    "화석": "Fossil",
+    "화석 산지 {n} 곳": "{n} fossil collections",
+    "마지막 분화 {year}": "last eruption {year}",
     # 일본 — GSJ 심리스 지질도·국토지리원 배경 (gsj.py·map.js, devlog 024)
     "일본 담색 지도 (국토지리원)": "Japan pale map (GSI)",
     "일본 국토지리원. 지질도 밑에 깔기 좋다": "Geospatial Information Authority of Japan. Good under a geological map",
