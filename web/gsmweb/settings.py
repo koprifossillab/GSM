@@ -131,6 +131,9 @@ NPOLAR_FEATURES_URL = env("GSM_NPOLAR_FEATURES_URL",
 GSJ_URL = env("GSM_GSJ_URL", "https://gbank.gsj.jp/seamless/v2/api/1.3")
 #: CCOP 동·동남아시아 200만 지질도 — GSJ 의 새 호스트 MapServer WMS (`gsj.py` 의 CCOP, wetherilli 108)
 CCOP_WMS_URL = env("GSM_CCOP_WMS_URL", "https://ows.gsj.jp/ows/GSJ_CCOP_Combined_Bedrock_and_Superficial_Geology_and_Age/wms")
+#: GSJ 의 다른 WMS — 새 호스트(1:200만 지질도·중력)와 옛 호스트(지구화학도) (`gsj.py` 의 OWS, wetherilli 255)
+GSJ_OWS_URL = env("GSM_GSJ_OWS_URL", "https://ows.gsj.jp/ows")
+GSJ_GBANK_OWS_URL = env("GSM_GSJ_GBANK_OWS_URL", "https://gbank.gsj.jp/ows")
 #: 정적 판(연구소 밖, GitHub Pages)을 그릴 때만 켠다 — `deploy/static_site.py` 가 override_settings 로 (wetherilli P11·162).
 #: 켜지면 지도 화면이 서버 없이 도는 꼴로 그려진다 — 키는 각자, 상류는 브라우저가 곧장. 운영에서는 늘 꺼져 있다
 STATIC_SITE = None
@@ -286,6 +289,8 @@ ICE_MARGINS_FILE = BASE_DIR.parent / "data" / "ice_margins.json"
 #: 달 지질도 원도 6 장을 구운 sqlite(`moon_originals.sqlite`)가 있는 곳 (`viewer/moonmap.py`, devlog 039).
 #: 상류가 아니라 **우리 디스크의 파일**이다. 없으면 원도 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/moon
 MOON_DIR = env("GSM_MOON_DIR") or str(_data_dir() / "moon")
+#: 카리브 — USGS 대앤틸리스 지질도(OFR 2019-1036 · SIM 3534)를 구운 sqlite (wetherilli 254). 원본은 NAS `sources/caribbean/`
+CARIBBEAN_DIR = env("GSM_CARIBBEAN_DIR") or str(_data_dir() / "caribbean")
 #: 화성 크레이터 목록(Robbins & Hynek 2012)을 구운 sqlite(`mars_craters.sqlite`)와 옛 지질도(`mars_originals.sqlite`,
 #: 068)가 있는 곳 (`viewer/marscraters.py`·`marsmap.py`, devlog 067). 우리 디스크의 파일이다. 없으면 크레이터 레이어 자리에 안내가 뜬다. 운영은 /srv/GSM/db/mars
 MARS_DIR = env("GSM_MARS_DIR") or str(_data_dir() / "mars")
@@ -470,6 +475,8 @@ GSJ_CATALOG_SEED = REPO_DIR / "data" / "gsj_layers.json"
 #: 일본 — 국토지리원 주제 타일 가운데 겹치는 것(활단층도·화산토지조건도, wetherilli 172)
 GSITILE_CATALOG_SEED = REPO_DIR / "data" / "gsi_tiles_layers.json"
 CCOP_CATALOG_SEED = REPO_DIR / "data" / "ccop_layers.json"
+#: 일본 — GSJ 의 다른 WMS (wetherilli 255)
+GSJOWS_CATALOG_SEED = REPO_DIR / "data" / "gsjows_layers.json"
 #: 대만 — GSMMA 지질도 (wetherilli 136)
 GSMMA_CATALOG_SEED = REPO_DIR / "data" / "gsmma_layers.json"
 #: 북극해 — EMODnet 해저 지질 (wetherilli 135)
@@ -534,6 +541,7 @@ SPW_CATALOG_SEED = REPO_DIR / "data" / "spw_layers.json"
 INETER_CATALOG_SEED = REPO_DIR / "data" / "ineter_layers.json"
 #: 카리브 — USGS 카리브 지질도 (wetherilli 248)
 USGSCARIB_CATALOG_SEED = REPO_DIR / "data" / "usgscarib_layers.json"
+SIM3534_CATALOG_SEED = REPO_DIR / "data" / "sim3534_layers.json"
 #: 파나마 — STRI (wetherilli 253)
 STRI_CATALOG_SEED = REPO_DIR / "data" / "stri_layers.json"
 #: 파라과이 VMME·남미 USGS (wetherilli 256)

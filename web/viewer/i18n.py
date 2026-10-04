@@ -1276,6 +1276,10 @@ EN = {
     "지금 보는 범위에는 칠해진 것이 없다": "Nothing is mapped in the current extent",
     "…그 밖 {n}칸 — 더 들어가면 줄어든다": "…and {n} more — zoom in to narrow it down",
     "layer·lat·lon 이 없다": "layer, lat or lon is missing",
+    # 대앤틸리스 — USGS SIM 3534 를 우리가 굽는다 (wetherilli 254)
+    "대앤틸리스 지질도 파일이 서버에 없다": "The Greater Antilles geologic map file is not on the server",
+    "덮인 단층": "Concealed fault",
+    "단층 (변위 모름)": "Fault (displacement uncertain)",
     "범례가 없는 레이어다": "This layer has no legend",
     "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
@@ -2993,6 +2997,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
     "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
@@ -3014,6 +3019,7 @@ GROUP_EN = {
     "인도 지질도 1:200만 (GSI)": "Geological Map of India 1:2M (GSI)",
     "사우디 지질도 1:25만 (SGS)": "Geology of Saudi Arabia 1:250k (SGS)",
     "카리브 지질도 (USGS 1:250만)": "Geology of the Caribbean (USGS 1:2.5M)",
+    "대앤틸리스 지질도 (USGS SIM 3534)": "Geology of the Greater Antilles (USGS SIM 3534)",
     "파나마 지질도 (STRI·MICI 1:25만)": "Geology of Panama (STRI · MICI 1:250k)",
     "파라과이 지질도 (VMME)": "Geology of Paraguay (VMME)",
     "누벨칼레도니 지질도 (DIMENC)": "Geology of New Caledonia (DIMENC)",
@@ -3123,6 +3129,19 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # GSJ 의 다른 WMS (wetherilli 255)
+    "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
+    "gsjows:geochem:Cu": "Copper — geochemical map",
+    "gsjows:geochem:Pb": "Lead — geochemical map",
+    "gsjows:geochem:Zn": "Zinc — geochemical map",
+    "gsjows:geochem:As": "Arsenic — geochemical map",
+    "gsjows:geochem:Hg": "Mercury — geochemical map",
+    "gsjows:geochem:Cr": "Chromium — geochemical map",
+    "gsjows:geochem:Ni": "Nickel — geochemical map",
+    "gsjows:geochem:Fe2O3": "Iron (Fe₂O₃) — geochemical map",
+    "gsjows:geochem:K2O": "Potassium (K₂O) — geochemical map",
+    "gsjows:geochem:U": "Uranium — geochemical map",
+    "gsjows:geochem:Th": "Thorium — geochemical map",
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
     # NRCan 의 다른 서비스 (wetherilli 250)
@@ -3163,7 +3182,9 @@ LAYER_EN = {
     "sgs:geology": "Geology (1:250k compilation)",
     # 동남아 (wetherilli 228)
     "usgscarib:geology": "Geology (1:2.5M)", "stri:geology": "Geology (1:250k)", "stri:faults": "Faults (1:250k)",
-    "vmme:geology": "Geology (overview)",
+    "sim3534:units": "Geologic units",
+    "sim3534:faults": "Faults",
+    "vmme:geology": "Geology (overview)", "usgscarib:sa:geology": "Geology (USGS, public domain)",
     "georep:geology": "Geology (1:1M · 1:200k · 1:50k)",
     "brgm:GEOL_MART": "Martinique 1:50k (scan)", "brgm:GEOL_GUAD_ANNE": "Guadeloupe 1:50k (scan)",
     "brgm:GEOL_GUAD_MAR": "Saint-Martin · Saint-Barthélemy 1:50k (scan)",
@@ -3171,7 +3192,7 @@ LAYER_EN = {
     "brgm:GEOL_PYF_5S": "Geological scans — UTM 5S (Moorea, Leeward Islands, western Austral)",
     "brgm:GEOL_PYF_7S": "Geological scans — UTM 7S (Marquesas, eastern Tuamotu, Gambier)",
     "brgm:GEOL_REU_100K": "Réunion 1:100k (scan)", "brgm:GEOL_REU_50K": "Réunion 1:50k (scan)",
-    "brgm:GEOL_MYT_30K": "Mayotte 1:30k (scan)", "brgm:GEOL_SPM_50K": "Saint-Pierre-et-Miquelon 1:50k (scan)", "usgscarib:sa:geology": "Geology (USGS, public domain)",
+    "brgm:GEOL_MYT_30K": "Mayotte 1:30k (scan)", "brgm:GEOL_SPM_50K": "Saint-Pierre-et-Miquelon 1:50k (scan)",
     "ineter:geology": "Geology", "ineter:faults": "Faults", "igme:sgnrd:0": "Geological units (1:250k)",
     "igme:sgnrd:1": "Structures (1:250k)",
     "geosphere:geology": "Geology (1:1M)", "geosphere:faults": "Faults and nappe boundaries (1:1M)",
