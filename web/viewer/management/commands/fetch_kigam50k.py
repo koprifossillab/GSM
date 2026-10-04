@@ -1,7 +1,7 @@
 """KIGAM 5만 지질도의 구조 요소를 받아 `<KIGAM50K_DIR>/raw/<YYYYMMDD>/` 에 적는다 (jikhanjung P01 §4, wetherilli 199).
 
 문(`kigam.wfs_count`·`wfs_features`)으로 레이어마다 두 번 — 센 수(`hits`)와 본문 — 요청 사이 2 초. **문서에 없는 GeoServer 주소**다
-(CLAUDE.md "두 개의 상류 주소"). 주간 백업(`deploy/scripts/weekly_backup.sh`)이 달의 첫 월요일에 부른다.
+(CLAUDE.md "두 개의 상류 주소"). **사람이 가끔(반년쯤) 부른다** — 주간 백업이 다달이 부르던 것을 뺐다(사용자, 2026-10-04, wetherilli 208).
 
 - 받은 수가 센 수와 **모두** 같을 때만 적는다. 하나라도 모자라면 아무것도 적지 않고 멈춘다 — 반쪽 판이 가장 새 폴더가 되면 안 된다
 - 레이어마다 본문(풀린 GeoJSON)의 sha256 이 가장 새 폴더의 매니페스트와 **모두 같으면 새 폴더를 만들지 않고** 그 매니페스트에

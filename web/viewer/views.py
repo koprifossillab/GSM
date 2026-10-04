@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, ngu, segemar, sgb, sgc, usage
+from . import basemaps, bgr, bgs, brgm, dinamige, egdi, emodnet, gsi, gtk, igme, iige, ingemmet, linked, mrdata, ngu, segemar, sgb, sgc, usage
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -366,6 +366,8 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              "sgc", "sgb", "segemar", "dinamige",
              # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 가 3857 로 그린다
              "iige",
+             # 미국 USGS mrdata(wetherilli 205) — MapServer WMS 가 3857 로 그린다
+             "mrdata",
              # 아프리카 CGMW–BRGM·BGS 지하수 지도책(wetherilli 207)
              "cgmw", "aga")
 
@@ -2325,6 +2327,11 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
         first, last = door.ZOOMS.get(sheet, (None, None))
         return {"attribution": door.ATTRIBUTION, "projection": getattr(door, "PROJECTION", {}).get(sheet, "EPSG:3857"),
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
+    if layer.upstream == "mrdata" and mrdata.knows(layer.name):
+        # 미국 USGS(wetherilli 205) — MapServer WMS 를 3857 로. 범례는 없다(단위가 주마다 수천, GetLegendGraphic 501) — 팝업의 단위
+        # 설명 링크가 갈음한다. 구조선·단층은 누르지 않는다
+        return {"attribution": mrdata.ATTRIBUTION, "projection": "EPSG:3857", "noLegend": True,
+                **({} if layer.name in mrdata.QUERYABLE else {"queryable": False})}
     if layer.upstream == "iige" and iige.knows(layer.name):
         # 에콰도르 IIGE(wetherilli 198) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`iige/legend/`, 페루와 같은 꼴)
         return {"attribution": iige.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "iige/legend/"}
@@ -2438,7 +2445,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    gsmma.GsmmaError, emodnet.EmodnetError, ngu.NguError, gtk.GtkError,
                    bgs.BgsError, brgm.BrgmError, egdi.EgdiError,
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, ingemmet.IngemmetError,
-                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, basemaps.BasemapError)
+                   segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, basemaps.BasemapError)
 
 
 def _upstream_of(layers: str) -> str:
@@ -2484,6 +2491,8 @@ class _Door:
                "segemar": segemar, "dinamige": dinamige,
                # 에콰도르(wetherilli 198)
                "iige": iige,
+               # 미국(wetherilli 205)
+               "mrdata": mrdata,
                # 아프리카(wetherilli 207) — CGMW–BRGM 은 brgm.py, 지하수 지도책은 bgs.py 안에 따로 둔 상류다(GSNI 와 같은 꼴)
                "cgmw": brgm.CGMW, "aga": bgs.AGA}
 
@@ -2492,7 +2501,7 @@ class _Door:
         mod = self.MODULES[self.name]
         self.get_map, self.get_feature_info, self.get_legend = mod.get_map, mod.get_feature_info, mod.get_legend
         self.local = self.name == "geomap"
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "cgmw", "aga"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "cgmw", "aga"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3550,6 +3559,8 @@ def feature_info(request):
             props = {"bgr": bgr, "igme": igme, "gsi": gsi}[door.name].friendly(props)   # 값은 그 나라 말 그대로
         elif door.name == "sgc":
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
+        elif door.name == "mrdata":
+            props = mrdata.friendly(props, lang)     # 미국 — 값은 영어 그대로, 알래스카의 시대만 옮긴다 (wetherilli 205)
         elif door.name == "iige":
             props = iige.friendly(props, lang)       # 에콰도르 — 값은 에스파냐어 그대로 (wetherilli 198)
         elif door.name == "sgb":

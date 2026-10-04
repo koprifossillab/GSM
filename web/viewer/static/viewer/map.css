@@ -2389,6 +2389,26 @@ a.tool { text-decoration: none; }                /* 3D 단추는 링크다 */
   --glass: rgba(251, 253, 253, .95); --glass-line: #d0e2e5;
 }
 
+/* ── 미국 (wetherilli 205) — 모뉴먼트밸리의 붉은 사암: 사막의 밤하늘 바탕 ── */
+:root[data-region="usa"] {
+  --bg: #12101a; --panel: #1a1723; --panel-tint: #0d0b13; --raise: #25202f;
+  --ink: #f6eee9; --ink-soft: #cdb9ae; --ink-faint: #8a7a72;
+  --line: #352c39; --line-soft: #25202f;
+  --gold: #c8643c; --gold-bright: #eba27f; --gold-muted: #ad5a39;
+  --gold-wash: rgba(200, 100, 60, .13); --gold-edge: rgba(200, 100, 60, .42);
+  --hi: #c8643c; --hi-deep: #eba27f; --on-hi: #0d0b13; --hi-ink: #eba27f;
+  --glass: rgba(13, 11, 19, .93); --glass-line: rgba(200, 100, 60, .35);
+}
+:root[data-region="usa"][data-theme="light"] {
+  --bg: #f8f1ec; --panel: #fefbf9; --panel-tint: #faf4f0; --raise: #eee1d9;
+  --ink: #2a160e; --ink-soft: #644637; --ink-faint: #9e8174;
+  --line: #e6d4ca; --line-soft: #eee1d9;
+  --gold: #a94a26; --gold-bright: #84371a; --gold-muted: #9a5a40;
+  --gold-wash: #f8e4da; --gold-edge: #e7b49d;
+  --hi: #4c1d0d; --hi-deep: #2f1006; --on-hi: #fdf6f2; --hi-ink: #a94a26;
+  --glass: rgba(254, 251, 249, .95); --glass-line: #e6d4ca;
+}
+
 /* ── 아프리카 (wetherilli 207) — 사바나 황토와 바오바브 껍질의 적갈 ── */
 :root[data-region="africa"] {
   --bg: #17120c; --panel: #1f1810; --panel-tint: #120e09; --raise: #2b2116;
