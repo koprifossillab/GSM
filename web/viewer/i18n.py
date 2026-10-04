@@ -2455,6 +2455,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
     "생산": "Production", "발견": "Discovery",
     "생산량": "Production", "잠재량": "Potential", "채굴 형태": "Working type", "쓰임": "Uses", "지질시대 (원문)": "Age (original)",
@@ -3143,6 +3144,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "페루 지화학 지도첩 (INGEMMET)": "Peru geochemical atlas (INGEMMET)",
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
     "네바다 지질도 (NBMG 1:50만)": "Nevada geology (NBMG 1:500k)", "워싱턴 지질도 (DNR)": "Washington geology (DNR)",
     "오리건 지질도 (DOGAMI OGDC-6)": "Oregon geology (DOGAMI OGDC-6)",
@@ -3296,6 +3298,19 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 페루 지화학 지도첩·산업 광물 (wetherilli 303)
+    "ingemmet:gq_au": "Gold (Au) dispersion and anomalies",
+    "ingemmet:gq_ag": "Silver (Ag) dispersion and anomalies",
+    "ingemmet:gq_cu": "Copper (Cu) dispersion and anomalies",
+    "ingemmet:gq_mo": "Molybdenum (Mo) dispersion and anomalies",
+    "ingemmet:gq_pb": "Lead (Pb) dispersion and anomalies",
+    "ingemmet:gq_zn": "Zinc (Zn) dispersion and anomalies",
+    "ingemmet:gq_as": "Arsenic (As) dispersion and anomalies",
+    "ingemmet:gq_hg": "Mercury (Hg) dispersion and anomalies",
+    "ingemmet:gq_co": "Cobalt (Co) dispersion and anomalies",
+    "ingemmet:gq_ni": "Nickel (Ni) dispersion and anomalies",
+    "ingemmet:gq_cr": "Chromium (Cr) dispersion and anomalies",
+    "ingemmet:rmi": "Industrial rocks and minerals", "ingemmet:lithium": "Lithium occurrences",
     # 캐나다 주 광물 산지 (wetherilli 288)
     "bcgs:minfile": "British Columbia MINFILE mineral occurrences", "ygs:57": "Yukon MINFILE mineral occurrences",
     "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects",
