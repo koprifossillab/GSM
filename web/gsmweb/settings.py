@@ -159,6 +159,8 @@ SGU_WMS_URL = env("GSM_SGU_WMS_URL", "https://maps3.sgu.se/geoserver/berg/ows")
 NATT_WMS_URL = env("GSM_NATT_WMS_URL", "https://gis.natt.is/geoserver/wms")
 #: 뉴질랜드·남빅토리아랜드 지질도 — GNS Science GeoServer WMS (`viewer/gns.py`, wetherilli 218). 열쇠가 없다
 GNS_WMS_URL = env("GSM_GNS_WMS_URL", "https://maps.gns.cri.nz/geology/wms")
+#: GNS 전체 서비스 — 지질 서비스에 없는 중력 이상 따위 (wetherilli 269)
+GNS_ALL_WMS_URL = env("GSM_GNS_ALL_WMS_URL", "https://maps.gns.cri.nz/gns/wms")
 #: 몽골 국가지질도첩 — MonGeoCat ArcGIS 의 앞 주소 (`viewer/mris.py`, wetherilli 221). 열쇠가 없다. 문서에 없는 주소다
 MRIS_URL = env("GSM_MRIS_URL", "https://gismap.mris.mn/arcgis")
 #: 인도 1:200만 — 그림은 BGS 가 여는 OneGeology WMS, 속성은 GSI 의 ArcGIS Online 피처 서비스 (`viewer/gsiindia.py`, wetherilli 226)
@@ -464,6 +466,8 @@ CATALOG_SEED = REPO_DIR / "data" / "kigam_layers.json"
 KIGAM_COMPOSED_CATALOG_SEED = REPO_DIR / "data" / "kigam_composed_layers.json"
 #: 그린란드(GEUS) 카탈로그 씨앗. seed_catalog 가 KIGAM 씨앗과 함께 넣는다
 GEUS_CATALOG_SEED = REPO_DIR / "data" / "geus_layers.json"
+#: 그린란드 — GEUS ArcGIS 의 자력·중력·지질구 (wetherilli 259)
+GEUSARC_CATALOG_SEED = REPO_DIR / "data" / "geusarc_layers.json"
 #: 한국의 "지질 참고" 레이어군(VWorld WMS·WFS) 씨앗. 이것도 함께 넣는다 (devlog 020)
 VWORLD_CATALOG_SEED = REPO_DIR / "data" / "vworld_layers.json"
 #: 그린란드 정부 포털의 점 레이어 씨앗. 역시 seed_catalog 가 함께 넣는다
@@ -495,6 +499,8 @@ SGU_CATALOG_SEED = REPO_DIR / "data" / "sgu_layers.json"
 NATT_CATALOG_SEED = REPO_DIR / "data" / "natt_layers.json"
 #: 영국·프랑스 — BGS·BRGM 지질도, 그리고 둘이 함께 까는 EGDI 1:100만 (wetherilli 143)
 BGS_CATALOG_SEED = REPO_DIR / "data" / "bgs_layers.json"
+#: 영국 GeoIndex — 자력·중력·광산·광물 산지 (wetherilli 258)
+BGSGI_CATALOG_SEED = REPO_DIR / "data" / "bgsgi_layers.json"
 BRGM_CATALOG_SEED = REPO_DIR / "data" / "brgm_layers.json"
 EGDI_CATALOG_SEED = REPO_DIR / "data" / "egdi_layers.json"
 #: 독일·스페인·아일랜드 (wetherilli 147)
