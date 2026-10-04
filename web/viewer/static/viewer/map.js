@@ -1774,8 +1774,9 @@
     popupOverlay = new ol.Overlay({
       element: document.getElementById("popup"),
       // 아래 가장자리에는 좌표 막대가 덮여 있다. 여백을 주지 않으면 팝업
-      // 아랫단이 막대 밑으로 들어간다.
-      autoPan: { animation: { duration: 200 }, margin: 72 },
+      // 아랫단이 막대 밑으로 들어간다. 여백은 사방에 걸려서 휴대폰(390 px)에서는 320 px 팝업 + 72 px 둘이 들지 않아
+      // 팝업이 왼쪽 밖으로 밀렸다 — 좁은 화면은 12 px 로 (휴대폰 시험이 잡았다, wetherilli 193)
+      autoPan: { animation: { duration: 200 }, margin: window.innerWidth < 500 ? 12 : 72 },
       offset: [0, -8],
       positioning: "bottom-center",
     });
