@@ -449,7 +449,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   ispra.py        이탈리아 지질조사소(ISPRA)로 나가는 문 (1:100만·1:10만 ArcGIS WMS 를 3857 로, 속성은 GeoJSON. 1:100만은 WMS·REST 번호가 거꾸로)
   lneg.py         포르투갈 국립 에너지·지질연구소(LNEG)로 나가는 문 (1:50만 ArcGIS WMS 를 3857 로, 속성은 ESRI XML)
   swisstopo.py    스위스 연방 지형청(swisstopo)으로 나가는 문 (1:50만·GeoCover geo.admin.ch WMS 를 3857 로, 속성은 geo.admin.ch REST identify)
-  ga.py           Geoscience Australia 로 나가는 문 (호주 지표 지질 1:250만·1:100만 ArcGIS WMS — 두 판을 함께 물어 상류가 축척에 맞는 판을 그린다, 범례는 보는 범위)
+  ga.py           Geoscience Australia 로 나가는 문 (호주 지표 지질 1:250만·1:100만 ArcGIS WMS — 두 판을 함께 물어 상류가 축척에 맞는 판을 그린다, 범례는 보는 범위.
+                  지질구·핵심 광물·지구물리 격자도(`OTHER`, 격자는 png8 로, wetherilli 241))
   austates.py     호주 주 지질조사소로 나가는 문 셋 — 퀸즐랜드 GSQ(ArcGIS REST export·identify, 1:200만·1:10만)·빅토리아 GSV·남호주 GSSA(GeoServer 의 GeoSciML 포트레이얼). 범례는 보는 범위의 것 — 빅토리아는 빈 규칙 빼기, 퀸즐랜드는 REST 통계, 남호주는 WFS+SLD(wetherilli 232)
   gns.py          GNS Science(뉴질랜드)로 나가는 문 (QMAP 1:25만 합본·1:100만 GeoServer WMS, 3857 로. 같은 서버의 남극 남빅토리아랜드 1:25만은 3031 로. 속성은 열을 골라 묻는다)
   mris.py         몽골 국가지질조사소 MonGeoCat 으로 나가는 문 (국가지질도첩 지질도·1:50만 단층 ArcGIS WMS, 3857 로. 문서에 없는 주소, WMS·REST 번호가 거꾸로, 시대는 러시아식 층서 지수에서 푼다)

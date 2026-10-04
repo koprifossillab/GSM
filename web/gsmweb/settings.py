@@ -225,6 +225,8 @@ SPW_URL = env("GSM_SPW_URL", "https://geoservices.wallonie.be/arcgis")
 #: 호주 지표 지질도 — Geoscience Australia ArcGIS WMS·REST (wetherilli 212). 열쇠가 없다
 GA_WMS_URL = env("GSM_GA_WMS_URL", "https://services.ga.gov.au/gis/services/GA_Surface_Geology/MapServer/WMSServer")
 GA_REST_URL = env("GSM_GA_REST_URL", "https://services.ga.gov.au/gis/rest/services/GA_Surface_Geology/MapServer")
+#: GA 의 다른 서비스(지질구·핵심 광물·지구물리 격자)의 뿌리 (wetherilli 241)
+GA_GIS_URL = env("GSM_GA_GIS_URL", "https://services.ga.gov.au/gis")
 #: 이탈리아 ISPRA·포르투갈 LNEG ArcGIS 의 앞 주소, 스위스 swisstopo WMS·identify (wetherilli 211). 열쇠가 없다
 ISPRA_URL = env("GSM_ISPRA_URL", "https://sgi2.isprambiente.it/arcgis")
 LNEG_URL = env("GSM_LNEG_URL", "https://sig.lneg.pt/server")
