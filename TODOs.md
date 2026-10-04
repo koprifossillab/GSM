@@ -37,7 +37,7 @@
 
 ### 북미
 
-- [ ] 캐나다 NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 — ArcGIS, CORS, OGL. 온타리오 속성은 REST identify. 반나절씩
+- [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
 - [ ] 북미 묶음 — 미국 탭은 섰다(wetherilli 205). 캐나다 탭이 들어오면 `north_america` 묶음을 세우고, 알래스카를 그 투영에 맞춘다
       (지금은 3857 이라 부푼다). 하와이(`services/hi`)·푸에르토리코(`services/pr`)는 같은 서버에 있다
 - [ ] 멕시코 SGM 의 다른 서비스 — 같은 서버에 지질 연대(`SunEdadesGeocronologicas`)·고생물(`Paleontologia`)·광상이 있다. 탭은 섰다(wetherilli 206)
