@@ -478,6 +478,8 @@ SGU_CATALOG_SEED = REPO_DIR / "data" / "sgu_layers.json"
 NATT_CATALOG_SEED = REPO_DIR / "data" / "natt_layers.json"
 #: 영국·프랑스 — BGS·BRGM 지질도, 그리고 둘이 함께 까는 EGDI 1:100만 (wetherilli 143)
 BGS_CATALOG_SEED = REPO_DIR / "data" / "bgs_layers.json"
+#: 영국 GeoIndex — 자력·중력·광산·광물 산지 (wetherilli 258)
+BGSGI_CATALOG_SEED = REPO_DIR / "data" / "bgsgi_layers.json"
 BRGM_CATALOG_SEED = REPO_DIR / "data" / "brgm_layers.json"
 EGDI_CATALOG_SEED = REPO_DIR / "data" / "egdi_layers.json"
 #: 독일·스페인·아일랜드 (wetherilli 147)
