@@ -629,6 +629,17 @@
   var addedRegions = ["korea"];
   /** 탭 줄에 늘 서는 지역 — 나머지는 "그 외" 로 접는다 (wetherilli 214) */
   var PINNED = ["korea", "arctic", "antarctica"];
+  /** "그 외" 차림의 대륙 머리 (wetherilli 268) — 탭이 쉰을 넘어 차림이 길어졌다. 머리마다 맨 위의 지역(묶음이나 어느 묶음에도 들지 않는
+   *  지역)을 적는다. 묶음에 딸린 지역은 그 묶음 밑에 선다. 여기 적지 않은 지역은 맨 끝 "그 밖" 에 선다 — 새 지역이 사라지지는 않는다
+   *  (시험 `test_region_menu` 가 적었는지 본다) */
+  var CONTINENTS = [
+    ["아시아", ["eastasia", "southeast_asia", "india", "saudi"]],
+    ["유럽", ["europe"]],
+    ["아메리카", ["north_america", "central_america", "south_america"]],
+    ["아프리카", ["africa"]],
+    ["오세아니아", ["oceania"]],
+    ["극지", ["arctic", "antarctica"]],
+  ];
 
   // ── 공유 링크 (wetherilli 189) ──
   // 주소의 해시(`share.js`)로 들어오면 그 지역·자리·레이어·배경을 덧층에 깔고 연다. 아래의 기억(지역·자리·레이어·배경)은 모두
@@ -6498,6 +6509,7 @@
     // 묶음(`includes` — 동아시아·북극) 밑에 딸린 지역을 들여 세운다 (wetherilli 111). 묶음을 이미 더했으면 머리는
     // 누를 수 없는 제목으로만 남는다. 어느 묶음에도 들지 않는 지역은 그대로
     function item(key, cls) {
+      if (!REGIONS[key]) return;
       var li = document.createElement("li");
       li.className = cls || "";
       li.dataset.region = key;
@@ -6514,12 +6526,27 @@
     Object.keys(REGIONS).forEach(function (k) {
       (REGIONS[k].includes || []).forEach(function (c) { if (!parentOf[c]) parentOf[c] = k; });
     });
-    Object.keys(REGIONS).forEach(function (key) {
-      if (parentOf[key]) return;                                           // 묶음 밑에서 세운다
+    // 대륙 머리 밑에 맨 위의 지역을 세운다 — 묶음이면 딸린 지역을 그 밑에 들여서 (wetherilli 268)
+    function shown(key) {
       var kids = (REGIONS[key].includes || []).filter(function (c) { return more.indexOf(c) >= 0; });
-      if (more.indexOf(key) < 0 && !kids.length) return;
-      item(key, kids.length ? "group" : "");
-      kids.forEach(function (c) { item(c, "sub"); });
+      return { key: key, kids: kids, show: more.indexOf(key) >= 0 || kids.length > 0 };
+    }
+    var placed = {};
+    var tops = Object.keys(REGIONS).filter(function (k) { return !parentOf[k]; });
+    CONTINENTS.concat([["그 밖", null]]).forEach(function (c) {
+      var keys = c[1] ? c[1].filter(function (k) { return REGIONS[k] && !parentOf[k]; })
+                      : tops.filter(function (k) { return !placed[k]; });
+      keys.forEach(function (k) { placed[k] = true; });
+      var rows = keys.map(shown).filter(function (r) { return r.show; });
+      if (!rows.length) return;
+      var li = document.createElement("li");
+      li.className = "head continent";
+      li.textContent = T(c[0]);
+      menu.appendChild(li);
+      rows.forEach(function (r) {
+        item(r.key, r.kids.length ? "group" : "");
+        r.kids.forEach(function (k) { item(k, "sub"); });
+      });
     });
     // 차림은 화면에 붙여(fixed) 단추 밑에 세운다 — 패널과 휴대폰의 탭 줄(가로 굴림)이 넘친 것을 잘라서다
     btn.addEventListener("click", function (e) {
