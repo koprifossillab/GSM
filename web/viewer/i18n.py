@@ -2321,6 +2321,8 @@ PROP_EN = {
     "성인": "Genesis",
     # 미국 광물·연대 (wetherilli 247)
     "개발 단계": "Development status", "지형도": "Topographic map", "상세": "Details",
+    # 캐나다 핵심 광물 (wetherilli 250)
+    "운영사": "Operator", "누리집": "Website",
     # 하와이 (wetherilli 238)
     "조성": "Composition", "섬": "Island", "화산 성장 단계": "Volcano stage",
     "서열": "Rank",
@@ -2992,6 +2994,7 @@ def props_en(props: dict) -> dict:
 GROUP_EN = {
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
     "미국 지질 연대 측정 (USGS)": "US geochronology (USGS)",
+    "캐나다 지질도 편찬 (NRCan CGMC)": "Canada geological compilation (NRCan CGMC)", "캐나다 광물 자원 (NRCan)": "Canada mineral resources (NRCan)",
     "하와이 지질도 (USGS)": "Hawaii geology (USGS)", "푸에르토리코 지질도 (USGS)": "Puerto Rico geology (USGS)",
     "호주 지질구 (GA)": "Australia geological provinces (GA)", "호주 핵심 광물 (GA 2025)": "Australia critical minerals (GA 2025)",
     "호주 지구물리 (GA)": "Australia geophysics (GA)",
@@ -3116,6 +3119,9 @@ GROUP_EN = {
 LAYER_EN = {
     # 캐나다 (wetherilli 204)
     "nrcan:wheeler": "Geological Map of Canada (1:5M, Wheeler)", "ogs:3": "Ontario bedrock (1:250k)",
+    # NRCan 의 다른 서비스 (wetherilli 250)
+    "nrcan:cgmc": "Canada Geological Map Compilation (CGMC)", "nrcan:critical": "Critical minerals sites (mines, processing, exploration)",
+    "nrcan:ree": "Carbonatite REE–Nb prospectivity", "nrcan:lithium": "LCT pegmatite lithium prospectivity",
     "ogs:1": "Ontario Quaternary geology",
     "sigeom:generale": "General geology (Québec)", "sigeom:regionale": "Regional geology (Québec, 1:20k–1:250k)",
     "sigeom:failles": "Faults (Québec)", "ygs:47": "Bedrock (Yukon 1:250k)", "ygs:50": "Faults (Yukon)",
