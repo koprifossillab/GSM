@@ -1840,6 +1840,25 @@ button.proplink { font-family: inherit; line-height: inherit; cursor: pointer; }
   --hi: #123a28; --hi-deep: #0a2418; --on-hi: #f3fbf7; --hi-ink: #1d8a5a;
   --glass: rgba(250, 253, 251, .95); --glass-line: #cfe0d7;
 }
+/* 남미 — 안데스의 구리빛 (wetherilli 188) */
+:root[data-region="south_america"] {
+  --bg: #17110d; --panel: #1f1712; --panel-tint: #120d0a; --raise: #2a1f18;
+  --ink: #f6ece4; --ink-soft: #cdb4a2; --ink-faint: #8e7464;
+  --line: #3a2b21; --line-soft: #2a1f18;
+  --gold: #d9844a; --gold-bright: #f0b48a; --gold-muted: #b86e3c;
+  --gold-wash: rgba(217, 132, 74, .12); --gold-edge: rgba(217, 132, 74, .4);
+  --hi: #d9844a; --hi-deep: #f0b48a; --on-hi: #120d0a; --hi-ink: #f0b48a;
+  --glass: rgba(18, 13, 10, .93); --glass-line: rgba(217, 132, 74, .33);
+}
+:root[data-region="south_america"][data-theme="light"] {
+  --bg: #f7efe8; --panel: #fdfaf7; --panel-tint: #f8f1eb; --raise: #ecdfd4;
+  --ink: #26170e; --ink-soft: #5e4636; --ink-faint: #957c6c;
+  --line: #e2d1c3; --line-soft: #ecdfd4;
+  --gold: #b0602c; --gold-bright: #8a4519; --gold-muted: #a0663f;
+  --gold-wash: #f6e2d3; --gold-edge: #e6bd9f;
+  --hi: #4a2512; --hi-deep: #2e160a; --on-hi: #fdf6f0; --hi-ink: #b0602c;
+  --glass: rgba(253, 250, 247, .95); --glass-line: #e2d1c3;
+}
 
 /* ── 유럽 (wetherilli 143) — 영국·프랑스를 한 화면에. 백악 절벽: 플린트 먹회 바탕에 백악의 회백 ──
    도버 해협 양쪽이 같은 백악이라 땄다. 품은 지역의 색(히스 자주·포도잎 초록) 어느 쪽도 아니게 색을 빼고 밝기로 가른다 */

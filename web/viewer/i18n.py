@@ -637,6 +637,9 @@ EN = {
     "독일 연방 지구과학·자원청": "BGR (Federal Institute for Geosciences and Natural Resources)",
     "스페인 지질광물연구소": "IGME (Geological and Mining Institute of Spain)",
     "아일랜드 지질조사소": "Geological Survey Ireland",
+    # 남미 (wetherilli 188)
+    "남미": "South America",
+    "콜롬비아 지질조사소": "Colombian Geological Survey (SGC)",
     "북아일랜드 지질조사소": "Geological Survey of Northern Ireland",
     "영국 지질조사소": "British Geological Survey",
     "프랑스 지질광물조사소": "BRGM (French Geological Survey)",
@@ -1650,6 +1653,7 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "암석 분류": "Rock classification",   # 남미 1:500만 (wetherilli 188)
     # 지역 탭의 지구 자료 점 — 링크 열 (wetherilli 185)
     "PBDB 산지 페이지": "PBDB collection page", "GVP 화산 페이지": "GVP volcano page",
     "USGS 지진 페이지": "USGS event page", "Neotoma 산지 페이지": "Neotoma site page",
@@ -2627,6 +2631,8 @@ GROUP_EN = {
     "독일 지질 (BGR)": "Germany geology (BGR)",
     "스페인 지질 (IGME)": "Spain geology (IGME)",
     "아일랜드 기반암 (GSI·GSNI)": "Ireland bedrock (GSI · GSNI)",
+    "남미 지질도 (CGMW 1:500만)": "South America geology (CGMW 1:5M)",
+    "콜롬비아 지질도 (SGC 1:50만)": "Colombia geology (SGC 1:500k)",
 }
 
 LAYER_EN = {
@@ -2665,6 +2671,19 @@ LAYER_EN = {
     "gsi:1m:IE_GSI_GSNI_Faults_1M_IE32_ITM": "Faults (1:1M)",
     "gsi:100k:IE_GSI_Bedrock_Geology_100K_IE26_ITM": "Bedrock (1:100k, Republic)",
     "gsni:5": "Bedrock (1:250k, Northern Ireland)",
+    # 남미 (wetherilli 188)
+    "sgc:sa:8": "Chronostratigraphic units (1:5M)",
+    "sgc:sa:10": "Faults (1:5M)",
+    "sgc:sa:3": "Oceanic crust ages",
+    "sgc:sa:31": "Plate boundaries",
+    "sgc:sa:15": "Volcanoes",
+    "sgc:sa:16": "Kimberlites",
+    "sgc:sa:19": "Impact craters",
+    "sgc:co:3": "Chronostratigraphic units (1:500k)",
+    "sgc:co:60": "Faults (1:500k)",
+    "sgc:co:61": "Folds (1:500k)",
+    "sgc:co:66": "Volcanoes (Colombia)",
+    "sgc:co:65": "Mud volcanoes",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",

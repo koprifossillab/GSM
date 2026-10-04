@@ -81,6 +81,8 @@ class Command(BaseCommand):
                 (settings.IGME_CATALOG_SEED, "스페인 (IGME)", "spain", "igme"),
                 (settings.GSI_CATALOG_SEED, "아일랜드 (GSI)", "ireland", "gsi"),
                 (settings.GSNI_CATALOG_SEED, "북아일랜드 (GSNI)", "ireland", "gsni"),
+                # 남미 — SGC 남미 1:500만·콜롬비아 1:50만 (wetherilli 188)
+                (settings.SGC_CATALOG_SEED, "남미 (SGC)", "south_america", "sgc"),
                 # 중국 — USGS geo3al, 우리 디스크의 셰이프파일 (025)
                 (settings.GEO3AL_CATALOG_SEED, "중국 (USGS)", "china", "geo3al"),
                 # 연구실의 암맥 기록 — phyloserver (026)
