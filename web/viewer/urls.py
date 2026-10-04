@@ -141,6 +141,8 @@ urlpatterns = [
             views.gibs_tile, name="gibs-tile"),
     path("gibs/wms/", views.gibs_wms, name="gibs-wms"),
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
+    # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
+    path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다
