@@ -110,6 +110,9 @@ class Command(BaseCommand):
                 # 캐나다 — NRCan 1:500만(Wheeler)·온타리오 OGS 1:25만 (wetherilli 204)
                 (settings.NRCAN_CATALOG_SEED, "캐나다 (NRCan)", "canada", "nrcan"),
                 (settings.OGS_CATALOG_SEED, "온타리오 (OGS)", "canada", "ogs"),
+                # 퀘벡 SIGÉOM·유콘 YGS (wetherilli 210)
+                (settings.SIGEOM_CATALOG_SEED, "퀘벡 (SIGÉOM)", "canada", "sigeom"),
+                (settings.YGS_CATALOG_SEED, "유콘 (YGS)", "canada", "ygs"),
                 # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo (wetherilli 211)
                 (settings.ISPRA_CATALOG_SEED, "이탈리아 (ISPRA)", "italy", "ispra"),
                 (settings.LNEG_CATALOG_SEED, "포르투갈 (LNEG)", "portugal", "lneg"),

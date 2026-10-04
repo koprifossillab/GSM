@@ -310,8 +310,17 @@
     canada: { title: "캐나다", proj: "EPSG:3978", center: [-96.0, 60.0], zoom: 4, vworld: false,
               home: [-2400000, -900000, 3100000, 4600000],
               basemap: "eox_terrain", example: "45.42, -75.70 · Ottawa",
-              base: ["nrcan:wheeler", "ogs:3", "ogs:1"],
+              base: ["nrcan:wheeler", "ogs:3", "ogs:1", "sigeom:generale", "sigeom:regionale", "ygs:47"],
               first: "nrcan:wheeler" },
+    // 북미 묶음(wetherilli 210) — 캐나다·미국·멕시코를 캐나다 람베르트(3978) 한 화면에 모은다. 알래스카와 북극 섬이 부풀지 않고 멕시코(북위
+    // 15° 남짓)도 크게 비틀리지 않는다. 처음 켜는 것은 나라마다 넓게 봐도 그려지는 판 하나 — 캐나다 1:500만·미국 SGMC·멕시코 1:25만.
+    // 셋은 국경에서만 겹친다. 주 판(온타리오·퀘벡·유콘)과 알래스카는 목록에서 켠다
+    north_america: { title: "북미", proj: "EPSG:3978", center: [-100.0, 45.0], zoom: 3, vworld: false,
+                     includes: ["canada", "usa", "mexico"],
+                     home: [-3995000, -4275000, 3052000, 3777000],
+                     basemap: "eox_terrain", example: "45.42, -75.70 · Ottawa",
+                     base: ["nrcan:wheeler", "mrdata:sgmc2:sgmc2", "sgm:8", "mrdata:sim3340:units"],
+                     first: ["nrcan:wheeler", "mrdata:sgmc2:sgmc2", "sgm:8"] },
     // 남미 묶음 — 레이어군은 북에서 남으로(콜롬비아·에콰도르·페루·브라질·우루과이·아르헨티나) 선다. **처음 켜는 것**은 대륙 바탕
     // 1:500만을 맨 밑에 두고, 나라마다 넓게 봐도 빨리 그려지는 판 하나씩을 그 위에 얹는다 — 브라질 1:250만(1:100만은 줌 6 부터)·
     // 아르헨티나 1:250만·페루 1:5만(타일 캐시)·콜롬비아 1:50만·우루과이 1:50만. 나라 판끼리는 국경에서만 겹친다. 에콰도르는 넓은 줌의
@@ -350,11 +359,11 @@
               base: ["egdi:GeologicUnitView_Age", "bgs:BGS.50k.Bedrock", "brgm:SCAN_F_GEOL1M"],
               first: "egdi:GeologicUnitView_Age",
               borrow: { arctic_ocean: ["emodnet"] } },
-    // ── 북미 (wetherilli 205) ──
-    // 미국 — USGS SGMC(본토 48 주, 주 지질도 합본)와 알래스카 SIM 3340. 공공 도메인. 3857 이라 알래스카는 부풀어 보인다 — 북미 묶음은
-    // 캐나다 탭(gsm-57)이 들어오면 그 투영에 맞춰 세운다
-    usa: { title: "미국", proj: "EPSG:3857", center: [-98.0, 39.0], zoom: 4, vworld: false,
-           home: [-13971000, 2753000, -7403000, 6412000],
+    // ── 북미 (wetherilli 205·210) ──
+    // 미국 — USGS SGMC(본토 48 주, 주 지질도 합본)와 알래스카 SIM 3340. 공공 도메인. 화면은 캐나다와 같은 캐나다 람베르트(3978) —
+    // 3857 이면 알래스카가 본토만큼 부푼다. 레이어는 3857 로 받아 화면이 옮겨 그린다(카탈로그 행의 `projection`, wetherilli 210)
+    usa: { title: "미국", proj: "EPSG:3978", center: [-105.0, 45.0], zoom: 3, vworld: false,
+           home: [-4204000, -2746000, 3309000, 3650000],
            basemap: "eox_terrain", example: "39.74, -104.99 · Denver",
            base: ["mrdata:sgmc2:sgmc2", "mrdata:sgmc2:sgmc2structure", "mrdata:sim3340:units"],
            first: "mrdata:sgmc2:sgmc2" },
@@ -425,7 +434,7 @@
     return g.region === "antarctica" && g.layers.length;
   });
   //: 스발바르·북극·일본·중국도 카탈로그에 레이어군이 하나도 없으면 "준비 중" 이다 (씨앗을 안 넣은 DB)
-  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "australia"].forEach(function (key) {
+  ["svalbard", "arctic", "arctic_ocean", "fennoscandia", "iceland", "japan", "china", "taiwan", "uk", "france", "germany", "spain", "ireland", "europe", "colombia", "brazil", "peru", "argentina", "uruguay", "ecuador", "south_america", "canada", "africa", "italy", "portugal", "switzerland", "usa", "mexico", "north_america", "australia"].forEach(function (key) {
     if (!REGIONS[key]) return;            // 정적 판이 싣지 않은 지역
     var keys = REGIONS[key].includes || [key];
     REGIONS[key].pending = !catalog.some(function (g) {
@@ -898,6 +907,9 @@
     // 캐나다 NRCan·온타리오 OGS(wetherilli 204) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. OGS 속성은 문이 REST identify 로 바꾼다
     nrcan: { source: npolarSource, info: wmsInfoUrl },
     ogs: { source: npolarSource, info: wmsInfoUrl },
+    // 퀘벡 SIGÉOM·유콘 YGS(wetherilli 210) — 카탈로그 행의 투영(3978)으로 서버 문을 거쳐 받는다. 퀘벡은 Origin 을 보내면 403 이라 문으로만
+    sigeom: { source: npolarSource, info: wmsInfoUrl },
+    ygs: { source: npolarSource, info: wmsInfoUrl },
     // 호주 GA(wetherilli 212) — ArcGIS WMS 를 3857 로. 범례는 보는 범위의 것(`ga/legend/`)
     ga: { source: npolarSource, info: wmsInfoUrl },
     // 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 유럽 문처럼 카탈로그 행의 투영(3857)으로 서버 문을 거친다
@@ -2378,7 +2390,7 @@
   //: 상류의 짧은 이름 — 기관 이름이라 옮기지 않는다
   var UPSTREAM_TAGS = {
     kigam: "KIGAM", vworld: "VWorld", geus: "GEUS", grportal: "GRL", npolar: "NPI", janmayen: "NPI",
-    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", ga: "GA", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
+    gsj: "GSJ", gsitile: "GSIJ", geonavi: "GSJ", ccop: "CCOP", gsmma: "GSMMA", emodnet: "EMOD", ngu: "NGU", gtk: "GTK", sgu: "SGU", natt: "NÍ", bgs: "BGS", brgm: "BRGM", egdi: "EGDI", bgr: "BGR", igme: "IGME", gsi: "GSI", gsni: "GSNI", sgc: "SGC", sgb: "SGB", ingemmet: "INGEMMET", iige: "IIGE", cgmw: "CGMW", aga: "BGS", cgs: "CGS", gsn: "GSN", mrdata: "USGS", sgm: "SGM", nrcan: "NRCan", ogs: "OGS", sigeom: "SIGÉOM", ygs: "YGS", ga: "GA", ispra: "ISPRA", lneg: "LNEG", swisstopo: "swisstopo", segemar: "SEGEMAR", dinamige: "DINAMIGE", geomap: "GeoMAP", geo3al: "USGS", kopri: "KOPRI", pgc: "PGC", ibcso: "IBCSO",
     phyloserver: "LAB", peninsula: "LAB",
     // 지구 자료 점(wetherilli 185) — 기관이 넷이라 딱지는 하나로 두고 이름은 레이어 제목이 적는다
     earth: "EARTH",
@@ -2393,7 +2405,7 @@
     bgs: T("영국 지질조사소"), brgm: T("프랑스 지질광물조사소"), egdi: "EGDI (EuroGeoSurveys)",
     bgr: T("독일 연방 지구과학·자원청"), igme: T("스페인 지질광물연구소"), gsi: T("아일랜드 지질조사소"),
     sgc: T("콜롬비아 지질조사소"), sgb: T("브라질 지질조사소"), ingemmet: T("페루 지질광업야금연구소"), iige: T("에콰도르 지질·에너지 연구소"), mrdata: T("미국 지질조사국"), sgm: T("멕시코 지질조사소"),
-    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"),
+    nrcan: T("캐나다 천연자원부"), ogs: T("온타리오 지질조사소"), sigeom: T("퀘벡 지질 광업 정보 체계"), ygs: T("유콘 지질조사소"),
     ispra: T("이탈리아 지질조사소 (ISPRA)"), lneg: T("포르투갈 국립 에너지·지질연구소"), swisstopo: T("스위스 연방 지형청"), natt: T("아이슬란드 자연사연구소"),
     segemar: T("아르헨티나 지질광업조사소"), dinamige: T("우루과이 광업지질국"),
     cgmw: T("세계지질도위원회·프랑스 지질광물조사소"), aga: T("영국 지질조사소 — 아프리카 지하수 지도책"),
