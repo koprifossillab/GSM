@@ -522,6 +522,13 @@ EN = {
     "깊은 지진 (300 km 넘게)": "Deep (over 300 km)",
     "원의 크기는 규모, 색은 진원 깊이": "Circle size is magnitude, colour is focal depth",
     "M{mag} 지진": "M{mag} earthquake",
+    # 관리 화면의 상류 응답 시간 (wetherilli 295)
+    "상류 응답 시간": "Upstream response times",
+    "지난 7 일의 평균이 느린 차례 — 시간은 상류가 응답의 머리를 보내기까지": "Slowest first by the 7-day mean — time until the upstream sends the response headers",
+    "상류": "Upstream", "지난 7 일": "Past 7 days", "건수": "Calls", "실패": "Failed", "평균 (초)": "Mean (s)",
+    "아직 센 것이 없다": "Nothing counted yet",
+    "p95 는 시간 칸(0.5·1·2·3·5·8·13·21·34 초)에서 어림한 위 끝이다. 실패는 차단 조짐을 함께 센다. 서버 쪽에서는 manage.py upstream_stats 로 같은 값을 본다.":
+        "p95 is the upper edge of the time band (0.5 · 1 · 2 · 3 · 5 · 8 · 13 · 21 · 34 s) it falls in. Failures include block signs. On the server, manage.py upstream_stats shows the same figures.",
     "지진 {n} 곳 가운데 가까운 것부터": "Nearest of {n} earthquakes",
     "USGS 에서 보기": "Open at USGS",
     # 제4기 고생태 산지 (wetherilli 139)

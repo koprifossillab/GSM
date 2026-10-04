@@ -291,7 +291,7 @@ def intro_view(request):
 
 @require_GET
 def manage_view(request):
-    """관리 화면 (wetherilli P08·118). 지금은 개인 레이어 반입과 이 브라우저의 저장 자료 관리 둘이다.
+    """관리 화면 (wetherilli P08·118). 개인 레이어 반입, 이 브라우저의 저장 자료 관리, 상류 응답 시간(읽기만, wetherilli 295).
 
     **서버는 화면만 내준다.** 개인 레이어는 브라우저가 읽어 브라우저(IndexedDB)에 둔다 — 서버로 오지 않는다.
     관리라는 이름이지만 지우고 고치는 것은 그 브라우저의 것뿐이라 계정을 묻지 않는다."""
@@ -303,6 +303,8 @@ def manage_view(request):
         "linked_proxy": not settings.PUBLIC,
         "version": VERSION,
         "stamp": "" if settings.DEBUG else asset_stamp(),
+        # 상류 응답 시간 (wetherilli 295) — `upstream_stats` 와 같은 값. 읽기만 하고 상류의 이름과 수뿐이다(주소·키는 남기지도 않는다)
+        "upstream_rows": usage.summary(7),
     })
 
 
