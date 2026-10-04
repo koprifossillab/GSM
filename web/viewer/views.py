@@ -33,7 +33,7 @@ from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ib
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import arcpoints, crust, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, spamap, ocean, usgs, volcanoes, wind
-from . import austates, basemaps, bgr, bgs, brgm, cgs, dinamige, egdi, emodnet, ga, gns, gsi, gsiindia, gtk, igme, iige, ingemmet, ispra, linked, lneg, mrdata, mris, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, swisstopo, usage, ygs
+from . import austates, basemaps, bgr, bgs, brgm, cgs, dinamige, dmr, egdi, emodnet, esdm, ga, gns, gsi, gsiindia, gtk, igme, iige, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, ogs, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, swisstopo, usage, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -391,7 +391,9 @@ MAP3D_WMS = ("kigam", "geus", "vworld", "ccop", "gsmma",
              # 인도 GSI(wetherilli 226) — BGS 의 MapServer WMS 가 3857 로 그린다
              "gsiindia",
              # 사우디 SGS(wetherilli 227) — 원본이 3857 이다
-             "sgs")
+             "sgs",
+             # 동남아(wetherilli 228) — 인도네시아·필리핀·태국은 ArcGIS WMS, 말레이시아는 문이 REST export 로 옮긴다. 다 3857 로 그린다
+             "esdm", "jmg", "mgb", "dmr")
 
 
 @require_GET
@@ -2327,6 +2329,20 @@ def _layer_extra(layer, lang: str = "ko") -> dict:
     if layer.upstream == "ngu":
         # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
         return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+    if layer.upstream in ("esdm", "jmg", "mgb", "dmr"):
+        # 동남아(wetherilli 228) — 3857 로 그린다. 인도네시아는 상류가 줌 10 너머를 그리지 않아(`maxZoom` — 그 위는 화면이 늘린다)
+        # 범례가 1 403 칸이라 두지 않는다.
+        # 말레이시아 암상·태국은 REST 범례를 목록으로(`list/legend/`), 말레이시아 연대는 범례가 없다. 필리핀은 WMS 그림 그대로
+        mod = {"esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr}[layer.upstream]
+        if mod.knows(layer.name):
+            extra = {"attribution": mod.ATTRIBUTION, "projection": "EPSG:3857"}
+            if layer.name in getattr(mod, "LEGEND_LAYERS", ()):
+                extra.update({"legend": "list", "legendUrl": "list/legend/"})
+            elif mod in (esdm, jmg):
+                extra["noLegend"] = True
+            if mod is esdm:
+                extra["maxZoom"] = esdm.LAST_ZOOM
+            return extra
     if layer.upstream == "sgs" and sgs.knows(layer.name):
         # 사우디 SGS(wetherilli 227) — ArcGIS WMS(원본 3857). 범례는 1 337 칸이라 보는 범위의 것(`sgs/legend/`)
         return {"attribution": sgs.ATTRIBUTION, "projection": "EPSG:3857", "legend": "extent", "legendUrl": "sgs/legend/"}
@@ -2560,6 +2576,7 @@ UPSTREAM_ERRORS = (kigam.UpstreamError, geus.GeusError, vworld.VWorldError, geom
                    bgr.BgrError, igme.IgmeError, gsi.GsiError, sgc.SgcError, sgb.SgbError, cgs.CgsError, ingemmet.IngemmetError,
                    segemar.SegemarError, dinamige.DinamigeError, iige.IigeError, mrdata.MrdataError, sgm.SgmError, nrcan.NrcanError, ogs.OgsError, sigeom.SigeomError, ygs.YgsError, ga.GaError, austates.AuStatesError,
                    ispra.IspraError, lneg.LnegError, swisstopo.SwisstopoError, natt.NattError, gns.GnsError, mris.MrisError, gsiindia.GsiIndiaError, sgs.SgsError,
+                   esdm.EsdmError, jmg.JmgError, mgb.MgbError, dmr.DmrError,
                    basemaps.BasemapError)
 
 
@@ -2637,7 +2654,9 @@ class _Door:
                # 인도(wetherilli 226)
                "gsiindia": gsiindia,
                # 사우디아라비아(wetherilli 227)
-               "sgs": sgs}
+               "sgs": sgs,
+               # 동남아(wetherilli 228)
+               "esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr}
 
     def __init__(self, upstream):
         self.name = upstream if upstream in self.MODULES else "kigam"
@@ -2646,7 +2665,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "npolar", "kopri", "pgc", "ccop", "gsmma", "emodnet", "ngu", "gtk", "bgs", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "nrcan", "ogs", "sigeom", "ygs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -3454,6 +3473,30 @@ def mris_legend(request):
     return JsonResponse({"rows": rows})
 
 
+#: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
+LIST_LEGENDS = (jmg, dmr)
+
+
+@require_GET
+@browser_cached
+def list_legend(request):
+    """`?layer=dmr:rock_units` — ArcGIS REST `legend` 를 목록으로 낸 범례 (wetherilli 228). 우루과이·몽골의 꼴을 문 여럿이 함께 쓰는 길이다.
+    문이 견본까지 받아 담아 두므로 여기서는 담지 않는다. 시대는 한국어판이면 옮긴다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    mod = next((m for m in LIST_LEGENDS if name in m.LEGEND_LAYERS), None)
+    if mod is None:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    try:
+        rows = mod.legend_rows(name)
+    except UPSTREAM_ERRORS as exc:
+        log.info("목록 범례를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+    if lang == "ko":
+        rows = [dict(r, age=i18n.age_ko(r["age"]) if r.get("age") else "") for r in rows]
+    return JsonResponse({"rows": rows})
+
+
 @require_GET
 @browser_cached
 def sgs_legend(request):
@@ -3864,6 +3907,9 @@ def feature_info(request):
             props = emodnet.friendly(props, lang)    # 마흔 남짓한 열에서 추린다. 시대를 옮긴다
         elif door.name == "ngu":
             props = ngu.friendly(props)              # 노르웨이어 열 이름 → 한국어. 그리지 않은 칸은 비운다
+        elif door.name in ("esdm", "jmg", "mgb", "dmr"):
+            # 동남아(wetherilli 228) — 값은 그 나라 말·영어 그대로, 시대만 옮긴다(인도네시아어 표·태국 기호·영어 다듬기)
+            props = {"esdm": esdm, "jmg": jmg, "mgb": mgb, "dmr": dmr}[door.name].friendly(props, lang)
         elif door.name == "sgs":
             props = sgs.friendly(props, lang)        # 사우디 — 이름·암석은 영어 그대로, 기(ICS)만 옮긴다 (wetherilli 227)
         elif door.name == "gsiindia":
