@@ -719,6 +719,8 @@ EN = {
     "아르헨티나": "Argentina",
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
+    "퀸즐랜드 지질조사소": "Geological Survey of Queensland", "빅토리아 지질조사소": "Geological Survey of Victoria",
+    "남호주 지질조사소": "Geological Survey of South Australia",
     # 아프리카 (wetherilli 207)
     "아프리카": "Africa",
     "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
@@ -2100,6 +2102,8 @@ PROP_EN = {
     "해석": "Interpretation",
     "광물": "Mineral",
     "측정법": "Technique",
+    # 호주의 주 판 (wetherilli 225)
+    "지질 이력": "Geologic history",
     # 아르헨티나 SEGEMAR 의 제4기 변형·화산 위험도·구조선 (wetherilli 220)
     "구조 갈래": "Structure type", "세부 갈래": "Subtype", "활동성": "Activity", "마지막 움직임": "Last movement",
     "움직임 속도": "Slip rate", "재발 간격 (년)": "Recurrence (years)", "위험도": "Hazard level", "위험 지수": "Hazard index",
@@ -2897,6 +2901,8 @@ GROUP_EN = {
     "아르헨티나 지질도 (SEGEMAR 1:25만, 간행 도폭)": "Argentina geology (SEGEMAR 1:250k, published sheets)",
     "아르헨티나 지역 지질도 (SEGEMAR 1:100만·1:75만·1:50만)": "Argentina regional geology (SEGEMAR 1:1M · 1:750k · 1:500k)",
     "아르헨티나 지질 위험 (SEGEMAR)": "Argentina geohazards (SEGEMAR)",
+    "퀸즐랜드 지질도 (GSQ)": "Queensland geology (GSQ)", "빅토리아 지질도 (GSV)": "Victoria geology (GSV)",
+    "남호주 지질도 (GSSA)": "South Australia geology (GSSA)",
     "우루과이 지질도 (DINAMIGE 1:50만)": "Uruguay geology (DINAMIGE 1:500k)",
     "아프리카 지질도 (CGMW–BRGM 1:1000만)": "Africa geology (CGMW–BRGM 1:10M)",
     "아프리카 나라별 지질 (BGS 지하수 지도책 1:500만)": "Africa country geology (BGS Groundwater Atlas 1:5M)",
@@ -3023,6 +3029,9 @@ LAYER_EN = {
     "segemar:e2.5M.VolcanesInventario": "Volcano inventory",
     "segemar:e250K_UnidadGeologica": "Geological units (1:250k sheets)",
     "segemar:e250K.Fallas": "Faults (1:250k sheets)",
+    "gsq:state": "Queensland geology (1:2M)", "gsq:detailed": "Queensland detailed geology (1:100k)",
+    "gsv:250k": "Victoria geology (1:250k, seamless)", "gsv:50k": "Victoria geology (1:50k, seamless)",
+    "gssa:units": "South Australia geological units",
     "segemar:e1M.NOA.Geol": "Northwest — geological units (1:1M)",
     "segemar:e1M.NOA.Fallas": "Northwest — faults (1:1M)",
     "segemar:e1M.SH21.Geol": "Corrientes — geological units (1:1M, SH21)",

@@ -214,8 +214,13 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
 - [ ] 유럽 — 영국·프랑스(143)·독일·스페인·아일랜드(147) 탭과 유럽 묶음이 섰다. 남은 것: EGDI 1:100만의 시대 판 속성이
       되살아나면(2026-10-04 에도 DB 오류, 지금은 암상 판에 묻는다 — wetherilli 177) 그쪽으로. BGS 1:62만 5천이 WMS 로 열리면 영국 탭의 넓은 줌을 그것으로. 독일은 줌 9 전에 EGDI 뿐이다 —
       BGR GÜK1000 보다 넓은 판(GÜK 2000?)이 있는지. 이탈리아(ISPRA)·포르투갈(LNEG)·스위스(swisstopo)는 섰다(wetherilli 211) — 밖에 열기 전에 LNEG 의 조건(적힌 것이 없다)과 ISPRA 의 "열람 자유" 를 사람이 읽는다
-- [ ] 다른 나라 지질도 — 호주 GA 탭은 섰다(wetherilli 212 — 주 지질조사소 판·GA 의 다른 서비스는 다음). 스웨덴 SGU 는
+- [ ] 다른 나라 지질도 — 호주 GA 탭은 섰다(wetherilli 212). 주 판은 퀸즐랜드·빅토리아·남호주가 섰다(225). 스웨덴 SGU 는
       노르웨이·스웨덴·핀란드 탭에 섰다(wetherilli 213).
+- [ ] (사람) 서호주 GSWA 지질도 — SLIP 공개 서비스(`services.slip.wa.gov.au/public/…/Geology_and_Soils_Map/MapServer`, 1:250만·1:50만·1:10만
+      해석 기반암)는 열려 있지만 저작권 칸이 "SLIP Transaction — Personal Use Licence" 다. 같은 자료가 다른 곳에서 CC BY 4.0 으로 열렸는지 읽고 정한다 (wetherilli 225)
+- [ ] 호주의 남은 것 — 뉴사우스웨일스(GSNSW GeoServer 에는 시추공·광산·광업권뿐, 이음매 없는 지질도의 주소를 못 찾았다)·태즈메이니아
+      (MRT 서비스에 지질도가 없다, 도폭 색인뿐)·노던테리토리(NTGS GeoServer 에 시추공·광산뿐)는 지질도 서비스를 찾지 못했다. GA 의 다른 서비스는
+      서비스 목록이 403 이라 이름을 알아야 부른다. 퀸즐랜드·남호주의 범례(남호주 JSON 범례는 빈 것이 온다), 퀸즐랜드 구조선(단층·습곡) (wetherilli 225)
       **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
       VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 
