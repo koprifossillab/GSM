@@ -24,6 +24,8 @@ urlpatterns = [
     path("elevation/profile/", views.elevation_profile, name="elevation-profile"),
     path("profile/band/", views.profile_band, name="profile-band"),
     path("moon/values/", views.moon_values, name="moon-values"),
+    path("mars/values/", views.mars_values_at, name="mars-values"),
+    path("mercury/values/", views.mercury_values_at, name="mercury-values"),
     path("moon/legend/", views.moon_legend, name="moon-legend"),
     path("moon/places/", views.moon_places, name="moon-places"),
     path("moon/landings/", views.moon_landings, name="moon-landings"),
@@ -70,6 +72,8 @@ urlpatterns = [
     path("earth/fossils/at/", views.earth_fossil_at, name="earth-fossil-at"),
     re_path(r"^earth/volcanoes/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_volcano_tile,
             name="earth-volcano-tile"),
+    re_path(r"^earth/volcanoes/pleistocene/tiles/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$", views.earth_volcano_tile,
+            {"kind": "pleistocene"}, name="earth-pleistocene-tile"),
     path("earth/volcanoes/at/", views.earth_volcano_at, name="earth-volcano-at"),
     re_path(r"^earth/quakes/tiles/(?P<band>quake\d{1,2})/(?P<z>\d{1,2})/(?P<x>\d{1,4})/(?P<y>\d{1,4})\.png$",
             views.earth_quake_tile, name="earth-quake-tile"),
@@ -140,6 +144,8 @@ urlpatterns = [
             views.gibs_tile, name="gibs-tile"),
     path("gibs/wms/", views.gibs_wms, name="gibs-wms"),
     path("gebco/wms/", views.gebco_wms, name="gebco-wms"),
+    # 브라질 — 보는 범위의 범례 (sgb.py, wetherilli 191)
+    path("sgb/legend/", views.sgb_legend, name="sgb-legend"),
     path("gsj/info/", views.gsj_info, name="gsj-info"),
     path("gsj/legend/", views.gsj_legend, name="gsj-legend"),
     # 지질도Navi 판 목록 (wetherilli 171) — 일본 탭이 판 목록을 펼 때 받는다
@@ -157,6 +163,7 @@ urlpatterns = [
     # 주소만 적힌 CSV — 화면이 주소를 나눠 보내 좌표를 받는다 (wetherilli 152)
     path("pointsets/geocode/", views.pointset_geocode, name="pointset-geocode"),
     path("pointsets/<int:pk>/geojson/", views.pointset_geojson, name="pointset-geojson"),
+    path("pointsets/<int:pk>/csv/", views.pointset_csv, name="pointset-csv"),
     path("pointsets/deleted/", views.pointset_deleted, name="pointset-deleted"),
     path("pointsets/deleted/<int:pk>/restore/", views.pointset_restore, name="pointset-restore"),
     path("pointsets/<int:pk>/delete/", views.pointset_delete, name="pointset-delete"),

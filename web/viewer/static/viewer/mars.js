@@ -111,7 +111,9 @@
   var TREK_GROUPS = (TREK_DATA.groups || []).map(function (g) {
     return { group: LANG === "en" ? g.en : g.ko, layers: g.layers.map(function (l) {
       return { name: "trek:" + l.id, kind: "trek", id: l.id, ms: l.kind === "map", ext: l.ext, max: l.max, z0: l.z0,
-               bbox: l.bbox, legend: l.legend ? "trek:" + l.id : undefined, info: l.kind === "map" ? "trek" : undefined,
+               bbox: l.bbox, polar: l.polar || {}, legend: l.legend ? "trek:" + l.id : undefined,
+               // 표고를 그린 판은 누른 자리의 높이를 ImageServer 에서 읽는다 — 달의 값 판(wetherilli 103)과 같은 길 (wetherilli 192)
+               info: l.value ? "value:" + l.value : l.kind === "map" ? "trek" : undefined,
                title: LANG === "en" ? l.title : (l.ko || l.title), en: l.title,
                src: (l.src ? l.src + " · " : "") + "NASA Mars Trek" };
     }) };
@@ -589,8 +591,44 @@
       tile.set("gsmBox", l.bbox);                                          // 투영을 바꾸면 범위를 다시 잰다 (065)
       tile.setExtent(ol.proj.transformExtent(l.bbox, LL, proj, 16));
     }
+    tile.set("gsmTrekUrl", url.replace("{zz}", "{z}"));
     oGeo[name] = tile;
     oExtra.getLayers().push(tile);
+    if (proj !== EQC) trekFlat(name);
+  }
+  /** 평면의 Trek 판을 지금 투영에 맞춘다 — 달의 것(wetherilli 085)을 옮겼다 (wetherilli 192). 극이고 짝이 있으면 그것을:
+   *  WMTS 짝(`tiles/Mars/NP/<판>_np`)은 브라우저가 곧장, MapServer 판은 우리 문이 화성 극 투영으로 굽는다
+   *  (`trek/mars/map/<판>/p/…`). 없으면 적도 판을 옮겨 그린다 — 극 가까이가 늘어진다 */
+  function trekFlat(name) {
+    var l = LAYER[name], tile = oGeo[name], p = proj !== EQC && l.polar[proj.pole];
+    if (!p) {
+      tile.setSource(tileSource(tile.get("gsmTrekUrl"), l.ms ? GEO_MAX : l.max, TREK_CREDIT, "anonymous", l.bbox,
+                                l.z0 || 0));
+      if (l.bbox) tile.setExtent(ol.proj.transformExtent(l.bbox, LL, proj, 16));
+      return;
+    }
+    var pole = proj.pole, projection = pole === "n" ? NPS : SPS;
+    if (p.kind === "map") {
+      tile.setSource(new ol.source.TileImage({
+        projection: projection, tileGrid: polarGrid(GEO_MAX), attributions: TREK_CREDIT,
+        url: BASE + "trek/mars/map/" + l.id + "/p/" + pole + "/{z}/{x}/{y}.png",
+      }));
+      tile.setExtent(undefined);
+      return;
+    }
+    // 판이 덮는 네모(m) 밖은 묻지 않는다 — Trek 이 404 에 CORS 를 달지 않아 콘솔이 붉어진다
+    var root = TREK_ROOT.replace(/\/EQ$/, pole === "n" ? "/NP" : "/SP"), tg = polarGrid(p.max), box = p.box;
+    tile.setSource(new ol.source.TileImage({
+      projection: projection, tileGrid: tg, attributions: TREK_CREDIT, crossOrigin: "anonymous",
+      tileUrlFunction: function (coord) {
+        var z = coord[0], x = coord[1], y = coord[2], n = Math.pow(2, z);
+        if (x < 0 || y < 0 || x >= n || y >= n) return undefined;
+        var e = tg.getTileCoordExtent(coord);
+        if (box && (e[0] > box[2] || e[2] < box[0] || e[1] > box[3] || e[3] < box[1])) return undefined;
+        return root + "/" + p.name + "/1.0.0/default/default028mm/" + z + "/" + y + "/" + x + "." + p.ext;
+      },
+    }));
+    tile.setExtent(box || undefined);
   }
   // ── 벡터 — 착륙선·로버 지점, 로버 주행 경로. 처음 켤 때 받는다 ──
   function vectorLayer(name, draw) {
@@ -764,6 +802,9 @@
     oShade.setSource(p === EQC ? tileSource(SHADE.url, SHADE.max, SHADE.credit, "anonymous") : polarSource(p.pole, "shade"));
     GEO_NAMES.forEach(function (name) {
       oGeo[name].setSource(p === EQC ? tileSource(geoUrl(name), GEO_MAX, creditOf(name)) : polarGeoSource(p.pole, name));
+    });
+    Object.keys(oGeo).forEach(function (name) {
+      if (LAYER[name] && LAYER[name].kind === "trek") trekFlat(name);
     });
     placeBase();
     var polar = p !== EQC;
@@ -1310,6 +1351,13 @@
                      note: T("여기에는 속성이 없다") };
           }).catch(function () { return { error: true }; });
       }
+      if (l.info.indexOf("value:") === 0) {
+        return fetch(BASE + "mars/values/" + at + "&key=" + l.info.slice(6))
+          .then(function (r) { return r.json(); }).then(function (data) {
+            if (data.error) return data;
+            return { rows: data.rows, note: T("여기에는 값이 없다") };
+          }).catch(function () { return { error: true }; });
+      }
       var url = BASE + "mars/info/" + at + (l.info === "units" ? "" : "&layer=" + l.info);
       return fetch(url).then(function (r) { return r.json(); }).catch(function () { return { error: true }; });
     })).then(function (all) {
@@ -1726,6 +1774,17 @@
       var down = iconButton("⤓", T("GeoJSON 으로 내려받는다"), false, function () {
         location.href = BASE + "pointsets/" + ps.id + "/geojson/?download=1";
       });
+      // CSV — 엑셀로 연다. 우리 파일에서 읽는 값(지질 단위·지각 두께·가까운 화석 산지)을 열로 붙인다 (wetherilli 190).
+      // 값을 읽는 점은 서버의 `pointvalues.LIMIT`(2 000)까지 — 넘으면 값 없이 받는다고 묻는다
+      var csv = iconButton("CSV", T("CSV 로 내려받는다 — 우리 파일에서 읽는 값을 열로 붙인다"), !ps.count, function () {
+        var extras = "all";
+        if ((ps.count || 0) > 2000) {
+          if (!confirm(T("점이 {n} 개라 붙일 값은 빼고 내려받는다 — 값은 {limit} 개까지 읽는다.", { n: ps.count, limit: 2000 }))) return;
+          extras = "none";
+        }
+        location.href = BASE + "pointsets/" + ps.id + "/csv/?extras=" + extras;
+      });
+      csv.classList.add("wide");
       var del = iconButton("×", T("지운다"), false, function () {
         if (!confirm(T("'{name}' 을 지운다.", { name: ps.name }))) return;
         post(BASE + "pointsets/" + ps.id + "/delete/").then(function () {
@@ -1734,7 +1793,7 @@
           renderSets();
         }).catch(function (e) { alert((e && e.message) || ""); });
       });
-      li.append(box, swatch, text, zoom, elev, down, del);
+      li.append(box, swatch, text, zoom, elev, down, csv, del);
       host.appendChild(li);
     });
   }
