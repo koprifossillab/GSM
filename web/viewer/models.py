@@ -117,6 +117,7 @@ class Layer(models.Model):
     #: segemar → `segemar.py` (아르헨티나 지질도), dinamige → `dinamige.py` (우루과이 지질도, wetherilli 196)
     #: iige → `iige.py` (에콰도르 지질도, wetherilli 198),
     #: mrdata → `mrdata.py` (미국 지질도 — USGS SGMC·알래스카, wetherilli 205), sgm → `sgm.py` (멕시코 지질도 — REST export, wetherilli 206),
+    #: sigeom → `sigeom.py`·ygs → `ygs.py` (퀘벡·유콘 지질도, wetherilli 210),
     #: cgmw → `brgm.py` 의 CGMW (아프리카 1:1000만), aga → `bgs.py` 의 AGA (아프리카 지하수 지도책 나라별 지질, wetherilli 207)
     #: nrcan → `nrcan.py` (캐나다 1:500만), ogs → `ogs.py` (온타리오 1:25만, wetherilli 204)
     #: ispra → `ispra.py`·lneg → `lneg.py`·swisstopo → `swisstopo.py` (이탈리아·포르투갈·스위스 지질도, wetherilli 211)
