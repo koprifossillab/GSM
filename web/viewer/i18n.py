@@ -538,6 +538,20 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 지각 응력 World Stress Map 2025 (wetherilli 273)
+    "지각 응력 (World Stress Map)": "Crustal stress (World Stress Map)", "최대 수평 응력 방향": "Maximum horizontal stress",
+    "막대는 최대 수평 응력 방향, 길이는 품질(A–D)": "Bars show S_Hmax orientation; length shows quality (A–D)",
+    "응력 N{azi}°E": "Stress N{azi}°E", "측정 {n} 곳 가운데 가까운 것부터 (WSM)": "Nearest of {n} measurements (WSM)",
+    "World Stress Map (GFZ)": "World Stress Map (GFZ)",
+    "정단층형": "Normal faulting", "정단층·주향이동형": "Normal with strike-slip", "주향이동형": "Strike-slip faulting",
+    "역단층·주향이동형": "Thrust with strike-slip", "역단층형": "Thrust faulting", "체제 모름": "Unknown regime",
+    "단일 지진 초점 메커니즘": "Single focal mechanism", "평균 초점 메커니즘": "Average focal mechanism",
+    "초점 메커니즘 역산": "Focal mechanism inversion", "시추공 붕락": "Borehole breakouts", "시추공 붕락 (캘리퍼)": "Borehole breakouts (caliper)",
+    "시추공 붕락 (영상)": "Borehole breakouts (imaging)", "시추공 미끄럼": "Borehole slotter", "시추 유도 인장 균열": "Drilling-induced tensile fractures",
+    "수압 파쇄": "Hydraulic fracturing", "수압 파쇄 (지구물리)": "Hydraulic fracturing (geophysical)",
+    "수압 파쇄 (탄성 역산)": "Hydraulic fracturing (elastic inversion)", "수압 파쇄 (기존 균열)": "Hydraulic tests on pre-existing fractures",
+    "코어 덧씌워 떼기": "Overcoring", "지질 — 단층 미끄럼 역산": "Geology — fault-slip inversion", "지질 — 단층 미끄럼": "Geology — fault slip",
+    "지질 — 단층 미끄럼 (단일)": "Geology — single fault slip", "지질 — 화산 배열": "Geology — volcanic vent alignment", "횡파 분리": "Shear-wave splitting",
     # 판 경계·세계 지질구 Hasterok 2022 (wetherilli 272)
     "판·지질구 (Hasterok 2022)": "Plates & provinces (Hasterok 2022)", "판 경계": "Plate boundaries", "세계 지질구": "Geologic provinces",
     "여기에는 지질구가 없다": "No geologic province here",
@@ -1825,6 +1839,8 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 지각 응력 (wetherilli 273)
+    "응력 체제": "Stress regime", "최대 수평 응력 방향": "S_Hmax azimuth", "일시": "Date",
     # 세계 지질구 (wetherilli 272)
     "묶음": "Group", "마지막 조산 운동": "Last orogeny", "대륙": "Continent", "지각": "Crust",
     # 지열류 (wetherilli 267)
