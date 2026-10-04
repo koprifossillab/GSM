@@ -2313,6 +2313,8 @@ PROP_EN = {
     # 멕시코 광상 (wetherilli 219)
     "광화 유형": "Mineralization type", "구조": "Structure", "변질": "Alteration", "광상 형태": "Deposit form",
     "광산 지구": "Mining district",
+    # 멕시코 지화학 (wetherilli 233)
+    "원소": "Element", "함량 (ppm)": "Content (ppm)",
     # 영국 BGS (wetherilli 143)
     "세": "Epoch",
     "가장 오랜 시기": "Oldest age",
@@ -3068,7 +3070,7 @@ GROUP_EN = {
     "멕시코 지질도 (SGM 1:25만)": "Mexico geology (SGM 1:250k)",
     "호주 지표 지질도 (GA 1:250만·1:100만)": "Australia surface geology (GA 1:2.5M · 1:1M)",
     "멕시코 지질도 (SGM 1:5만, 광업 지구)": "Mexico geology (SGM 1:50k, mining districts)",
-    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)",
+    "멕시코 지질 연대·화석 (SGM)": "Mexico geochronology and fossils (SGM)", "멕시코 광상 (SGM 1:25만)": "Mexico mineral deposits (SGM 1:250k)", "멕시코 지화학 (SGM)": "Mexico geochemistry (SGM)",
 }
 
 LAYER_EN = {
@@ -3252,6 +3254,11 @@ LAYER_EN = {
     # 멕시코 SGM 의 다른 서비스 (wetherilli 219)
     "sgm:edades:0": "Geochronology samples", "sgm:paleo:0": "Fossil localities", "sgm:yac:0": "Mines and deposits (1:250k)",
     "sgm:yac:3": "Mineralized regions", "sgm:yac:2": "Mining districts",
+    # 멕시코 지화학·광상 나머지 (wetherilli 233)
+    "sgm:geoq:0": "Stream-sediment geochemistry samples",
+    "sgm:anom250:0": "Silver (Ag) anomalies (1:250k)", "sgm:anom250:1": "Cobalt (Co) anomalies (1:250k)", "sgm:anom250:2": "Copper (Cu) anomalies (1:250k)", "sgm:anom250:3": "Manganese (Mn) anomalies (1:250k)", "sgm:anom250:4": "Lead (Pb) anomalies (1:250k)", "sgm:anom250:5": "Zinc (Zn) anomalies (1:250k)",
+    "sgm:anom50:0": "Silver (Ag) anomalies (1:50k)", "sgm:anom50:1": "Cobalt (Co) anomalies (1:50k)", "sgm:anom50:2": "Copper (Cu) anomalies (1:50k)", "sgm:anom50:3": "Manganese (Mn) anomalies (1:50k)", "sgm:anom50:4": "Lead (Pb) anomalies (1:50k)", "sgm:anom50:5": "Zinc (Zn) anomalies (1:50k)",
+    "sgm:yac:1": "Alteration zones", "sgm:yac:4": "Non-metallic mineralized regions", "sgm:yac50:0": "Mines and deposits (1:50k)",
     # 스웨덴 기반암 (wetherilli 213)
     "sgu:bedrock": "Bedrock (1:1M · 1:50k–250k when zoomed in)",
     "sgu:deformation": "Deformation zones (1:1M)",

@@ -4378,7 +4378,8 @@
         if (!res.ok) throw new Error(res.d.error || "");
         var rows = res.d.rows || [];
         box.innerHTML = "";
-        if (row.legend === "extent") {
+        // `fixed` — 보는 범위와 무관한 범례(멕시코 원소 이상의 함량 구간, wetherilli 233)는 "범위에 든 것" 을 적지 않는다
+        if (row.legend === "extent" && !res.d.fixed) {
           box.appendChild(note(rows.length ? T("지금 보는 범위에 든 것 {n}칸", { n: rows.length + (res.d.more || 0) })
             : T("지금 보는 범위에는 칠해진 것이 없다")));
         }
