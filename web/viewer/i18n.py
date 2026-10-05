@@ -571,6 +571,10 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 영어판 새는 곳 (wetherilli 341)
+    "© 한국지질자원연구원": "© KIGAM",
+    "국토지리원": "GSI Japan",
+    "(손으로 둔다)": "(placed by hand)",
     # 구운 자료 (wetherilli 312)
     "구운 자료": "Baked data",
     "서버의 자료 폴더에 굽거나 모아 둔 파일 — 있는지·크기·고친 날·원본 판": "Files baked or collected in the server's data folder — present, size, modified, source version",
