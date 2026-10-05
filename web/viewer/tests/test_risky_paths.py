@@ -176,3 +176,108 @@ class LinkedEdges(SimpleTestCase):
             linked.fetch("https://api.example.org/c", {"mode": "none"})
         self.assertIn("끊겼다", str(caught.exception.args[0].template))
         self.assertTrue(Session.calls)
+
+
+class TileRouteCache(SimpleTestCase):
+    """타일 길의 캐시 차례 — 키가 없거나 상류가 못 주면 옛것, 자료를 파는 상류는 담지 않는다"""
+    PARAMS = {"layers": "L_250K_Geology_Map", "srs": "EPSG:3857", "bbox": "0,0,1,1", "width": "256", "height": "256"}
+
+    def setUp(self):
+        import tempfile
+        self.root = tempfile.mkdtemp()
+        o = override_settings(TILE_CACHE_DIR=self.root, TILE_CACHE_MIN_FREE_BYTES=0, TILE_CACHE_MAX_AGE_DAYS=1, METATILE=False)
+        o.enable()
+        self.addCleanup(o.disable)
+
+    def old(self, params, content=b"\x89PNG-old"):
+        import os
+        import time
+        from viewer import tilecache, views
+        key = views.map_cache_key(dict(params, format="image/png", transparent="true"))
+        tilecache.put(key, content)
+        past = time.time() - 30 * 86400
+        os.utime(tilecache._path(key), (past, past))
+        return key
+
+    def call(self, params, upstream="kigam"):
+        from viewer import views
+        with mock.patch.object(views, "_upstream_of", return_value=upstream):
+            return self.client.get("/GSM/wms/", params)
+
+    @override_settings(KIGAM_KEY="", DEV_DIRECT_WMS=False)
+    def test_키가_없으면_늙은_타일이라도_낸다(self):
+        self.old(self.PARAMS)
+        r = self.call(self.PARAMS)
+        self.assertEqual((r.content, r["X-GSM-Cache"]), (b"\x89PNG-old", "hit"))
+
+    @override_settings(KIGAM_KEY=KEY, DEV_DIRECT_WMS=False)
+    def test_상류가_못_주면_옛것을_낸다(self):
+        self.old(self.PARAMS)
+        with mock.patch.object(kigam, "get_map", side_effect=kigam.UpstreamError("down")):
+            r = self.call(self.PARAMS)
+        self.assertEqual((r.content, r["X-GSM-Cache"]), (b"\x89PNG-old", "hit"))
+
+    @override_settings(KIGAM_KEY=KEY, DEV_DIRECT_WMS=False)
+    def test_새로_받은_것이_옛것을_덮는다(self):
+        key = self.old(self.PARAMS)
+        with mock.patch.object(kigam, "get_map", return_value=(b"\x89PNG-new", "image/png")):
+            r = self.call(self.PARAMS)
+        from viewer import tilecache
+        self.assertEqual((r.content, r["X-GSM-Cache"]), (b"\x89PNG-new", "miss"))
+        self.assertEqual(tilecache.get(key), b"\x89PNG-new")
+
+    def test_자료를_파는_상류는_담지_않는다(self):
+        from viewer import cgs, tilecache, views
+        params = dict(self.PARAMS, layers="cgs:geology")
+        with mock.patch.object(cgs, "get_map", return_value=(b"\x89PNG-cgs", "image/png")):
+            r = self.call(params, upstream="cgs")
+        self.assertEqual(r.content, b"\x89PNG-cgs")
+        self.assertIsNone(tilecache.get(views.map_cache_key(dict(params, format="image/png", transparent="true"))))
+        self.assertEqual(tilecache.stats()["count"], 0)
+
+
+class InfoDispatch(SimpleTestCase):
+    """속성 길이 상류마다 제 풀이(`friendly`)를 타는지 — 갈래가 일흔을 넘어 한 줄 빠뜨리면 날것의 열 이름이 팝업에 뜬다.
+    coverage 로 보니 이 열여덟 갈래를 지나는 시험이 없었다"""
+    #: 상류 → (풀이가 사는 곳, 함수 이름)
+    TARGETS = {"geusarc": ("geus", "arc_friendly"), "gsjows": ("gsj", "gsjows_friendly"), "bgsgi": ("bgs", "geoindex_friendly"),
+               **{n: (n, "friendly") for n in ("esdm", "jmg", "mgb", "dmr", "sgs", "gsiindia", "mris", "gns", "natt", "ispra", "lneg",
+                                              "swisstopo", "iige", "georep", "ineter", "geosphere", "pig", "tno", "dov", "spw")}}
+
+    def ask(self, upstream, features):
+        from viewer import views
+        door = views._Door.MODULES[upstream]
+        with override_settings(TILE_CACHE_DIR=""), mock.patch.object(views, "_upstream_of", return_value=upstream), \
+             mock.patch.object(door, "get_feature_info", return_value={"features": features}):
+            return self.client.get("/GSM/featureinfo/", {"query_layers": "x", "layers": "x", "bbox": "0,0,1,1", "width": "9", "height": "9",
+                                                         "i": "4", "j": "4"})
+
+    def test_상류마다_제_풀이를_탄다(self):
+        import importlib
+        for upstream, (where, func) in self.TARGETS.items():
+            with self.subTest(upstream=upstream):
+                module = importlib.import_module(f"viewer.{where}")
+                with mock.patch.object(module, func, return_value={"풀었다": upstream}) as fn:
+                    r = self.ask(upstream, [{"id": "a.1", "properties": {"RAW": "v"}}])
+                fn.assert_called_once()
+                self.assertEqual(r.json()["features"][0]["props"], {"풀었다": upstream})
+
+    @override_settings(KIGAM_KEY=KEY)
+    def test_빈_것·잡음·겹친_것은_하나로(self):
+        from viewer import views
+        feats = [{"id": "admin_boundary.1", "properties": {"x": "1"}},          # 행정 경계는 잡음
+                 {"id": "a.1", "properties": {"x": None, "y": "", "z": "null"}},   # 값이 다 비었다
+                 {"id": "a.2", "properties": {"지층명": "옥천층군"}},
+                 {"id": "a.3", "properties": {"지층명": "옥천층군"}}]               # 같은 속성은 하나로
+        r = self.ask("kigam", feats)
+        self.assertEqual([f["props"] for f in r.json()["features"]], [{"지층명": "옥천층군"}])
+
+    @override_settings(KIGAM_KEY=KEY)
+    def test_상류가_못_주면_까닭을_키_없이(self):
+        from viewer import views
+        boom = kigam.UpstreamError(f"상류에 닿지 못했다: {kigam.redact('url?key=' + KEY)}")
+        with override_settings(TILE_CACHE_DIR=""), mock.patch.object(views, "_upstream_of", return_value="kigam"), \
+             mock.patch.object(kigam, "get_feature_info", side_effect=boom):
+            r = self.client.get("/GSM/featureinfo/", {"query_layers": "L", "layers": "L", "bbox": "0,0,1,1", "width": "9", "height": "9"})
+        self.assertEqual(r.status_code, 502)
+        self.assertNotIn(KEY, r.content.decode())
