@@ -331,6 +331,35 @@ class PhoneScreenTests(PhoneBase):
                 self.assertEqual(errors, [], f"{path}: 페이지 오류")
                 self.assertFits(self.measure(page), path or "intro")
 
+    def test_소개는_휴대폰에서도_언어를_바꾼다(self):
+        """머리줄의 언어 단추는 휴대폰에서 숨는다(자리가 없다) — 그러면 바꿀 길이 없었다. 끝에 같은 단추가 선다 (wetherilli 365)"""
+        page, errors = self.open("")
+        other = page.locator('.langs button[data-lang="en"]:visible')
+        self.assertEqual(other.count(), 1, "휴대폰에서 언어를 바꿀 단추가 보이지 않는다")
+        other.scroll_into_view_if_needed()
+        other.tap()
+        page.wait_for_load_state("load")
+        page.wait_for_timeout(500)
+        self.assertEqual(page.evaluate("document.documentElement.lang"), "en")
+        self.assertEqual(page.locator('.langs button[data-lang="ko"]:visible').count(), 1, "영어판에서 한국어로 돌아올 단추가 없다")
+        self.assertFits(self.measure(page), "intro en")
+        self.assertEqual(errors, [])
+
+    def test_관리_화면의_상자_제목은_한_줄이다(self):
+        """제목 옆의 안내 글이 제목을 밀어 "개인 레이 / 어" 처럼 꺾였다 — 휴대폰에서 안내는 다음 줄로 (wetherilli 365)"""
+        page, errors = self.open("manage/")
+        for tab in ("import", "stored", "upstream", "data"):
+            page.tap(f'#mg-tabs [data-tab="{tab}"]')
+            page.wait_for_timeout(300)
+            lines = page.evaluate("""() => [...document.querySelectorAll('.mg-body.on .box-head')].map(h => {
+                const t = [...h.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return null;
+                const r = document.createRange(); r.selectNodeContents(t); const n = r.getClientRects().length;
+                return n ? [t.textContent.trim(), n] : null; }).filter(Boolean)""")
+            for title, n in lines:
+                self.assertEqual(n, 1, f"{tab}: 상자 제목 '{title}' 이 꺾였다")
+            self.assertFits(self.measure(page), f"manage {tab}")
+        self.assertEqual(errors, [])
+
 
 
 class GlobeScreens(PhoneBase):
