@@ -754,6 +754,9 @@ TEMPLATES = [{
     ]},
 }]
 
+#: 시험이 개발 캐시·자료 자리를 더럽히지 않게 빈 임시 자리로 돌린다 (wetherilli 354)
+TEST_RUNNER = "gsmweb.testrunner.GSMTestRunner"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
