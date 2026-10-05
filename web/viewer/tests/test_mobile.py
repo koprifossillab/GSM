@@ -304,6 +304,26 @@ class PhoneScreenTests(PhoneBase):
         self.assertGreater(m["parts"]["#panel3d"]["height"], 200)
         self.assertFits(m, "3d/ (편 판)")
 
+    def test_저장_탭은_카드로_단추가_보인다(self):
+        """저장 탭의 표는 칸이 일곱이라 지우기·내려받기 단추가 가로로 굴려야 보였다 — 휴대폰에서는 카드로 세운다 (wetherilli 369)"""
+        page, errors = self.open("manage/")
+        page.tap("#mg-ex-try")
+        page.wait_for_timeout(800)
+        page.tap("#mg-save")
+        page.wait_for_timeout(800)
+        page.tap('#mg-tabs [data-tab="stored"]')
+        page.wait_for_timeout(500)
+        buttons = page.evaluate("""() => [...document.querySelectorAll('#mg-layers .mg-row-acts button')].map(b => {
+            const r = b.getBoundingClientRect(); return [b.textContent, r.left, r.right]; })""")
+        self.assertTrue(buttons, "저장한 개인 레이어의 단추가 없다")
+        for text, left, right in buttons:
+            self.assertGreaterEqual(left, 0, f"'{text}' 단추가 왼쪽 밖이다")
+            self.assertLessEqual(right, 390, f"'{text}' 단추가 굴려야 보인다")
+        scroll = page.evaluate("(() => { const e = document.getElementById('mg-layers').closest('.mg-scroll'); return [e.scrollWidth, e.clientWidth]; })()")
+        self.assertLessEqual(scroll[0], scroll[1] + 1, "저장 탭의 표가 가로로 구른다")
+        self.assertFits(self.measure(page), "manage stored")
+        self.assertEqual(errors, [])
+
     def test_관리와_소개(self):
         for path in ("manage/", ""):
             with self.subTest(path=path or "intro"):
