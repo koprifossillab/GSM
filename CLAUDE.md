@@ -98,7 +98,7 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 **연구소 밖 정적 판(https://koprifossillab.github.io/GSM-open/)은 예외가 아니다 — 거기에는 우리 키가 없다.** 보는 사람이 각자
 KIGAM·VWorld 키를 넣고(처음 열 때 묻는다, wetherilli 174)(그 브라우저 localStorage, 30 일), 브라우저가 `/openapi/wms` 를 곧장 부른다(`map.js` 의 `STATIC_KIGAM`).
 서버 없이 돌므로 위의 "서버가 키를 붙인다" 가 없다. 판 세션이 판마다 `deploy/publish_pages.sh` 로 굽고 민다
-(wetherilli P11·162). 실을 지역·상류는 `deploy/static_site.py` 의 `REGIONS`·`UPSTREAMS`. 조건은 열렸지만 실을지 사람이 정할 것은
+(wetherilli P11·162). 밀기 전에 `deploy/static_smoke.py` 가 구운 판을 띄워 소개·실린 지역마다 페이지 오류·레이어 목록·판 이력을 보고, 깨지면 밀지 않는다(wetherilli 315). 실을 지역·상류는 `deploy/static_site.py` 의 `REGIONS`·`UPSTREAMS`. 조건은 열렸지만 실을지 사람이 정할 것은
 `OPTIONAL` 에 두고 고를 때만 싣는다(`--with colombia` — 콜롬비아 1:50만, wetherilli 201; `--with usa` — 미국 USGS, 공공 도메인, wetherilli 205; `--with australia` — 호주 GA, CC BY 4.0, wetherilli 212; `--with sweden` — 스웨덴 SGU, CC0, wetherilli 213; `--with netherlands`·`belgium`·`austria`·`poland` — `arcwms.Door` 상류를 표 하나·손 하나(`static-kinds.js` 의 `arcKind`)로, wetherilli 257).
 
 ## 상류의 함정 — 문서를 믿지 않는다
