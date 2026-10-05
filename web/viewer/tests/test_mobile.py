@@ -352,3 +352,52 @@ def _shard(k):
 
 for _k in range(SHARDS):
     globals()[f"RegionTabs{_k}"] = _shard(_k)
+
+
+class PointsetsAcrossProjections(PhoneBase):
+    """점묶음이 지역마다의 투영(3978·3413·3031·3857)에서 제자리에 선다 — "이 자료로 범위를 맞춘다" 를 누르면 보던 자리가 그 점이다
+    (wetherilli 343, 지역이 쉰이 되며 캐나다 람베르트·극 평사도법 탭이 늘었다)"""
+    PLACES = {"ottawa": (-75.70, 45.42), "longyearbyen": (15.63, 78.22), "mcmurdo": (166.67, -77.85), "lima": (-77.03, -12.05)}
+    TABS = (("canada", "ottawa", "EPSG:3978"), ("svalbard", "longyearbyen", "EPSG:3413"),
+            ("antarctica", "mcmurdo", "EPSG:3031"), ("peru", "lima", "EPSG:3857"))
+
+    def setUp(self):
+        call_command("seed_catalog", stdout=open(os.devnull, "w"))
+
+    def test_범위를_맞추면_그_점이다(self):
+        import json
+        from viewer.models import Point, PointSet
+        base = self.live_server_url + "/GSM/"
+        for region, place, proj in self.TABS:
+            # 점묶음은 탭마다 하나만 — 여럿이면 화면이 덩이를 한꺼번에 묻고, 시험 서버의 메모리 sqlite 가 스레드끼리 부딪힌다
+            PointSet.objects.all().delete()
+            lon, lat = self.PLACES[place]
+            ps = PointSet.objects.create(name=place, color="#e4572e")
+            Point.objects.create(pointset=ps, label=place, lat=lat, lon=lon)
+            ctx = self.browser.new_context(**PHONE)
+            self.addCleanup(ctx.close)
+            ctx.add_init_script(f"localStorage.setItem('gsm.region', '{region}');"
+                                f"localStorage.setItem('gsm.regions', JSON.stringify(['{region}']));")
+            page = ctx.new_page()
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+
+            def route(r):
+                rest = r.request.url[len(base):] if r.request.url.startswith(base) else None
+                if rest is not None and (r.request.resource_type == "document" or rest.startswith(("static/", "pointsets/", "patchnotes/"))):
+                    return r.continue_()
+                return r.abort()
+            page.route("**/*", route)
+            page.goto(base + "map/", wait_until="load")
+            page.wait_for_timeout(1500)
+            clicked = page.evaluate("""(place) => {
+                const li = [...document.querySelectorAll('#pointset-list li')].find(l => l.textContent.includes(place));
+                const b = li && [...li.querySelectorAll('button')].find(x => x.textContent.includes('⊙'));
+                if (!b) return false; b.click(); return true; }""", place)
+            self.assertTrue(clicked, region)
+            page.wait_for_timeout(1200)
+            view = json.loads(page.evaluate(f"() => localStorage.getItem('gsm.view.{region}')") or "null")
+            self.assertEqual(view["proj"], proj)
+            self.assertAlmostEqual(view["lon"], lon, delta=0.01, msg=region)
+            self.assertAlmostEqual(view["lat"], lat, delta=0.01, msg=region)
+            self.assertEqual(errors, [], region)
