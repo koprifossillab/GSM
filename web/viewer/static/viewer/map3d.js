@@ -663,6 +663,12 @@
     return html + "</table></div>";
   }
 
+  /** 팝업의 최대 폭 — 휴대폰(390 px)에서 320 px 이면 MapLibre 가 어느 쪽에 붙여도 화면을 넘었다(오른쪽으로 85 px, wetherilli 362).
+   *  화면 폭에서 100 px 를 빼면 점이 화면 가운데 언저리일 때 위·아래로 붙어 가운데에 선다 */
+  function popupWidth() {
+    return Math.max(200, Math.min(320, window.innerWidth - 100)) + "px";
+  }
+
   map.on("click", function (e) {
     var layers = psLayers().concat(customPickLayers());
     if (!layers.length) return;
@@ -674,7 +680,7 @@
     if (f.layer.id.indexOf("cu-") === 0) {
       var row = custom.filter(function (r) { return f.layer.id.indexOf(customId(r)) === 0; })[0];
       if (row) {
-        new maplibregl.Popup({ maxWidth: "320px" }).setLngLat(e.lngLat)
+        new maplibregl.Popup({ maxWidth: popupWidth() }).setLngLat(e.lngLat)
           .setHTML(customPopup(row, f.properties || {})).addTo(map);
       }
       return;
@@ -691,7 +697,7 @@
       }).join("") + "</table>";
     }
     html += "</div>";
-    new maplibregl.Popup({ maxWidth: "320px" }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+    new maplibregl.Popup({ maxWidth: popupWidth() }).setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
   map.on("mousemove", function (e) {
     var layers = psLayers().concat(customPickLayers());

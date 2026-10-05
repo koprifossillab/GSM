@@ -590,3 +590,29 @@ class RegionCompare(PhoneBase):
                 self.assertIsNotNone(view and view.get("zoom"), f"{region}: 저장된 줌이 비었다")
                 self.assertEqual(errors, [])
                 page.context.close()
+
+
+class Phone3D(PhoneBase):
+    """3D(MapLibre)를 손가락으로 — 점묶음의 점을 누르면 팝업이 화면 안에 선다. 최대 폭 320 px 이면 390 px 화면에서
+    MapLibre 가 어느 쪽에 붙여도 넘쳤다(오른쪽으로 85 px, wetherilli 362)"""
+
+    def test_점을_누르면_팝업이_화면_안이다(self):
+        from viewer.models import Point, PointSet
+        ps = PointSet.objects.create(name="대전 시료", color="#e4572e")
+        Point.objects.create(pointset=ps, label="시료 1", lat=36.35, lon=127.38,
+                             props={"암석": "화강암", "비고": "설명이 긴 시료라 팝업이 넓어진다 " * 4})
+        page, errors = self.open("3d/?lat=36.36&lon=127.39&z=12&region=korea", settle=3000)
+        page.wait_for_function("window.__gsm3dReady", timeout=15000)
+        page.wait_for_timeout(1500)
+        x, y = page.evaluate("(() => { const p = window.__gsm3d.project([127.38, 36.35]); return [p.x, p.y]; })()")
+        self.assertTrue(0 < x < 390 and 0 < y < 844, "점이 화면 밖이다")
+        page.touchscreen.tap(x, y)
+        page.wait_for_timeout(1000)
+        popup = page.locator(".maplibregl-popup")
+        self.assertEqual(popup.count(), 1, "점을 눌렀는데 팝업이 뜨지 않는다")
+        self.assertIn("화강암", popup.inner_text())
+        box = popup.bounding_box()
+        self.assertGreaterEqual(box["x"], -1, "3D 팝업이 왼쪽으로 넘친다")
+        self.assertLessEqual(box["x"] + box["width"], 391, "3D 팝업이 오른쪽으로 넘친다")
+        self.assertFits(self.measure(page), "3d 팝업")
+        self.assertEqual(errors, [])
