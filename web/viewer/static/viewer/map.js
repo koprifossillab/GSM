@@ -1101,6 +1101,7 @@
     sim3534: { source: gsjSource, info: sim3534InfoUrl },
     stri: { source: null, info: null },       // 파나마 — STRI 면·단층 한 덩이씩 (wetherilli 253)
     vmme: { source: null, info: null },       // 파라과이 — VMME 면 한 덩이 (wetherilli 256)
+    ntgs: { source: null, info: null },       // 노던테리토리 — 열린자료 셰이프를 한 덩이로 (wetherilli 361)
     npolar: { source: npolarSource, info: wmsInfoUrl },
     // 극지연구소 KPDC 지도 서버(057) — NPI 처럼 3031 로 곧장 받는다
     kopri: { source: npolarSource, info: wmsInfoUrl },
