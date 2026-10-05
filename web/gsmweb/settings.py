@@ -660,7 +660,10 @@ PGC_CATALOG_SEEDS = tuple(REPO_DIR / "data" / f"pgc_{r}_layers.json" for r in ("
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
                        for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
 #: 지구 자료 점 — 화석 산지·홀로세 화산·지진·고생태 산지를 지역 탭에 (wetherilli 185). 북극은 북극해에 두고 다른 탭이 빌린다
-EARTH_CATALOG_SEEDS = [REPO_DIR / "data" / f"earth_{region}_layers.json" for region in ("korea", "antarctica", "arctic_ocean")]
+EARTH_CATALOG_SEEDS = [REPO_DIR / "data" / f"earth_{region}_layers.json" for region in ("korea", "antarctica", "arctic_ocean",
+                       # 묶음마다 네모 하나 (wetherilli 331) — 씨앗의 `_지역` 이 그 네모를 두는 탭이다
+                       "eastasia", "southeast_asia", "southasia", "europe", "north_america", "central_america",
+                       "south_america", "oceania", "africa")]
 #: KIGAM 5만 구조 요소 — 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)
 KIGAM50K_CATALOG_SEED = REPO_DIR / "data" / "kigam50k_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"

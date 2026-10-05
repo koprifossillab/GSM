@@ -2076,7 +2076,7 @@ PROP_EN = {
     "마지막 분화": "Last eruption",
     "표고 (m)": "Elevation (m)",
     "광산 이름": "Mine name", "상태": "Status", "조사 방법": "Observation method",
-    "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
+    "같은 칸에 모인 수": "Points merged in this cell", "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
     "지구조 환경": "Tectonic setting",
     "주 암석": "Major rock type",
     "근거": "Evidence",
@@ -4144,3 +4144,9 @@ LAYER_EN.update({f"earth:{kind}_{region}": title
                  for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
                                      ("quakes", "Earthquakes M5+ (USGS)"),
                                      ("neotoma", "Quaternary palaeoecology sites (Neotoma)"))})
+# 묶음마다 네모 하나 (wetherilli 331) — 제목에 묶음의 이름이 붙는다
+LAYER_EN.update({f"earth:{kind}_{box}": f"{title} — {area}"
+                 for box, area in {'eastasia': 'East Asia', 'southeast_asia': 'Southeast Asia', 'southasia': 'South and West Asia', 'europe': 'Europe', 'north_america': 'North America', 'central_america': 'Central America and Caribbean', 'south_america': 'South America', 'oceania': 'Oceania', 'africa': 'Africa'}.items()
+                 for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
+                                     ("quakes", "Earthquakes M5+ (USGS)"), ("neotoma", "Quaternary palaeoecology sites (Neotoma)"),
+                                     ("heatflow", "Heat flow (IHFC)"), ("recentquakes", "Recent earthquakes (7 days, M2.5+)"))})
