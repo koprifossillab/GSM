@@ -544,7 +544,9 @@ EN = {
     "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
     "최근 지진 (7 일, M2.5 이상)": "Recent earthquakes (7 days, M2.5+)",
     "속이 빈 고리 — 크기는 규모, 색은 지난 시간 (매시 받음)": "Hollow rings — size is magnitude, colour is time since (fetched hourly)",
-    "그 밖의 {n} 지역": "{n} more regions",          # 소개 화면의 지역 칩 (wetherilli 344)
+    "그 밖의 {n} 지역": "{n} more regions",
+    "산지 수(채집 편향이 든다)": "locality counts (sampling bias included)",   # 온 지구 레이어의 곁말 (wetherilli 360)
+    "모의 결과": "model result",          # 소개 화면의 지역 칩 (wetherilli 344)
     # 관리 화면의 마지막 레이어 대조 (wetherilli 314)
     "마지막 레이어 대조 {day} — 그림 {drawn} · 빈 그림 {empty} · 오류 {error} · 건너뜀 {skipped}":
         "Last layer check {day} — drawn {drawn} · empty {empty} · error {error} · skipped {skipped}",
@@ -2109,6 +2111,8 @@ PROP_EN = {
     "지질시대": "Geologic age",
     "자력 이상 (nT)": "Magnetic anomaly (nT)",
     "변형대": "Deformation zone",
+    "장소": "Locality",
+    "지구조 요소": "Tectonic element",
     "칼륨 K (%)": "Potassium K (%)",
     "토륨 eTh (ppm)": "Thorium eTh (ppm)",
     "우라늄 eU (ppm)": "Uranium eU (ppm)",
@@ -3585,7 +3589,8 @@ LAYER_EN = {
     "gsv:lin_radio": "Radiometric lineaments",
     "gssa:minocc": "Mineral occurrences (SARIG)", "gssa:tmi_rtp": "Total magnetic intensity (reduced to pole)", "gssa:tmi_rtp_1vd": "TMI first vertical derivative",
     "gssa:tmi_tilt": "TMI tilt derivative", "gssa:grav": "Bouguer gravity", "gssa:grav_1vd": "Gravity first vertical derivative",
-    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gns:gravity": "Gravity anomaly",
+    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gssa:rad_k": "Radiometric potassium (K)", "gssa:rad_th": "Radiometric thorium (eTh)",
+    "gssa:rad_u": "Radiometric uranium (eU)", "gssa:rad_tc": "Radiometric total count", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
     "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
