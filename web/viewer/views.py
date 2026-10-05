@@ -29,7 +29,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
+from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar, ntgeo,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, usgs, volcanoes, wind
@@ -2724,7 +2724,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme")
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme", "ntgs")
                         or twopen.knows(l.name),
             # 영어판은 설명의 영어(`i18n.ABSTRACT_EN`, wetherilli 333) — 없으면 한국어가 든 설명을 숨긴다
             "abstract": _abstract_en(l) if en else l.abstract,
@@ -2752,6 +2752,11 @@ def _point_fields(layer) -> dict:
     타일이 아니므로 `/wms/`·`/featureinfo/`·`/legend/` 를 부르지 않는다 —
     `queryable` 을 끄고, 받을 곳과 출처를 따로 적는다 (devlog 019·021).
     """
+    if layer.upstream == "ntgs" and ntgeo.knows(layer.name):
+        # 노던테리토리 1:250만(wetherilli 361) — 지도 서비스가 없어 열린자료 셰이프를 얀마옌처럼 한 덩이로, 색은 ICS 로 우리가 붙인다
+        unit = layer.name == ntgeo.UNITS
+        return {"kind": "points", "queryable": False, "style": "unit" if unit else "line", "render": "image" if unit else None,
+                "source": ntgeo.SOURCE_URL, "attribution": ntgeo.ATTRIBUTION, "opacity": 0.75 if unit else 1}
     if layer.upstream == "janmayen" and janmayen.knows(layer.name):
         # 얀마옌 지질도(022) — 점 말고 선·면도 이 길로 간다. 색은 자료가 준다
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
@@ -5435,6 +5440,8 @@ def point_layer(request):
         return JsonResponse({"error": i18n.t(msg("그런 점 레이어가 없다"), lang)}, status=404)
     if janmayen.knows(name):
         return _janmayen_layer(name, lang)
+    if ntgeo.knows(name):
+        return _ntgeo_layer(name, lang)
     if geo3al.knows(name):
         return _geo3al_layer(name, lang)
     if usgscarib.knows(name):
@@ -5524,6 +5531,21 @@ def place_names(request):
     if failed == len(sources):
         return JsonResponse({"error": i18n.t(msg("상류에서 받지 못했다"), lang)}, status=502)
     return JsonResponse({"results": arcpoints.match_index(index, query)})
+
+
+def _ntgeo_layer(name, lang):
+    """노던테리토리 지질도 한 덩이 (wetherilli 361). 꼴은 `_janmayen_layer` 와 같다"""
+    if not ntgeo.available(name):
+        return JsonResponse({"error": i18n.t(msg("노던테리토리 지질도 자료(NTGS)가 서버에 없다"), lang)}, status=503)
+    try:
+        content = ntgeo.body(name, lang)
+    except (ntgeo.NtGeoError, OSError, ValueError) as exc:
+        log.warning("노던테리토리 지질도를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("노던테리토리 지질도 자료(NTGS)를 읽지 못했다"), lang)}, status=500)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
 
 
 def _janmayen_layer(name, lang):
