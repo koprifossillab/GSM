@@ -635,6 +635,9 @@ EN = {
     "토석류 유동 구역": "Debris-flow track zone",
     "등급 {grade}": "Class {grade}",
     "등급 없음": "No class",
+    "등급 {grade} — 가장 단단한 쪽 (암상으로 짐작)": "Class {grade} — strongest (inferred from lithology)",   # 대만 암체 강도 등급 (wetherilli 370)
+    "등급 {grade} — 가장 무른 쪽 (암상으로 짐작)": "Class {grade} — weakest (inferred from lithology)",
+    "I 단단 → VII 무름 (암상으로 짐작)": "I strong → VII weak (inferred from lithology)",
     "활동 적지 않음": "Activity not recorded",
     "대만 지질운 열린자료가 서버에 없다": "Taiwan Geology Cloud open data is not on the server",
     "대만 지질운 열린자료를 읽지 못했다": "Could not read Taiwan Geology Cloud open data",
@@ -1981,6 +1984,8 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "특성": "Characteristics",                 # 대만 암체 강도 등급의 지층 특성 (wetherilli 370)
+    "등급의 차례": "Class order",
     # 호주 확인 자원·수리지질도 (wetherilli 325)
     "자원량 칸": "Resource size class",
     "대수층": "Aquifer",
