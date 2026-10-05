@@ -545,6 +545,8 @@ EN = {
     "최근 지진 (7 일, M2.5 이상)": "Recent earthquakes (7 days, M2.5+)",
     "속이 빈 고리 — 크기는 규모, 색은 지난 시간 (매시 받음)": "Hollow rings — size is magnitude, colour is time since (fetched hourly)",
     "그 밖의 {n} 지역": "{n} more regions",
+    "범례 {n}": "legends {n}",                   # 관리 화면의 대조 줄 (wetherilli 367)
+    "깨진 범례 {n}": "broken legends {n}",
     "산지 수(채집 편향이 든다)": "locality counts (sampling bias included)",   # 온 지구 레이어의 곁말 (wetherilli 360)
     "모의 결과": "model result",          # 소개 화면의 지역 칩 (wetherilli 344)
     # 관리 화면의 마지막 레이어 대조 (wetherilli 314)
@@ -1359,6 +1361,10 @@ EN = {
     "남극 지질도 자료(GeoMAP)가 서버에 없다": "The Antarctic geology data (GeoMAP) is not on the server",
     # 얀마옌 지질도 (janmayen.py, map.js 의 dataLegend)
     "얀마옌 지질도 자료(NPI)가 서버에 없다": "The Jan Mayen geology data (NPI) is not on the server",
+    "노던테리토리 지질도 자료(NTGS)가 서버에 없다": "The Northern Territory geology data (NTGS) is not on the server",
+    "노던테리토리 지질도 자료(NTGS)를 읽지 못했다": "Could not read the Northern Territory geology data (NTGS)",
+    "해석 단층 (지구물리)": "Interpreted fault (geophysics)",
+    "지도의 단층": "Mapped fault",
     "얀마옌 지질도 자료(NPI)를 읽지 못했다": "Could not read the Jan Mayen geology data (NPI)",
     "원본 자료 — Norsk Polarinstitutt, CC BY 4.0": "Source dataset — Norsk Polarinstitutt, CC BY 4.0",
     "그런 타일은 없다": "No such tile",
@@ -2106,6 +2112,7 @@ PROP_EN = {
     "연구자": "Investigators",
     "지질시대": "Geologic age",
     "자력 이상 (nT)": "Magnetic anomaly (nT)",
+    "변형대": "Deformation zone",
     "장소": "Locality",
     "지구조 요소": "Tectonic element",
     "칼륨 K (%)": "Potassium K (%)",
@@ -3335,7 +3342,7 @@ GROUP_EN = {
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
     "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)", "빅토리아 지구물리 (GSV)": "Victoria geophysics (GSV)",
-    "태즈메이니아 지질도 (MRT)": "Tasmania geology (MRT)", "뉴사우스웨일스 광물 (GSNSW)": "New South Wales minerals (GSNSW)",
+    "태즈메이니아 지질도 (MRT)": "Tasmania geology (MRT)", "뉴사우스웨일스 광물 (GSNSW)": "New South Wales minerals (GSNSW)", "노던테리토리 지질도 (NTGS)": "Northern Territory geology (NTGS)",
     "남호주 광물 산지 (GSSA)": "South Australia mineral occurrences (GSSA)", "남호주 지구물리 (SARIG)": "South Australia geophysics (SARIG)", "뉴질랜드 지구물리 (GNS)": "New Zealand geophysics (GNS)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
@@ -3579,11 +3586,13 @@ LAYER_EN = {
     "gsq:gravity": "Complete Bouguer gravity anomaly", "gsv:mineral": "Mineral deposits (polygons)", "gsv:mineralp": "Mineral deposits (points)",
     "gsv:gravity": "Gravity stations",
     "mrt:250k": "Tasmania geology (1:250k compilation)", "mrt:25k": "Tasmania geology (1:25k)",
+    "ntgs:geology": "Northern Territory geology 1:2.5M (interpreted)", "ntgs:faults": "Northern Territory faults 1:2.5M",
     "gsnsw:minocc": "New South Wales mineral occurrences", "gsnsw:mines": "New South Wales mines", "gsv:lin_tmi": "Magnetic lineaments (TMI)", "gsv:lin_gravity": "Gravity lineaments",
     "gsv:lin_radio": "Radiometric lineaments",
     "gssa:minocc": "Mineral occurrences (SARIG)", "gssa:tmi_rtp": "Total magnetic intensity (reduced to pole)", "gssa:tmi_rtp_1vd": "TMI first vertical derivative",
     "gssa:tmi_tilt": "TMI tilt derivative", "gssa:grav": "Bouguer gravity", "gssa:grav_1vd": "Gravity first vertical derivative",
-    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gns:gravity": "Gravity anomaly",
+    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gssa:rad_k": "Radiometric potassium (K)", "gssa:rad_th": "Radiometric thorium (eTh)",
+    "gssa:rad_u": "Radiometric uranium (eU)", "gssa:rad_tc": "Radiometric total count", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
     "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
@@ -4444,6 +4453,8 @@ ABSTRACT_EN = {
     "mris:ree": "Atlas 12_REE — 6 deposits, 280 mineralised points, 85 occurrences",
     "mrt:250k": "Geological polygons and lines 250K — statewide edition compiling the 1:50k and 1:63k map series at 1:250k",
     "mrt:25k": "Geological polygons and lines 25K — surveyed areas only",
+    "ntgs:geology": "Northern Territory Geological Map (Interp) 2500K — 1 975 polygons; symbol, stratigraphic unit, rock, region and age",
+    "ntgs:faults": "Northern Territory Geological Faults 2500K — 849; interpreted (geophysics) and mapped faults",
     "ni:ni_j100v_austurland_berggrunnur_1utg_fl": "Jarðfræði Austurland berggrunnur — the Eastern Fjords",
     "ni:ni_j100v_vesturgosbelti_berggrunnur_1utg_fl": "Jarðfræði Vesturgosbelti berggrunnur — around Langjökull",
     "ni:ni_j600v_berg_2_jardlog_2utg_fl": "Berggrunnur jarðlög — 1:600 000, 2. útgáfa (Haukur Jóhannesson 2014). The whole island",
