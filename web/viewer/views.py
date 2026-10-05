@@ -3092,7 +3092,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         first, _ = door.zooms(layer.name)
         return {"attribution": door.ATTRIBUTION, "projection": "EPSG:3978", **({"minZoom": first} if first else {}),
                 **({} if door.queryable(layer.name) else {"queryable": False}),
-                **({"noLegend": True} if layer.upstream == "sigeom" else {})}
+                # 퀘벡 일반·지역 지질은 보는 범위의 범례(`sigeom/legend/`, wetherilli 337), 나머지는 없다
+                **({"legend": "extent", "legendUrl": "sigeom/legend/"} if layer.name in sigeom.LEGEND
+                   else {"noLegend": True} if layer.upstream == "sigeom" else {})}
     if layer.upstream in ("ispra", "lneg") and {"ispra": ispra, "lneg": lneg}[layer.upstream].knows(layer.name):
         # 이탈리아 ISPRA·포르투갈 LNEG(wetherilli 211) — ArcGIS WMS 를 3857 로. 가까이서만 그려 주는 판(1:10만·구조선)은 그 줌부터
         mod = {"ispra": ispra, "lneg": lneg}[layer.upstream]
@@ -3188,6 +3190,7 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         # 보는 범위의 범례를 뜬다(`sgb/legend/`) — 대만과 같은 꼴이다. 구조선은 범례가 없다
         first, last = sgb.zooms(layer.name)
         legend = ({"legend": "extent", "legendUrl": "sgb/legend/"} if layer.name in sgb.legend_layers()
+                  else {} if layer.name in sgb.IMAGE_LEGENDS            # 구조선 1:250만은 상류의 그림 범례 (wetherilli 337)
                   else {"noLegend": True})
         return {"attribution": sgb.ATTRIBUTION, "projection": "EPSG:3857", **legend,
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {})}
@@ -4388,6 +4391,36 @@ def esdm_legend(request):
         log.info("인도네시아 범례를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
     shown = [esdm.legend_row(r, table, lang) for r in held["rows"][:esdm.MAX_LEGEND]]
+    return JsonResponse({"rows": shown, "more": max(0, len(held["rows"]) - len(shown))})
+
+
+@require_GET
+@browser_cached
+def sigeom_legend(request):
+    """`?layer=sigeom:generale&bbox=서,남,동,북` — 퀘벡 지질의 보는 범위 범례 (wetherilli 337). WFS 의 면 색(`COUL_REMPL_HEXA`)으로
+    단위를 센다(`sigeom.extent_legend`). 꼴은 사우디(`sgs_legend`)와 같다"""
+    lang = i18n.lang_of(request)
+    name = request.GET.get("layer", "")
+    if name not in sigeom.LEGEND:
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    bbox = [round(v, 2) for v in parts]
+    span = sigeom.legend_span(name)
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
+        return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []},
+                            status=422)
+    key = tilecache.key_text("sigeom-legend", f"{name}/{bbox}/{lang}")
+    held = _cached_json(key)
+    if held is None:
+        try:
+            held = {"rows": sigeom.extent_legend(name, tuple(bbox), lang)}
+        except sigeom.SigeomError as exc:
+            log.info("퀘벡 범례를 받지 못했다 (%s): %s", name, exc)
+            return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+        tilecache.put(key, json.dumps(held, ensure_ascii=False).encode("utf-8"), ".json")
+    shown = held["rows"][:sigeom.MAX_LEGEND]
     return JsonResponse({"rows": shown, "more": max(0, len(held["rows"]) - len(shown))})
 
 
