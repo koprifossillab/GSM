@@ -60,7 +60,7 @@ from PIL import Image
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import elevation, geomap, gsj, ingemmet, kigam, kopri, metatile, npolar, tilecache, tilegrid, trek, usage, views
+from viewer import elevation, geomap, gsj, ingemmet, kigam, kopri, metatile, npolar, tilecache, tilegrid, trek, usage, views, vworld
 from viewer.models import Layer
 
 DEFAULT_LAYERS = ["L_50K_Geology_Map"]
@@ -487,7 +487,9 @@ def plan_for(name, upstream):
     """레이어 하나를 어떻게 받나. 타일이 아니면(점·모양·연구실 타일) None."""
     if upstream in ("kigam", "geus", "vworld"):
         row = Layer.objects.filter(name=name).values_list("kind", flat=True).first()
-        return None if row in ("vector", "points") else WmsPlan(name, upstream)
+        # VWorld 의 가까이서만 그리는 레이어는 화면처럼 그 줌부터 — 멀리서는 빈 칸이라 대조가 빈 그림으로 적었다 (wetherilli 308)
+        first = vworld.MIN_ZOOM.get(name) if upstream == "vworld" else None
+        return None if row in ("vector", "points") else WmsPlan(name, upstream, None, (first, None))
     if upstream == "npolar" and npolar.knows(name):
         return WmsPlan(name, upstream, tilegrid.Grid(npolar.TILES[name]["projection"]))
     if upstream == "kopri" and kopri.knows_wms(name):

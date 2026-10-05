@@ -33,7 +33,7 @@ from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsm
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, spamap, ocean, usgs, volcanoes, wind
-from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, usage, usgscarib, usstates, vmme, ygs
+from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, twopen, usage, usgscarib, usstates, vmme, ygs
 from . import earthpoints, pointvalues, profileband, static_tables, tilegrid
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
@@ -2690,7 +2690,8 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme"),
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme")
+                        or twopen.knows(l.name),
             # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
             "abstract": "" if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
@@ -2722,6 +2723,11 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": janmayen.LAYERS[layer.name]["style"],
                 "source": janmayen.SOURCE_URL, "attribution": janmayen.ATTRIBUTION,
                 "opacity": 0.75 if janmayen.LAYERS[layer.name]["style"] == "unit" else 1}
+    if layer.upstream == "gsmma" and twopen.knows(layer.name):
+        # 대만 지질운 열린자료(wetherilli 305) — 받아 둔 파일을 한 덩이로. 낙석·암체 등급은 면이 수천이라 구워 그린다
+        style = twopen.LAYERS[layer.name]["style"]
+        return {"kind": "points", "queryable": False, "style": style, "render": "image",
+                "source": twopen.SOURCE_URL, "attribution": twopen.ATTRIBUTION, "opacity": 0.75 if style == "unit" else 1}
     if layer.upstream == "stri" and stri.knows(layer.name):
         # 파나마 STRI(wetherilli 253) — 카리브와 같은 꼴, 면과 단층을 한 덩이씩
         return {"kind": "points", "queryable": False, "style": "unit" if layer.name == stri.GEOLOGY else "line",
@@ -2823,7 +2829,34 @@ GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" ta
                    '地理院タイル</a> (国土地理院)')
 
 
+#: 상류가 축척으로 끄는 레이어의 처음 화면 줌 (wetherilli 310) — 운영 대조(`verify_layers`)에서 넓게 보면 빈 그림이던 것을 Capabilities 의
+#: `MaxScaleDenominator` 로 셈했다. 512 px 격자 줌 z 의 축척은 279 541 132 / 2^z(0.28 mm 화소, 지도 단위 그대로)이고 화면 줌은 격자 줌 + 1 이다.
+#: 문의 표에 줌이 있으면 거기도 같은 값을 두었다 — 이 표는 문의 값보다 작아지지 않게 하는 바닥이다
+SCALE_FLOOR = {
+    "bgr:kor250:0+1": 9, "bgr:kor250:2+3+4": 9,                                     # KOR250 1:141만까지(3·4 는 1:71만)
+    "bgr:igme5000:43+44": 6, "bgr:igme5000:46+47+48": 5, "bgr:igme5000:51+53+55+57": 6,  # IGME5000 축척별 레이어의 가장 넓은 끝
+    "brgm:GITES_PT": 9, "brgm:MINES_PT": 9,                                          # BD Gîtes·광산 1:200만까지
+    "ga:faults": 7,                                                                  # 1:250만 단층 1:600만까지
+    "gns:NZL_GNS_1M_faults": 9, "gns:NZL_GNS_250K_faults": 10, "gns:NZL_GNS_250K_folds": 12,   # 1:200만·1:100만·1:25만까지
+    "lneg:500k:1": 10, "lneg:500k:3": 10, "lneg:500k:4": 10,                        # 구조선·대륙붕 1:94만까지
+    "ygs:57": 11,                                                                    # 유콘 MINFILE 1:30만까지
+    "bcgs:minfile": 10,                                                              # BC MINFILE 1:100만까지
+    "ogs:4": 9, "ogs:5": 9, "ogs:6": 9,                                              # 온타리오 암맥·철층·단층 1:141만까지
+    "nsgs:9": 9, "sigeom:failles": 9,                                                # 노바스코샤 단층 1:200만까지, 퀘벡 단층은 재어 정했다
+    "mrdata:sgmc2:sgmc2structure": 9,                                                # MapCache 가 격자 줌 8 밑에서 404
+    "gsmma:sensitive_landslide": 13,                                                 # 대만 산사태 민감구역 — 가까이서만(축척을 알리지 않는다, 재어 정했다)
+}
+
+
 def _layer_extra(layer, lang: str = "ko") -> dict:
+    extra = _layer_extra_base(layer, lang)
+    floor = SCALE_FLOOR.get(layer.name)
+    if floor and (extra.get("minZoom") or 0) < floor:
+        extra = dict(extra, minZoom=floor)
+    return extra
+
+
+def _layer_extra_base(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geusarc" and geus.arc_knows(layer.name):
@@ -5169,6 +5202,8 @@ def point_layer(request):
         return _usgscarib_layer(name, lang)
     if stri.knows(name):
         return _stri_layer(name, lang)
+    if twopen.knows(name):
+        return _twopen_layer(name, lang)
     if vmme.knows(name):
         return _vmme_layer(name, lang)
     if kopri.knows_file(name):
@@ -5288,6 +5323,21 @@ def _vmme_layer(name, lang):
     except vmme.VmmeError as exc:
         log.warning("파라과이 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("파라과이 지질도(VMME)를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _twopen_layer(name, lang):
+    """대만 지질운 열린자료 한 덩이 (wetherilli 305). 받아 둔 파일만 읽는다 — 없으면 503 (`fetch_taiwan_open`)"""
+    try:
+        content = twopen.body(name, lang)
+    except FileNotFoundError:
+        return JsonResponse({"error": i18n.t(msg("대만 지질운 열린자료가 서버에 없다"), lang)}, status=503)
+    except (OSError, ValueError) as exc:
+        log.warning("대만 지질운 열린자료를 읽지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("대만 지질운 열린자료를 읽지 못했다"), lang)}, status=500)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
