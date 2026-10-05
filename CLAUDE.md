@@ -503,7 +503,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
                   알래스카의 물 면은 받은 그림에서 지운다 — 고침의 판이 캐시 열쇠에 든다 `views.map_cache_key`, wetherilli 224)
   iige.py         에콰도르 지질·에너지 연구소(IIGE)로 나가는 문 (일반 지질도 ArcGIS WMS 를 3857 로, 범례는 보는 범위의 REST 통계 질의)
   nrcan.py        캐나다 천연자원부(NRCan·GSC)로 나가는 문 (캐나다 지질도 1:500만 Wheeler ArcGIS WMS 를 3978 로, 속성은 GeoJSON.
-                  같은 서버의 편찬 지질도 CGMC·핵심 광물 시설·광상 유망도도 — `SERVICES`, wetherilli 250)
+                  같은 서버의 편찬 지질도 CGMC·핵심 광물 시설·광상 유망도도 — `SERVICES`, wetherilli 250.
+                  CGMC 래스터는 REST identify 의 OBJECTID − 1 을 범례 34 칸으로 풀어 누른다, wetherilli 320)
   ogs.py          온타리오 지질조사소(OGS)로 나가는 문 (기반암 1:25만·제4기 ArcGIS WMS 를 3978 로, 속성은 REST identify — WMS 번호와 REST 번호가 다르다)
                   광물 산지 목록 MDI(OMEIS, WMS 11·REST 46, wetherilli 288)
   sigeom.py       퀘벡 SIGÉOM 으로 나가는 문 (일반·지역 지질 GeoServer WMS 1.1.1 만, 3978 로. Origin 이 붙으면 403 이라 문으로만, 속성은 text/plain —
