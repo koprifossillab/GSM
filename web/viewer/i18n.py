@@ -2104,6 +2104,8 @@ PROP_EN = {
     "연구자": "Investigators",
     "지질시대": "Geologic age",
     "자력 이상 (nT)": "Magnetic anomaly (nT)",
+    "장소": "Locality",
+    "지구조 요소": "Tectonic element",
     "칼륨 K (%)": "Potassium K (%)",
     "토륨 eTh (ppm)": "Thorium eTh (ppm)",
     "우라늄 eU (ppm)": "Uranium eU (ppm)",
