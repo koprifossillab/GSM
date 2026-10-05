@@ -2678,6 +2678,17 @@ def _options_3d(layers: list):
     return mark_safe("".join(out))
 
 
+_HANGUL = re.compile(r"[가-힣]")
+
+
+def _abstract_en(layer) -> str:
+    """영어판의 레이어 설명 — `i18n.ABSTRACT_EN` 의 것, 없으면 한국어가 들지 않은 설명만 그대로(원어 제목뿐인 설명). 한국어가 든 설명은 숨긴다 (wetherilli 333)"""
+    text = i18n.ABSTRACT_EN.get(layer.name)
+    if text:
+        return text
+    return "" if not layer.abstract or _HANGUL.search(layer.abstract) else layer.abstract
+
+
 def _catalog(lang="ko"):
     """레이어 패널의 목록. 영어판이면 제목만 `i18n.LAYER_EN` 으로 바꾼다."""
     en = lang == "en"
@@ -2694,8 +2705,8 @@ def _catalog(lang="ko"):
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
             "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme")
                         or twopen.knows(l.name),
-            # 설명은 상류가 한국어 제목을 되풀이한 것이라 영어판에서는 숨긴다
-            "abstract": "" if en else l.abstract,
+            # 영어판은 설명의 영어(`i18n.ABSTRACT_EN`, wetherilli 333) — 없으면 한국어가 든 설명을 숨긴다
+            "abstract": _abstract_en(l) if en else l.abstract,
             # 어느 상류인지 — 화면이 출처(`attributions`)를 붙인다. vector 면
             # 타일이 아니라 모양을 받아 그린다 (`map.js` 의 `vectorLayerFor`)
             "upstream": l.upstream,
