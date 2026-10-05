@@ -29,7 +29,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
+from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                marscraters, marsmap, mercurymap, zhurong)
 from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, spamap, ocean, usgs, volcanoes, wind
@@ -235,7 +235,7 @@ def healthz(request):
 
     **`degraded` 를 503 으로 두지 않는다** — 백업이 멈췄다고 뷰어가 죽은 것은 아니다. 알리는 일은 `smoke.sh` 가 한다.
     **레이어가 0 이면 unhealthy 다** — DB 마운트가 어긋나 빈 DB 가 새로 생겨도 "열리는가" 는 통과하기 때문이다.
-    가볍게 둔다 — `count(*)` 셋과 작은 파일 하나. 상류는 타지 않는다.
+    가볍게 둔다 — `count(*)` 셋과 작은 파일 하나, 구운 자료는 `stat` 만. 상류는 타지 않는다.
     """
     info = {"status": "ok", "version": VERSION}
     notes = []
@@ -261,6 +261,13 @@ def healthz(request):
     if hourly_notes and info["status"] == "ok":
         info["status"] = "degraded"
     notes.extend(hourly_notes)
+
+    # 구운 자료 (wetherilli 312) — 있어야 하는데 없는 파일의 수만. 상태는 바꾸지 않는다 — 없는 레이어는 그 자리에 안내가 뜰 뿐 뷰어는 돈다.
+    # 무엇이 없는지는 `manage.py data_status` 와 관리 화면이 말한다
+    try:
+        info["data"] = {"items": len(datastatus.ITEMS), "missing": len(datastatus.missing())}
+    except OSError:
+        info["data"] = None
 
     info["notes"] = notes
     response = JsonResponse(info, status=503 if info["status"] == "unhealthy" else 200,
@@ -291,7 +298,8 @@ def intro_view(request):
 
 @require_GET
 def manage_view(request):
-    """관리 화면 (wetherilli P08·118). 개인 레이어 반입, 이 브라우저의 저장 자료 관리, 상류 응답 시간(읽기만, wetherilli 295).
+    """관리 화면 (wetherilli P08·118). 개인 레이어 반입, 이 브라우저의 저장 자료 관리, 상류 응답 시간(읽기만, wetherilli 295),
+    구운 자료의 나이(읽기만, wetherilli 312).
 
     **서버는 화면만 내준다.** 개인 레이어는 브라우저가 읽어 브라우저(IndexedDB)에 둔다 — 서버로 오지 않는다.
     관리라는 이름이지만 지우고 고치는 것은 그 브라우저의 것뿐이라 계정을 묻지 않는다."""
@@ -305,7 +313,19 @@ def manage_view(request):
         "stamp": "" if settings.DEBUG else asset_stamp(),
         # 상류 응답 시간 (wetherilli 295) — `upstream_stats` 와 같은 값. 읽기만 하고 상류의 이름과 수뿐이다(주소·키는 남기지도 않는다)
         "upstream_rows": usage.summary(7),
+        # 구운 자료 (wetherilli 312) — `data_status` 와 같은 표. 읽기만 하고 경로는 `<DB 옆>` 아래 이름뿐이다
+        "data_rows": _data_rows(lang),
     })
+
+
+def _data_rows(lang):
+    out = []
+    for r in datastatus.rows():
+        out.append({**r, "what": i18n.t(r["what"], lang),
+                    "size_text": datastatus.human_size(r["size"]) if r["size"] is not None
+                    else (i18n.t(msg("{n} 칸", n=r["count"]), lang) if r["count"] is not None else ""),
+                    "date": f"{r['modified']:%Y-%m-%d}" if r["modified"] else ""})
+    return out
 
 
 @require_POST
