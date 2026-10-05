@@ -322,6 +322,10 @@ class GlobeScreens(PhoneBase):
                 page = self.check_map_screen(path, settle=3000)
                 self.assertFalse(page.evaluate("document.getElementById('legend-dock').open"),
                                  f"{path}: 범례가 구를 덮는다")
+                # 레이어 목록의 줄마다 출처가 선다 — 켜기 전에도 무엇을 얹는지 보인다 (wetherilli 360)
+                bare = page.evaluate("[...document.querySelectorAll('#layer-catalog .layer-row')]"
+                                     ".filter(r => !(r.querySelector('.src') || {}).textContent).map(r => r.textContent.trim())")
+                self.assertEqual(bare, [], f"{path}: 출처가 빈 레이어")
                 # 화면마다 바로 닫는다 — 시험이 끝날 때까지 두면 앞의 구들이 소프트웨어 WebGL 로 계속 그려 CPU 를
                 # 다 먹고, 넷째 화면(수성)이 30 초 안에 뜨지 못한다 (wetherilli 145)
                 page.context.close()
