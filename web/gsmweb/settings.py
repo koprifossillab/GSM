@@ -449,6 +449,8 @@ def _dev_direct_wms() -> bool:
 
 
 DEV_DIRECT_WMS = _dev_direct_wms()
+#: 레이어 대조(`verify_layers`)의 결과를 날마다 남기는 자리 (wetherilli 314) — 지난번과 견준다
+VERIFY_DIR = env("GSM_VERIFY_DIR") or str(_data_dir() / "verify")
 
 
 def _metatile() -> bool:
