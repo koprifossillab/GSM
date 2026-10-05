@@ -3583,7 +3583,8 @@ LAYER_EN = {
     "gsv:lin_radio": "Radiometric lineaments",
     "gssa:minocc": "Mineral occurrences (SARIG)", "gssa:tmi_rtp": "Total magnetic intensity (reduced to pole)", "gssa:tmi_rtp_1vd": "TMI first vertical derivative",
     "gssa:tmi_tilt": "TMI tilt derivative", "gssa:grav": "Bouguer gravity", "gssa:grav_1vd": "Gravity first vertical derivative",
-    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gns:gravity": "Gravity anomaly",
+    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gssa:rad_k": "Radiometric potassium (K)", "gssa:rad_th": "Radiometric thorium (eTh)",
+    "gssa:rad_u": "Radiometric uranium (eU)", "gssa:rad_tc": "Radiometric total count", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
     "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
