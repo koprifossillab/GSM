@@ -3199,8 +3199,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         return {"attribution": gsj.GEONAVI_ATTRIBUTION, "tiles": gsj.gsjows_tiles(layer.name),
                 "maxZoom": gsj.GSJOWS_NAVI[layer.name][1], "queryable": False}
     if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
-        # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
-        return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
+        # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 1:200만 지질도·중력은 누른다(wetherilli 316), 지구화학도는 범례 그림으로
+        return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857",
+                **({} if layer.name in gsj.GSJOWS_INFO else {"queryable": False})}
     if layer.upstream == "gsitile" and layer.name in GSI_TILES:
         # 국토지리원 주제 타일(wetherilli 172) — 서버를 거치지 않고 브라우저가 곧장 부르는 카탈로그 레이어의 첫 선례다.
         # 지리원 타일은 열쇠가 없고 CORS 가 열려 있어 배경(BASEMAPS gsi_*)과 같은 길이다. 속성이 없고 범례는 그림이 아니다
@@ -4859,6 +4860,8 @@ def feature_info(request):
             props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "ccop":
             props = gsj.ccop_friendly(props, lang)   # code → 지질기호 …, 시대를 옮긴다
+        elif door.name == "gsjows":
+            props = gsj.gsjows_friendly(props, lang)  # 1:200만 — 설명을 시대(일본어에서 옮긴다)와 암상으로 (wetherilli 316)
         elif door.name == "gsmma":
             props = gsmma.friendly(props, lang)      # Name → 지층명 …, 시대를 중국어에서 옮긴다
         elif door.name == "emodnet":

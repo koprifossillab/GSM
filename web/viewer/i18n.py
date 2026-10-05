@@ -1955,6 +1955,9 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # GSJ 1:200만·중력 (wetherilli 316)
+    "설명 (원문)": "Description (original)",
+    "부게 이상 (mGal, 둘레 등치선)": "Bouguer anomaly (mGal, nearby contours)",
     # 대만 지질운 열린자료 (wetherilli 305)
     "선상지 넓이": "Fan area",
     "보호 대상": "Protected targets",
@@ -3185,6 +3188,52 @@ TECTONIC_EN = {
     "중첩퇴적암": "Overlap sedimentary rocks",
     "구조동시성 대륙내 열곡": "Syntectonic intracontinental rift",
 }
+
+
+# GSJ 1:200만 일본 지질도(wetherilli 316)는 범례의 설명이 일본어다 — `後期更新世後期より完新世`·`中期始新世より中期中新世前期`·`時代未詳`.
+# 조각은 `[앞 꾸밈]낱말[뒤 꾸밈]` 이고 `より`(부터)로 잇는다. 앞 꾸밈은 ICS 의 세(前期 = Early), 뒤 꾸밈은 그 세 안의 앞·가운데·뒤다.
+# 모르는 글자가 남으면 원문이다 — `age_zh` 와 같은 규칙.
+AGE_JA = {"完新世": "Holocene", "更新世": "Pleistocene", "鮮新世": "Pliocene", "中新世": "Miocene", "漸新世": "Oligocene",
+          "始新世": "Eocene", "暁新世": "Paleocene", "古第三紀": "Paleogene", "新第三紀": "Neogene", "第四紀": "Quaternary",
+          "白亜紀": "Cretaceous", "ジュラ紀": "Jurassic", "三畳紀": "Triassic", "二畳紀": "Permian", "石炭紀": "Carboniferous",
+          "デボン紀": "Devonian", "シルル紀": "Silurian", "オルドビス紀": "Ordovician", "カンブリア紀": "Cambrian"}
+AGE_JA_WHOLE = {"時代未詳": ("시대 미상", "Age unknown"), "先シルル紀": ("실루리아기 이전", "Pre-Silurian")}
+AGE_JA_MODS = {"前期": "early", "中期": "middle", "後期": "late"}
+#: 뒤 꾸밈(세 안의 앞·가운데·뒤) — 한국어
+AGE_JA_PART_KO = {"early": "전반", "middle": "중반", "late": "후반"}
+_AGE_JA_SEG = re.compile("^(前期|中期|後期)?(" + "|".join(map(re.escape, sorted(AGE_JA, key=len, reverse=True))) + ")(前期|中期|後期)?$")
+
+
+def age_ja(value: str, lang: str = "ko") -> str:
+    """일본어 지질시대 값 하나를 한국어(또는 영어)로. 못 옮기면 원문을 그대로 돌려준다.
+
+        後期更新世後期より完新世   → 플라이스토세 후기 후반~홀로세     (late Late Pleistocene – Holocene)
+        中期始新世より中期中新世前期 → 에오세 중기~마이오세 중기 전반
+        二畳紀                     → 페름기
+        時代未詳                   → 시대 미상
+    """
+    text = str(value or "").strip()
+    if not text:
+        return value
+    out = []
+    for part in text.split("より"):
+        if part in AGE_JA_WHOLE:
+            out.append(AGE_JA_WHOLE[part][0 if lang == "ko" else 1])
+            continue
+        found = _AGE_JA_SEG.match(part)
+        if not found:
+            return value
+        pre, noun, post = found.group(1), AGE_JA[found.group(2)], found.group(3)
+        if lang == "ko":
+            words = [AGE_WORDS_KO[noun.lower()]]
+            if pre:
+                words.append(AGE_MODIFIERS_KO[AGE_JA_MODS[pre]])
+            if post:
+                words.append(AGE_JA_PART_KO[AGE_JA_MODS[post]])
+        else:
+            words = ([AGE_JA_MODS[post]] if post else []) + ([AGE_JA_MODS[pre].capitalize()] if pre else []) + [noun]
+        out.append(" ".join(words))
+    return ("~" if lang == "ko" else " – ").join(out)
 
 
 def props_en(props: dict) -> dict:
