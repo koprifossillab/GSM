@@ -3042,7 +3042,7 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
                 extra["queryable"] = False
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
-        # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
+        # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 1:50만 너머는 우리 스타일을 POST 로 보내 줌 5 부터(wetherilli 317)
         if layer.name == "bcgs:minfile":
             # MINFILE 광물 산지(wetherilli 288) — 같은 openmaps 의 점 레이어, 넓게 봐도 그린다
             return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978"}
