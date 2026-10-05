@@ -147,7 +147,7 @@ def fetch(plan, z, x, y):
 #: 화면이 곧장 부르는 타일 — 상류 → 받아 볼 문
 DIRECT = {"ags": ags.probe_tile, "bas": bas.probe_tile, "gsjows": gsj.probe_tile, "gsitile": elevation.probe_tile}
 #: 대조하지 못하는 것 — 상류 → 까닭
-CANNOT = {"phyloserver": "카카오 격자(EPSG:5181, 줌이 거꾸로)라 칸을 고르지 않는다 — 연구실 자료다"}
+CANNOT = {"phyloserver": "카카오 격자(EPSG:5181, 줌이 거꾸로)의 타일이라 칸을 고르지 않는다 — 연구실 자료다"}
 
 
 def _base() -> str:
@@ -197,10 +197,8 @@ def tile_for(layer, extra) -> tuple:
 def check_other(layer, delay: float):
     """타일 꼴이 아닌 레이어 하나 — (갈래, 기록, 상류에 물었나)"""
     extra = views._layer_extra(layer)
-    if layer.upstream in CANNOT:
-        return "건너뜀", CANNOT[layer.upstream], False
     if layer.kind == "vector":                  # VWorld 의 단층 따위 — 1° 칸 하나
-        if not vworld.has_key():
+        if not vworld.enabled():
             return "건너뜀", "VWorld 인증키가 없다", False
         cell = views.vector_grid(layer.name)["cell"]
         w, s, e, n = layer.bbox or WORLD
@@ -223,12 +221,16 @@ def check_other(layer, delay: float):
         if remote:
             time.sleep(max(0.0, delay - (time.monotonic() - started)))
         count = _features(response)
+        if status == 503:                       # 우리가 모아 두는 자료(극지연구소·5만 기호·카리브 따위)를 이 서버에 아직 받지 않았다
+            return "건너뜀", "points 자료 파일이 서버에 없다", remote
         if status != 200 or count < 0:
             return "오류", f"points status={status}", remote
         return ("그림", f"points 모양 {count:,}", remote) if count else ("빈 그림", "points 모양이 없다", remote)
     template = extra.get("tiles")
     if not template:
         return "건너뜀", "타일도 점도 아니다", False
+    if layer.upstream in CANNOT:
+        return "건너뜀", CANNOT[layer.upstream], False
     z, x, y = tile_for(layer, extra)
     if template.startswith(("http://", "https://")):
         probe = DIRECT.get(layer.upstream)
@@ -242,9 +244,9 @@ def check_other(layer, delay: float):
             return "오류", f"{z}/{x}/{y} {str(exc)[:150]}", True
         finally:
             time.sleep(max(0.0, delay - (time.monotonic() - started)))
-        if status != 200 or not ctype.startswith("image/"):
+        if status != 200:
             return "오류", f"{z}/{x}/{y} status={status} type={ctype}", True
-        kind = classify(content)
+        kind = classify(content)                 # 갈래는 바이트로 본다 — ArcGIS Online 타일은 content-type 을 octet-stream 으로 줄 때가 있다(Bedmap3)
         return kind, f"{z}/{x}/{y} {len(content):,} bytes" if kind == "그림" else f"{z}/{x}/{y} 비었다", True
     path = _base() + template.split("?", 1)[0].format(z=z, x=x, y=y)
     status, response = _call(path)
