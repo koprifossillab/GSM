@@ -2846,6 +2846,123 @@
     syncRows();
   }
 
+  // ── 레이어 찾기 (wetherilli 332) ─────────────────────────────────
+  //
+  // 지역이 쉰 가까이 되어 "중력 이상이 어느 탭에 있나" 를 알려면 탭을 하나씩 열어야 했다. 카탈로그는 한 번에 실려 오므로
+  // (`catalog-data`) 화면이 모든 지역의 레이어를 훑는다 — 제목(두 말)·설명·레이어명·상류(딱지·기관 이름)·레이어군·지역.
+  // 낱말을 띄어 적으면 다 든 것만. 고르면 지금 탭에 있는 것은 켜고 끄며, 다른 지역의 것은 그 탭으로 옮겨 켠다(`switchRegion`).
+  // 아직 더하지 않은 지역이면 "그 외" 에 더한다
+  var FIND_LIMIT = 60;
+  var findIndex = null;           // [{layer, region, group, text}] — 처음 찾을 때 짓는다
+
+  function buildFindIndex() {
+    findIndex = [];
+    catalog.forEach(function (group) {
+      var where = group.region || "korea";
+      var spec = REGIONS[where];
+      group.layers.forEach(function (layer) {
+        var up = layer.upstream || "kigam";
+        var text = [layer.title, layer.alt, layer.abstract, layer.name, up, UPSTREAM_TAGS[up], UPSTREAM_NAMES[up],
+                    group.name, spec && spec.title, spec && T(spec.title)].join(" ").toLowerCase();
+        findIndex.push({ layer: layer, region: where, group: group.name, text: text });
+      });
+    });
+  }
+
+  function findLayers(q) {
+    var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    if (!findIndex) buildFindIndex();
+    var here = {};
+    regionCatalog().forEach(function (g) { g.layers.forEach(function (l) { here[l.name] = true; }); });
+    var seen = {};
+    return findIndex.filter(function (e) {
+      if (seen[e.layer.name] || !REGIONS[e.region]) return false;
+      if (!words.every(function (w) { return e.text.indexOf(w) >= 0; })) return false;
+      seen[e.layer.name] = true;
+      return true;
+    }).map(function (e) {
+      var title = String(e.layer.title || "").toLowerCase();
+      // 지금 탭에 있는 것이 먼저, 그다음 제목에 든 것
+      var score = (here[e.layer.name] ? 0 : 2) + (title.indexOf(words[0]) >= 0 ? 0 : 1);
+      return { e: e, here: !!here[e.layer.name], score: score };
+    }).sort(function (a, b) { return a.score - b.score; });
+  }
+
+  function renderFound() {
+    var input = document.getElementById("layer-find");
+    var box = document.getElementById("layer-found");
+    if (!input || !box) return;
+    var q = input.value.trim();
+    box.innerHTML = "";
+    box.hidden = !q;
+    if (!q) return;
+    var hits = findLayers(q);
+    var head = document.createElement("p");
+    head.className = "found-count";
+    head.textContent = hits.length ? T("{n} 개 — 다른 지역의 것은 그 탭으로 옮겨 켠다", { n: hits.length }) : T("맞는 레이어가 없다");
+    box.appendChild(head);
+    hits.slice(0, FIND_LIMIT).forEach(function (hit) {
+      var layer = hit.e.layer, up = upstreamOf(layer.name);
+      var row = document.createElement("div");
+      row.className = "layer-row found" + (hit.here && isOn(layer.name) ? " on" : "");
+      row.dataset.layer = layer.name;
+      row.setAttribute("role", "button");
+      row.tabIndex = 0;
+      if (layer.abstract) row.title = layer.abstract;
+      var tag = document.createElement("span");
+      tag.className = "up up-" + up;
+      tag.textContent = UPSTREAM_TAGS[up] || up.toUpperCase();
+      tag.title = UPSTREAM_NAMES[up] || up;
+      var label = document.createElement("span");
+      label.className = "layer-name";
+      label.textContent = layer.title;
+      var where = document.createElement("span");
+      where.className = "found-where";
+      where.textContent = (hit.here ? T("이 탭") : T(REGIONS[hit.e.region].title)) + " · " + hit.e.group;
+      label.appendChild(where);
+      row.append(tag, label);
+      var pick = function () { pickFound(layer.name, hit.here ? region : hit.e.region); };
+      row.addEventListener("click", pick);
+      row.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
+      });
+      box.appendChild(row);
+    });
+    if (hits.length > FIND_LIMIT) {
+      var more = document.createElement("p");
+      more.className = "found-count";
+      more.textContent = T("앞의 {n} 개만 보인다 — 낱말을 더 적어 좁힌다", { n: FIND_LIMIT });
+      box.appendChild(more);
+    }
+  }
+
+  function pickFound(name, where) {
+    if (where === region) {
+      toggleLayer(name);
+    } else {
+      if (PINNED.indexOf(where) < 0 && addedRegions.indexOf(where) < 0) addedRegions.push(where);
+      switchRegion(where);
+      if (!isOn(name)) addLayer(name);
+    }
+    syncRows();
+    renderFound();
+  }
+
+  (function () {
+    var input = document.getElementById("layer-find");
+    if (!input) return;
+    input.addEventListener("input", renderFound);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { input.value = ""; renderFound(); }
+      // 맞는 것이 하나뿐이면 Enter 로 바로
+      if (e.key === "Enter") {
+        var rows = document.querySelectorAll("#layer-found .layer-row");
+        if (rows.length === 1) { e.preventDefault(); rows[0].click(); }
+      }
+    });
+  })();
+
   // ── 지질도Navi 판 (wetherilli 171) ───────────────────────────────
   //
   // GSJ 지질도Navi 의 판 1 849 장(5만 지질도폭 763 …)을 일본·동아시아 탭의 레이어 목록 밑에 시리즈로 묶어 세운다.

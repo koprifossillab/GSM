@@ -2689,6 +2689,9 @@ def _catalog(lang="ko"):
         layers = [{
             "name": l.name,
             "title": i18n.LAYER_EN.get(l.name, l.title) if en else l.title,
+            # 다른 말의 제목 — 레이어 찾기 칸이 한국어로도 영어로도 찾게 (wetherilli 332)
+            **({"alt": alt} if (alt := (l.title if en else i18n.LAYER_EN.get(l.name, ""))) and alt != (
+                i18n.LAYER_EN.get(l.name, l.title) if en else l.title) else {}),
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다

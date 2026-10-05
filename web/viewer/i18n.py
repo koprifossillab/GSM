@@ -76,6 +76,12 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 레이어 찾기 (wetherilli 332)
+    "레이어 찾기 — 모든 지역에서": "Find a layer — across all regions",
+    "{n} 개 — 다른 지역의 것은 그 탭으로 옮겨 켠다": "{n} found — picking one from another region switches to that tab",
+    "맞는 레이어가 없다": "No matching layer",
+    "이 탭": "This tab",
+    "앞의 {n} 개만 보인다 — 낱말을 더 적어 좁힌다": "Showing the first {n} — add words to narrow it down",
     # 캐나다 (wetherilli 204)
     "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
     "캐나다 람베르트": "Canada Atlas Lambert",
