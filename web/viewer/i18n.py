@@ -555,6 +555,17 @@ EN = {
     "지각 (CRUST 2.0)": "Crust (CRUST 2.0)",
     "지각 두께": "Crustal thickness",
     "약 {km} km — CRUST 2.0, 2° 칸의 모형이다": "About {km} km — CRUST 2.0, a model on 2° cells",
+    # 대만 지질운 열린자료 (wetherilli 305)
+    "5만 탄층": "1:50k coal seam",
+    "GPS 상시 관측소": "Continuous GPS station",
+    "토석류 퇴적 구역": "Debris-flow deposition zone",
+    "토석류 선상 구역": "Debris-flow fan zone",
+    "토석류 유동 구역": "Debris-flow track zone",
+    "등급 {grade}": "Class {grade}",
+    "등급 없음": "No class",
+    "활동 적지 않음": "Activity not recorded",
+    "대만 지질운 열린자료가 서버에 없다": "Taiwan Geology Cloud open data is not on the server",
+    "대만 지질운 열린자료를 읽지 못했다": "Could not read Taiwan Geology Cloud open data",
     # 세계 빙하 RGI 7.0 (wetherilli 289)
     "빙하 하나하나 (RGI 7.0)": "Individual glaciers (RGI 7.0)",
     "바다에서 끝난다 (조수 빙하)": "Marine-terminating (tidewater)",
@@ -1898,6 +1909,23 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 대만 지질운 열린자료 (wetherilli 305)
+    "선상지 넓이": "Fan area",
+    "보호 대상": "Protected targets",
+    "하도 폭": "Channel width",
+    "하도 경사": "Channel slope",
+    "하도 식생": "Channel vegetation",
+    "정비": "Works",
+    "정비 상태": "Works condition",
+    "교통 영향": "Affects traffic",
+    "현장 확인": "Site check",
+    "활동": "Activity",
+    "시군": "County",
+    "판독일": "Interpreted on",
+    "넓이 (m²)": "Area (m²)",
+    "관측소": "Station",
+    "기관": "Agency",
+    "강도 등급": "Strength class",
     # 세계 빙하 (wetherilli 289)
     "넓이 (km²)": "Area (km²)",
     "가운데 높이 (m)": "Median elevation (m)",
@@ -3211,7 +3239,7 @@ GROUP_EN = {
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
     # 대만 (wetherilli 136)
     "대만 지질도 (GSMMA)": "Taiwan geology (GSMMA)",
-    "대만 5만 유역 지질도 (GSMMA)": "Taiwan 1:50k drainage-basin geology (GSMMA)", "대만 광상 (GSMMA)": "Taiwan ore deposits (GSMMA)",
+    "대만 5만 유역 지질도 (GSMMA)": "Taiwan 1:50k drainage-basin geology (GSMMA)", "대만 광상 (GSMMA)": "Taiwan ore deposits (GSMMA)", "대만 지구물리 (GSMMA)": "Taiwan geophysics (GSMMA)",
     "대만 구조 (GSMMA)": "Taiwan structure (GSMMA)",
     "대만 환경지질 (GSMMA)": "Taiwan environmental geology (GSMMA)",
     "대만 지질 민감구역 (GSMMA)": "Taiwan geologically sensitive areas (GSMMA)",
@@ -3696,6 +3724,12 @@ LAYER_EN = {
     "gsmma:drainage_50k": "1:50k drainage-basin geology (2013)", "gsmma:drainage_labels_50k": "1:50k drainage-basin geology names",
     "gsmma:discontinuity_50k": "1:50k discontinuity attitudes", "gsmma:ore_50k": "1:50k ore deposits",
     "gsmma:ore_250k": "1:250k ore deposits (1974)",
+    # 지질운 열린자료 (wetherilli 305)
+    "gsmma:open:coal": "1:50k coal seams",
+    "gsmma:open:debris": "Debris-flow deposition, fan and track zones",
+    "gsmma:open:rockfall": "Rockfall",
+    "gsmma:open:rockmass": "Rock mass strength classes",
+    "gsmma:open:cgps": "Continuous GPS stations",
     "gsmma:hydro_wells": "Hydrogeological wells",
     "ibcso:tid": "Bathymetry data source (TID)",
     "L_1M_Geology_Map": "1:1M geology",
