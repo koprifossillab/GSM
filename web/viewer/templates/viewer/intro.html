@@ -77,6 +77,7 @@
         {# 지역 칩은 정적 판이면 실린 지역만 남는다(intro.js 의 data-region) — 서버 화면(온 지구·달·화성·수성·3D)은 템플릿이 뺀다 #}
         <li data-region="korea">{% t "한국" %}</li><li data-region="japan">{% t "일본" %}</li><li data-region="eastasia">{% t "동아시아" %}</li>
         <li class="polar" data-region="antarctica">{% t "남극" %}</li><li class="polar" data-region="greenland">{% t "그린란드" %}</li><li class="polar" data-region="svalbard">{% t "스발바르" %}</li><li class="polar" data-region="jan_mayen">{% t "얀마옌" %}</li><li class="polar" data-region="arctic_ocean">{% t "북극해" %}</li>
+        {% if not static_site and other_regions %}<li class="more">{% t "그 밖의 {n} 지역" n=other_regions %}</li>{% endif %}
         {% if not static_site %}<li>{% t "온 지구" %}</li><li class="moon">{% t "달" %}</li><li class="mars">{% t "화성" %}</li><li class="mercury">{% t "수성" %}</li>{% endif %}
       </ul>
       <ul class="chips feats" aria-label="{% t "할 수 있는 것" %}">

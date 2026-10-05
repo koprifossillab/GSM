@@ -2653,7 +2653,9 @@
       if (c) {
         q.c = c.lon.toFixed(5) + "," + c.lat.toFixed(5);
         q.h = Math.round(c.h);
-        q.hd = viewer.camera.heading.toFixed(4);
+        // 바로 북쪽을 보면 Cesium 이 2π(6.2832)를 줄 때가 있다 — 0 과 같은 쪽이라 0 으로 적어 링크가 늘 같게 (wetherilli 344)
+        var heading = ((viewer.camera.heading % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        q.hd = (2 * Math.PI - heading < 1e-4 ? 0 : heading).toFixed(4);
         q.pt = viewer.camera.pitch.toFixed(4);
       }
     }

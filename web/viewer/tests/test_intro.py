@@ -89,3 +89,16 @@ class IntroTests(TestCase):
         intro = self.get("viewer:intro")
         self.assertIn('href="https://github.com/koprifossillab/GSM-open"', intro)
         self.assertNotIn('href="https://github.com/koprifossillab/GSM"', intro)
+
+
+class OtherRegions(TestCase):
+    """지역 칩에 이름이 없는 지역의 수 (wetherilli 344) — 서버 판에만"""
+    def test_수를_센다(self):
+        from django.core.management import call_command
+        from viewer import views
+        call_command("seed_catalog", stdout=open("/dev/null", "w"))
+        n = views._intro_other_regions()
+        self.assertGreater(n, 30)
+        html = self.client.get("/GSM/").content.decode()
+        self.assertIn(f"그 밖의 {n} 지역", html)
+        self.assertIn(f"{n} more regions", self.client.get("/GSM/", HTTP_ACCEPT_LANGUAGE="en").content.decode())
