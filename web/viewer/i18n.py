@@ -3667,7 +3667,7 @@ LAYER_EN = {
     "egdi:GeologicUnitView_Age": "Surface geology — age",
     "egdi:GeologicUnitView_Lithology": "Surface geology — lithology",
     # 독일·스페인·아일랜드 (wetherilli 147)
-    "bgr:gk1000:0": "Geological map (1:1M)",
+    "bgr:gk1000:0": "Geological map (1:1M)", "bgr:gk2000:0": "Germany geology (1:2M, GK2000)", "bgr:gk2000:2": "Faults and thrusts (1:2M)", "bgr:gk2000:4": "Ice-margin positions (1:2M)",
     "bgr:guek250:7": "Stratigraphy (1:250k)",
     "bgr:guek250:4": "Lithology (1:250k)",
     "bgr:guek250:11": "Structural lines (1:250k)",
