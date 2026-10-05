@@ -405,7 +405,7 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              # 사스카치원·노바스코샤(wetherilli 235) — 3857 로도 그린다
              "skgs", "nsgs",
              # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다. 주 판 셋(225)도 3857 이다
-             "ga", "gsq", "gsv", "gssa",
+             "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw",
              # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
              "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
@@ -2741,6 +2741,10 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
                 "source": usgscarib.SA_SOURCE_URL if sa else usgscarib.SOURCE_URL,
                 "attribution": usgscarib.SA_ATTRIBUTION if sa else usgscarib.ATTRIBUTION, "opacity": 0.75}
+    if layer.upstream == "ags" and ags.knows_points(layer.name):
+        # 앨버타 광물 산지(wetherilli 321) — 피처 서비스 5 454 점을 한 덩이로, 갈래(금속·산업 광물·리튬·규사·생산자·코어)마다 색
+        return {"kind": "points", "queryable": False, "style": "class",
+                "source": ags.OCC_SOURCE_URL, "attribution": ags.OCC_ATTRIBUTION}
     if layer.upstream == "vmme" and vmme.knows(layer.name):
         # 파라과이 VMME(wetherilli 256) — 카리브와 같은 꼴, 면 61 을 한 덩이로
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
@@ -2909,8 +2913,10 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         projection = "EPSG:3413" if layer.group.region == "arctic_ocean" else "EPSG:3857"
         return {"attribution": emodnet.ATTRIBUTION, "projection": projection}
     if layer.upstream == "ngu":
-        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
-        return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다.
+        # 광물 서비스는 3575 도 받지 않아 3857 로(wetherilli 326), 지구물리 격자는 누르지 않는다
+        return {"attribution": ngu.ATTRIBUTION, "projection": ngu.projection(layer.name),
+                **({} if ngu.queryable(layer.name) else {"queryable": False})}
     if layer.upstream in ("esdm", "jmg", "mgb", "dmr"):
         # 동남아(wetherilli 228) — 3857 로 그린다. 인도네시아는 상류가 줌 10 너머를 그리지 않아(`maxZoom` — 그 위는 화면이 늘린다)
         # 범례는 1 403 칸이라 보는 범위의 것이다(wetherilli 243).
@@ -3042,7 +3048,7 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
                 extra["queryable"] = False
             return extra
     if layer.upstream == "bcgs" and bcgs.knows(layer.name):
-        # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터
+        # 브리티시컬럼비아(wetherilli 231) — GeoServer 가 3978 로 그린다. 1:50만 너머는 우리 스타일을 POST 로 보내 줌 5 부터(wetherilli 317)
         if layer.name == "bcgs:minfile":
             # MINFILE 광물 산지(wetherilli 288) — 같은 openmaps 의 점 레이어, 넓게 봐도 그린다
             return {"attribution": bcgs.ATTRIBUTION, "projection": "EPSG:3978"}
@@ -3216,8 +3222,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         return {"attribution": gsj.GEONAVI_ATTRIBUTION, "tiles": gsj.gsjows_tiles(layer.name),
                 "maxZoom": gsj.GSJOWS_NAVI[layer.name][1], "queryable": False}
     if layer.upstream == "gsjows" and gsj.gsjows_knows(layer.name):
-        # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 누르면 기호 번호뿐이라 누르지 않고 범례 그림으로
-        return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857", "queryable": False}
+        # GSJ 의 다른 WMS(wetherilli 255) — 3857 로. 1:200만 지질도·중력은 누른다(wetherilli 316), 지구화학도는 범례 그림으로
+        return {"attribution": gsj.GSJOWS_ATTRIBUTION, "projection": "EPSG:3857",
+                **({} if layer.name in gsj.GSJOWS_INFO else {"queryable": False})}
     if layer.upstream == "gsitile" and layer.name in GSI_TILES:
         # 국토지리원 주제 타일(wetherilli 172) — 서버를 거치지 않고 브라우저가 곧장 부르는 카탈로그 레이어의 첫 선례다.
         # 지리원 타일은 열쇠가 없고 CORS 가 열려 있어 배경(BASEMAPS gsi_*)과 같은 길이다. 속성이 없고 범례는 그림이 아니다
@@ -3374,6 +3381,8 @@ class _Door:
                "ga": ga,
                # 호주의 주 판(wetherilli 225) — 한 파일(`austates.py`)에 문 셋
                "gsq": austates.GSQ, "gsv": austates.GSV, "gssa": austates.GSSA,
+               # 태즈메이니아·뉴사우스웨일스 (wetherilli 318)
+               "mrt": austates.TAS, "gsnsw": austates.GSNSW,
                # 이탈리아·포르투갈·스위스(wetherilli 211)
                "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo,
                # 아이슬란드(wetherilli 216)
@@ -3404,7 +3413,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -4876,6 +4885,8 @@ def feature_info(request):
             props = vworld.friendly(props, params.get("query_layers") or "")
         elif door.name == "ccop":
             props = gsj.ccop_friendly(props, lang)   # code → 지질기호 …, 시대를 옮긴다
+        elif door.name == "gsjows":
+            props = gsj.gsjows_friendly(props, lang)  # 1:200만 — 설명을 시대(일본어에서 옮긴다)와 암상으로 (wetherilli 316)
         elif door.name == "gsmma":
             props = gsmma.friendly(props, lang)      # Name → 지층명 …, 시대를 중국어에서 옮긴다
         elif door.name == "emodnet":
@@ -4927,7 +4938,7 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":
             props = ga.friendly(props, lang)         # 호주 — 시대만 옮기고 이름·설명은 영어 그대로 (wetherilli 212)
-        elif door.name in ("gsq", "gsv", "gssa"):
+        elif door.name in ("gsq", "gsv", "gssa", "mrt", "gsnsw"):
             props = austates.UPSTREAMS[door.name][0].friendly(props, lang)     # 호주의 주 판 — 시대만 옮긴다 (wetherilli 225)
         elif door.name in ("ispra", "lneg", "swisstopo"):
             # 이탈리아·포르투갈·스위스(wetherilli 211) — 열 이름만 한국어로, 값은 그 나라 말 그대로
@@ -5223,6 +5234,8 @@ def point_layer(request):
         return _twopen_layer(name, lang)
     if vmme.knows(name):
         return _vmme_layer(name, lang)
+    if ags.knows_points(name):
+        return _ags_points_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -5340,6 +5353,19 @@ def _vmme_layer(name, lang):
     except vmme.VmmeError as exc:
         log.warning("파라과이 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("파라과이 지질도(VMME)를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _ags_points_layer(name, lang):
+    """앨버타 광물 산지 한 덩이 (wetherilli 321). 꼴은 `_vmme_layer` 와 같다"""
+    try:
+        content = ags.points_body(name, lang)
+    except ags.AgsError as exc:
+        log.warning("앨버타 광물 산지를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("앨버타 광물 산지를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"

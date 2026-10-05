@@ -524,6 +524,10 @@ EN = {
     "원의 크기는 규모, 색은 진원 깊이": "Circle size is magnitude, colour is focal depth",
     "M{mag} 지진": "M{mag} earthquake",
     "M{mag} 최근 지진": "M{mag} recent earthquake",
+    # 앨버타 광물 산지 (wetherilli 321)
+    "금속 광물": "Metallic minerals", "산업 광물": "Industrial minerals", "리튬 (지하수·지층수)": "Lithium (groundwater and formation water)",
+    "규사": "Silica sand", "비에너지 광물 생산자": "Non-energy mineral producers", "광물 코어": "Mineral cores",
+    "앨버타 광물 산지를 받지 못했다": "Could not fetch Alberta mineral occurrences",
     "원본 자료 — USGS 실시간 피드(지난 7 일 M2.5 이상, 매시 받음), 공공 영역": "Source — USGS real-time feed (past 7 days M2.5+, fetched hourly), public domain",
     "최근 지진 피드를 아직 받지 않았다 (fetch_recent_quakes)": "Recent earthquake feed not fetched yet (fetch_recent_quakes)",
     "지난 한 시간": "Past hour", "지난 하루": "Past day", "지난 일주일": "Past week",
@@ -911,7 +915,7 @@ EN = {
     "우루과이": "Uruguay",
     "아르헨티나 지질광업조사소": "Argentine Geological-Mining Survey (SEGEMAR)",
     "퀸즐랜드 지질조사소": "Geological Survey of Queensland", "빅토리아 지질조사소": "Geological Survey of Victoria",
-    "남호주 지질조사소": "Geological Survey of South Australia",
+    "남호주 지질조사소": "Geological Survey of South Australia", "태즈메이니아 광물자원청": "Mineral Resources Tasmania", "뉴사우스웨일스 지질조사소": "Geological Survey of New South Wales",
     # 아프리카 (wetherilli 207)
     "아프리카": "Africa",
     "세계지질도위원회·프랑스 지질광물조사소": "Commission for the Geological Map of the World · BRGM (CGMW–BRGM)",
@@ -1966,6 +1970,13 @@ PROP_EN = {
     "대수층": "Aquifer",
     "분포": "Distribution",
     "생산성": "Productivity",
+    # 노르웨이 광물 (wetherilli 326)
+    "자원 중요도": "Resource importance",
+    "등록 갈래": "Registration type",
+    "광석": "Ore",
+    # GSJ 1:200만·중력 (wetherilli 316)
+    "설명 (원문)": "Description (original)",
+    "부게 이상 (mGal, 둘레 등치선)": "Bouguer anomaly (mGal, nearby contours)",
     # 대만 지질운 열린자료 (wetherilli 305)
     "선상지 넓이": "Fan area",
     "보호 대상": "Protected targets",
@@ -2064,6 +2075,7 @@ PROP_EN = {
     "화산 종류": "Volcano type",
     "마지막 분화": "Last eruption",
     "표고 (m)": "Elevation (m)",
+    "광산 이름": "Mine name", "상태": "Status", "조사 방법": "Observation method",
     "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
     "지구조 환경": "Tectonic setting",
     "주 암석": "Major rock type",
@@ -2543,7 +2555,7 @@ PROP_EN = {
     "성인": "Genesis",
     "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
-    "생산": "Production", "발견": "Discovery",
+    "생산": "Production", "발견": "Discovery", "발견 연도": "Year discovered", "산물": "Product",
     "생산량": "Production", "잠재량": "Potential", "채굴 형태": "Working type", "쓰임": "Uses", "지질시대 (원문)": "Age (original)",
     "원료": "Raw material", "원료 갈래": "Raw material group", "딸린 원료": "Secondary raw material", "중력 이상 (mGal)": "Gravity anomaly (mGal)",
     "총 감마선": "Total gamma",
@@ -2558,7 +2570,7 @@ PROP_EN = {
     "광화 양식": "Mineralization style", "광물 조합": "Mineral association", "모암 단위": "Host unit", "광상 규모": "Deposit size",
     "위치 정확도": "Location accuracy", "모든 광종": "All commodities",
     # 미국 광물·연대 (wetherilli 247)
-    "개발 단계": "Development status", "지형도": "Topographic map", "상세": "Details",
+    "개발 단계": "Development status", "다른 광종": "Other commodities", "지형도": "Topographic map", "상세": "Details",
     # 캐나다 핵심 광물 (wetherilli 250)
     "운영사": "Operator", "누리집": "Website",
     # 하와이 (wetherilli 238)
@@ -3198,6 +3210,52 @@ TECTONIC_EN = {
 }
 
 
+# GSJ 1:200만 일본 지질도(wetherilli 316)는 범례의 설명이 일본어다 — `後期更新世後期より完新世`·`中期始新世より中期中新世前期`·`時代未詳`.
+# 조각은 `[앞 꾸밈]낱말[뒤 꾸밈]` 이고 `より`(부터)로 잇는다. 앞 꾸밈은 ICS 의 세(前期 = Early), 뒤 꾸밈은 그 세 안의 앞·가운데·뒤다.
+# 모르는 글자가 남으면 원문이다 — `age_zh` 와 같은 규칙.
+AGE_JA = {"完新世": "Holocene", "更新世": "Pleistocene", "鮮新世": "Pliocene", "中新世": "Miocene", "漸新世": "Oligocene",
+          "始新世": "Eocene", "暁新世": "Paleocene", "古第三紀": "Paleogene", "新第三紀": "Neogene", "第四紀": "Quaternary",
+          "白亜紀": "Cretaceous", "ジュラ紀": "Jurassic", "三畳紀": "Triassic", "二畳紀": "Permian", "石炭紀": "Carboniferous",
+          "デボン紀": "Devonian", "シルル紀": "Silurian", "オルドビス紀": "Ordovician", "カンブリア紀": "Cambrian"}
+AGE_JA_WHOLE = {"時代未詳": ("시대 미상", "Age unknown"), "先シルル紀": ("실루리아기 이전", "Pre-Silurian")}
+AGE_JA_MODS = {"前期": "early", "中期": "middle", "後期": "late"}
+#: 뒤 꾸밈(세 안의 앞·가운데·뒤) — 한국어
+AGE_JA_PART_KO = {"early": "전반", "middle": "중반", "late": "후반"}
+_AGE_JA_SEG = re.compile("^(前期|中期|後期)?(" + "|".join(map(re.escape, sorted(AGE_JA, key=len, reverse=True))) + ")(前期|中期|後期)?$")
+
+
+def age_ja(value: str, lang: str = "ko") -> str:
+    """일본어 지질시대 값 하나를 한국어(또는 영어)로. 못 옮기면 원문을 그대로 돌려준다.
+
+        後期更新世後期より完新世   → 플라이스토세 후기 후반~홀로세     (late Late Pleistocene – Holocene)
+        中期始新世より中期中新世前期 → 에오세 중기~마이오세 중기 전반
+        二畳紀                     → 페름기
+        時代未詳                   → 시대 미상
+    """
+    text = str(value or "").strip()
+    if not text:
+        return value
+    out = []
+    for part in text.split("より"):
+        if part in AGE_JA_WHOLE:
+            out.append(AGE_JA_WHOLE[part][0 if lang == "ko" else 1])
+            continue
+        found = _AGE_JA_SEG.match(part)
+        if not found:
+            return value
+        pre, noun, post = found.group(1), AGE_JA[found.group(2)], found.group(3)
+        if lang == "ko":
+            words = [AGE_WORDS_KO[noun.lower()]]
+            if pre:
+                words.append(AGE_MODIFIERS_KO[AGE_JA_MODS[pre]])
+            if post:
+                words.append(AGE_JA_PART_KO[AGE_JA_MODS[post]])
+        else:
+            words = ([AGE_JA_MODS[post]] if post else []) + ([AGE_JA_MODS[pre].capitalize()] if pre else []) + [noun]
+        out.append(" ".join(words))
+    return ("~" if lang == "ko" else " – ").join(out)
+
+
 def props_en(props: dict) -> dict:
     """팝업에 보일 속성을 영어로. 이름은 표로, 지질시대 값은 `age_en` 으로,
     링크 이름표는 `LINK_EN` 으로. 나머지 값은 상류가 준 그대로다."""
@@ -3247,6 +3305,7 @@ GROUP_EN = {
     "브라질 광물 자원 (SGB)": "Brazil mineral resources (SGB)", "콜롬비아 금속광상·지구물리 (SGC)": "Colombia metallogeny and geophysics (SGC)",
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
     "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)", "빅토리아 지구물리 (GSV)": "Victoria geophysics (GSV)",
+    "태즈메이니아 지질도 (MRT)": "Tasmania geology (MRT)", "뉴사우스웨일스 광물 (GSNSW)": "New South Wales minerals (GSNSW)",
     "남호주 광물 산지 (GSSA)": "South Australia mineral occurrences (GSSA)", "뉴질랜드 지구물리 (GNS)": "New Zealand geophysics (GNS)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
@@ -3260,10 +3319,10 @@ GROUP_EN = {
     "호주 지하수 (GA)": "Australia groundwater (GA)",
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
-    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
+    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)", "퀘벡 광물 산지 (SIGÉOM)": "Québec mineral showings (SIGÉOM)",
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "사스카치원 지질도 (SGS)": "Saskatchewan geology (SGS)", "노바스코샤 지질도 (1:50만)": "Nova Scotia geology (1:500k)",
-    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)",
+    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)", "앨버타 광물 산지 (AGS)": "Alberta mineral occurrences (AGS)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
@@ -3348,6 +3407,8 @@ GROUP_EN = {
     "지형 (PGC)": "Terrain (PGC)",
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
     "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
+    "노르웨이 광물 (NGU)": "Norway minerals (NGU)",
+    "노르웨이 지구물리 (NGU)": "Norway geophysics (NGU)",
     "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
     "스웨덴 기반암 (SGU)": "Sweden bedrock (SGU)",
     "영국 지질 (BGS)": "Great Britain geology (BGS)",
@@ -3401,7 +3462,7 @@ LAYER_EN = {
     "ingemmet:rmi": "Industrial rocks and minerals", "ingemmet:lithium": "Lithium occurrences",
     # 캐나다 주 광물 산지 (wetherilli 288)
     "bcgs:minfile": "British Columbia MINFILE mineral occurrences", "ygs:57": "Yukon MINFILE mineral occurrences",
-    "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects",
+    "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects", "sigeom:gites_metal": "Metallic mineral showings", "sigeom:gites_nonmetal": "Non-metallic mineral showings", "sigeom:gites_stone": "Building and industrial stone showings",
     "skgs:smdi": "Saskatchewan mineral deposits index (SMDI)", "skgs:mines": "Saskatchewan mine locations",
     # 미국 주 지질도 (wetherilli 291)
     "nbmg:geology": "Geologic map (1:500,000)", "wadnr:500k": "Geologic map (1:500,000)", "wadnr:100k": "Geologic map (1:100,000 GeMS)",
@@ -3448,7 +3509,9 @@ LAYER_EN = {
     # 오세아니아 광물·지구물리 (wetherilli 269)
     "gsq:mines": "Mines and mineral occurrences (MINOCC)", "gsq:tmi": "Total magnetic intensity (TMI)", "gsq:radiometric": "Radiometric ternary",
     "gsq:gravity": "Complete Bouguer gravity anomaly", "gsv:mineral": "Mineral deposits (polygons)", "gsv:mineralp": "Mineral deposits (points)",
-    "gsv:gravity": "Gravity stations", "gsv:lin_tmi": "Magnetic lineaments (TMI)", "gsv:lin_gravity": "Gravity lineaments",
+    "gsv:gravity": "Gravity stations",
+    "mrt:250k": "Tasmania geology (1:250k compilation)", "mrt:25k": "Tasmania geology (1:25k)",
+    "gsnsw:minocc": "New South Wales mineral occurrences", "gsnsw:mines": "New South Wales mines", "gsv:lin_tmi": "Magnetic lineaments (TMI)", "gsv:lin_gravity": "Gravity lineaments",
     "gsv:lin_radio": "Radiometric lineaments",
     "gssa:minocc": "Mineral occurrences (SARIG)", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
@@ -3519,7 +3582,7 @@ LAYER_EN = {
     # 캐나다 주 판 둘째 (wetherilli 235)
     "skgs:2": "Bedrock (Saskatchewan 1:1M)", "skgs:3": "Bedrock (Saskatchewan 1:250k, Shield)",
     "skgs:11": "Major faults and shear zones (Saskatchewan 1:1M)", "nsgs:11": "Bedrock (Nova Scotia 1:500k)",
-    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)",
+    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)", "ags:minocc": "Alberta mineral occurrences",
     "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",
@@ -3772,6 +3835,15 @@ LAYER_EN = {
     "sgu:deformation": "Deformation zones (1:1M)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
+    # 노르웨이 광물·지구물리 (wetherilli 326)
+    "ngu:metals": "Metal occurrences",
+    "ngu:metal_provinces": "Metal provinces",
+    "ngu:industrial": "Industrial mineral occurrences",
+    "ngu:industrial_provinces": "Industrial mineral provinces",
+    "ngu:critical_metals": "Critical metals (metal groups)",
+    "ngu:magnetic": "Magnetic anomaly compilation",
+    "ngu:gravity": "Gravity anomaly compilation",
+    "ngu:density": "Rock density (mean)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
     "ngu:Berggrunn_lokal_bergartsenheter_fullzoom": "Rock units (1:50k)",
     "ngu:Berggrunn_regional_linjer_fullzoom": "Rock boundaries & structural lines (1:250k)",

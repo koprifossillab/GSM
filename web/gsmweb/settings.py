@@ -215,6 +215,9 @@ MRDATA_URL = env("GSM_MRDATA_URL", "https://mrdata.usgs.gov/services")
 GSQ_REST_URL = env("GSM_GSQ_REST_URL", "https://spatial-gis.information.qld.gov.au/arcgis/rest/services/GeoscientificInformation")
 GSV_WMS_URL = env("GSM_GSV_WMS_URL", "https://opendata.maps.vic.gov.au/geoserver/wms")
 GSSA_WMS_URL = env("GSM_GSSA_WMS_URL", "https://sarigdata.pir.sa.gov.au/geoserver/ows")
+#: 태즈메이니아 지질(theLIST, Mineral Resources Tasmania)·뉴사우스웨일스 광물 산지·광산(GSNSW GeoServer) (wetherilli 318)
+TAS_REST_URL = env("GSM_TAS_REST_URL", "https://services.thelist.tas.gov.au/arcgis/rest/services/Public/GeologicalAndSoils/MapServer")
+GSNSW_WMS_URL = env("GSM_GSNSW_WMS_URL", "https://gs.geoscience.nsw.gov.au/geoserver/ows")
 SGM_URL = env("GSM_SGM_URL", "https://portal.sgm.gob.mx/arcgis/rest/services/SGM/SUNGeologiaContinuoMineDatosEs/MapServer")
 #: 캐나다 — NRCan 1:500만(Wheeler) WMS·온타리오 OGS ArcGIS 의 앞 주소 (wetherilli 204). 열쇠가 없다
 NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/server_serveur/services/NRCan/"
@@ -228,6 +231,9 @@ SKGS_WMS_URL = env("GSM_SKGS_WMS_URL", "https://gis.saskatchewan.ca/arcgis/servi
 NSGS_URL = env("GSM_NSGS_URL", "https://fletcher.novascotia.ca/arcgis/rest/services/geoscience/bedrockgeologyprovscale_new/MapServer")
 AGS_FEATURE_URL = env("GSM_AGS_FEATURE_URL", "https://services2.arcgis.com/jQV6VMr2Loovu7GU/arcgis/rest/services/"
                       "Bedrock_Geology_of_Alberta_POLY_DIG_2013_0018/FeatureServer/0")
+#: 앨버타 광물 산지 — 금속·산업 광물·리튬·규사·광물 코어·생산자를 모은 피처 서비스 (`viewer/ags.py`, wetherilli 321)
+AGS_OCCURRENCES_URL = env("GSM_AGS_OCCURRENCES_URL", "https://services2.arcgis.com/jQV6VMr2Loovu7GU/arcgis/rest/services/"
+                          "Mineral_Occurrences/FeatureServer/0")
 #: 브리티시컬럼비아 BC Digital Geology — openmaps GeoServer WMS (`viewer/bcgs.py`, wetherilli 231). 열쇠가 없다
 BCGS_WMS_URL = env("GSM_BCGS_WMS_URL", "https://openmaps.gov.bc.ca/geo/pub/WHSE_MINERAL_TENURE.GEOL_BEDROCK_UNIT_POLY_SVW/ows")
 #: 캘리포니아 지질도 1:75만 — CGS ArcGIS 의 앞 주소 (`viewer/calgs.py`, wetherilli 231). 열쇠가 없다
@@ -609,6 +615,9 @@ GA_CATALOG_SEED = REPO_DIR / "data" / "ga_layers.json"
 GSQ_CATALOG_SEED = REPO_DIR / "data" / "gsq_layers.json"
 GSV_CATALOG_SEED = REPO_DIR / "data" / "gsv_layers.json"
 GSSA_CATALOG_SEED = REPO_DIR / "data" / "gssa_layers.json"
+#: 태즈메이니아 MRT 지질·뉴사우스웨일스 GSNSW 광물 (wetherilli 318)
+MRT_CATALOG_SEED = REPO_DIR / "data" / "mrt_layers.json"
+GSNSW_CATALOG_SEED = REPO_DIR / "data" / "gsnsw_layers.json"
 #: 뉴질랜드, 남극 남빅토리아랜드 (wetherilli 218)
 GNS_CATALOG_SEED = REPO_DIR / "data" / "gns_layers.json"
 GNS_ANTARCTICA_CATALOG_SEED = REPO_DIR / "data" / "gns_antarctica_layers.json"
