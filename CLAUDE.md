@@ -458,6 +458,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
                   아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
                   (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도,
                   영국 GeoIndex 의 자력·중력 이상·광산·광물 산지(`bgsgi`, OGL, wetherilli 258)도
+                  GeoIndex 의 수리지질·G-BASE 하천 퇴적물 시료 지점, CMIC 하천 퇴적물 지화학 31 원소(REST export·identify, 목록 범례)도 (wetherilli 324)
   cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
                   같은 서비스의 광업·석탄·우라늄 지역(레이어 0·1·2, 면 8·86·19)도 — NO_STORE 를 따른다 (wetherilli 285)
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의

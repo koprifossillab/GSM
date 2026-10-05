@@ -2978,8 +2978,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         first, last = bgs.GEOINDEX_ZOOMS.get(layer.name, (None, None))
         return {"attribution": bgs.GEOINDEX_ATTRIBUTION, "projection": "EPSG:3857",
                 **({"minZoom": first} if first else {}), **({"lastZoom": last} if last else {}),
-                # 지구물리의 범례 그림은 "RGB 밴드" 세 줄뿐이라 두지 않는다
-                **({} if bgs.GEOINDEX_LAYERS[layer.name][2] else {"queryable": False, "noLegend": True})}
+                # 지구물리의 범례 그림은 "RGB 밴드" 세 줄뿐이라 두지 않는다. CMIC 원소 지도(wetherilli 324)는 REST 범례를 목록으로
+                **({"legend": "list", "legendUrl": "list/legend/"} if layer.name in bgs.LEGEND_LAYERS else {}),
+                **({} if bgs.geoindex_queryable(layer.name) else {"queryable": False, "noLegend": True})}
     if layer.upstream == "bgs":
         # 영국 BGS(wetherilli 143) — 1:5만은 줌 13 부터만 그린다. 그보다 멀면 화면이 묻지 않는다
         return {"attribution": bgs.ATTRIBUTION, "projection": "EPSG:3857", "minZoom": bgs.MIN_ZOOM}
@@ -4300,7 +4301,7 @@ def mris_legend(request):
 
 
 #: 목록 범례를 내는 문 — `legend_rows(이름)` 과 `LEGEND_LAYERS` 를 갖는다 (wetherilli 228)
-LIST_LEGENDS = (jmg, dmr, calgs, georep, bas, usstates, geus)
+LIST_LEGENDS = (jmg, dmr, calgs, georep, bas, usstates, geus, bgs)
 
 
 @require_GET
