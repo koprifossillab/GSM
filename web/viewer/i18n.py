@@ -535,6 +535,12 @@ EN = {
     "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
     "최근 지진 (7 일, M2.5 이상)": "Recent earthquakes (7 days, M2.5+)",
     "속이 빈 고리 — 크기는 규모, 색은 지난 시간 (매시 받음)": "Hollow rings — size is magnitude, colour is time since (fetched hourly)",
+    # 관리 화면의 마지막 레이어 대조 (wetherilli 314)
+    "마지막 레이어 대조 {day} — 그림 {drawn} · 빈 그림 {empty} · 오류 {error} · 건너뜀 {skipped}":
+        "Last layer check {day} — drawn {drawn} · empty {empty} · error {error} · skipped {skipped}",
+    "앞의 대조보다 새로 깨진 것 {n}": "Newly broken since the previous check: {n}", "고쳐진 것 {n}": "Fixed: {n}",
+    "자세한 것은 manage.py verify_layers --diff": "Details: manage.py verify_layers --diff",
+    "레이어 대조 기록이 아직 없다 (manage.py verify_layers --redo)": "No layer check recorded yet (manage.py verify_layers --redo)",
     # 관리 화면의 상류 응답 시간 (wetherilli 295)
     "상류 응답 시간": "Upstream response times",
     "지난 7 일의 평균이 느린 차례 — 시간은 상류가 응답의 머리를 보내기까지": "Slowest first by the 7-day mean — time until the upstream sends the response headers",
