@@ -2850,9 +2850,24 @@ SCALE_FLOOR = {
 }
 
 
+#: 넓게 보면 한 칸이 10 초를 넘는 레이어의 처음 화면 줌 (wetherilli 313) — 넓이에 따라 느려져 메타타일로 풀리지 않는다.
+#: 운영의 걸린 시간(`upstream_stats`, 사흘치)으로 상류를 추리고(p95 8 초 넘는 열넷), 그 레이어 106 개를 범위 한가운데에서 격자 줌을 올려 가며
+#: 한 장씩 쟀다(2026-10-05, 1 초 간격·30 초까지). 10 초 안에 온 첫 격자 줌 + 1 이다. 줌마다 잰 초는 devlog 313 의 표
+SLOW_FLOOR = {
+    "egdi:GeologicUnitView_Age": 5, "egdi:GeologicUnitView_Lithology": 5,          # 격자 3 에서 11–12 초
+    "emodnet:cp_wp3_seabed_substrate_folk_7": 4,                                   # 격자 2 에서 30 초 넘게
+    "esdm:geology": 6,                                                             # 격자 4 에서 15 초
+    "geusarc:g100k_karrat": 7, "geusarc:g100k_ssw": 7,                             # 격자 5 에서 11–14 초
+    "gsmma:attitude_50k": 10, "gsmma:discontinuity_50k": 9, "gsmma:landslide_inventory": 8,   # 격자 8·7·6 에서 12–30 초
+    "mrdata:sim3340:faults": 5, "mrdata:sim3340:units": 6,                         # 격자 3·4 에서 16–30 초
+    "nrcan:lithium": 4, "nrcan:ree": 4,                                            # 격자 2 에서 13–15 초
+    "skgs:smdi": 7,                                                                # 격자 5 에서 10.2 초
+}
+
+
 def _layer_extra(layer, lang: str = "ko") -> dict:
     extra = _layer_extra_base(layer, lang)
-    floor = SCALE_FLOOR.get(layer.name)
+    floor = max(SCALE_FLOOR.get(layer.name) or 0, SLOW_FLOOR.get(layer.name) or 0) or None
     if floor and (extra.get("minZoom") or 0) < floor:
         extra = dict(extra, minZoom=floor)
     return extra
