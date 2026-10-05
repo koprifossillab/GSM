@@ -259,7 +259,7 @@ class WmsPlan:
 
 
 class MetaPlan(WmsPlan):
-    """메타타일로 받는 레이어(`views.METATILE`, wetherilli 284) — 화면이 받는 것과 **같은 2 × 2 블록**으로 받는다. 블록 하나가 상류에 한 번이고
+    """메타타일로 받는 레이어(`views.METATILE`, wetherilli 284) — 화면이 받는 것과 **같은 2 × 2 블록**으로 받는다. 3857 과 극지·캐나다·4326 격자(wetherilli 309). 블록 하나가 상류에 한 번이고
     1 초 간격은 그대로다. 잘라 낸 칸은 브라우저의 열쇠(`map_cache_key`)와 메타타일 조각의 열쇠(`metatile.piece_key`) 둘에 담는다 — 화면은
     앞의 것을 먼저 찾고, 메타타일 길은 뒤의 것을 찾는다. `--meta` 는 이 레이어에 쓰지 않는다(블록이 화면과 어긋나면 조각이 쓸모없다)"""
 
@@ -276,8 +276,11 @@ class MetaPlan(WmsPlan):
             for dy in range(m):
                 x, y = bx * m + dx, by * m + dy
                 data = tilecache.get(self.key(z, x, y))
-                if data is not None:
-                    tilecache.put(metatile.piece_key(self.name, 512, z, x, y), data)
+                got_cell = metatile.cell(self.params(z, x, y)) if data is not None else None
+                if got_cell is not None:
+                    # 조각 열쇠는 화면 길(`metatile.serve`)이 셈하는 칸 그대로 — 극지·4326 격자는 투영이 열쇠에 들고, IGME 4326 은 줌이 하나 크다 (wetherilli 309)
+                    crs, cz, cx, cy, px = got_cell
+                    tilecache.put(metatile.piece_key(self.name, px, cz, cx, cy, crs), data)
         return got
 
 
@@ -455,7 +458,7 @@ NOT_LAYERS = {
 #: 화면이 카탈로그 행의 투영으로 받는 유럽·북극 상류(`map.js` 의 `npolarSource`) — 투영과 그리는 줌은 `views._layer_extra` 가 정한다
 #: (wetherilli 182). 같은 상류도 판마다(IGME 1:100만 4326·MAGNA 3857), 레이어군마다(EMODnet 북극해 3413·유럽 바다 3857) 다르다.
 #: PGC 경사·등고선(wetherilli 099)도 같은 길이다 — 182 가 "더하면 된다" 고 남긴 것 (wetherilli 203)
-PROJECTED = ("pgc", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "segemar", "dinamige",
+PROJECTED = ("pgc", "geusarc", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "segemar", "dinamige",
              "iige", "mrdata", "sgm", "cgmw", "aga", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep")
 
 
@@ -474,7 +477,8 @@ def _projected_plan(name, upstream):
     # 브라우저가 묻지 않는 타일이다(인도네시아·오스트리아·폴란드·캘리포니아, wetherilli 252)
     if extra.get("maxZoom"):
         last = min(last, extra["maxZoom"] - 1) if last else extra["maxZoom"] - 1
-    if grid is None and settings.METATILE and metatile.limit(views.METATILE, name) is not False:
+    # 메타타일 레이어는 화면과 같은 블록으로 — 3857 과 메타타일이 아는 지역 격자(극지·캐나다·4326, wetherilli 307·309)
+    if (grid is None or grid.crs in metatile.GRIDS) and settings.METATILE and metatile.limit(views.METATILE, name) is not False:
         return MetaPlan(name, upstream, grid, (extra.get("minZoom"), last))
     return WmsPlan(name, upstream, grid, (extra.get("minZoom"), last))
 
