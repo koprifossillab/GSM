@@ -34,7 +34,7 @@ ZOOMS = {"SCAN_F_GEOL1M": (6, 11), "SCAN_F_GEOL250": (11, 12), "SCAN_H_GEOL50": 
          # 해외 영토(wetherilli 260) — 2026-10-05 에 섬마다 한 장씩 받아 잰 것(그 밖의 줌은 116 B 빈 그림)
          "GEOL_MART": (12, None), "GEOL_GUAD_ANNE": (12, None), "GEOL_GUAD_MAR": (12, None),
          "GEOL_PYF_5S": (11, None), "GEOL_PYF_6S": (11, None), "GEOL_PYF_7S": (11, None),
-         "GEOL_REU_100K": (11, 12), "GEOL_REU_50K": (13, None), "GEOL_MYT_30K": (13, None), "GEOL_SPM_50K": (12, None)}
+         "GEOL_REU_100K": (11, 12), "GEOL_REU_50K": (13, None), "GEOL_MYT_30K": (13, None), "GEOL_SPM_50K": (12, None), "GITES_PT": (9, None), "MINES_PT": (9, None)}
 
 
 class BrgmError(RuntimeError):

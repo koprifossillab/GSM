@@ -2803,7 +2803,34 @@ GSI_ATTRIBUTION = ('<a href="https://maps.gsi.go.jp/development/ichiran.html" ta
                    '地理院タイル</a> (国土地理院)')
 
 
+#: 상류가 축척으로 끄는 레이어의 처음 화면 줌 (wetherilli 310) — 운영 대조(`verify_layers`)에서 넓게 보면 빈 그림이던 것을 Capabilities 의
+#: `MaxScaleDenominator` 로 셈했다. 512 px 격자 줌 z 의 축척은 279 541 132 / 2^z(0.28 mm 화소, 지도 단위 그대로)이고 화면 줌은 격자 줌 + 1 이다.
+#: 문의 표에 줌이 있으면 거기도 같은 값을 두었다 — 이 표는 문의 값보다 작아지지 않게 하는 바닥이다
+SCALE_FLOOR = {
+    "bgr:kor250:0+1": 9, "bgr:kor250:2+3+4": 9,                                     # KOR250 1:141만까지(3·4 는 1:71만)
+    "bgr:igme5000:43+44": 6, "bgr:igme5000:46+47+48": 5, "bgr:igme5000:51+53+55+57": 6,  # IGME5000 축척별 레이어의 가장 넓은 끝
+    "brgm:GITES_PT": 9, "brgm:MINES_PT": 9,                                          # BD Gîtes·광산 1:200만까지
+    "ga:faults": 7,                                                                  # 1:250만 단층 1:600만까지
+    "gns:NZL_GNS_1M_faults": 9, "gns:NZL_GNS_250K_faults": 10, "gns:NZL_GNS_250K_folds": 12,   # 1:200만·1:100만·1:25만까지
+    "lneg:500k:1": 10, "lneg:500k:3": 10, "lneg:500k:4": 10,                        # 구조선·대륙붕 1:94만까지
+    "ygs:57": 11,                                                                    # 유콘 MINFILE 1:30만까지
+    "bcgs:minfile": 10,                                                              # BC MINFILE 1:100만까지
+    "ogs:4": 9, "ogs:5": 9, "ogs:6": 9,                                              # 온타리오 암맥·철층·단층 1:141만까지
+    "nsgs:9": 9, "sigeom:failles": 9,                                                # 노바스코샤 단층 1:200만까지, 퀘벡 단층은 재어 정했다
+    "mrdata:sgmc2:sgmc2structure": 9,                                                # MapCache 가 격자 줌 8 밑에서 404
+    "gsmma:sensitive_landslide": 13,                                                 # 대만 산사태 민감구역 — 가까이서만(축척을 알리지 않는다, 재어 정했다)
+}
+
+
 def _layer_extra(layer, lang: str = "ko") -> dict:
+    extra = _layer_extra_base(layer, lang)
+    floor = SCALE_FLOOR.get(layer.name)
+    if floor and (extra.get("minZoom") or 0) < floor:
+        extra = dict(extra, minZoom=floor)
+    return extra
+
+
+def _layer_extra_base(layer, lang: str = "ko") -> dict:
     """상류마다 화면에 더 알려야 하는 것. 남극(GeoMAP)은 타일 주소와 출처,
     NPI 는 타일을 받을 투영과 출처 (devlog 021)."""
     if layer.upstream == "geusarc" and geus.arc_knows(layer.name):
