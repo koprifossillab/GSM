@@ -2538,7 +2538,7 @@ PROP_EN = {
     "성인": "Genesis",
     "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
-    "생산": "Production", "발견": "Discovery",
+    "생산": "Production", "발견": "Discovery", "발견 연도": "Year discovered", "산물": "Product",
     "생산량": "Production", "잠재량": "Potential", "채굴 형태": "Working type", "쓰임": "Uses", "지질시대 (원문)": "Age (original)",
     "원료": "Raw material", "원료 갈래": "Raw material group", "딸린 원료": "Secondary raw material", "중력 이상 (mGal)": "Gravity anomaly (mGal)",
     "총 감마선": "Total gamma",
@@ -3253,7 +3253,7 @@ GROUP_EN = {
     "호주 지구물리 (GA)": "Australia geophysics (GA)",
     "캐나다 지질도 (NRCan 1:500만)": "Geological Map of Canada (NRCan 1:5M)",
     "온타리오 지질도 (OGS 1:25만)": "Geology of Ontario (OGS 1:250k)",
-    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
+    "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)", "퀘벡 광물 산지 (SIGÉOM)": "Québec mineral showings (SIGÉOM)",
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "사스카치원 지질도 (SGS)": "Saskatchewan geology (SGS)", "노바스코샤 지질도 (1:50만)": "Nova Scotia geology (1:500k)",
     "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)",
@@ -3394,7 +3394,7 @@ LAYER_EN = {
     "ingemmet:rmi": "Industrial rocks and minerals", "ingemmet:lithium": "Lithium occurrences",
     # 캐나다 주 광물 산지 (wetherilli 288)
     "bcgs:minfile": "British Columbia MINFILE mineral occurrences", "ygs:57": "Yukon MINFILE mineral occurrences",
-    "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects",
+    "ogs:11": "Ontario mineral deposit inventory (MDI)", "sigeom:mines": "Québec active mines and advanced projects", "sigeom:gites_metal": "Metallic mineral showings", "sigeom:gites_nonmetal": "Non-metallic mineral showings", "sigeom:gites_stone": "Building and industrial stone showings",
     "skgs:smdi": "Saskatchewan mineral deposits index (SMDI)", "skgs:mines": "Saskatchewan mine locations",
     # 미국 주 지질도 (wetherilli 291)
     "nbmg:geology": "Geologic map (1:500,000)", "wadnr:500k": "Geologic map (1:500,000)", "wadnr:100k": "Geologic map (1:100,000 GeMS)",
