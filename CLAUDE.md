@@ -442,7 +442,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   grportal.py     그린란드 정부 포털(ArcGIS)로 나가는 문 (시료·연대 점을 통째로)
   npolar.py       노르웨이 극지연구소(NPI)로 나가는 문 (스발바르·드로닝모드랜드)
   gsj.py          일본 지질조사종합센터(GSJ)로 나가는 문 (심리스 지질도 V2 타일·속성·범례, 새 호스트의 CCOP 200만 지질도 WMS, 지질도Navi 판 목록,
-                  1:200만 일본 지질도·부게 중력·지구화학도 WMS — 상류 `gsjows`, 정부표준이용규약 2.0, wetherilli 255)
+                  1:200만 일본 지질도·부게 중력·지구화학도 WMS — 상류 `gsjows`, 정부표준이용규약 2.0, wetherilli 255.
+                  1:200만·중력은 누른다 — 번호를 범례 SLD 로 풀고 시대는 일본어에서 옮긴다 `i18n.age_ja`, wetherilli 316)
   gsmma.py        대만 경제부 지질조사·광업관리중심(GSMMA)으로 나가는 문 (지질도 WMS 는 4326 만, 누른 자리의 지층은 지질운 GeoJSON)
                   지질운 열린자료 가운데 WMS 가 없는 것(탄층·토석류·낙석·암체 등급·GPS)을 통째로 한 번 — 끊기면 네모를 넷으로 나눈다(`fetch_taiwan_open`, wetherilli 305)
   emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
