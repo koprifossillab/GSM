@@ -410,6 +410,8 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
              "sgu",
+             # 노르웨이 NGU·핀란드 GTK(wetherilli 335) — 2D 는 3575·3413 이지만 3857 도 그려 준다(2026-10-05 에 둘 다 재었다)
+             "ngu", "gtk",
              # 아이슬란드 NÍ(wetherilli 216) — 2D 는 3413 이지만 GeoServer 라 3857 도 그린다
              "natt",
              # 뉴질랜드·남빅토리아랜드 GNS(wetherilli 218) — GeoServer 라 3857 도 그린다
@@ -439,7 +441,7 @@ def map3d_view(request):
     """3D (devlog 015, 059 에서 실험을 벗었다). MapLibre + 공개 표고 타일 + 서버 중계 지질도."""
     lang = i18n.lang_of(request)
     # 3D 는 3857 타일만 얹는다 — 대개 `wms/` 의 WMS(`map3d.js` 의 `wmsTiles`), 일본은 z/x/y. 모양·점 레이어와, 우리가
-    # 굽거나(음영판) 극지 투영으로만 받는 것(NGU·GTK·phyloserver)은 뺀다. SGU 는 3857 도 그려 얹는다 — 목록에 두면 골라도 빈 화면이다
+    # 굽거나(음영판) 극지 투영으로만 받는 것(phyloserver)은 뺀다. NGU·GTK 는 3857 도 그려 `MAP3D_WMS` 에 든다(wetherilli 335). SGU 는 3857 도 그려 얹는다 — 목록에 두면 골라도 빈 화면이다
     # NPI(스발바르·드로닝모드랜드)는 `export` 가 3857 로도 그려 준다 — 극지 3D 에 얹는다(032)
     # GeoMAP(남극)은 우리가 굽는 3031 타일을 서버가 3857 로 다시 펴 준다(`warp/geomap/`, 040)
     # 대만(GSMMA)은 상류가 4326 만 받아 문이 4326 으로 받아 3857 로 편다(`gsmma.mercator_map`, wetherilli 141)
@@ -451,6 +453,8 @@ def map3d_view(request):
                               and (l.get("upstream") in MAP3D_WMS
                                    or (l.get("upstream") == "npolar" and npolar.knows(l["name"]))
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
+                                   # IBCSO 자료 출처·ADMAP 자력 이상도 GeoMAP 처럼 서버가 3857 로 편다 (wetherilli 335)
+                                   or l["name"] in ("ibcso:tid", admap.NAME)
                                    or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
               for g in catalog]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
@@ -3876,7 +3880,7 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
     size = 512 if retina else 256
     name = layer if upstream == "geomap" else f"{upstream}:{layer}"
     lang = i18n.lang_of(request)
-    zooms = {"geomap": GEOMAP_WARP_ZOOMS, "ibcso": IBCSO_WARP_ZOOMS}.get(upstream, WARP_ZOOMS)
+    zooms = {"geomap": GEOMAP_WARP_ZOOMS, "ibcso": IBCSO_WARP_ZOOMS, "admap": IBCSO_WARP_ZOOMS}.get(upstream, WARP_ZOOMS)
     if _lab_only(name) or not (zooms[0] <= z <= zooms[1]) or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     if name in peninsula.SHEETS:
@@ -3893,6 +3897,20 @@ def warp_tile(request, upstream, layer, z, x, y, retina=None):
         if not geomap.available():
             return _tile(tiles.notice_tile(size, size, tiles.NO_DATA), store=False)
         grid = warp.geomap_grid(lambda level, tx, ty: _geomap_png(name, level, tx, ty)[0])
+    elif name == "ibcso:tid":
+        # IBCSO 자료 출처(071) — 2D 의 타일(GeoMAP 격자) 그대로 편다 (wetherilli 335)
+        if warp.south_of(z, y) > elevation.IBCSO_NORTH:
+            return _tile(tiles.blank_tile(size, size))
+        if not ibcso.tid_available():
+            return _tile(tiles.notice_tile(size, size, tiles.NO_IBCSO), store=False)
+        grid = warp.polar_grid(ibcso.read_tid_tile, ibcso.MAX_ZOOM, ibcso.valid_tile)
+    elif name == admap.NAME:
+        # ADMAP-2 자력 이상(wetherilli 262) — 남위 60° 남쪽, 줌 4 까지 잘라 둔 WebP (wetherilli 335)
+        if warp.south_of(z, y) > GEOMAP_NORTH:
+            return _tile(tiles.blank_tile(size, size))
+        if not admap.available():
+            return _tile(tiles.notice_tile(size, size, msg("자력 이상 자료(ADMAP-2)가 서버에 없다")), store=False)
+        grid = warp.polar_grid(admap.read_tile, admap.MAX_ZOOM, admap.valid_tile)
     elif upstream == "ibcso" and name in ibcso.SHEETS:
         if warp.south_of(z, y) > elevation.IBCSO_NORTH:
             return _tile(tiles.blank_tile(size, size))
@@ -3932,6 +3950,10 @@ def _warp_key(name, upstream, z, x, y, size):
         version = geomap_version()
     elif upstream == "ibcso" and name in ibcso.SHEETS:
         version = _dir_version(ibcso.SHEETS[name].wide_dir())
+    elif name == "ibcso:tid":
+        version = _dir_version(ibcso.tid_tiles_dir())
+    elif name == admap.NAME:
+        version = _dir_version(admap.tiles_dir())
     else:
         return None
     if not version:
