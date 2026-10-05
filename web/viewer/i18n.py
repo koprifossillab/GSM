@@ -115,7 +115,7 @@ EN = {
     "폴란드 지질연구소 (PIG-PIB)": "Polish Geological Institute (PIG-PIB)", "네덜란드 지질조사부 (TNO)": "Geological Survey of the Netherlands (TNO)",
     "플랑드르 지하 자료은행 (DOV)": "Flanders Subsurface Database (DOV)", "왈로니아 공공서비스 (SPW)": "Public Service of Wallonia (SPW)",
     "브리티시컬럼비아 지질조사소": "British Columbia Geological Survey", "캘리포니아 지질조사소": "California Geological Survey",
-    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI",
+    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI", "알래스카 지질·지구물리조사소": "Alaska Division of Geological & Geophysical Surveys",
     "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
     "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
@@ -2530,6 +2530,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "핵심 광물": "Critical minerals", "과거 생산": "Past producer", "자원량 공개": "Public resource", "광업 지구": "Mining district", "권역": "Region",
     "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
     "생산": "Production", "발견": "Discovery",
@@ -3219,6 +3220,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "알래스카 광물 (DGGS)": "Alaska minerals (DGGS)",
     "페루 지화학 지도첩 (INGEMMET)": "Peru geochemical atlas (INGEMMET)",
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
     "네바다 지질도 (NBMG 1:50만)": "Nevada geology (NBMG 1:500k)", "워싱턴 지질도 (DNR)": "Washington geology (DNR)",
@@ -3373,6 +3375,8 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 알래스카 광물 (wetherilli 322)
+    "dggs:minerals": "Significant mines and occurrences (DDS 18)", "dggs:districts": "Mining districts",
     # 페루 지화학 지도첩·산업 광물 (wetherilli 303)
     "ingemmet:gq_au": "Gold (Au) dispersion and anomalies",
     "ingemmet:gq_ag": "Silver (Ag) dispersion and anomalies",

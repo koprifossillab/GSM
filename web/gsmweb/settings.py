@@ -236,6 +236,8 @@ CALGS_URL = env("GSM_CALGS_URL", "https://gis.conservation.ca.gov/server")
 NBMG_URL = env("GSM_NBMG_URL", "https://gisweb.unr.edu/nbmg/rest/services")
 WADNR_URL = env("GSM_WADNR_URL", "https://gis.dnr.wa.gov/site1/rest/services")
 DOGAMI_URL = env("GSM_DOGAMI_URL", "https://gis.dogami.oregon.gov/arcgis/rest/services")
+#: 알래스카 DGGS 광물(wetherilli 322) — 같은 문(`usstates.py`)
+DGGS_URL = env("GSM_DGGS_URL", "https://maps.dggs.alaska.gov/arcgis/rest/services")
 #: 유럽 — 오스트리아 GeoSphere·폴란드 PIG·네덜란드 TNO·플랑드르 DOV·왈로니아 SPW (wetherilli 237). 열쇠가 없다
 GEOSPHERE_URL = env("GSM_GEOSPHERE_URL", "https://gis.geosphere.at/maps")
 PIG_URL = env("GSM_PIG_URL", "https://cbdgmapa.pgi.gov.pl/arcgis")
@@ -581,6 +583,7 @@ CALGS_CATALOG_SEED = REPO_DIR / "data" / "calgs_layers.json"
 NBMG_CATALOG_SEED = REPO_DIR / "data" / "nbmg_layers.json"
 WADNR_CATALOG_SEED = REPO_DIR / "data" / "wadnr_layers.json"
 DOGAMI_CATALOG_SEED = REPO_DIR / "data" / "dogami_layers.json"
+DGGS_CATALOG_SEED = REPO_DIR / "data" / "dggs_layers.json"
 #: 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237)
 GEOSPHERE_CATALOG_SEED = REPO_DIR / "data" / "geosphere_layers.json"
 PIG_CATALOG_SEED = REPO_DIR / "data" / "pig_layers.json"
