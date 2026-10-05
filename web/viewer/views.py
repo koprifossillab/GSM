@@ -3162,7 +3162,8 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         # 미국 USGS(wetherilli 205) — MapServer WMS 를 3857 로. 본토 SGMC 는 보는 범위의 일반화 암상 범례(`mrdata/legend/`, wetherilli 334),
         # 나머지는 범례가 없다. 구조선·단층은 누르지 않는다
         return {"attribution": mrdata.ATTRIBUTION, "projection": "EPSG:3857",
-                **({"legend": "extent", "legendUrl": "mrdata/legend/"} if layer.name == "mrdata:sgmc2:sgmc2" else {"noLegend": True}),
+                **({"legend": "extent", "legendUrl": "mrdata/legend/"}
+                   if layer.name == "mrdata:sgmc2:sgmc2" or layer.name in mrdata.UNIT_LEGENDS else {"noLegend": True}),
                 **({} if layer.name in mrdata.QUERYABLE else {"queryable": False}),
                 # 하와이·푸에르토리코(wetherilli 238)는 미국 탭(3978)에서 제 범위 밖 타일을 묻지 않는다
                 **({"clip": True} if layer.name in mrdata.ISLANDS else {}),
@@ -4444,14 +4445,17 @@ def mrdata_legend(request):
     갈래를 WFS 로 세고 색은 문의 표(`mrdata.SGMC_COLORS`)에서 찾는다. 꼴은 인도네시아(`esdm_legend`)와 같다"""
     lang = i18n.lang_of(request)
     name = request.GET.get("layer", "")
-    if name != "mrdata:sgmc2:sgmc2":
+    if name != "mrdata:sgmc2:sgmc2" and name not in mrdata.UNIT_LEGENDS:
         return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
     parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
     if len(parts) != 4 or None in parts:
         return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
     bbox = [round(v, 2) for v in parts]
-    if bbox[2] - bbox[0] > mrdata.SGMC_SPAN or bbox[3] - bbox[1] > mrdata.SGMC_SPAN:
+    span = mrdata.SGMC_SPAN if name == "mrdata:sgmc2:sgmc2" else mrdata.UNIT_SPAN
+    if bbox[2] - bbox[0] > span or bbox[3] - bbox[1] > span:
         return JsonResponse({"error": i18n.t(msg("범위가 넓다 — 더 들어오면 범례가 뜬다"), lang), "rows": []}, status=422)
+    if name in mrdata.UNIT_LEGENDS:
+        return _mrdata_unit_legend(name, bbox, lang)
     key = tilecache.key_text("mrdata-legend", f"{name}/{bbox}")
     held = _cached_json(key)
     if held is None:
@@ -4462,6 +4466,27 @@ def mrdata_legend(request):
             return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
         tilecache.put(key, json.dumps(held, ensure_ascii=False).encode("utf-8"), ".json")
     return JsonResponse({"rows": [mrdata.sgmc_legend_row(n) for n in held["rows"]], "more": 0})
+
+
+def _mrdata_unit_legend(name, bbox, lang):
+    """알래스카·하와이·푸에르토리코 — 칠하기 규칙(SLD)은 한 번 받아 두고, 보는 범위의 그림 한 장에서 칠해진 색을 센다 (wetherilli 353)"""
+    sld_key = tilecache.key_text("mrdata-sld", name)
+    rules = (_cached_json(sld_key) or {}).get("rules")
+    key = tilecache.key_text("mrdata-unit-legend", f"{name}/{bbox}")
+    held = _cached_json(key)
+    try:
+        if rules is None:
+            rules = [list(r) for r in mrdata.unit_styles(name)]
+            tilecache.put(sld_key, json.dumps({"rules": rules}, ensure_ascii=False).encode("utf-8"), ".json")
+        if held is None:
+            held = {"rows": [[label, color] for label, color, _ in mrdata.unit_legend(name, tuple(bbox), rules)]}
+            tilecache.put(key, json.dumps(held, ensure_ascii=False).encode("utf-8"), ".json")
+    except UPSTREAM_ERRORS as exc:
+        log.info("USGS 단위 범례를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("범례를 받지 못했다"), lang), "rows": []}, status=502)
+    shown = held["rows"][:mrdata.UNIT_MAX_LEGEND]
+    return JsonResponse({"rows": [mrdata.unit_legend_row(label, color) for label, color in shown],
+                         "more": max(0, len(held["rows"]) - len(shown))})
 
 
 @require_GET
