@@ -425,7 +425,7 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              # 브리티시컬럼비아 BCGS·캘리포니아 CGS(wetherilli 231) — 2D 는 3978 이지만 3D 는 3857 로 묻는다(둘 다 그려 준다)
              "bcgs", "calgs",
              # 네바다·워싱턴·오리건(wetherilli 291) — 캘리포니아처럼 문이 REST export 로, 3D 는 3857
-             "nbmg", "wadnr", "dogami",
+             "nbmg", "wadnr", "dogami", "dggs",
              # 오스트리아·폴란드·네덜란드·벨기에(wetherilli 237) — 3857 로 그린다
              "geosphere", "pig", "tno", "dov", "spw",
              # 니카라과 INETER(wetherilli 242) — GeoServer 라 3857 로 그린다
@@ -3057,8 +3057,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         # 네바다·워싱턴·오리건(wetherilli 291) — 캘리포니아처럼 문이 REST export 를 3978 로. 주 밖 칸은 묻지 않는다(`clip`).
         # 넓게 보면 느린 판은 처음 줌을 둔다. 범례는 REST 를 목록으로
         first = usstates.first_zoom(layer.name)
+        legend = {"legend": "list", "legendUrl": "list/legend/"} if layer.name in usstates.LEGEND_LAYERS else {"noLegend": True}
         return {"attribution": usstates.UPSTREAMS[layer.upstream][0], "projection": "EPSG:3978", "clip": True,
-                "legend": "list", "legendUrl": "list/legend/", **({"minZoom": first} if first else {})}
+                **legend, **({"minZoom": first} if first else {})}
     if layer.upstream == "calgs" and calgs.knows(layer.name):
         # 캘리포니아(wetherilli 231) — 문이 REST export 를 3978 로 받는다. 줌 12 너머는 상류가 그리지 않아 화면이 늘린다. 범례는 목록
         return {"attribution": calgs.ATTRIBUTION, "projection": "EPSG:3978", "maxZoom": calgs.MAX_ZOOM,
@@ -3413,7 +3414,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "dggs", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()

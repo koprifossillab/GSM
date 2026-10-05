@@ -10,8 +10,6 @@
 
 - [ ] **앨버타 금속·산업 광물 산지**(wetherilli 288) — ArcGIS Online 피처 서비스(`Metallic_Mineral_Occurrences`·`Industrial_Mineral_Occurrences`)뿐이라
       그림 길이 없다. 파나마(`stri`)·카리브(`usgscarib`)처럼 한 덩이로 받아 캐시에 담고 화면이 그린다. 캐나다 탭, OGL–Alberta
-- [ ] **알래스카 DGGS 광물 산지**(`maps.dggs.alaska.gov/arcgis/rest/services/Mineral_Occurrences_2020_MIL1`, wetherilli 291) — 미국 탭. 지질도는
-      SIM 3340(`mrdata`)과 겹쳐 두지 않았다. 조건을 읽고 올린다
 - [ ] **퀘벡 광물 산지(gîte)**(wetherilli 288) — SIGÉOM WMS 에는 가동 광산·사업뿐이다. SIGÉOM 의 다른 서비스(ArcGIS·WFS)에서 광물 산지를 찾는다
 - [ ] **영국 BGS 지화학(G-BASE)·지하수** — GeoIndex 와 같은 서버에 있다(wetherilli 258). 같은 꼴로 영국 탭에
 - [ ] **호주 GA 의 확인 자원**(`AustraliasIdentifiedMineralResources`, 광종 스물아홉 레이어)·지하수(wetherilli 241) — 목록이 403 이라 ecat 에서
