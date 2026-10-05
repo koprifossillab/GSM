@@ -47,6 +47,21 @@ MEASURE = """(sels) => {
 }"""
 
 
+#: 영어판 화면에 보이는 한국어 — 일부러 둔 것(한국어 이름·언어 고르개·위경도 열 이름 안내·판 이력)은 뺀다 (wetherilli 341)
+HANGUL_LEAKS = """() => {
+  const allowed = new Set(["대돌여지도", "한국어", "언어 · Language", "위도", "경도"]);
+  const out = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) {
+    const el = w.currentNode.parentElement, t = w.currentNode.textContent.trim();
+    if (!el || !t || !/[가-힣]/.test(t) || allowed.has(t) || t.startsWith("대돌여지도 ·")) continue;
+    const st = getComputedStyle(el);
+    if (st.display === "none" || st.visibility === "hidden" || el.closest("[hidden]") || el.closest("#notes")) continue;
+    out.push(t.slice(0, 80));
+  }
+  return out;
+}"""
+
+
 class PhoneBase(StaticLiveServerTestCase):
     """여는 법과 공통 검사 — 시험은 아래 반들이 갖는다. 반마다 브라우저 하나"""
 
@@ -317,6 +332,9 @@ class GlobeScreens(PhoneBase):
             with self.subTest(path=path):
                 page = self.check_map_screen(path, settle, lang="en")
                 self.assertEqual(page.evaluate("document.documentElement.lang"), "en")
+                # 한국어가 새지 않는다 (wetherilli 341) — 한국어 이름(대돌여지도·그 밑줄), 언어 고르개, 판 이력(옮기지 않는다)만 뺀다
+                leaks = page.evaluate(HANGUL_LEAKS)
+                self.assertEqual(leaks, [], f"{path}: 영어판에 한국어가 샌다")
                 page.context.close()
 
 # ── 지역 탭 전부 (wetherilli 193) ───────────────────────────

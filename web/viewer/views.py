@@ -323,7 +323,7 @@ def manage_view(request):
 def _data_rows(lang):
     out = []
     for r in datastatus.rows():
-        out.append({**r, "what": i18n.t(r["what"], lang),
+        out.append({**r, "what": i18n.t(r["what"], lang), "command": i18n.t(r["command"], lang),
                     "size_text": datastatus.human_size(r["size"]) if r["size"] is not None
                     else (i18n.t(msg("{n} 칸", n=r["count"]), lang) if r["count"] is not None else ""),
                     "date": f"{r['modified']:%Y-%m-%d}" if r["modified"] else ""})
