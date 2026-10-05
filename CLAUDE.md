@@ -447,7 +447,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   gsmma.py        대만 경제부 지질조사·광업관리중심(GSMMA)으로 나가는 문 (지질도 WMS 는 4326 만, 누른 자리의 지층은 지질운 GeoJSON)
                   지질운 열린자료 가운데 WMS 가 없는 것(탄층·토석류·낙석·암체 등급·GPS)을 통째로 한 번 — 끊기면 네모를 넷으로 나눈다(`fetch_taiwan_open`, wetherilli 305)
   emodnet.py      EMODnet Geology 로 나가는 문 (유럽 바다의 해저 퇴적물·해저 지질 WMS). 북극해에 두고 스발바르 탭이 빌린다. 3413 으로 곧장
-  ngu.py          노르웨이 지질조사소(NGU)로 나가는 문 (본토 기반암 1:135만·25만·5만 MapServer WMS). 3413 을 안 그려 북극 람베르트(3575)로
+  ngu.py          노르웨이 지질조사소(NGU)로 나가는 문 (본토 기반암 1:135만·25만·5만 MapServer WMS). 3413 을 안 그려 북극 람베르트(3575)로.
+                  같은 mapserver 의 금속·산업·핵심 광물(3857)·지구물리 편찬(3575)도 — `OTHER`, wetherilli 326
   gtk.py          핀란드 지질조사소(GTK)로 나가는 문 (기반암 1:100만·20만 ArcGIS WMS). 3413 으로 곧장
                   항공 자력·방사능(GTK_Geofysiikka_WMS)과 북유럽 광상 FODD(kokoavaWMS)도 — 레이어가 주소를 고른다 (wetherilli 270)
   sgu.py          스웨덴 지질조사소(SGU)로 나가는 문 (기반암 1:100만·5만–25만 GeoServer WMS, CC0). 3413 으로 곧장. 레이어 하나가 두 판을 함께 부른다

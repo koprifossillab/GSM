@@ -2913,8 +2913,10 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
         projection = "EPSG:3413" if layer.group.region == "arctic_ocean" else "EPSG:3857"
         return {"attribution": emodnet.ATTRIBUTION, "projection": projection}
     if layer.upstream == "ngu":
-        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다
-        return {"attribution": ngu.ATTRIBUTION, "projection": "EPSG:3575"}
+        # 노르웨이 NGU(wetherilli 140) — 3413 을 그려 주지 않아 북극 람베르트(3575)로 받고 화면이 옮겨 그린다.
+        # 광물 서비스는 3575 도 받지 않아 3857 로(wetherilli 326), 지구물리 격자는 누르지 않는다
+        return {"attribution": ngu.ATTRIBUTION, "projection": ngu.projection(layer.name),
+                **({} if ngu.queryable(layer.name) else {"queryable": False})}
     if layer.upstream in ("esdm", "jmg", "mgb", "dmr"):
         # 동남아(wetherilli 228) — 3857 로 그린다. 인도네시아는 상류가 줌 10 너머를 그리지 않아(`maxZoom` — 그 위는 화면이 늘린다)
         # 범례는 1 403 칸이라 보는 범위의 것이다(wetherilli 243).

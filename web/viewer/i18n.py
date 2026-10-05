@@ -1965,6 +1965,10 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 노르웨이 광물 (wetherilli 326)
+    "자원 중요도": "Resource importance",
+    "등록 갈래": "Registration type",
+    "광석": "Ore",
     # GSJ 1:200만·중력 (wetherilli 316)
     "설명 (원문)": "Description (original)",
     "부게 이상 (mGal, 둘레 등치선)": "Bouguer anomaly (mGal, nearby contours)",
@@ -3396,6 +3400,8 @@ GROUP_EN = {
     "지형 (PGC)": "Terrain (PGC)",
     "해저 지질 (EMODnet)": "Seabed geology (EMODnet)",
     "노르웨이 기반암 (NGU)": "Norway bedrock (NGU)",
+    "노르웨이 광물 (NGU)": "Norway minerals (NGU)",
+    "노르웨이 지구물리 (NGU)": "Norway geophysics (NGU)",
     "핀란드 기반암 (GTK)": "Finland bedrock (GTK)",
     "스웨덴 기반암 (SGU)": "Sweden bedrock (SGU)",
     "영국 지질 (BGS)": "Great Britain geology (BGS)",
@@ -3791,6 +3797,15 @@ LAYER_EN = {
     "sgu:deformation": "Deformation zones (1:1M)",
     # 노르웨이·핀란드 기반암 (wetherilli 140)
     "ngu:Berggrunn_nasjonal_bergartsenheter": "Rock units (1:1.35M)",
+    # 노르웨이 광물·지구물리 (wetherilli 326)
+    "ngu:metals": "Metal occurrences",
+    "ngu:metal_provinces": "Metal provinces",
+    "ngu:industrial": "Industrial mineral occurrences",
+    "ngu:industrial_provinces": "Industrial mineral provinces",
+    "ngu:critical_metals": "Critical metals (metal groups)",
+    "ngu:magnetic": "Magnetic anomaly compilation",
+    "ngu:gravity": "Gravity anomaly compilation",
+    "ngu:density": "Rock density (mean)",
     "ngu:Berggrunn_regional_hovedbergarter": "Main rock types (1:250k)",
     "ngu:Berggrunn_lokal_bergartsenheter_fullzoom": "Rock units (1:50k)",
     "ngu:Berggrunn_regional_linjer_fullzoom": "Rock boundaries & structural lines (1:250k)",
