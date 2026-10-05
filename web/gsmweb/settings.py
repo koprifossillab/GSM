@@ -227,6 +227,8 @@ NRCAN_WMS_URL = env("GSM_NRCAN_WMS_URL", "https://maps-cartes.services.geo.ca/se
 OGS_URL = env("GSM_OGS_URL", "https://ws.lioservices.lrc.gov.on.ca/arcgis1071a")
 #: 캐나다의 주 판 — 퀘벡 SIGÉOM(GeoServer 앞단, WMS 1.1.1)·유콘 YGS(ArcGIS WMS) (wetherilli 210). 열쇠가 없다
 SIGEOM_WMS_URL = env("GSM_SIGEOM_WMS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WMS/service.svc/get")
+#: 같은 자료의 WFS — 보는 범위의 범례를 센다 (wetherilli 337)
+SIGEOM_WFS_URL = env("GSM_SIGEOM_WFS_URL", "https://servicesvectoriels.atlas.gouv.qc.ca/IDS_SGM_WFS/service.svc/get")
 YGS_WMS_URL = env("GSM_YGS_WMS_URL", "https://mapservices.gov.yk.ca/arcgis/services/GeoYukon/GY_Geological/MapServer/WMSServer")
 #: 캐나다의 주 판 둘째 — 사스카치원(ArcGIS WMS)·노바스코샤(ArcGIS REST)·앨버타(ArcGIS Online 피처 서비스, 타일은 화면이 곧장) (wetherilli 235)
 SKGS_WMS_URL = env("GSM_SKGS_WMS_URL", "https://gis.saskatchewan.ca/arcgis/services/Economy/Geology/MapServer/WMSServer")
