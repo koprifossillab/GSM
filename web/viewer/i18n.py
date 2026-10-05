@@ -2104,6 +2104,8 @@ PROP_EN = {
     "연구자": "Investigators",
     "지질시대": "Geologic age",
     "자력 이상 (nT)": "Magnetic anomaly (nT)",
+    "장소": "Locality",
+    "지구조 요소": "Tectonic element",
     "시대": "Age",
     "도폭": "Map sheet",
     "도폭명": "Sheet name",
