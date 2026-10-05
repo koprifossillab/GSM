@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from django.conf import settings
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from viewer import views
@@ -275,3 +275,20 @@ class ShareLinkTests(TestCase):
                 html = self.client.get(f"/GSM/{name}/").content.decode()
                 self.assertIn('id="tool-share"', html)
                 self.assertLess(html.index("viewer/share.js"), html.index(f"viewer/{script}"))
+
+
+class Borrow3d(SimpleTestCase):
+    """3D 가 빌려 오는 표(`map3d.js` 의 `BORROW`)는 2D 의 `REGIONS.*.borrow` 와 같다 (wetherilli 340)"""
+    def test_2D_와_같다(self):
+        here = Path(views.__file__).parent / "static/viewer"
+        js2 = (here / "map.js").read_text(encoding="utf-8")
+        js3 = (here / "map3d.js").read_text(encoding="utf-8")
+        two = {}
+        for m in re.finditer(r"^    ([a-z_]+): \{ title:(.*?)(?=^    [a-z_]+: \{ title:|^  \};)", js2, re.S | re.M):
+            b = re.search(r"borrow:\s*(\{[^}]*\})", m.group(2))
+            if b:
+                # 열쇠는 `{`·`,` 뒤의 낱말뿐이다 — 값의 `"sgc:sa:"` 같은 앞머리를 건드리지 않는다
+                two[m.group(1)] = json.loads(re.sub(r"([{,]\s*)([a-z_]+):", r'\1"\2":', b.group(1).replace("'", '"')))
+        block = re.search(r"var BORROW = (\{.*?\n  \});", js3, re.S).group(1)
+        three = json.loads(re.sub(r"^(\s+)([a-z_]+):", r'\1"\2":', block, flags=re.M))
+        self.assertEqual(three, two)
