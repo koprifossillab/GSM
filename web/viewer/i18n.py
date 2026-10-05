@@ -524,6 +524,10 @@ EN = {
     "원의 크기는 규모, 색은 진원 깊이": "Circle size is magnitude, colour is focal depth",
     "M{mag} 지진": "M{mag} earthquake",
     "M{mag} 최근 지진": "M{mag} recent earthquake",
+    # 앨버타 광물 산지 (wetherilli 321)
+    "금속 광물": "Metallic minerals", "산업 광물": "Industrial minerals", "리튬 (지하수·지층수)": "Lithium (groundwater and formation water)",
+    "규사": "Silica sand", "비에너지 광물 생산자": "Non-energy mineral producers", "광물 코어": "Mineral cores",
+    "앨버타 광물 산지를 받지 못했다": "Could not fetch Alberta mineral occurrences",
     "원본 자료 — USGS 실시간 피드(지난 7 일 M2.5 이상, 매시 받음), 공공 영역": "Source — USGS real-time feed (past 7 days M2.5+, fetched hourly), public domain",
     "최근 지진 피드를 아직 받지 않았다 (fetch_recent_quakes)": "Recent earthquake feed not fetched yet (fetch_recent_quakes)",
     "지난 한 시간": "Past hour", "지난 하루": "Past day", "지난 일주일": "Past week",
@@ -2557,7 +2561,7 @@ PROP_EN = {
     "광화 양식": "Mineralization style", "광물 조합": "Mineral association", "모암 단위": "Host unit", "광상 규모": "Deposit size",
     "위치 정확도": "Location accuracy", "모든 광종": "All commodities",
     # 미국 광물·연대 (wetherilli 247)
-    "개발 단계": "Development status", "지형도": "Topographic map", "상세": "Details",
+    "개발 단계": "Development status", "다른 광종": "Other commodities", "지형도": "Topographic map", "상세": "Details",
     # 캐나다 핵심 광물 (wetherilli 250)
     "운영사": "Operator", "누리집": "Website",
     # 하와이 (wetherilli 238)
@@ -3307,7 +3311,7 @@ GROUP_EN = {
     "퀘벡 지질도 (SIGÉOM)": "Geology of Québec (SIGÉOM)",
     "유콘 지질도 (YGS 1:25만)": "Yukon geology (YGS 1:250k)",
     "사스카치원 지질도 (SGS)": "Saskatchewan geology (SGS)", "노바스코샤 지질도 (1:50만)": "Nova Scotia geology (1:500k)",
-    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)",
+    "앨버타 지질도 (AGS 1:100만)": "Alberta geology (AGS 1:1M)", "앨버타 광물 산지 (AGS)": "Alberta mineral occurrences (AGS)",
     "이탈리아 지질도 (ISPRA)": "Geology of Italy (ISPRA)", "포르투갈 지질도 (LNEG 1:50만)": "Geology of Portugal (LNEG 1:500k)",
     "스위스 지질도 (swisstopo)": "Geology of Switzerland (swisstopo)",
     "아이슬란드 기반암 1:60만 (NÍ)": "Bedrock of Iceland 1:600k (NÍ)", "아이슬란드 1:10만 (NÍ)": "Iceland 1:100k (NÍ)",
@@ -3565,7 +3569,7 @@ LAYER_EN = {
     # 캐나다 주 판 둘째 (wetherilli 235)
     "skgs:2": "Bedrock (Saskatchewan 1:1M)", "skgs:3": "Bedrock (Saskatchewan 1:250k, Shield)",
     "skgs:11": "Major faults and shear zones (Saskatchewan 1:1M)", "nsgs:11": "Bedrock (Nova Scotia 1:500k)",
-    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)",
+    "nsgs:9": "Faults (Nova Scotia 1:500k)", "ags:bedrock": "Bedrock (Alberta 1:1M, Map 600)", "ags:minocc": "Alberta mineral occurrences",
     "ogs:6": "Ontario faults", "ogs:4": "Ontario dikes", "ogs:5": "Ontario iron formations",
     # 이탈리아·포르투갈·스위스 (wetherilli 211)
     "ispra:1m:0": "Italy geological units (1:1M)", "ispra:1m:1": "Italy faults (1:1M)",

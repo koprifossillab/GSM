@@ -2741,6 +2741,10 @@ def _point_fields(layer) -> dict:
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
                 "source": usgscarib.SA_SOURCE_URL if sa else usgscarib.SOURCE_URL,
                 "attribution": usgscarib.SA_ATTRIBUTION if sa else usgscarib.ATTRIBUTION, "opacity": 0.75}
+    if layer.upstream == "ags" and ags.knows_points(layer.name):
+        # 앨버타 광물 산지(wetherilli 321) — 피처 서비스 5 454 점을 한 덩이로, 갈래(금속·산업 광물·리튬·규사·생산자·코어)마다 색
+        return {"kind": "points", "queryable": False, "style": "class",
+                "source": ags.OCC_SOURCE_URL, "attribution": ags.OCC_ATTRIBUTION}
     if layer.upstream == "vmme" and vmme.knows(layer.name):
         # 파라과이 VMME(wetherilli 256) — 카리브와 같은 꼴, 면 61 을 한 덩이로
         return {"kind": "points", "queryable": False, "style": "unit", "render": "image",
@@ -5228,6 +5232,8 @@ def point_layer(request):
         return _twopen_layer(name, lang)
     if vmme.knows(name):
         return _vmme_layer(name, lang)
+    if ags.knows_points(name):
+        return _ags_points_layer(name, lang)
     if kopri.knows_file(name):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
@@ -5345,6 +5351,19 @@ def _vmme_layer(name, lang):
     except vmme.VmmeError as exc:
         log.warning("파라과이 지질도를 받지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("파라과이 지질도(VMME)를 받지 못했다"), lang)}, status=502)
+    response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _ags_points_layer(name, lang):
+    """앨버타 광물 산지 한 덩이 (wetherilli 321). 꼴은 `_vmme_layer` 와 같다"""
+    try:
+        content = ags.points_body(name, lang)
+    except ags.AgsError as exc:
+        log.warning("앨버타 광물 산지를 받지 못했다 (%s): %s", name, exc)
+        return JsonResponse({"error": i18n.t(msg("앨버타 광물 산지를 받지 못했다"), lang)}, status=502)
     response = HttpResponse(content, content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
