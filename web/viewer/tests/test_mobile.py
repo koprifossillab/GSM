@@ -350,6 +350,76 @@ def region_tabs(shard=None) -> list:
     return regions if shard is None else regions[shard::SHARDS]
 
 
+class PlanetFlows(PhoneBase):
+    """달·화성·수성 화면을 손가락으로 써 본다 — 거리 재기와 높이 그래프, 극 평면, 공유 (wetherilli 342).
+    표고는 상류라 끊긴다 — 높이 그래프의 판이 뜨는지·자리가 맞는지만 본다"""
+
+    BOX = "(s) => { const e = document.querySelector(s); if (!e || e.hidden) return null; const b = e.getBoundingClientRect(); " \
+          "return b.width ? {left: b.left, top: b.top, right: b.right, bottom: b.bottom, width: b.width} : null; }"
+
+    def box(self, page, sel):
+        return page.evaluate(self.BOX, sel)
+
+    def assertApart(self, a, b, what):
+        if a and b:
+            self.assertTrue(a["right"] <= b["left"] or b["right"] <= a["left"] or a["bottom"] <= b["top"] or b["bottom"] <= a["top"],
+                            f"{what}: 겹친다 {a} {b}")
+
+    def test_손가락으로_거리를_재면_높이_그래프가_뜬다(self):
+        """툴바 상자가 지도를 덮어 둘째 점이 먹히고, 터치에는 두 번 누르기가 오지 않아 선이 끝나지 않았다.
+        이제 마지막 점을 다시 누르면 끝난다. 그래프는 화면 안·범례 머리 위에 선다"""
+        for body in ("moon", "mars", "mercury"):
+            with self.subTest(body=body):
+                page, errors = self.open(f"{body}/", settle=4000)
+                page.tap('[data-draw="line"]')
+                page.wait_for_timeout(300)
+                self.assertApart(self.box(page, "#tool-out"), self.box(page, "#panel-handle"), f"{body}: 그리기 안내와 패널 손잡이")
+                page.touchscreen.tap(150, 450)
+                page.wait_for_timeout(400)
+                page.touchscreen.tap(250, 500)          # 툴바 상자가 덮던 자리
+                page.wait_for_timeout(400)
+                page.touchscreen.tap(250, 500)          # 마지막 점을 다시 — 끝
+                page.wait_for_timeout(1500)
+                profile = self.box(page, "#profile")
+                self.assertIsNotNone(profile, f"{body}: 거리 재기가 끝나지 않는다(높이 그래프가 없다)")
+                self.assertGreaterEqual(profile["left"], -1)
+                self.assertLessEqual(profile["right"], 391, f"{body}: 높이 그래프가 오른쪽으로 넘친다")
+                legend = self.box(page, "#legend-dock")
+                if legend:
+                    self.assertLessEqual(profile["bottom"], legend["top"] + 1, f"{body}: 높이 그래프가 범례 밑에 깔린다")
+                self.assertIn("km", page.locator("#tool-out").inner_text())
+                self.assertFits(self.measure(page), f"{body} 높이 그래프")
+                self.assertEqual(errors, [])
+                page.context.close()
+
+    def test_평면은_극으로_넘어가고_축척_막대가_가리지_않는다(self):
+        page, errors = self.open("moon/", settle=4000)
+        page.tap("#tool-mode")
+        page.wait_for_timeout(1500)
+        page.fill("#goto-input", "80, 30")
+        page.press("#goto-input", "Enter")
+        page.wait_for_timeout(2000)
+        self.assertEqual(page.evaluate("window.__gsmMoonFlat.getView().getProjection().getCode()"), "IAU_2015:30130")
+        self.assertApart(self.box(page, "#scalebar"), self.box(page, "#legend-dock"), "축척 막대와 범례")
+        self.assertFits(self.measure(page), "달 극 평면")
+        self.assertEqual(errors, [])
+
+    def test_링크를_복사하면_띠가_뜨고_링크로_연_알림은_넓다(self):
+        page, errors = self.open("moon/", settle=4000)
+        page.context.grant_permissions(["clipboard-read", "clipboard-write"], origin=self.live_server_url)
+        page.tap("#tool-share")
+        page.wait_for_timeout(300)
+        self.assertTrue(page.locator(".share-toast").is_visible(), "복사했다는 것이 보이지 않는다 — 휴대폰은 단추의 이름표가 숨는다")
+        page.context.close()
+        page, errors = self.open("moon/#m=flat&l=units*60&c=40.00000,-20.00000&res=94", settle=4000)
+        notice = self.box(page, ".share-notice")
+        self.assertIsNotNone(notice)
+        self.assertGreaterEqual(notice["width"], 300, "링크로 연 알림이 좁아 글이 서너 자씩 꺾인다")
+        self.assertApart(notice, self.box(page, "#scalebar"), "링크 알림과 축척 막대")
+        self.assertApart(notice, self.box(page, "#legend-dock"), "링크 알림과 범례")
+        self.assertEqual(errors, [])
+
+
 class RegionTabs(PhoneBase):
     """지역 탭마다 패널 구성·범례·투영이 다르다 — 한국·남극 밖의 탭도 다 연다. 카탈로그가 있어야 탭이 서서 씨앗을 넣는다"""
     shard = None
