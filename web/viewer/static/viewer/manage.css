@@ -99,6 +99,9 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
 .mg-right { margin-left: auto; }
 
 @media (max-width: 640px) {
+  /* 상자 제목 옆의 안내 글이 제목을 밀어 "개인 레이 / 어"·"상류 응답 / 시간" 처럼 꺾였다 — 안내는 다음 줄로 (wetherilli 365) */
+  .box-head { flex-wrap: wrap; row-gap: 2px; }
+  .box-head .hint { flex-basis: 100%; margin-left: 0; font-weight: 400; }
   .mg-head { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
   .mg-back { margin-left: 0; }
   .mg-main { padding: 14px 16px 40px; }
