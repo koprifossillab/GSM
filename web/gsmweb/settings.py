@@ -228,6 +228,9 @@ SKGS_WMS_URL = env("GSM_SKGS_WMS_URL", "https://gis.saskatchewan.ca/arcgis/servi
 NSGS_URL = env("GSM_NSGS_URL", "https://fletcher.novascotia.ca/arcgis/rest/services/geoscience/bedrockgeologyprovscale_new/MapServer")
 AGS_FEATURE_URL = env("GSM_AGS_FEATURE_URL", "https://services2.arcgis.com/jQV6VMr2Loovu7GU/arcgis/rest/services/"
                       "Bedrock_Geology_of_Alberta_POLY_DIG_2013_0018/FeatureServer/0")
+#: 앨버타 광물 산지 — 금속·산업 광물·리튬·규사·광물 코어·생산자를 모은 피처 서비스 (`viewer/ags.py`, wetherilli 321)
+AGS_OCCURRENCES_URL = env("GSM_AGS_OCCURRENCES_URL", "https://services2.arcgis.com/jQV6VMr2Loovu7GU/arcgis/rest/services/"
+                          "Mineral_Occurrences/FeatureServer/0")
 #: 브리티시컬럼비아 BC Digital Geology — openmaps GeoServer WMS (`viewer/bcgs.py`, wetherilli 231). 열쇠가 없다
 BCGS_WMS_URL = env("GSM_BCGS_WMS_URL", "https://openmaps.gov.bc.ca/geo/pub/WHSE_MINERAL_TENURE.GEOL_BEDROCK_UNIT_POLY_SVW/ows")
 #: 캘리포니아 지질도 1:75만 — CGS ArcGIS 의 앞 주소 (`viewer/calgs.py`, wetherilli 231). 열쇠가 없다
