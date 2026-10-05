@@ -4,6 +4,7 @@
 퀘벡 보는 범위 범례, 화성 표고·범례, 세계 암상 타일. 상류는 부르지 않는다 — 문·파일 함수를 갈아 끼운다.
 타일 캐시는 시험마다 빈 임시 디렉터리다(`gsmweb.testrunner`, wetherilli 354).
 """
+import json
 import os
 import time
 from unittest import mock
@@ -196,3 +197,85 @@ class Glim(SimpleTestCase):
             got = self.client.get("/GSM/earth/glim/at/", {"lat": "10", "lon": "20"}).json()
         self.assertEqual(got["code"], 3)
         self.assertIn("화산암", got["text"])
+
+
+class PlanetTiles(SimpleTestCase):
+    """달 극 지질도·Trek 판 타일 — 상류가 못 주면 옛것, 옛것도 없으면 안내 타일(브라우저가 들지 않게)"""
+
+    def check(self, url, patch_target, func, key):
+        with mock.patch.object(patch_target, func, side_effect=trek.TrekError("down")):
+            r = self.client.get(url)
+        self.assertEqual((r.status_code, r["Cache-Control"]), (200, "no-store"))
+        tilecache.put(key, OLD)
+        age(key)
+        with mock.patch.object(patch_target, func, side_effect=trek.TrekError("down")):
+            r = self.client.get(url)
+        self.assertEqual(r.content, OLD)
+        with mock.patch.object(patch_target, func, return_value=PNG):
+            r = self.client.get(url)
+        self.assertEqual((r.content, r["X-GSM-Cache"]), (PNG, "miss"))      # 늙은 것은 다시 묻고 덮는다
+        self.assertEqual(tilecache.get(key), PNG)
+
+    def test_달_극_지질도(self):
+        self.check("/GSM/moon/ptiles/s/units/2/1/1.png", trek, "get_polar_tile", tilecache.key_text("trek", "sp/units/2/1/1"))
+
+    def test_Trek_판(self):
+        with mock.patch.object(trek, "map_entry", return_value={"ms": "x"}):
+            self.check("/GSM/trek/mars/map/geo/3/2/2.png", trek, "map_tile", tilecache.key_text("trek-map", "mars/geo/3/2/2"))
+            self.assertEqual(self.client.get("/GSM/trek/mars/map/geo/2/9/9.png").status_code, 404)
+
+    def test_Trek_극지_판(self):
+        with mock.patch.object(trek, "polar_map", return_value="x"):
+            self.check("/GSM/trek/moon/map/geo/p/n/2/1/1.png", trek, "map_polar_tile",
+                       tilecache.key_text("trek-map-polar", "moon/geo/n/2/1/1"))
+            self.assertEqual(self.client.get("/GSM/trek/moon/map/geo/p/n/2/9/9.png").status_code, 404)
+
+
+class MexicoLegend(SimpleTestCase):
+    URL = "/GSM/sgm/legend/"
+
+    def test_변수가_틀리면(self):
+        self.assertEqual(self.client.get(self.URL, {"layer": "sgm:none"}).status_code, 400)
+        self.assertEqual(self.client.get(self.URL, {"layer": "sgm:8", "bbox": "x"}).status_code, 400)
+        self.assertEqual(self.client.get(self.URL, {"layer": "sgm:8", "bbox": "-110,20,-90,30"}).status_code, 422)
+
+    def test_상류가_못_주면_502(self):
+        from viewer import sgm
+        with mock.patch.object(sgm, "breaks", side_effect=sgm.SgmError("down")):
+            self.assertEqual(self.client.get(self.URL, {"layer": "sgm:anom250:0"}).status_code, 502)
+        with mock.patch.object(sgm, "extent_legend", side_effect=sgm.SgmError("down")):
+            self.assertEqual(self.client.get(self.URL, {"layer": "sgm:8", "bbox": "-100,20,-99.9,20.1"}).status_code, 502)
+
+
+class AlbertaPoints(SimpleTestCase):
+    def test_한_덩이_또는_502(self):
+        from viewer import ags
+        with mock.patch.object(ags, "points_body", return_value=b'{"type":"FeatureCollection","features":[]}'):
+            r = self.client.get("/GSM/points/", {"layer": ags.POINTS})
+        self.assertEqual((r.status_code, r["Content-Type"]), (200, "application/geo+json"))
+        with mock.patch.object(ags, "points_body", side_effect=ags.AgsError("down")):
+            self.assertEqual(self.client.get("/GSM/points/", {"layer": ags.POINTS}).status_code, 502)
+
+
+class PeruInfo(SimpleTestCase):
+    URL = "/GSM/ingemmet/info/"
+    Q = {"layer": "ingemmet:50k", "lat": "-12.05", "lon": "-77.0"}
+
+    def test_못_받으면_옛것_없으면_502(self):
+        from viewer import ingemmet
+        with mock.patch.object(ingemmet, "point_attributes", side_effect=ingemmet.IngemmetError("down")):
+            self.assertEqual(self.client.get(self.URL, self.Q).status_code, 502)
+        key = tilecache.key_text("ingemmet-info", "ingemmet:50k/-12.05000,-77.00000")
+        tilecache.put(key, json.dumps({"row": None}).encode(), ".json")
+        age(key, ".json")
+        with mock.patch.object(ingemmet, "point_attributes", side_effect=ingemmet.IngemmetError("down")):
+            r = self.client.get(self.URL, self.Q)
+        self.assertEqual((r.status_code, r.json()), (200, {"features": []}))   # 옛것은 "그 자리에 아무것도 없다"
+
+    def test_영어판은_속성_이름을_옮긴다(self):
+        from viewer import ingemmet
+        self.client.cookies[i18n.COOKIE] = "en"
+        with mock.patch.object(ingemmet, "point_attributes", return_value={"x": 1}), \
+             mock.patch.object(ingemmet, "friendly", return_value={"기호": "Ki-ca", "지질시대": "백악기"}):
+            props = self.client.get(self.URL, self.Q).json()["features"][0]["props"]
+        self.assertEqual(props, {"Symbol": "Ki-ca", "Geologic age": "Cretaceous"})
