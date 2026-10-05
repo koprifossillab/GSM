@@ -34,7 +34,10 @@ from PIL import Image
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from viewer import gsj, ingemmet, kigam, tilegrid, usage, views
+from django.test import RequestFactory
+from django.urls import resolve, reverse
+
+from viewer import ags, bas, elevation, geomap, gsj, ingemmet, kigam, tilegrid, usage, views, vworld
 from viewer.models import Layer
 
 from .prewarm import PREWARM_ERRORS, GeomapPlan, GsjPlan, IngemmetPlan, WmsPlan, plan_for
@@ -137,6 +140,124 @@ def fetch(plan, z, x, y):
     raise ValueError("이 계획은 대조하지 못한다")
 
 
+# ── 타일이 아닌 레이어 (wetherilli 311) ─────────────────────────────────
+# 앞의 대조는 `/wms/` 꼴의 타일만 봤다. 나머지 갈래도 화면이 받는 길 그대로 한 번씩 본다 — 우리 서버의 뷰는 그 자리에서 부르고(네트워크를 타지 않는다,
+# 상류를 거치는 점 덩이만 문이 상류에 한 번 묻는다), 화면이 상류를 곧장 부르는 타일은 그 상류의 문(`probe_tile`)으로 한 장 받는다.
+
+#: 화면이 곧장 부르는 타일 — 상류 → 받아 볼 문
+DIRECT = {"ags": ags.probe_tile, "bas": bas.probe_tile, "gsjows": gsj.probe_tile, "gsitile": elevation.probe_tile}
+#: 대조하지 못하는 것 — 상류 → 까닭
+CANNOT = {"phyloserver": "카카오 격자(EPSG:5181, 줌이 거꾸로)의 타일이라 칸을 고르지 않는다 — 연구실 자료다"}
+
+
+def _base() -> str:
+    return reverse("viewer:points").rsplit("points/", 1)[0]
+
+
+def _call(path: str, **query):
+    """우리 뷰를 그 자리에서 — 화면이 부르는 주소 그대로. (상태, 응답)"""
+    request = RequestFactory().get(path, query)
+    match = resolve(path)
+    response = match.func(request, *match.args, **match.kwargs)
+    return response.status_code, response
+
+
+def _features(response) -> int:
+    import json
+    try:
+        return len(json.loads(response.content).get("features") or [])
+    except (ValueError, AttributeError):
+        return -1
+
+
+def _xyz(lon: float, lat: float, z: int) -> tuple:
+    x, y = tilegrid.lonlat_to_3857(lon, lat)
+    n = 2 ** z
+    return z, min(n - 1, int((x + tilegrid.HALF) / tilegrid.WORLD * n)), min(n - 1, int((tilegrid.HALF - y) / tilegrid.WORLD * n))
+
+
+def tile_for(layer, extra) -> tuple:
+    """타일 주소의 칸 (z, x, y) — 화면의 격자를 따라. 범위 한가운데(또는 `VERIFY_AT`)를 품은 칸"""
+    grid = extra.get("grid")
+    if grid:                                    # 한반도 음영판·Bedmap3 — 원점·해상도를 받은 격자, 칸은 256 px
+        z = grid.get("minZoom") or 0
+        res = grid["resolutions"][z]
+        ext = grid.get("extent")
+        ox, oy = grid.get("origin") or (ext[0], ext[3])
+        px, py = ((ext[0] + ext[2]) / 2, (ext[1] + ext[3]) / 2) if ext else (0.0, 0.0)
+        return z, int((px - ox) / (256 * res)), int((oy - py) / (256 * res))
+    if extra.get("projection") == "EPSG:3031":  # 우리가 자른 남극 판(ADMAP·IBCSO) — GeoMAP 격자, 줌 0 한 장이 다 덮는다
+        return 0, 0, 0
+    w, s, e, n = layer.bbox or WORLD
+    lon, lat = VERIFY_AT.get(layer.name, ((w + e) / 2, (s + n) / 2))
+    z = min(max(extra.get("minZoom") or 0, 5), extra.get("maxZoom") or 18)
+    return _xyz(lon, lat, z)
+
+
+def check_other(layer, delay: float):
+    """타일 꼴이 아닌 레이어 하나 — (갈래, 기록, 상류에 물었나)"""
+    extra = views._layer_extra(layer)
+    if layer.kind == "vector":                  # VWorld 의 단층 따위 — 1° 칸 하나
+        if not vworld.enabled():
+            return "건너뜀", "VWorld 인증키가 없다", False
+        cell = views.vector_grid(layer.name)["cell"]
+        w, s, e, n = layer.bbox or WORLD
+        spots = ([VERIFY_AT[layer.name]] if layer.name in VERIFY_AT else []) + [((w + e) / 2, (s + n) / 2)]
+        for lon, lat in spots:
+            lon, lat = math.floor(lon / cell) * cell, math.floor(lat / cell) * cell
+            started = time.monotonic()
+            status, response = _call(_base() + "vector/", layer=layer.name, lon=repr(float(lon)), lat=repr(float(lat)))
+            time.sleep(max(0.0, delay - (time.monotonic() - started)))
+            count = _features(response)
+            if status != 200 or count < 0:
+                return "오류", f"vector {lon},{lat} status={status}", True
+            if count:
+                return "그림", f"vector {lon},{lat} 모양 {count:,}", True
+        return "빈 그림", f"vector {lon},{lat} 모양이 없다", True
+    if views._point_fields(layer):              # 점·모양 한 덩이 — 상류를 거치는 것은 문이 한 번 묻는다(캐시에 담는다)
+        started = time.monotonic()
+        status, response = _call(_base() + "points/", layer=layer.name, lang="ko")
+        remote = time.monotonic() - started > 0.5
+        if remote:
+            time.sleep(max(0.0, delay - (time.monotonic() - started)))
+        count = _features(response)
+        if status == 503:                       # 우리가 모아 두는 자료(극지연구소·5만 기호·카리브 따위)를 이 서버에 아직 받지 않았다
+            return "건너뜀", "points 자료 파일이 서버에 없다", remote
+        if status != 200 or count < 0:
+            return "오류", f"points status={status}", remote
+        return ("그림", f"points 모양 {count:,}", remote) if count else ("빈 그림", "points 모양이 없다", remote)
+    template = extra.get("tiles")
+    if not template:
+        return "건너뜀", "타일도 점도 아니다", False
+    if layer.upstream in CANNOT:
+        return "건너뜀", CANNOT[layer.upstream], False
+    z, x, y = tile_for(layer, extra)
+    if template.startswith(("http://", "https://")):
+        probe = DIRECT.get(layer.upstream)
+        if probe is None:
+            return "건너뜀", "화면이 곧장 부르는 타일인데 받아 볼 문이 없다", False
+        url = template.format(z=z, x=x, y=y)
+        started = time.monotonic()
+        try:
+            status, ctype, content = probe(url)
+        except PREWARM_ERRORS as exc:
+            return "오류", f"{z}/{x}/{y} {str(exc)[:150]}", True
+        finally:
+            time.sleep(max(0.0, delay - (time.monotonic() - started)))
+        if status != 200:
+            return "오류", f"{z}/{x}/{y} status={status} type={ctype}", True
+        kind = classify(content)                 # 갈래는 바이트로 본다 — ArcGIS Online 타일은 content-type 을 octet-stream 으로 줄 때가 있다(Bedmap3)
+        return kind, f"{z}/{x}/{y} {len(content):,} bytes" if kind == "그림" else f"{z}/{x}/{y} 비었다", True
+    path = _base() + template.split("?", 1)[0].format(z=z, x=x, y=y)
+    status, response = _call(path)
+    if status != 200:
+        return "오류", f"{path} status={status}", False
+    if response.get("Cache-Control") == "no-store":     # 안내 타일 — 파일을 아직 굽지 않았다
+        return "건너뜀", f"{z}/{x}/{y} 파일이 서버에 없다(안내 타일)", False
+    kind = classify(response.content)
+    return kind, f"{z}/{x}/{y} {len(response.content):,} bytes" if kind == "그림" else f"{z}/{x}/{y} 비었다", False
+
+
 class Command(BaseCommand):
     help = "모든 상류의 레이어가 실제로 그려지는지 한 장씩 대조한다 (사람이 부른다)"
 
@@ -219,7 +340,10 @@ class Command(BaseCommand):
         except CommandError as exc:                  # 우리가 굽는 것의 파일이 없다(GeoMAP 따위)
             return "건너뜀", str(exc), False
         if plan is None:
-            return "건너뜀", "타일이 아니다(점·모양·벡터, 또는 화면이 곧장 부른다)", False
+            try:
+                return check_other(layer, delay)
+            except PREWARM_ERRORS as exc:
+                return "오류", str(exc)[:150], True
         bbox = tuple(layer.bbox) if layer.bbox else WORLD
         result = "빈 그림"
         for lon, lat in points(bbox, layer.name):
