@@ -280,6 +280,13 @@ IRGM_ATTRIBUTION = ('Carte géologique du Cameroun 1:1 000 000 — IRGM (served 
                     '<a href="https://www.brgm.fr/" target="_blank" rel="noopener">BRGM</a>, non-commercial use)')
 IRGM_LAYERS = ("CMR_IRGM_1M_UnitesGeologiques", "CMR_IRGM_1M_Failles")
 IRGM_LEGEND_LAYERS = ("CMR_IRGM_1M_UnitesGeologiques",)
+#: 단층은 상류의 기본 스타일이 서버에 없는 기호 파일(`/carto/wxs/1GG/THRUSTFAULT`)을 찾다 예외를 낸다(2026-10-05, verify_layers) —
+#: 스타일을 우리가 `SLD_BODY` 로 보낸다. 스타일 이름은 `default` 하나뿐이다 (wetherilli 308)
+IRGM_SLD = {"CMR_IRGM_1M_Failles": (
+    '<StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc">'
+    "<NamedLayer><Name>CMR_IRGM_1M_Failles</Name><UserStyle><FeatureTypeStyle><Rule><LineSymbolizer><Stroke>"
+    '<CssParameter name="stroke">#222222</CssParameter><CssParameter name="stroke-width">1.2</CssParameter>'
+    "</Stroke></LineSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>")}
 
 
 def _irgm_names(names: str) -> str:
@@ -318,6 +325,9 @@ def irgm_get_map(params: dict):
         params["bbox"] = ",".join((w, s, e, n))
     params["layers"] = _irgm_names(params.get("layers"))
     params.setdefault("styles", "")
+    sld = [IRGM_SLD[n] for n in params["layers"].split(",") if n in IRGM_SLD]
+    if sld:
+        params["SLD_BODY"] = sld[0]
     r = _irgm_get(params)
     ctype = r.headers.get("content-type", "")
     if r.status_code != 200 or not ctype.startswith("image/"):
