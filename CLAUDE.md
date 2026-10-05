@@ -516,7 +516,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   nsgs.py         노바스코샤 자연자원부로 나가는 문 (기반암 1:50만 Keppie 2000 — WMS 가 없어 REST export·identify 로 옮긴다, 화면의 투영 그대로, wetherilli 235)
   ags.py          앨버타 지질조사소로 나가는 문 (기반암 1:100만 Map 600 의 누른 자리만 — 피처 서비스 query. 타일은 ArcGIS Online 의 3857 z/x/y 를 화면이 곧장, wetherilli 235)
   bas.py          영국 남극조사소(BAS)로 나가는 문 (Bedmap3 빙저 지형·얼음 두께·윗면의 범례만 — 타일은 ArcGIS Online 의 Esri 극 격자(3031)를 화면이 곧장, wetherilli 261)
-  bcgs.py         브리티시컬럼비아 지질조사소(BCGS)로 나가는 문 (BC Digital Geology GeoServer WMS 를 3978 로. 색 스타일이 1:50만 너머를 칠하지 않아 줌 11 부터, 속성은 열을 골라)
+  bcgs.py         브리티시컬럼비아 지질조사소(BCGS)로 나가는 문 (BC Digital Geology GeoServer WMS 를 3978 로. 상류 색 스타일이 1:50만 너머를 칠하지 않아 넓게 볼 때는
+                  그 스타일을 47 KB 로 줄여 POST 의 SLD_BODY 로 보낸다 — 줌 5 부터, wetherilli 317. 속성은 열을 골라)
                   MINFILE 광물 산지(같은 openmaps 의 다른 레이어 — 레이어마다 주소가 따로다, wetherilli 288)
   calgs.py        캘리포니아 지질조사소(CGS)로 나가는 문 (1:75만 ArcGIS REST — WMS 가 없어 export·identify 를 3978 로. 상류가 레이어 지정을 무시해 인쇄도 한 장. `cgs` 는 남아공)
   usstates.py     미국 주 지질조사소로 나가는 문 셋 — 네바다 NBMG 1:50만·워싱턴 DNR 1:50만·1:10만 GeMS·오리건 DOGAMI OGDC-6. 모두 REST export·identify 를 3978 로,

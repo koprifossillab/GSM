@@ -35,7 +35,6 @@
 ### 북미
 
 - [ ] **(사람)** 캐나다 탭(NRCan 1:500만·온타리오 OGS, wetherilli 204)을 정적 판에 실을지 — OGL 이고 CORS 가 되비친다(#153)
-- [ ] 브리티시컬럼비아(BCGS)는 줌 11 부터 그린다(wetherilli 231). 넓게도 칠하려면 색 스타일(640 KB)을 줄여 SLD 로 보내거나, openmaps 에 작은 축척 판이 있는지 찾는다(훑지 않았다). 다른 주(앨버타·서스캐처원·매니토바·노바스코샤…)는 아직
 - [ ] 캐나다 지구물리(자력·중력 격자) — NRCan 지도 서버에 없다. GSC 의 CAGDB WMS(`wms.agg.nrcan.gc.ca/wms2/wms2.aspx`)는 2026-10-05 에
       60 초 안에 답하지 않았다 — 살아나면 캐나다 탭에(wetherilli 250). 편찬 지질도 CGMC 는 래스터라 누르면 칸 번호뿐이다 — 번호 → 단위 표를 찾으면 누르게
 - [ ] 캐나다 주 판 — **(사람)** 뉴브런즈윅(`gis-erd-der.gnb.ca/…/OpenData/NBGS_Bedrock_Geology`
