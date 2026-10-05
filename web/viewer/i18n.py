@@ -2553,6 +2553,7 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "함량 (%)": "Content (%)", "함량 (mg/kg)": "Content (mg/kg)", "대수층": "Aquifer", "흐름": "Flow", "요약": "Summary", "분석 원소": "Analytes", "사업": "Project",
     "핵심 광물": "Critical minerals", "과거 생산": "Past producer", "자원량 공개": "Public resource", "광업 지구": "Mining district", "권역": "Region",
     "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
@@ -3289,6 +3290,7 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "영국 수리지질·G-BASE (BGS)": "UK hydrogeology and G-BASE (BGS)", "영국 하천 퇴적물 지화학 (BGS CMIC)": "UK stream sediment geochemistry (BGS CMIC)",
     "알래스카 광물 (DGGS)": "Alaska minerals (DGGS)",
     "페루 지화학 지도첩 (INGEMMET)": "Peru geochemical atlas (INGEMMET)",
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
@@ -3449,6 +3451,39 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 영국 수리지질·G-BASE·CMIC 하천 퇴적물 (wetherilli 324)
+    "bgsgi:hydrogeology": "Hydrogeology (1:625k)", "bgsgi:gbase_streamsed": "G-BASE stream sediment sample sites",
+    "bgsgi:gq:CaO": "Calcium (CaO)",
+    "bgsgi:gq:Fe2O3": "Iron (Fe₂O₃)",
+    "bgsgi:gq:K2O": "Potassium (K₂O)",
+    "bgsgi:gq:MgO": "Magnesium (MgO)",
+    "bgsgi:gq:MnO": "Manganese (MnO)",
+    "bgsgi:gq:TiO2": "Titanium (TiO₂)",
+    "bgsgi:gq:Sb": "Antimony (Sb)",
+    "bgsgi:gq:As": "Arsenic (As)",
+    "bgsgi:gq:Ba": "Barium (Ba)",
+    "bgsgi:gq:Be": "Beryllium (Be)",
+    "bgsgi:gq:Bi": "Bismuth (Bi)",
+    "bgsgi:gq:Cd": "Cadmium (Cd)",
+    "bgsgi:gq:Ce": "Cerium (Ce)",
+    "bgsgi:gq:Cr": "Chromium (Cr)",
+    "bgsgi:gq:Co": "Cobalt (Co)",
+    "bgsgi:gq:Cu": "Copper (Cu)",
+    "bgsgi:gq:Ga": "Gallium (Ga)",
+    "bgsgi:gq:La": "Lanthanum (La)",
+    "bgsgi:gq:Pb": "Lead (Pb)",
+    "bgsgi:gq:Li": "Lithium (Li)",
+    "bgsgi:gq:Mo": "Molybdenum (Mo)",
+    "bgsgi:gq:Ni": "Nickel (Ni)",
+    "bgsgi:gq:Rb": "Rubidium (Rb)",
+    "bgsgi:gq:Sr": "Strontium (Sr)",
+    "bgsgi:gq:Sn": "Tin (Sn)",
+    "bgsgi:gq:W": "Tungsten (W)",
+    "bgsgi:gq:U": "Uranium (U)",
+    "bgsgi:gq:V": "Vanadium (V)",
+    "bgsgi:gq:Y": "Yttrium (Y)",
+    "bgsgi:gq:Zn": "Zinc (Zn)",
+    "bgsgi:gq:Zr": "Zirconium (Zr)",
     # 알래스카 광물 (wetherilli 322)
     "dggs:minerals": "Significant mines and occurrences (DDS 18)", "dggs:districts": "Mining districts",
     # 페루 지화학 지도첩·산업 광물 (wetherilli 303)
