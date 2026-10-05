@@ -900,6 +900,13 @@ body.panel-folded #panel { display: none; }
                   text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink);
                   background: var(--glass); border: 1px solid var(--glass-line); border-radius: var(--radius); }
 #map-wrap.split .edge { display: none; }
+/* 휴대폰 — 이름표가 서로 겹치고(왼쪽이 가운데 선을 넘었다) 패널 손잡이·툴바 밑에 깔렸다. 손잡이 밑으로 내리고
+   왼쪽은 가운데 선 앞까지, 오른쪽은 툴바(56 px) 앞까지 (wetherilli 356) */
+@media (max-width: 760px) {
+  .split-tag { top: 30px; }
+  .split-tag.left { max-width: calc(50% - 64px); }
+  .split-tag.right { left: calc(50% + 8px); max-width: calc(50% - 72px); }
+}
 .mirror-dot { width: 14px; height: 14px; border: 2px solid #9e3b2a; border-radius: 50%;
               background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 2px rgba(255,255,255,.8); }
 
