@@ -43,6 +43,22 @@ from .prewarm import PREWARM_ERRORS, GeomapPlan, GsjPlan, IngemmetPlan, WmsPlan,
 PROBE_BBOX = "127.0,36.0,127.4,36.4"
 PROBE_LAYER = "L_250K_Geology_Map"
 WORLD = (-180.0, -85.0, 180.0, 85.0)
+#: 성긴 선·점·섬의 레이어 — 자료가 있는 것을 확인한 자리(경도, 위도)를 한가운데보다 먼저 본다 (wetherilli 310, 2026-10-05 에 한 장씩 받아 확인).
+#: 한가운데가 바다(폴리네시아)이거나 선·점이 성겨 다섯 칸이 다 비던 것이다. 레이어가 새로 비면 여기 자리를 더하기 전에 축척 끝(`views.SCALE_FLOOR`)부터 본다
+VERIFY_AT = {
+    "brgm:GEOL_PYF_5S": (-151.45, -16.83), "brgm:GEOL_PYF_6S": (-149.43, -17.65), "brgm:GEOL_PYF_7S": (-140.1, -8.86),   # 라이아테아·타히티·누쿠히바
+    "brgm:GITES_PT": (3.0, 45.5), "brgm:MINES_PT": (3.0, 45.5),
+    "bgr:igme5000:43+44": (8.0, 46.0), "bgr:igme5000:46+47+48": (10.0, 62.0), "bgr:igme5000:51+53+55+57": (8.0, 46.0),
+    "bgr:kor250:0+1": (13.5, 51.0), "bgr:kor250:2+3+4": (14.3, 51.5),
+    "lneg:500k:1": (-8.6, 40.2), "lneg:500k:3": (-9.6, 38.6), "lneg:500k:4": (-9.6, 38.6),
+    "gns:NZL_GNS_1M_faults": (170.5, -43.5), "gns:NZL_GNS_250K_faults": (170.5, -43.5),             # 알파인 단층
+    "gns:NZL_GNS_250K_folds": (172.68, -40.58),                                                      # 페어웰 배사
+    "gsj:boundaries": (139.7, 35.7), "gsj:faults": (135.2, 34.7), "gsj:symbols": (139.7, 35.7),
+    "ga:faults": (134.0, -23.0), "mrdata:sgmc2:sgmc2structure": (-118.0, 36.5),
+    "ogs:4": (-81.0, 46.5), "ogs:5": (-80.0, 48.5), "ogs:6": (-81.0, 46.5), "nsgs:9": (-63.5, 45.0),
+    "ygs:57": (-135.5, 63.5), "bcgs:minfile": (-121.0, 50.5), "sigeom:failles": (-77.5, 48.5),
+    "gsmma:fossils_50k": (121.0, 24.0), "gsmma:sensitive_landslide": (121.3, 24.3),
+}
 KINDS = ("그림", "빈 그림", "오류", "건너뜀")
 
 
@@ -61,11 +77,13 @@ def classify(content) -> str:
     return "그림"
 
 
-def points(bbox) -> list:
-    """물어볼 자리 — 한가운데, 비면 네 귀퉁이 쪽 넷(범위의 ¼·¾). 섬나라·해외 영토는 한가운데가 바다이기 쉽다"""
+def points(bbox, name: str = "") -> list:
+    """물어볼 자리 — 자료가 있는 것을 아는 자리(`VERIFY_AT`)가 있으면 그것 먼저, 그리고 한가운데, 비면 네 귀퉁이 쪽 넷(범위의 ¼·¾).
+    섬나라·해외 영토는 한가운데가 바다이기 쉽다"""
     w, s, e, n = bbox
     at = lambda fx, fy: (w + (e - w) * fx, s + (n - s) * fy)
-    return [at(0.5, 0.5), at(0.3, 0.6), at(0.7, 0.4), at(0.3, 0.3), at(0.7, 0.7)]
+    known = [VERIFY_AT[name]] if name in VERIFY_AT else []
+    return known + [at(0.5, 0.5), at(0.3, 0.6), at(0.7, 0.4), at(0.3, 0.3), at(0.7, 0.7)]
 
 
 def first_zoom(plan) -> int:
@@ -204,7 +222,7 @@ class Command(BaseCommand):
             return "건너뜀", "타일이 아니다(점·모양·벡터, 또는 화면이 곧장 부른다)", False
         bbox = tuple(layer.bbox) if layer.bbox else WORLD
         result = "빈 그림"
-        for lon, lat in points(bbox):
+        for lon, lat in points(bbox, layer.name):
             tile = tile_at(plan, bbox, lon, lat)
             if tile is None:
                 return "건너뜀", "그리는 줌에 칸이 없다", False
@@ -221,7 +239,7 @@ class Command(BaseCommand):
             if result != "빈 그림":
                 size = len(content) if content else 0
                 return result, f"{z}/{x}/{y} {size:,} bytes" if result == "그림" else f"{z}/{x}/{y} 그림이 아니다", True
-        return result, f"{z}/{x}/{y} 다섯 칸 모두 비었다", True
+        return result, f"{z}/{x}/{y} 모든 칸이 비었다", True
 
     def _save(self, layer, kind, note):
         layer.verify_note = f"{timezone.localdate():%Y-%m-%d} {kind} — {note}"[:200]
