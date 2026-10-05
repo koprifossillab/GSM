@@ -528,6 +528,10 @@ input[type=checkbox], input[type=range] { accent-color: var(--hi); }
 .layer-row { display: flex; align-items: flex-start; gap: 8px; padding: 4px 2px 4px 18px; }
 .layer-row label { flex: 1; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; transition: color .12s; }
 .layer-row label:hover { color: var(--hi-ink); }
+/* 구 화면(온 지구·달·화성·수성)의 출처 줄 — 길면 한 줄로 자른다(휴대폰에서 넘치지 않게, wetherilli 360) */
+.layer-row label { min-width: 0; }
+.layer-row label .src { display: block; overflow: hidden; font-size: 10.5px; font-weight: 400; color: var(--ink-soft); opacity: .75;
+                        white-space: nowrap; text-overflow: ellipsis; }
 .layer-row input:checked + label { color: var(--ink); font-weight: 600; }
 .layer-row input[type=checkbox] { margin-top: 3px; }
 .layer-row .unverified { color: var(--gold-muted); cursor: help; }
