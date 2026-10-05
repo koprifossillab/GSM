@@ -474,9 +474,10 @@ OPEN_BBOX = (118.0, 21.0, 123.0, 27.0)
 OPEN_SPLITS = 6
 
 
-def fetch_open(api: str, bbox=OPEN_BBOX, *, timeout=60, gap=2.0, log=None, depth=0, sleep=None, holes=None) -> list:
+def fetch_open(api: str, bbox=OPEN_BBOX, *, timeout=60, gap=2.0, log=None, depth=0, sleep=None, holes=None, splits=None) -> list:
     """갈래 하나를 통째로 — 네모가 끊기면 넷으로 나눠 다시 묻고, 네모 사이에 걸친 것은 한 번만 남긴다. 상류에 묻는 사이 `gap` 초.
-    넷으로 `OPEN_SPLITS` 번 나눠도 끊기는 네모는 `holes` 에 적고 건너뛴다 — 여섯 번이면 0.08° 네모다"""
+    넷으로 `OPEN_SPLITS` 번 나눠도 끊기는 네모는 `holes` 에 적고 건너뛴다 — 여섯 번이면 0.08° 네모다. `splits` 를 주면 그만큼 나눈다
+    (구멍만 다시 받을 때 — `fetch_taiwan_open --holes`, wetherilli 328)"""
     import json
     import time
     sleep = sleep or time.sleep
@@ -501,7 +502,7 @@ def fetch_open(api: str, bbox=OPEN_BBOX, *, timeout=60, gap=2.0, log=None, depth
         if log:
             log(f"  {api} {w:.2f},{s:.2f},{e:.2f},{n:.2f} — {len(features)} 개")
         return features
-    if depth >= OPEN_SPLITS:
+    if depth >= (OPEN_SPLITS if splits is None else splits):
         if holes is None:
             raise GsmmaError(f"지질운 {api} 의 {w:.3f},{s:.3f},{e:.3f},{n:.3f} 를 받지 못했다"
                              + (f" (status={r.status_code})" if r is not None else ""))
@@ -514,7 +515,7 @@ def fetch_open(api: str, bbox=OPEN_BBOX, *, timeout=60, gap=2.0, log=None, depth
     mx, my = (w + e) / 2, (s + n) / 2
     seen, out = set(), []
     for part in ((w, s, mx, my), (mx, s, e, my), (w, my, mx, n), (mx, my, e, n)):
-        for f in fetch_open(api, part, timeout=timeout, gap=gap, log=log, depth=depth + 1, sleep=sleep, holes=holes):
+        for f in fetch_open(api, part, timeout=timeout, gap=gap, log=log, depth=depth + 1, sleep=sleep, holes=holes, splits=splits):
             key = json.dumps(f, sort_keys=True, ensure_ascii=False)
             if key not in seen:
                 seen.add(key)
@@ -527,7 +528,7 @@ def fetch_open(api: str, bbox=OPEN_BBOX, *, timeout=60, gap=2.0, log=None, depth
 # 지질운 지도(`/map/GeologicalSensitiveAreas`)가 쓰는 자료 주소(`/data/zh-tw/GeologicalSensitiveAreas`)는 **범위로 묻지 못하고 구역 이름으로만**
 # 준다 — 활성단층·지하수 함양·지질 유산은 `category`+`name`(구역 이름), 산사태·지활은 시·현+향·진(`GeologicalSensitiveAreasLTown` 이
 # 향·진 목록을 준다). 속성은 `Gid` 하나뿐이라 구역 번호·공고일·문호는 기관의 공고 목록 CSV 에서 붙인다. 구역 이름 목록은 지질운 지도의
-# 스크립트에 박혀 있다(CSV 보다 새 공고가 더 있다). 사람이 부르는 `fetch_taiwan_open --sensitive` 가 한 번 받는다 — 250 번 남짓, 사이 2 초
+# 스크립트에 박혀 있다(CSV 보다 새 공고가 더 있다). 사람이 부르는 `fetch_taiwan_open --sensitive` 가 한 번 받는다 — 290 번 남짓(13 분), 사이 2 초
 
 #: 갈래 기호 → 지질운의 `category`
 SENSITIVE_CATEGORY = {"F": "活動斷層", "G": "地下水補注", "H": "地質遺跡", "L": "山崩與地滑"}
