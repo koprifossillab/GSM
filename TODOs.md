@@ -79,8 +79,8 @@
       WMS 는 지질 단위·단층뿐이고, BGS ArcGIS 의 아프리카 폴더는 지하수뿐이다(`Ghana`·`Kenya` 폴더는 비었다). CGS 자신의 서버(`maps.geoscience.org.za`)는
       여전히 시간 초과다. 광상 점은 SIGAfrique(BRGM)·나라 지질조사소 포털에 물어야 한다
 
-- [ ] 오세아니아 광물·지구물리(wetherilli 269) — 퀸즐랜드·빅토리아·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
-      가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 빅토리아 중력 측점(`gravity`)·자력 선형(`lineaments_tmi`), 남호주 지구물리(SARIG 영상)
+- [ ] 오세아니아 광물·지구물리(wetherilli 269·302·306) — 퀸즐랜드·빅토리아(중력 측점·선형 셋 포함)·남호주·뉴질랜드 중력은 섰다. 남은 것: 뉴질랜드 광물 산지 GERM(`gns:GERM_ERML_VIEW`)은
+      가까이 봐도 빈 그림이다(스타일이 없거나 축척 제한) — GNS 에 물을지. 남호주 지구물리(SARIG 영상) — 열린 WMS 를 찾지 못했다(wetherilli 306). GA 의 온 나라 격자가 덮는다. 쓰려면 GSSA 에 WMS 주소를 묻거나 원본 격자를 받아 굽는다
 
 - [ ] 북유럽 광물·지구물리(wetherilli 270) — GTK·FODD·SGU 는 섰다. 노르웨이 NGU 의 광물·지구물리 서비스 주소를 못 찾았다(`geo.ngu.no/mapserver/*` 이름 짐작은 404·빈 map). 스웨덴 중력은 측정 범위뿐
 
@@ -262,6 +262,16 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 개발 머신에서 그린란드 포털(`services5.arcgis.com`)을 부르면 인증서가 막힌다(사내망이 끼워 넣는 인증서) —
 `REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt` 를 주면 돈다. 운영과는 상관없다.
 phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapSheet`) JSON API 를 그쪽에 먼저.
+
+## 레이어 대조에서 나온 것 (2026-10-05 개발 기계, wetherilli 298)
+
+- [ ] **카메룬 IRGM 1:100만 단층(`irgm:CMR_IRGM_1M_Failles`)이 상류에서 깨져 있다** — BRGM mapsref 가 ServiceException
+      "unable to open file /carto/wxs/1GG/THRUSTFAULT" 를 준다(기호 파일이 서버에 없다). 다음 판까지 낫지 않으면 레이어를 끄거나 BRGM 에 알린다
+- [ ] 느린 둘 — `emodnet:cp_wp3_seabed_substrate_folk_7`·`gsmma:attitude_50k` 이 두 번 모두 20 초를 넘겼다. 메타타일 표(`views.METATILE`)에 넣을지 잰다
+- [ ] 빈 그림 35 — 대개 성긴 선·점(단층·습곡·기호·이상·광산)이라 다섯 칸이 비켜 간 것이다. 축척이 갈린 것은 화면에서 한 번 본다:
+      `bgr:igme5000:43+44`·`46+47+48`·`51+53+55+57`(줌 2 에서 비었다), `ispra:100k:1`·`2`, `lneg:500k:1`·`3`·`4`, `brgm:GEOL_PYF_5S`·`6S`·`7S`,
+      `gsmma:fossils_50k`·`sensitive_landslide`
+- [ ] VWorld 레이어(46)는 개발 기계에 열쇠가 없어 보지 못했다 — 운영에서 `verify_layers --redo --upstream vworld`
 
 ## 캐시·미리 받기 (007·010)
 
