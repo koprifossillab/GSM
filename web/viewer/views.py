@@ -412,6 +412,8 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              "sgu",
              # 노르웨이 NGU·핀란드 GTK(wetherilli 335) — 2D 는 3575·3413 이지만 3857 도 그려 준다(2026-10-05 에 둘 다 재었다)
              "ngu", "gtk",
+             # PGC ArcticDEM·REMA 경사·등고선(wetherilli 338) — ImageServer 가 3857 로도 다시 그려 준다
+             "pgc",
              # 아이슬란드 NÍ(wetherilli 216) — 2D 는 3413 이지만 GeoServer 라 3857 도 그린다
              "natt",
              # 뉴질랜드·남빅토리아랜드 GNS(wetherilli 218) — GeoServer 라 3857 도 그린다
