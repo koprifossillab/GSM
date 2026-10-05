@@ -385,7 +385,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   wetherilli 097), 카리브 대앤틸리스 지질도 USGS SIM 3534(`GSM_CARIBBEAN_DIR`, 기본 `<DB 옆>/caribbean`, wetherilli 254 —
   `manage.py build_caribbean <zip>`, 옛 판 OFR 2019-1036 의 셰이프 zip — 웹서비스가 없다). 운영은
   `/srv/GSM/db/` 아래다 — 배포한 자리의 compose 를 못 고쳐도 `db/` 는 붙어 있다. **저장소에 두지 않는다.** 원본은 NAS 의 `N:\GSM\sources\` 에 있다.
-  파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. GeoMAP 의 그리는 법을 고치면
+  파일이 없어도 뷰어는 돌고 그 자리에 안내가 뜬다. **새로 굽는 파일을 더하면 `datastatus.ITEMS` 에 한 줄 더한다** —
+  `manage.py data_status` 가 운영에 무엇이 있고 언제 구웠는지 한 표로 내고, healthz 가 없는 것의 수를 낸다(wetherilli 312). GeoMAP 의 그리는 법을 고치면
   `geomap.RENDERER` 를 올린다 — 안 올리면 캐시가 옛 그림을 낸다
 - **극지연구소(053–057)는 모아 두고 그린다** — 암석 시료 목록과 KPDC 자료·운석의 상세(3 500 쪽)를
   `manage.py fetch_kopri` 가 2 초 간격으로 받아 `GSM_KOPRI_DIR`(기본 `<DB 옆>/kopri`)에 적는다. 처음 세 시간 남짓,
@@ -581,6 +582,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   glim.py         세계 암상 GLiM 0.5° 격자(data/glim_05deg.json) -> 경위도 타일·누른 자리의 갈래. 문이 아니다
   heatflow.py     IHFC 세계 지열류 2024 글 파일 -> sqlite(R*Tree) -> 경위도 점 타일·누른 자리. 문이 아니다
   seafloor.py     해양 지각 연대 Seton 2020(NetCDF-3)·해저 퇴적층 두께 GlobSed v3(글 격자) — numpy 없이 -> <EARTH_DIR> 의 칠한 PNG·int16 값 -> 경위도 타일·누른 자리. 문이 아니다
+  datastatus.py   구운 자료의 나이 — <DB 옆> 의 파일마다 있는지·크기·고친 날·원본 판(`ITEMS` 한 표). data_status·healthz·관리 화면이 읽는다. 문이 아니다
   earthpoints.py  지역 탭의 화석 산지·홀로세 화산·지진·고생태 산지 — 온 지구의 모아 둔 sqlite·JSON 에서 지역의 네모만 점 GeoJSON 으로. 문이 아니다
   pointvalues.py  점묶음 CSV 에 붙일 값 — 점마다 GeoMAP 단위·지각 두께·가까운 PBDB 산지, 달·화성·수성은 그 지질도 단위. 우리 파일만. 문이 아니다
   profileband.py  높이 그래프 밑의 지질 띠 — 잰 선의 점마다 GeoMAP·geo3al·달·화성·수성 파일의 단위, 온 지구는 지각 두께 칸. 상류뿐인 레이어는 띠가 없다. 문이 아니다
