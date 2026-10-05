@@ -315,7 +315,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   프랑스·독일·스페인·아일랜드가 영국에 둔 EGDI 1:100만을(143·147). 레이어명이 지역 하나에만 걸리기 때문이다.
   상류 이름 대신 `:` 로 끝나는 레이어 이름 앞머리도 된다 — 브라질·페루·에콰도르·아르헨티나·우루과이가 콜롬비아 지역의 SGC 가운데 남미 1:500만(`sgc:sa:`)만 빌린다(191·195·196·198)
 - 레이어군은 지역을 갖고(`LayerGroup.region`), 레이어는 상류를 갖는다
-  (`Layer.upstream` — kigam·kigam50k·geus·geusarc·vworld·grportal·npolar·gsj·gsitile·ccop·gsjows·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·bgsgi·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·nbmg·wadnr·dogami·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·vmme·georep·bas·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
+  (`Layer.upstream` — kigam·kigam50k·geus·geusarc·vworld·grportal·npolar·gsj·gsitile·ccop·gsjows·gsmma·emodnet·ngu·gtk·sgu·natt·bgs·bgsgi·brgm·egdi·bgr·igme·gsi·gsni·sgc·sgb·ingemmet·segemar·dinamige·iige·mrdata·sgm·cgmw·aga·ispra·lneg·swisstopo·cgs·gsn·bumigeb·irgm·ga·gsq·gsv·gssa·gns·mris·gsiindia·sgs·esdm·jmg·mgb·dmr·nrcan·ogs·sigeom·ygs·skgs·nsgs·ags·bcgs·calgs·nbmg·wadnr·dogami·dggs·geosphere·pig·tno·dov·spw·ineter·stri·usgscarib·vmme·georep·bas·phyloserver·geomap·janmayen·geo3al·kopri·earth). 서버는 레이어의
   상류를 보고 문을 고른다
 - 레이어는 그리는 법도 갖는다 — 타일(WMS)이 거의 전부이고, `kind: vector` 는 단층
   선을 1° 칸으로 받아 우리가 그리고(020), `kind: points` 는 점·모양을 한 덩이로
@@ -458,6 +458,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
                   아프리카 지하수 지도책의 나라별 1:500만 암상(`aga`, 38 나라를 레이어 하나로, wetherilli 207)도, BGS 의 다른 MapServer
                   (`ogc.bgs.ac.uk`)가 대신 내주는 나미비아 GSN 1:100만(`gsn`, wetherilli 209)·부르키나파소 BUMIGEB 1:100만(`bumigeb`, 246)도,
                   영국 GeoIndex 의 자력·중력 이상·광산·광물 산지(`bgsgi`, OGL, wetherilli 258)도
+                  GeoIndex 의 수리지질·G-BASE 하천 퇴적물 시료 지점, CMIC 하천 퇴적물 지화학 31 원소(REST export·identify, 목록 범례)도 (wetherilli 324)
   cgs.py          남아공 지질조사소(CGS) 1:100만으로 나가는 문 — 정부(DPME) GIS 사본. WMS 가 꺼져 WMS 변수를 ArcGIS REST export·identify 로 옮긴다
                   같은 서비스의 광업·석탄·우라늄 지역(레이어 0·1·2, 면 8·86·19)도 — NO_STORE 를 따른다 (wetherilli 285)
   brgm.py         프랑스 지질광물조사소(BRGM)로 나가는 문 (1:100만·25만·5만 스캔, 1:100만 단순 암상도 MapServer WMS). mapsref 서버의
@@ -525,6 +526,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   calgs.py        캘리포니아 지질조사소(CGS)로 나가는 문 (1:75만 ArcGIS REST — WMS 가 없어 export·identify 를 3978 로. 상류가 레이어 지정을 무시해 인쇄도 한 장. `cgs` 는 남아공)
   usstates.py     미국 주 지질조사소로 나가는 문 셋 — 네바다 NBMG 1:50만·워싱턴 DNR 1:50만·1:10만 GeMS·오리건 DOGAMI OGDC-6. 모두 REST export·identify 를 3978 로,
                   주 밖 칸은 묻지 않는다(`clip`). 범례는 REST 목록에 단위 표의 이름·시대를 붙인다 (wetherilli 291)
+                  알래스카 DGGS 의 중요 광산·산지(DDS 18)·광업 지구도 — 상류 `dggs`, 지질도는 SIM 3340 이 덮는다 (wetherilli 322)
   geosphere.py    GeoSphere Austria(옛 GBA)로 나가는 문 (1:100만 지질·단층 ArcGIS WMS 두 서비스, 3857 로. 시대는 "암상; 시대" 의 독일어에서. 1:5만은 WMS 가 없어 REST export·identify, 줌 11 부터)
   pig.py          폴란드 지질연구소(PIG-PIB)로 나가는 문 (1:50만 2022 ArcGIS WMS — 기반·제3기·제4기 세 층을 겹친다, WMS 번호가 REST 와 거꾸로. 1:5만 SMGP 는 줌 13 부터)
   tno.py          네덜란드 TNO 지질조사부로 나가는 문 (지표 지질도 GeoServer WMS, CC0. 속성은 열을 골라 — 모양째 7 MB)

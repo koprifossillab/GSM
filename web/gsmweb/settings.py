@@ -215,6 +215,8 @@ MRDATA_URL = env("GSM_MRDATA_URL", "https://mrdata.usgs.gov/services")
 GSQ_REST_URL = env("GSM_GSQ_REST_URL", "https://spatial-gis.information.qld.gov.au/arcgis/rest/services/GeoscientificInformation")
 GSV_WMS_URL = env("GSM_GSV_WMS_URL", "https://opendata.maps.vic.gov.au/geoserver/wms")
 GSSA_WMS_URL = env("GSM_GSSA_WMS_URL", "https://sarigdata.pir.sa.gov.au/geoserver/ows")
+#: 남호주 지구물리 영상 — SARIG 의 다른 GeoServer (wetherilli 329)
+GSSA_IMAGERY_URL = env("GSM_GSSA_IMAGERY_URL", "https://services.sarig.sa.gov.au/raster/GeophysicalStateImages/wms")
 #: 태즈메이니아 지질(theLIST, Mineral Resources Tasmania)·뉴사우스웨일스 광물 산지·광산(GSNSW GeoServer) (wetherilli 318)
 TAS_REST_URL = env("GSM_TAS_REST_URL", "https://services.thelist.tas.gov.au/arcgis/rest/services/Public/GeologicalAndSoils/MapServer")
 GSNSW_WMS_URL = env("GSM_GSNSW_WMS_URL", "https://gs.geoscience.nsw.gov.au/geoserver/ows")
@@ -242,6 +244,8 @@ CALGS_URL = env("GSM_CALGS_URL", "https://gis.conservation.ca.gov/server")
 NBMG_URL = env("GSM_NBMG_URL", "https://gisweb.unr.edu/nbmg/rest/services")
 WADNR_URL = env("GSM_WADNR_URL", "https://gis.dnr.wa.gov/site1/rest/services")
 DOGAMI_URL = env("GSM_DOGAMI_URL", "https://gis.dogami.oregon.gov/arcgis/rest/services")
+#: 알래스카 DGGS 광물(wetherilli 322) — 같은 문(`usstates.py`)
+DGGS_URL = env("GSM_DGGS_URL", "https://maps.dggs.alaska.gov/arcgis/rest/services")
 #: 유럽 — 오스트리아 GeoSphere·폴란드 PIG·네덜란드 TNO·플랑드르 DOV·왈로니아 SPW (wetherilli 237). 열쇠가 없다
 GEOSPHERE_URL = env("GSM_GEOSPHERE_URL", "https://gis.geosphere.at/maps")
 PIG_URL = env("GSM_PIG_URL", "https://cbdgmapa.pgi.gov.pl/arcgis")
@@ -589,6 +593,7 @@ CALGS_CATALOG_SEED = REPO_DIR / "data" / "calgs_layers.json"
 NBMG_CATALOG_SEED = REPO_DIR / "data" / "nbmg_layers.json"
 WADNR_CATALOG_SEED = REPO_DIR / "data" / "wadnr_layers.json"
 DOGAMI_CATALOG_SEED = REPO_DIR / "data" / "dogami_layers.json"
+DGGS_CATALOG_SEED = REPO_DIR / "data" / "dggs_layers.json"
 #: 오스트리아·폴란드·네덜란드·벨기에 (wetherilli 237)
 GEOSPHERE_CATALOG_SEED = REPO_DIR / "data" / "geosphere_layers.json"
 PIG_CATALOG_SEED = REPO_DIR / "data" / "pig_layers.json"
@@ -655,7 +660,10 @@ PGC_CATALOG_SEEDS = tuple(REPO_DIR / "data" / f"pgc_{r}_layers.json" for r in ("
 KOPRI_CATALOG_SEEDS = [REPO_DIR / "data" / f"kopri_{region}_layers.json"
                        for region in ("antarctica", "svalbard", "greenland", "arctic_ocean")]
 #: 지구 자료 점 — 화석 산지·홀로세 화산·지진·고생태 산지를 지역 탭에 (wetherilli 185). 북극은 북극해에 두고 다른 탭이 빌린다
-EARTH_CATALOG_SEEDS = [REPO_DIR / "data" / f"earth_{region}_layers.json" for region in ("korea", "antarctica", "arctic_ocean")]
+EARTH_CATALOG_SEEDS = [REPO_DIR / "data" / f"earth_{region}_layers.json" for region in ("korea", "antarctica", "arctic_ocean",
+                       # 묶음마다 네모 하나 (wetherilli 331) — 씨앗의 `_지역` 이 그 네모를 두는 탭이다
+                       "eastasia", "southeast_asia", "southasia", "europe", "north_america", "central_america",
+                       "south_america", "oceania", "africa")]
 #: KIGAM 5만 구조 요소 — 화석산지·시료·광산·도폭 틀 (wetherilli 199, jikhanjung P01)
 KIGAM50K_CATALOG_SEED = REPO_DIR / "data" / "kigam50k_layers.json"
 GEOMAP_STYLES = REPO_DIR / "data" / "geomap_styles.json"

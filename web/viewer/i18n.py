@@ -76,6 +76,12 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 레이어 찾기 (wetherilli 332)
+    "레이어 찾기 — 모든 지역에서": "Find a layer — across all regions",
+    "{n} 개 — 다른 지역의 것은 그 탭으로 옮겨 켠다": "{n} found — picking one from another region switches to that tab",
+    "맞는 레이어가 없다": "No matching layer",
+    "이 탭": "This tab",
+    "앞의 {n} 개만 보인다 — 낱말을 더 적어 좁힌다": "Showing the first {n} — add words to narrow it down",
     # 캐나다 (wetherilli 204)
     "캐나다": "Canada", "캐나다 천연자원부": "Natural Resources Canada", "온타리오 지질조사소": "Ontario Geological Survey",
     "캐나다 람베르트": "Canada Atlas Lambert",
@@ -115,7 +121,7 @@ EN = {
     "폴란드 지질연구소 (PIG-PIB)": "Polish Geological Institute (PIG-PIB)", "네덜란드 지질조사부 (TNO)": "Geological Survey of the Netherlands (TNO)",
     "플랑드르 지하 자료은행 (DOV)": "Flanders Subsurface Database (DOV)", "왈로니아 공공서비스 (SPW)": "Public Service of Wallonia (SPW)",
     "브리티시컬럼비아 지질조사소": "British Columbia Geological Survey", "캘리포니아 지질조사소": "California Geological Survey",
-    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI",
+    "네바다 광산지질국": "Nevada Bureau of Mines and Geology", "워싱턴 지질조사소": "Washington Geological Survey", "오리건 지질광물산업부": "Oregon DOGAMI", "알래스카 지질·지구물리조사소": "Alaska Division of Geological & Geophysical Surveys",
     "인도네시아 지질청 (ESDM)": "Geological Agency of Indonesia (ESDM)", "말레이시아 광물지구과학국": "Minerals and Geoscience Department Malaysia",
     "필리핀 광산지질국": "Mines and Geosciences Bureau (Philippines)", "태국 광물자원국": "Department of Mineral Resources (Thailand)",
     # KIGAM 5만 단층·습곡·광종·변질대 (wetherilli 202)
@@ -2076,7 +2082,7 @@ PROP_EN = {
     "마지막 분화": "Last eruption",
     "표고 (m)": "Elevation (m)",
     "광산 이름": "Mine name", "상태": "Status", "조사 방법": "Observation method",
-    "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
+    "같은 칸에 모인 수": "Points merged in this cell", "측점": "Station", "조사": "Survey", "프리에어 이상 (mGal)": "Free-air anomaly (mGal)", "부게 이상 (mGal)": "Bouguer anomaly (mGal)",
     "지구조 환경": "Tectonic setting",
     "주 암석": "Major rock type",
     "근거": "Evidence",
@@ -2553,6 +2559,8 @@ PROP_EN = {
     # 독일 BGR·스페인 IGME (wetherilli 147)
     "대": "Era",
     "성인": "Genesis",
+    "함량 (%)": "Content (%)", "함량 (mg/kg)": "Content (mg/kg)", "대수층": "Aquifer", "흐름": "Flow", "요약": "Summary", "분석 원소": "Analytes", "사업": "Project",
+    "핵심 광물": "Critical minerals", "과거 생산": "Past producer", "자원량 공개": "Public resource", "광업 지구": "Mining district", "권역": "Region",
     "이상": "Anomaly", "함량": "Concentration", "광상": "Deposit", "리튬 (ppm)": "Lithium (ppm)", "채굴": "Mined",
     "회사": "Company",
     "생산": "Production", "발견": "Discovery", "발견 연도": "Year discovered", "산물": "Product",
@@ -3288,6 +3296,8 @@ def props_en(props: dict) -> dict:
 # 레이어 이름을 열쇠로 여기 둔다. 없으면 한국어 제목이 뜬다.
 
 GROUP_EN = {
+    "영국 수리지질·G-BASE (BGS)": "UK hydrogeology and G-BASE (BGS)", "영국 하천 퇴적물 지화학 (BGS CMIC)": "UK stream sediment geochemistry (BGS CMIC)",
+    "알래스카 광물 (DGGS)": "Alaska minerals (DGGS)",
     "페루 지화학 지도첩 (INGEMMET)": "Peru geochemical atlas (INGEMMET)",
     "캐나다 주 광물 산지": "Canadian provincial mineral occurrences",
     "네바다 지질도 (NBMG 1:50만)": "Nevada geology (NBMG 1:500k)", "워싱턴 지질도 (DNR)": "Washington geology (DNR)",
@@ -3306,7 +3316,7 @@ GROUP_EN = {
     "아르헨티나 광상 (SEGEMAR 1:25만)": "Argentina mineral deposits (SEGEMAR 1:250k)",
     "퀸즐랜드 광물·지구물리 (GSQ)": "Queensland minerals and geophysics (GSQ)", "빅토리아 광상 (GSV)": "Victoria mineral deposits (GSV)", "빅토리아 지구물리 (GSV)": "Victoria geophysics (GSV)",
     "태즈메이니아 지질도 (MRT)": "Tasmania geology (MRT)", "뉴사우스웨일스 광물 (GSNSW)": "New South Wales minerals (GSNSW)",
-    "남호주 광물 산지 (GSSA)": "South Australia mineral occurrences (GSSA)", "뉴질랜드 지구물리 (GNS)": "New Zealand geophysics (GNS)",
+    "남호주 광물 산지 (GSSA)": "South Australia mineral occurrences (GSSA)", "남호주 지구물리 (SARIG)": "South Australia geophysics (SARIG)", "뉴질랜드 지구물리 (GNS)": "New Zealand geophysics (GNS)",
     "일본 지질도·중력 (GSJ)": "Japan geology and gravity (GSJ)", "일본 지구화학도 (GSJ, 하천 퇴적물)": "Japan geochemical map (GSJ, stream sediments)",
     "일본 지구화학도 — 나머지 원소 (GSJ)": "Japan geochemical map — other elements (GSJ)", "일본 자기 이상도 (GSJ 지질도Navi)": "Japan magnetic anomaly maps (GSJ Geological Map Navi)",
     "미국 광물 자원 (USGS)": "US mineral resources (USGS)", "미국 지구물리 (USGS)": "US geophysics (USGS)",
@@ -3447,6 +3457,41 @@ GROUP_EN = {
 }
 
 LAYER_EN = {
+    # 영국 수리지질·G-BASE·CMIC 하천 퇴적물 (wetherilli 324)
+    "bgsgi:hydrogeology": "Hydrogeology (1:625k)", "bgsgi:gbase_streamsed": "G-BASE stream sediment sample sites",
+    "bgsgi:gq:CaO": "Calcium (CaO)",
+    "bgsgi:gq:Fe2O3": "Iron (Fe₂O₃)",
+    "bgsgi:gq:K2O": "Potassium (K₂O)",
+    "bgsgi:gq:MgO": "Magnesium (MgO)",
+    "bgsgi:gq:MnO": "Manganese (MnO)",
+    "bgsgi:gq:TiO2": "Titanium (TiO₂)",
+    "bgsgi:gq:Sb": "Antimony (Sb)",
+    "bgsgi:gq:As": "Arsenic (As)",
+    "bgsgi:gq:Ba": "Barium (Ba)",
+    "bgsgi:gq:Be": "Beryllium (Be)",
+    "bgsgi:gq:Bi": "Bismuth (Bi)",
+    "bgsgi:gq:Cd": "Cadmium (Cd)",
+    "bgsgi:gq:Ce": "Cerium (Ce)",
+    "bgsgi:gq:Cr": "Chromium (Cr)",
+    "bgsgi:gq:Co": "Cobalt (Co)",
+    "bgsgi:gq:Cu": "Copper (Cu)",
+    "bgsgi:gq:Ga": "Gallium (Ga)",
+    "bgsgi:gq:La": "Lanthanum (La)",
+    "bgsgi:gq:Pb": "Lead (Pb)",
+    "bgsgi:gq:Li": "Lithium (Li)",
+    "bgsgi:gq:Mo": "Molybdenum (Mo)",
+    "bgsgi:gq:Ni": "Nickel (Ni)",
+    "bgsgi:gq:Rb": "Rubidium (Rb)",
+    "bgsgi:gq:Sr": "Strontium (Sr)",
+    "bgsgi:gq:Sn": "Tin (Sn)",
+    "bgsgi:gq:W": "Tungsten (W)",
+    "bgsgi:gq:U": "Uranium (U)",
+    "bgsgi:gq:V": "Vanadium (V)",
+    "bgsgi:gq:Y": "Yttrium (Y)",
+    "bgsgi:gq:Zn": "Zinc (Zn)",
+    "bgsgi:gq:Zr": "Zirconium (Zr)",
+    # 알래스카 광물 (wetherilli 322)
+    "dggs:minerals": "Significant mines and occurrences (DDS 18)", "dggs:districts": "Mining districts",
     # 페루 지화학 지도첩·산업 광물 (wetherilli 303)
     "ingemmet:gq_au": "Gold (Au) dispersion and anomalies",
     "ingemmet:gq_ag": "Silver (Ag) dispersion and anomalies",
@@ -3513,7 +3558,9 @@ LAYER_EN = {
     "mrt:250k": "Tasmania geology (1:250k compilation)", "mrt:25k": "Tasmania geology (1:25k)",
     "gsnsw:minocc": "New South Wales mineral occurrences", "gsnsw:mines": "New South Wales mines", "gsv:lin_tmi": "Magnetic lineaments (TMI)", "gsv:lin_gravity": "Gravity lineaments",
     "gsv:lin_radio": "Radiometric lineaments",
-    "gssa:minocc": "Mineral occurrences (SARIG)", "gns:gravity": "Gravity anomaly",
+    "gssa:minocc": "Mineral occurrences (SARIG)", "gssa:tmi_rtp": "Total magnetic intensity (reduced to pole)", "gssa:tmi_rtp_1vd": "TMI first vertical derivative",
+    "gssa:tmi_tilt": "TMI tilt derivative", "gssa:grav": "Bouguer gravity", "gssa:grav_1vd": "Gravity first vertical derivative",
+    "gssa:rad_rgb": "Radiometric ternary (K·Th·U)", "gns:gravity": "Gravity anomaly",
     # GSJ 의 다른 WMS (wetherilli 255)
     "gsjows:japan2m": "Geological map of Japan (1:2M)", "gsjows:gravity": "Bouguer gravity anomaly (density 2.67)",
     "gsjows:geochem:Al2O3": "Aluminium (Al₂O₃) — geochemical map",
@@ -4138,3 +4185,9 @@ LAYER_EN.update({f"earth:{kind}_{region}": title
                  for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
                                      ("quakes", "Earthquakes M5+ (USGS)"),
                                      ("neotoma", "Quaternary palaeoecology sites (Neotoma)"))})
+# 묶음마다 네모 하나 (wetherilli 331) — 제목에 묶음의 이름이 붙는다
+LAYER_EN.update({f"earth:{kind}_{box}": f"{title} — {area}"
+                 for box, area in {'eastasia': 'East Asia', 'southeast_asia': 'Southeast Asia', 'southasia': 'South and West Asia', 'europe': 'Europe', 'north_america': 'North America', 'central_america': 'Central America and Caribbean', 'south_america': 'South America', 'oceania': 'Oceania', 'africa': 'Africa'}.items()
+                 for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
+                                     ("quakes", "Earthquakes M5+ (USGS)"), ("neotoma", "Quaternary palaeoecology sites (Neotoma)"),
+                                     ("heatflow", "Heat flow (IHFC)"), ("recentquakes", "Recent earthquakes (7 days, M2.5+)"))})
