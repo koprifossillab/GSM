@@ -113,9 +113,6 @@ wetherilli 249 — 네팔 DMG GeoServer 는 열렸지만 행정 경계·도폭�
 
 ## 지역 — 극지 (016·017·018·019·021·022)
 
-- [ ] 그린란드 지구물리(wetherilli 259) — GEUS ArcGIS 의 방사능(`Geophysics_Radiometry`)은 국지 조사 몇 곳뿐이라, 공중 자력(`Geophysics_Aeromag_Magnetic`·
-      `_AWI`·`Aem_Magnetic`)·1:250만·1:10만 지질도(`Geological_map_2500k`·`_100k_SSW`·`_100k_Karrat`)는 같은 서버에 있어 더할 수 있다.
-      지도 화면의 광물 산지 v3(`mineral_occurrences_v3_external`)는 WMS 이름이 403 — 포털(grportal)의 광물 산지가 같은 뿌리다
 - [ ] **(사람)** 그린란드 50만 지질도는 GEUS 가 추린 판(`_search`)이다. 원본
       (`grl_g500_lithostr_units`)을 WMS 로 열어 주는지 GEUS 에 묻는다 —
       써 보고 빈 곳이 거슬리면 사람이 메일을 쓴다. 같은 메일에 정부 포털 시료가
@@ -304,9 +301,10 @@ phyloserver 는 이 저장소만으로 더 할 것이 없다 — 도폭(`MapShee
       적혀 있다(wetherilli 237)
 - [ ] (사람) 서호주 GSWA 지질도 — SLIP 공개 서비스(`services.slip.wa.gov.au/public/…/Geology_and_Soils_Map/MapServer`, 1:250만·1:50만·1:10만
       해석 기반암)는 열려 있지만 저작권 칸이 "SLIP Transaction — Personal Use Licence" 다. 같은 자료가 다른 곳에서 CC BY 4.0 으로 열렸는지 읽고 정한다 (wetherilli 225)
-- [ ] 호주의 남은 것 — 뉴사우스웨일스(GSNSW GeoServer 에는 시추공·광산·광업권뿐, 이음매 없는 지질도의 주소를 못 찾았다)·태즈메이니아
-      (MRT 서비스에 지질도가 없다, 도폭 색인뿐)·노던테리토리(NTGS GeoServer 에 시추공·광산뿐)는 지질도 서비스를 찾지 못했다. GA 의 다른 서비스
-      가운데 확인 자원(`AustraliasIdentifiedMineralResources`, 광종 스물아홉 레이어)·지하수가 남았다 — 목록이 403 이라 ecat 에서 이름을 찾는다(wetherilli 241)
+- [ ] 호주의 남은 것(wetherilli 318) — 태즈메이니아 지질(theLIST, 1:25만 합본·1:2.5만)과 뉴사우스웨일스 광물 산지·광산(GSNSW)은 섰다.
+      뉴사우스웨일스의 이음매 없는 지질도(`gs-seamless.geoscience.nsw.gov.au`)는 503 이었다 — 살아나면 붙인다. 노던테리토리(NTGS)는 지질도 서비스를 찾지 못했다.
+      **(사람)** 태즈메이니아 theLIST 는 약관이 "레이어의 저작권 글" 로 미루는데 그 글이 비었다 — 정적 판에 싣기 전에 MRT 에 묻는다.
+      GA 의 확인 자원(`AustraliasIdentifiedMineralResources`, 광종 스물아홉 레이어)·지하수가 남았다 — 목록이 403 이라 ecat 에서 이름을 찾는다(wetherilli 241)
 - [ ] **OneGeology 포털이 GSJ 아래에서 다시 열리면**(2026 년 중) 각국 WMS 를 한 목록에서 고른다. 중국 GeoCloud WMS 주소,
       VSEGEI(403)는 막혀 있다 ([docs/새_상류_후보.md](docs/새_상류_후보.md) §2·§3)
 

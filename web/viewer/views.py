@@ -403,7 +403,7 @@ MAP3D_WMS = ("kigam", "geus", "geusarc", "vworld", "ccop", "gsjows", "gsmma",
              # 사스카치원·노바스코샤(wetherilli 235) — 3857 로도 그린다
              "skgs", "nsgs",
              # 호주 GA(wetherilli 212) — ArcGIS WMS 가 3857 로 그린다. 주 판 셋(225)도 3857 이다
-             "ga", "gsq", "gsv", "gssa",
+             "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw",
              # 이탈리아 ISPRA·포르투갈 LNEG·스위스 swisstopo(wetherilli 211) — 3857 로 그린다
              "ispra", "lneg", "swisstopo",
              # 스웨덴 SGU(wetherilli 213) — 2D 는 3413 이지만 GeoServer 가 3857 도 그린다
@@ -3357,6 +3357,8 @@ class _Door:
                "ga": ga,
                # 호주의 주 판(wetherilli 225) — 한 파일(`austates.py`)에 문 셋
                "gsq": austates.GSQ, "gsv": austates.GSV, "gssa": austates.GSSA,
+               # 태즈메이니아·뉴사우스웨일스 (wetherilli 318)
+               "mrt": austates.TAS, "gsnsw": austates.GSNSW,
                # 이탈리아·포르투갈·스위스(wetherilli 211)
                "ispra": ispra, "lneg": lneg, "swisstopo": swisstopo,
                # 아이슬란드(wetherilli 216)
@@ -3387,7 +3389,7 @@ class _Door:
         self.local = self.name == "geomap"
         #: 받은 것을 서버 캐시에 담지 않는다 — 우리가 그리는 것(GeoMAP)과, 자료를 파는 상류(`NO_STORE`, wetherilli 209)
         self.nostore = self.local or self.name in NO_STORE
-        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
+        if self.name in ("geus", "geusarc", "npolar", "kopri", "pgc", "ccop", "gsjows", "gsmma", "emodnet", "ngu", "gtk", "bgs", "bgsgi", "brgm", "egdi", "bgr", "igme", "gsi", "gsni", "sgc", "sgb", "ingemmet", "segemar", "dinamige", "iige", "mrdata", "sgm", "cgmw", "aga", "cgs", "gsn", "bumigeb", "irgm", "nrcan", "ogs", "sigeom", "ygs", "skgs", "nsgs", "ags", "ga", "gsq", "gsv", "gssa", "mrt", "gsnsw", "ispra", "lneg", "swisstopo", "sgu", "natt", "gns", "mris", "gsiindia", "sgs", "esdm", "jmg", "mgb", "dmr", "bcgs", "calgs", "nbmg", "wadnr", "dogami", "geosphere", "pig", "tno", "dov", "spw", "ineter", "georep"):    # 열쇠가 없는 공개 서비스다
             self.ready = True
         elif self.name == "vworld":
             self.ready = vworld.enabled()
@@ -4910,7 +4912,7 @@ def feature_info(request):
             props = sgc.friendly(props, lang)        # 남미 판의 ICS 시대는 옮기고, 콜롬비아 판의 값은 에스파냐어 그대로
         elif door.name == "ga":
             props = ga.friendly(props, lang)         # 호주 — 시대만 옮기고 이름·설명은 영어 그대로 (wetherilli 212)
-        elif door.name in ("gsq", "gsv", "gssa"):
+        elif door.name in ("gsq", "gsv", "gssa", "mrt", "gsnsw"):
             props = austates.UPSTREAMS[door.name][0].friendly(props, lang)     # 호주의 주 판 — 시대만 옮긴다 (wetherilli 225)
         elif door.name in ("ispra", "lneg", "swisstopo"):
             # 이탈리아·포르투갈·스위스(wetherilli 211) — 열 이름만 한국어로, 값은 그 나라 말 그대로
