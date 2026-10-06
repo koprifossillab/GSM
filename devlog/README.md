@@ -426,3 +426,4 @@
 | koprifossillab 017 | 2026-10-01 | [아라온호 항적 — 기간을 고르고, 오래된 것일수록 옅게](20261001_koprifossillab_017_araon_period.md) |
 | koprifossillab 018 | 2026-10-01 | [바람·해류의 빠르기 범례](20261001_koprifossillab_018_flow_legend.md) |
 | koprifossillab 019 | 2026-10-06 | [아라온호 받기가 DNS 로 22 시간 멈춘 것 — 호스트 /etc/hosts 에 고정](20261006_koprifossillab_019_araon_dns.md) |
+| koprifossillab 020 | 2026-10-06 | [시험이 /tmp 에 흘린 것 — tempfile 의 기본 자리를 러너의 임시 자리로](20261006_koprifossillab_020_test_tmp_leak.md) |
