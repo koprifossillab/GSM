@@ -1,4 +1,4 @@
-"""받아 두는 자료원의 명세 — `<DB 옆>/sources.json` (jikhanjung P02).
+"""받아 두는 데이터소스의 명세 — `<DB 옆>/sources.json` (jikhanjung P02).
 
 **문이 아니다.** 상류를 부르지 않고, 사람이 정하는 것(조건·주기·돌리는 곳·명령·산출물)을 적은 JSON 한 장을 읽는다.
 받은 차례마다의 기록(받은 때·결과·행 수)은 여기 두지 않는다 — 돌아가며 바뀌는 것은 기록 표(`store.sqlite`, P02 2 단계)의 몫이다.
@@ -74,7 +74,7 @@ def problems_of(row) -> list:
     if not _strings(row.get("commands", [])) or not isinstance(row.get("commands"), list):
         out.append(msg("commands 는 명령 이름의 목록이다"))
     elif row.get("kind") in ("fetch", "build", "once") and not row["commands"]:
-        out.append(msg("받거나 굽는 자료원인데 commands 가 비었다"))
+        out.append(msg("받거나 굽는 데이터소스인데 commands 가 비었다"))
     if not isinstance(row.get("license"), str) or not row.get("license"):
         out.append(msg("license 가 없다"))
     flags = row.get("flags", [])
@@ -298,3 +298,64 @@ def coverage(rows) -> list:
         if mine and flagged != bool(mine & lab):
             out.append(f"{r['id']} 의 lab_only 가 datastatus 의 연구실 내부용 표시와 다르다")
     return out
+
+
+# ── 관리 화면 "자료원" 탭 (P02 3 단계) ──────────────────────────────
+
+SCHEDULE_LABELS = {"hourly": msg("매시"), "weekly": msg("매주"), "monthly-first-monday": msg("매달 첫 월요일"),
+                   "manual": msg("사람이"), "once": msg("한 번")}
+RUNS_ON_LABELS = {"container": msg("컨테이너"), "host": msg("호스트"), "person": msg("사람 손")}
+FLAG_LABELS = {"nc": msg("비상업"), "sold": msg("판매"), "lab_only": msg("내부용"), "no_store": msg("담지 않음")}
+
+
+def _parse_time(text):
+    try:
+        return datetime.fromisoformat(text) if text else None
+    except ValueError:
+        return None
+
+
+def is_late(row: dict, last_ok, now=None) -> bool:
+    """주기보다 오래 된 적이 없다. 기록이 아예 없는 것은 늦은 것이 아니라 "모름" 이다."""
+    hours = LATE_HOURS.get(row.get("schedule"))
+    when = _parse_time((last_ok or {}).get("started_at"))
+    if not hours or when is None:
+        return False
+    now = now or datetime.now(when.tzinfo)
+    return (now - when).total_seconds() > hours * 3600
+
+
+def overview(sync: bool = True, history: bool = True) -> dict:
+    """명세·기록 표·구운 파일을 엮은 한 장 — 관리 화면과 healthz 가 읽는다. 경로는 `<DB 옆>` 아래 이름만."""
+    from . import datastatus, fetchlog
+
+    spec = load()
+    if sync:
+        try:
+            fetchlog.sync(spec.rows)
+        except Exception:                     # noqa: BLE001 — 옮겨 적기가 깨져도 화면은 선다
+            pass
+    latest = fetchlog.latest()
+    files = {r["key"]: r for r in datastatus.rows()}
+    rows, counts = [], {"total": len(spec.rows), "late": 0, "failed": 0, "unknown": 0, "invalid": len(spec.problems)}
+    for row in spec.rows:
+        got = latest.get(row["id"]) or {}
+        last, last_ok = got.get("last"), got.get("last_ok")
+        late = is_late(row, last_ok)
+        failed = bool(last and last["result"] == "fail")
+        unknown = last is None and row.get("kind") != "file"
+        counts["late"] += late
+        counts["failed"] += failed
+        counts["unknown"] += unknown
+        outputs = []
+        for key in row.get("outputs", []):
+            f = files.get(key)
+            if f is None:
+                outputs.append({"key": key, "kind": "repo" if key.startswith(("data/", "static/")) else "other"})
+            else:
+                outputs.append({"key": key, "kind": "file", **f})
+        rows.append({"row": row, "last": last, "last_ok": last_ok, "late": late, "failed": failed, "unknown": unknown,
+                     "history": fetchlog.history(row["id"], 20) if (last and history) else [], "outputs": outputs})
+    spec_change = (latest.get("_spec") or {}).get("last")
+    return {"rows": rows, "counts": counts, "problems": spec.problems, "origin": spec.origin,
+            "spec_changed": spec_change}

@@ -213,3 +213,46 @@ class SpecChange(Base):
         self.assertEqual([r["source"] for r in self.rows()], ["_spec"])
 
 
+class Overview(Base):
+    """관리 화면의 "데이터소스" 탭과 healthz (P02 3 단계)."""
+
+    databases = {"default"}            # 관리 화면이 상류 응답 시간(UpstreamDay)을 읽는다 — 읽기만
+
+    def setUp(self):
+        super().setUp()
+        from datetime import datetime, timedelta
+        now = datetime.now().astimezone()
+        old = (now - timedelta(hours=10)).isoformat(timespec="seconds")
+        fresh = (now - timedelta(minutes=20)).isoformat(timespec="seconds")
+        fetchlog.write({"source": "wind", "command": "fetch_gfs_wind", "started_at": old, "result": "ok",
+                        "origin": "hourly"})                                        # 매시인데 10 시간 전 — 늦음
+        fetchlog.write({"source": "demo", "command": "fetch_demo", "started_at": fresh, "result": "fail",
+                        "note": "상류가 500", "expected": 100, "rows": 80})          # 깨짐, 센 수보다 적게
+
+    def test_늦음_깨짐_센_수(self):
+        ov = sources.overview(sync=False)
+        by = {r["row"]["id"]: r for r in ov["rows"]}
+        self.assertTrue(by["wind"]["late"])
+        self.assertFalse(by["demo"]["late"])               # manual 은 늦지 않는다
+        self.assertTrue(by["demo"]["failed"])
+        self.assertEqual(ov["counts"]["late"], 1)
+        self.assertEqual(ov["counts"]["failed"], 1)
+
+    def test_관리_화면(self):
+        page = self.client.get("/GSM/manage/").content.decode()
+        self.assertIn('id="tab-sources"', page)
+        self.assertNotIn('id="tab-data"', page)
+        self.assertIn('data-tab="sources">데이터소스<', page)          # 한국어 표기는 "데이터소스" (사람, 2026-10-06)
+        self.assertIn('data-src="wind"', page)
+        self.assertIn("센 수 100 · 받은 수 80", page)
+        self.assertIn("상류가 500", page)
+        self.assertNotIn(str(self.dir), page)              # 절대 경로는 내지 않는다
+        en = self.client.get("/GSM/manage/", HTTP_COOKIE="gsm_lang=en").content.decode()
+        self.assertIn("counted 100 · received 80", en)
+        self.assertIn(">Wind<", en)                         # 이름은 명세의 en
+
+    def test_healthz_에_수(self):
+        data = self.client.get("/GSM/healthz/").json()
+        self.assertEqual(data["sources"]["late"], 1)
+        self.assertEqual(data["sources"]["failed"], 1)
+        self.assertEqual(data["sources"]["total"], 2)
