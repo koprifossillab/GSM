@@ -242,7 +242,7 @@ def _shift(at: str, seconds) -> str:
         return at
 
 
-def _hourly_rows(spec_rows) -> list:
+def _hourly_rows(spec_rows, db=None) -> list:
     """`hourly_status.json` 의 일마다 — 마지막 차례, 그리고 그것이 실패라면 마지막으로 된 차례(`last_ok`)도."""
     by_command = {c: r for r in spec_rows for c in r.get("commands", [])}
     try:
@@ -260,10 +260,29 @@ def _hourly_rows(spec_rows) -> list:
                      "origin": "hourly"})
         last_ok = job.get("last_ok")
         if last_ok and last_ok != job["at"]:
-            # 옮기기 전에 성공 뒤 실패가 오면 성공 줄이 빠진다 — 걸린 초를 모르니 끝난 때 그대로, 그렇다고 적는다
-            rows.append({"source": source["id"], "command": command, "started_at": last_ok, "result": "ok",
-                         "note": "마지막으로 된 차례 — 끝난 때 (걸린 초는 모른다)", "origin": "hourly"})
+            # 옮기기 전에 성공 뒤 실패가 오면 성공 줄이 빠진다. 그 성공을 이미 옮겼다면 같은 줄이 되어야 한다 —
+            # `at` 처럼 시작한 때로 당긴다(`last_ok_seconds`). 그것이 없는 옛 상태 파일이면 이미 옮긴 성공이 있는지 본다
+            took = job.get("last_ok_seconds")
+            if took is not None:
+                rows.append({"source": source["id"], "command": command, "started_at": _shift(last_ok, took),
+                             "seconds": took, "result": "ok", "note": "마지막으로 된 차례", "origin": "hourly"})
+            elif not _hourly_ok_near(db, source["id"], last_ok):
+                rows.append({"source": source["id"], "command": command, "started_at": last_ok, "result": "ok",
+                             "note": "마지막으로 된 차례 — 끝난 때 (걸린 초는 모른다)", "origin": "hourly"})
     return rows
+
+
+#: `hourly.sh` 가 일 하나에 주는 초(`LIMIT`) — 끝난 때에서 이만큼 안쪽에 시작한 성공은 같은 차례다
+HOURLY_LIMIT = 900
+
+
+def _hourly_ok_near(db, source: str, end: str) -> bool:
+    """`end` 에 끝난 매시 성공을 이미 옮겨 적었나 — 시작한 때가 `end` 에서 `HOURLY_LIMIT` 초 안쪽인 성공 줄"""
+    if db is None:
+        return False
+    found = db.execute("SELECT 1 FROM fetch_log WHERE source = ? AND origin = 'hourly' AND result = 'ok' "
+                       "AND started_at BETWEEN ? AND ? LIMIT 1", (source, _shift(end, HOURLY_LIMIT), end)).fetchone()
+    return found is not None
 
 
 def _host_rows(db) -> list:
@@ -305,7 +324,7 @@ def sync(spec_rows=None) -> int:
         spec_rows = sources.load().rows
     try:
         with connect() as db:
-            rows = _hourly_rows(spec_rows) + _host_rows(db)
+            rows = _hourly_rows(spec_rows, db) + _host_rows(db)
             return write_many(rows, db) if rows else 0
     except (sqlite3.Error, OSError):
         return 0

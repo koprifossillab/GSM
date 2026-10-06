@@ -59,6 +59,7 @@ entry = jobs.setdefault(job, {})
 entry.update(at=now, result="ok" if code == 0 else "fail", code=code, seconds=seconds, note=note[:300])
 if code == 0:
     entry["last_ok"] = now
+    entry["last_ok_seconds"] = seconds   # 기록 표가 끝난 때를 시작한 때로 당긴다 — 옮겨 적은 줄과 같은 줄이 되게
 status["at"] = now
 tmp = path + ".part"
 with open(tmp, "w", encoding="utf-8") as f:

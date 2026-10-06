@@ -136,6 +136,34 @@ class Sync(Base):
         self.assertEqual(got["last"]["result"], "fail")
         self.assertEqual(got["last_ok"]["started_at"], "2026-10-06T15:40:03+09:00")
 
+    def test_옮긴_성공을_실패_뒤에_또_적지_않는다(self):
+        """#369 다시 검토 — 성공을 옮긴 뒤 실패가 오면 그 성공이 끝난 때로 한 줄 더 생겼다"""
+        status = self.dir / "hourly_status.json"
+        status.write_text(json.dumps({"jobs": {"fetch_gfs_wind": {
+            "at": "2026-10-06T15:40:03+09:00", "result": "ok", "seconds": 3, "note": "",
+            "last_ok": "2026-10-06T15:40:03+09:00", "last_ok_seconds": 3}}}), encoding="utf-8")
+        fetchlog.sync()
+        status.write_text(json.dumps({"jobs": {"fetch_gfs_wind": {
+            "at": "2026-10-06T16:40:05+09:00", "result": "fail", "seconds": 5, "note": "상류 500",
+            "last_ok": "2026-10-06T15:40:03+09:00", "last_ok_seconds": 3}}}), encoding="utf-8")
+        fetchlog.sync()
+        oks = [r["started_at"] for r in self.rows() if r["source"] == "wind" and r["result"] == "ok"]
+        self.assertEqual(oks, ["2026-10-06T15:40:00+09:00"])
+
+    def test_옛_상태_파일이어도_옮긴_성공을_또_적지_않는다(self):
+        """`last_ok_seconds` 가 없는 옛 hourly_status.json — 이미 옮긴 성공이 끝난 때 안쪽에 있으면 건너뛴다"""
+        status = self.dir / "hourly_status.json"
+        status.write_text(json.dumps({"jobs": {"fetch_gfs_wind": {
+            "at": "2026-10-06T15:40:03+09:00", "result": "ok", "seconds": 3, "last_ok": "2026-10-06T15:40:03+09:00"}}}),
+            encoding="utf-8")
+        fetchlog.sync()
+        status.write_text(json.dumps({"jobs": {"fetch_gfs_wind": {
+            "at": "2026-10-06T16:40:05+09:00", "result": "fail", "seconds": 5, "last_ok": "2026-10-06T15:40:03+09:00"}}}),
+            encoding="utf-8")
+        fetchlog.sync()
+        oks = [r["started_at"] for r in self.rows() if r["source"] == "wind" and r["result"] == "ok"]
+        self.assertEqual(oks, ["2026-10-06T15:40:00+09:00"])
+
     def test_호스트_기록은_읽은_자리_뒤만_읽는다(self):
         """#369 검토 7 — 부를 때마다 jsonl 전체를 읽었다. 덜 적힌 마지막 줄은 다음 차례에"""
         p = self.dir / "fetch_log_host.jsonl"
