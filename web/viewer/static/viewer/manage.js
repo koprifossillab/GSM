@@ -754,6 +754,7 @@
       if (!more) return;
       more.hidden = !more.hidden;
       tr.classList.toggle("open", !more.hidden);
+      tr.setAttribute("aria-expanded", String(!more.hidden));
     }
     tr.addEventListener("click", function (e) {
       if (e.target.closest("a, button")) return;

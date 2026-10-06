@@ -196,6 +196,7 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
 .mg-res.skip { background: var(--ink-faint); }
 .mg-said { max-width: 28em; overflow-wrap: anywhere; }
 .mg-out { white-space: nowrap; }
+.mg-out-what { color: var(--ink-faint); white-space: normal; }
 .mg-src-more td { background: var(--panel-tint); }
 .mg-src-meta { margin: 2px 0 6px; font-size: 12px; color: var(--ink-soft); }
 .mg-hist { margin: 0; padding-left: 1.4em; font-size: 12px; }
