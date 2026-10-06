@@ -593,7 +593,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   seafloor.py     해양 지각 연대 Seton 2020(NetCDF-3)·해저 퇴적층 두께 GlobSed v3(글 격자) — numpy 없이 -> <EARTH_DIR> 의 칠한 PNG·int16 값 -> 경위도 타일·누른 자리. 문이 아니다
   sources.py      받아 두는 자료원의 명세(<DB 옆>/sources.json — 서버에서 손으로 고친다) — 읽기·검사·씨앗 덧붙이기·바뀐 판 떠 두기. 씨앗은 data/sources.seed.json, 새 fetch_*·build_* 를 더하면 거기 한 줄 (jikhanjung P02). 문이 아니다
   fetchlog.py     받은 차례의 기록(<DB 옆>/store.sqlite 의 fetch_log) — fetch_*·build_* 가 끝날 때 한 줄(apps.py 가 BaseCommand.execute 를 감싼다), 명령은 fetchlog.note() 로 보탠다. 호스트(GSM_RUN_PLACE=host)는 sqlite 에 쓰지 않는다 — hourly_status.json·fetch_log_host.jsonl 을 컨테이너가 옮겨 적는다(jikhanjung P02). 문이 아니다
-  datastatus.py   구운 자료의 나이 — <DB 옆> 의 파일마다 있는지·크기·고친 날·원본 판(`ITEMS` 한 표). data_status·healthz·관리 화면이 읽는다. 문이 아니다
+  datastatus.py   구운 자료의 나이 — <DB 옆> 의 파일마다 있는지·크기·고친 날·원본 판(`ITEMS` 한 표). data_status·healthz·관리 화면의 "데이터소스" 탭(산출물 칸, jikhanjung 013)이 읽는다. 문이 아니다
   earthpoints.py  지역 탭의 화석 산지·홀로세 화산·지진·고생태 산지 — 온 지구의 모아 둔 sqlite·JSON 에서 지역의 네모만 점 GeoJSON 으로. 문이 아니다
   pointvalues.py  점묶음 CSV 에 붙일 값 — 점마다 GeoMAP 단위·지각 두께·가까운 PBDB 산지, 달·화성·수성은 그 지질도 단위. 우리 파일만. 문이 아니다
   profileband.py  높이 그래프 밑의 지질 띠 — 잰 선의 점마다 GeoMAP·geo3al·달·화성·수성 파일의 단위, 온 지구는 지각 두께 칸. 상류뿐인 레이어는 띠가 없다. 문이 아니다
