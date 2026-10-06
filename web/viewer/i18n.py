@@ -1486,6 +1486,21 @@ EN = {
     "범례가 없는 레이어다": "This layer has no legend",
     "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
+    # 자료원 명세의 검사 (jikhanjung P02)
+    "줄이 객체가 아니다": "The row is not an object",
+    "id 가 없거나 꼴이 틀렸다 (영어 소문자·숫자·밑줄)": "id is missing or malformed (lowercase letters, digits, underscore)",
+    "name 에 ko·en 이 다 있어야 한다": "name needs both ko and en",
+    "{key} 는 {allowed} 가운데 하나다": "{key} must be one of {allowed}",
+    "commands 는 명령 이름의 목록이다": "commands must be a list of command names",
+    "받거나 굽는 자료원인데 commands 가 비었다": "A fetched or built source has no commands",
+    "license 가 없다": "license is missing",
+    "flags 는 {allowed} 가운데서 고른다": "flags must be chosen from {allowed}",
+    "{key} 는 글의 목록이다": "{key} must be a list of strings",
+    "{key} 는 글이다": "{key} must be a string",
+    "id 가 겹친다": "Duplicate id",
+    "맨 위에 sources 목록이 있어야 한다": "The top level needs a sources list",
+    "명세 파일을 JSON 으로 읽지 못했다 — 마지막으로 떠 둔 판을 쓴다": "Could not read the spec file as JSON — using the last saved copy",
+    "명세도 씨앗도 없다": "Neither the spec nor the seed exists",
     # 5만 지질도의 자세 기호 — 커서와 팝업 (jikhanjung 004)
     "미상": "unknown",
     "경사 방향과 원문 사분면이 맞지 않는다 — 기호는 경사 방향대로 그렸다":
