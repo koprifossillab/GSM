@@ -442,3 +442,4 @@
 | koprifossillab 018 | 2026-10-01 | [바람·해류의 빠르기 범례](20261001_koprifossillab_018_flow_legend.md) |
 | koprifossillab 019 | 2026-10-06 | [아라온호 받기가 DNS 로 22 시간 멈춘 것 — 호스트 /etc/hosts 에 고정](20261006_koprifossillab_019_araon_dns.md) |
 | koprifossillab 020 | 2026-10-06 | [시험이 /tmp 에 흘린 것 — tempfile 의 기본 자리를 러너의 임시 자리로](20261006_koprifossillab_020_test_tmp_leak.md) |
+| koprifossillab 021 | 2026-10-06 | [지난 바람 ERA5 를 8 TB 하드로 — 루트 SSD 를 비운다](20261006_koprifossillab_021_era5_on_data.md) |
