@@ -160,7 +160,7 @@ def _keep_history(data: bytes, sha: str):
 
 
 def _log_spec_change(sha: str, name: str):
-    """명세가 바뀐 것을 기록 표에도 한 줄 — 자료원 `_spec` (P02 2 단계). 장부가 실패해도 읽기는 돈다."""
+    """명세가 바뀐 것을 기록 표에도 한 줄 — 데이터소스 `_spec` (P02 2 단계). 장부가 실패해도 읽기는 돈다."""
     if not getattr(settings, "FETCH_LOG", False):
         return
     try:
@@ -284,13 +284,13 @@ def coverage(rows) -> list:
     on_disk = commands_on_disk()
     named = {c for r in rows for c in r.get("commands", [])}
     for c in sorted(on_disk - named):
-        out.append(f"명령 {c} 가 어느 자료원에도 없다")
+        out.append(f"명령 {c} 가 어느 데이터소스에도 없다")
     for c in sorted(named - on_disk):
-        out.append(f"자료원이 적은 명령 {c} 가 없다")
+        out.append(f"데이터소스가 적은 명령 {c} 가 없다")
     outputs = {o for r in rows for o in r.get("outputs", [])}
     for item in datastatus.ITEMS:
         if item.key not in outputs:
-            out.append(f"구운 자료 {item.key} 가 어느 자료원의 outputs 에도 없다")
+            out.append(f"구운 자료 {item.key} 가 어느 데이터소스의 outputs 에도 없다")
     lab = {i.key for i in datastatus.ITEMS if i.lab}
     for r in rows:
         flagged = "lab_only" in r.get("flags", [])
@@ -300,7 +300,7 @@ def coverage(rows) -> list:
     return out
 
 
-# ── 관리 화면 "자료원" 탭 (P02 3 단계) ──────────────────────────────
+# ── 관리 화면 "데이터소스" 탭 (P02 3 단계) ──────────────────────────────
 
 SCHEDULE_LABELS = {"hourly": msg("매시"), "weekly": msg("매주"), "monthly-first-monday": msg("매달 첫 월요일"),
                    "manual": msg("사람이"), "once": msg("한 번")}
@@ -337,8 +337,10 @@ def overview(sync: bool = True, history: bool = True) -> dict:
             pass
     latest = fetchlog.latest()
     files = {r["key"]: r for r in datastatus.rows()}
-    rows, counts = [], {"total": len(spec.rows), "late": 0, "failed": 0, "unknown": 0, "invalid": len(spec.problems)}
-    for row in spec.rows:
+    # 밖에 연 판(`GSM_PUBLIC`)에서는 연구실 내부용을 내리지 않는다 — 이름·지난 차례·마지막 말까지 (#373 검토 5, `views.LAB_ONLY`)
+    shown = [r for r in spec.rows if not (settings.PUBLIC and "lab_only" in r.get("flags", []))]
+    rows, counts = [], {"total": len(shown), "late": 0, "failed": 0, "unknown": 0, "invalid": len(spec.problems)}
+    for row in shown:
         got = latest.get(row["id"]) or {}
         last, last_ok = got.get("last"), got.get("last_ok")
         late = is_late(row, last_ok)

@@ -586,17 +586,12 @@ EN = {
     "© 한국지질자원연구원": "© KIGAM",
     "국토지리원": "GSI Japan",
     "(손으로 둔다)": "(placed by hand)",
-    # 구운 자료 (wetherilli 312)
-    "구운 자료": "Baked data",
-    "서버의 자료 폴더에 굽거나 모아 둔 파일 — 있는지·크기·고친 날·원본 판": "Files baked or collected in the server's data folder — present, size, modified, source version",
+    # 구운 파일 칸 (wetherilli 312 — 데이터소스 탭에 녹았다)
     "파일": "File",
     "고친 날": "Modified",
-    "만드는 명령": "Made by",
     "없다": "Missing",
     "없다 (밖에 연 판에는 두지 않는다)": "Absent (not kept on the public build)",
-    "원본 판은 sqlite 의 meta 표나 JSON 머리, 바람·해류는 첫·끝 시점이다. 서버 쪽에서는 manage.py data_status 로 같은 표를 본다.": "Versions come from the sqlite meta table or the JSON header; wind and currents show the first and last times. On the server, manage.py data_status shows the same table.",
     "{n} 칸": "{n} entries",
-    "원본 판": "Source version",
     "남극 자력 이상 ADMAP-2": "Antarctic magnetic anomalies ADMAP-2",
     "남극 GeoMAP": "Antarctic GeoMAP",
     "남극 해저·빙저 지형 IBCSO v2": "Antarctic seafloor and subglacial topography IBCSO v2",
@@ -1486,7 +1481,7 @@ EN = {
     "범례가 없는 레이어다": "This layer has no legend",
     "범례 열기": "Open legend",
     "bbox 가 없다": "bbox is missing",
-    # 자료원 명세의 검사 (jikhanjung P02)
+    # 데이터소스 명세의 검사 (jikhanjung P02)
     "줄이 객체가 아니다": "The row is not an object",
     "id 가 없거나 꼴이 틀렸다 (영어 소문자·숫자·밑줄)": "id is missing or malformed (lowercase letters, digits, underscore)",
     "name 에 ko·en 이 다 있어야 한다": "name needs both ko and en",
@@ -1501,7 +1496,7 @@ EN = {
     "맨 위에 sources 목록이 있어야 한다": "The top level needs a sources list",
     "명세 파일을 JSON 으로 읽지 못했다 — 마지막으로 떠 둔 판을 쓴다": "Could not read the spec file as JSON — using the last saved copy",
     "명세도 씨앗도 없다": "Neither the spec nor the seed exists",
-    # 관리 화면 "자료원" 탭 (jikhanjung P02 3 단계)
+    # 관리 화면 "데이터소스" 탭 (jikhanjung P02 3 단계)
     "데이터소스": "Sources",
     "받아 두는 데이터소스": "Collected sources",
     "조건·주기·마지막으로 받은 때·결과·산출물 — 줄을 누르면 지난 차례": "Terms · schedule · last run · result · outputs — tap a row for past runs",

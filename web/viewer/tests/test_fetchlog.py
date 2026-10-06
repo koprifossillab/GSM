@@ -184,7 +184,7 @@ class Sync(Base):
             call_command("sources_backfill", stdout=out, stderr=err)
             call_command("sources_log", stdout=out, stderr=err)
 
-    def test_자료원마다_마지막과_마지막으로_된_것(self):
+    def test_데이터소스마다_마지막과_마지막으로_된_것(self):
         for at, result in (("2026-10-01T00:00:00+09:00", "ok"), ("2026-10-02T00:00:00+09:00", "fail")):
             fetchlog.write({"source": "demo", "started_at": at, "result": result})
         got = fetchlog.latest()["demo"]
@@ -204,7 +204,7 @@ class WrapsCommands(Base):
                 call_command("fetch_kigam50k", stdout=out)
         rows = self.rows()
         self.assertEqual([(r["command"], r["result"]) for r in rows], [("fetch_kigam50k", "ok")])
-        self.assertEqual(rows[0]["source"], "fetch_kigam50k")   # 이 시험의 명세에 없는 명령 — 이름을 자료원으로
+        self.assertEqual(rows[0]["source"], "fetch_kigam50k")   # 이 시험의 명세에 없는 명령 — 이름을 데이터소스로
 
     def test_시험에서는_끈다(self):
         with override_settings(FETCH_LOG=False), \
@@ -278,6 +278,46 @@ class Overview(Base):
         en = self.client.get("/GSM/manage/", HTTP_COOKIE="gsm_lang=en").content.decode()
         self.assertIn("counted 100 · received 80", en)
         self.assertIn(">Wind<", en)                         # 이름은 명세의 en
+
+    def test_화면에는_경로와_열쇠를_내지_않는다(self):
+        """#373 검토 1 — 명령의 마지막 줄·예외 글이 걸러지지 않고 계정을 묻지 않는 화면에 떴다"""
+        from datetime import datetime
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        fetchlog.write({"source": "demo", "command": "fetch_demo", "started_at": now, "result": "fail",
+                        "note": f"받았다 → {self.dir}/earth/x.json · /srv/GSM/db/kopri/araon.json · "
+                                "https://example.org/wms?key=SECRET123&whoami=me@example.org&x=1"})
+        page = self.client.get("/GSM/manage/").content.decode()
+        self.assertNotIn(str(self.dir), page)
+        self.assertNotIn("/srv/GSM", page)
+        self.assertNotIn("SECRET123", page)
+        self.assertNotIn("me@example.org", page)
+        self.assertIn("&lt;DB 옆&gt;/earth/x.json", page)
+        self.assertIn("araon.json", page)
+        self.assertIn("key=…", page)
+
+    def test_shown(self):
+        self.assertEqual(fetchlog.shown(""), "")
+        self.assertEqual(fetchlog.shown("→ /home/someone/data/a.zip"), "→ a.zip")
+        self.assertEqual(fetchlog.shown("https://h.org/data/a?token=abc"), "https://h.org/data/a?token=…")   # 주소 안의 경로는 둔다
+        self.assertEqual(fetchlog.shown(f"{self.dir}/store.sqlite"), "<DB 옆>/store.sqlite")
+
+    def test_healthz_는_장부에_쓰지_않는다(self):
+        """#373 검토 2 — 공개 GET 마다 옮겨 적으며 쓰기 트랜잭션이 돌았다"""
+        with mock.patch.object(fetchlog, "sync") as sync:
+            self.client.get("/GSM/healthz/")
+        sync.assert_not_called()
+
+    def test_밖에_연_판에서는_내부용을_내린다(self):
+        """#373 검토 5 — GSM_PUBLIC 이어도 연구실 내부용 데이터소스의 줄·지난 차례가 보였다"""
+        live = self.dir / "public.json"
+        rows = [{**r, "flags": ["lab_only"]} if r["id"] == "demo" else r for r in json.loads((self.dir / "seed.json").read_text())["sources"]]
+        live.write_text(json.dumps({"sources": rows}), encoding="utf-8")
+        with override_settings(SOURCES_PATH=str(live), PUBLIC=True):
+            sources._cache.update(key=None, spec=None)
+            ids = [r["row"]["id"] for r in sources.overview(sync=False)["rows"]]
+        sources._cache.update(key=None, spec=None)
+        self.assertNotIn("demo", ids)
+        self.assertIn("wind", ids)
 
     def test_healthz_에_수(self):
         data = self.client.get("/GSM/healthz/").json()

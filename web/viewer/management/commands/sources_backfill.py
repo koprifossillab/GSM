@@ -1,8 +1,8 @@
-"""기록 표가 비어 있을 때 한 번 — 자료원마다 지난 한 줄을 파일로 어림해 넣는다 (jikhanjung P02 2 단계).
+"""기록 표가 비어 있을 때 한 번 — 데이터소스마다 지난 한 줄을 파일로 어림해 넣는다 (jikhanjung P02 2 단계).
 
     manage.py sources_backfill
 
-`datastatus` 가 지금 하는 어림(산출물 파일의 고친 날)으로 `estimated=1` 한 줄을 넣는다. 이미 줄이 있는 자료원은 건너뛴다.
+`datastatus` 가 지금 하는 어림(산출물 파일의 고친 날)으로 `estimated=1` 한 줄을 넣는다. 이미 줄이 있는 데이터소스는 건너뛴다.
 저장소에 굽는 것(`data/…`·`static/…`)은 이미지가 지어진 날이 고친 날이라 어림하지 않는다.
 """
 import sqlite3
@@ -13,7 +13,7 @@ from viewer import datastatus, fetchlog, sources
 
 
 class Command(BaseCommand):
-    help = "기록 표가 빈 자료원에 파일로 어림한 한 줄을 넣는다"
+    help = "기록 표가 빈 데이터소스에 파일로 어림한 한 줄을 넣는다"
 
     def handle(self, *args, **opts):
         if fetchlog.on_host():

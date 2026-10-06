@@ -747,7 +747,7 @@
 
   P.onChange(function () { if ($("tab-stored").classList.contains("on")) renderStored(); });
 
-  // ── 자료원 (jikhanjung P02 3 단계) — 줄을 누르면 지난 차례가 펼쳐진다 ─────────────
+  // ── 데이터소스 (jikhanjung P02 3 단계) — 줄을 누르면 지난 차례가 펼쳐진다 ─────────────
   document.querySelectorAll("#mg-sources tr.mg-src").forEach(function (tr) {
     function toggle() {
       var more = document.querySelector('#mg-sources tr.mg-src-more[data-for="' + tr.dataset.src + '"]');

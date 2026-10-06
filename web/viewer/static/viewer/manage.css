@@ -175,7 +175,7 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
 .mg-verify b.bad { color: #d4523a; margin-left: 6px; }
 .mg-verify span { margin-left: 6px; font-family: var(--font-mono); font-size: 11px; }
 
-/* 자료원 (jikhanjung P02 3 단계) — "구운 자료" 탭(wetherilli 312)을 녹였다. 늦거나 깨진 줄은 붉게, 줄을 누르면 지난 차례 */
+/* 데이터소스 (jikhanjung P02 3 단계) — "구운 자료" 탭(wetherilli 312)을 녹였다. 늦거나 깨진 줄은 붉게, 줄을 누르면 지난 차례 */
 .mg-sources td { vertical-align: top; white-space: normal; }
 .mg-sources td.mg-src-name { min-width: 11em; }
 .mg-sources td:nth-child(2) { min-width: 8em; }
@@ -206,7 +206,7 @@ body.manage { display: block; height: auto; min-height: 100vh; overflow: visible
 .mg-src-warn { margin: 4px 0; padding: 6px 10px; font-size: 12.5px; border: 1px solid #d4523a; border-radius: 6px; }
 
 @media (max-width: 640px) {
-  /* 자료원도 카드로 — 칸이 여섯이라 가로로 굴렀다. 저장 탭(wetherilli 369)과 같은 틀 */
+  /* 데이터소스도 카드로 — 칸이 여섯이라 가로로 굴렀다. 저장 탭(wetherilli 369)과 같은 틀 */
   .mg-sources thead { display: none; }
   .mg-sources, .mg-sources tbody { display: block; }
   .mg-sources tr.mg-src { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 10px 4px; border-bottom: 1px solid var(--line-soft); }

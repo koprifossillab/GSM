@@ -8,7 +8,7 @@
 #
 # 바뀌는 빠르기대로 넷으로 가른다 — 한 tar 에 다 넣으면 주 2.7 GB 가운데 2.6 GB 가 안 바뀐 것이다.
 #   ① 주간 tar   /data/GSM/backups/GSM.<YYYYMMDD>.tar.gz — 다시 못 얻는 것. 모두 둔다
-#                GSM.db(sqlite 사본) · 스위치(dev_direct_wms·public, 있으면) · kopri/ · kigam50k/ · sources.json·sources_history/(자료원 명세)·store.sqlite·fetch_log_host.jsonl(받은 차례의 기록, jikhanjung P02) · earth/pbdb_collections.csv(있으면)
+#                GSM.db(sqlite 사본) · 스위치(dev_direct_wms·public, 있으면) · kopri/ · kigam50k/ · sources.json·sources_history/(데이터소스 명세)·store.sqlite·fetch_log_host.jsonl(받은 차례의 기록, jikhanjung P02) · earth/pbdb_collections.csv(있으면)
 #                · docker-compose.yml · manifest-built.txt(② 의 목록, sha256)
 #   ② 구운 것    /data/GSM/backups/GSM-built.<YYYYMMDD>.tar — db/ 의 나머지. **목록이 지난번과 다를 때만** 뜬다.
 #                압축하지 않는다(webp·tif 가 대부분). 30 일까지 전부, 그 뒤 달마다 가장 새 것 하나
