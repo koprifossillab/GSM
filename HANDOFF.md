@@ -68,7 +68,7 @@
 | `wind/`·`ocean/` | 바람·구름(GFS·GMGSI·ERA5)·해류(ECCO2) PNG | 호스트 cron 의 `hourly.sh`, 지난 것은 사람이 `build_era5_wind`·`build_ecco2` (koprifossillab P02·005·014) |
 | `kigam_data/` | KIGAM `/openapi/data` 의 시료·분석·주제도·조사 | `manage.py fetch_kigam_data` (wetherilli 169) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
-| `kigam50k/` | KIGAM 5만 지질도 층리·엽리·절리·단층 등 19 레이어(WFS, 2026-09-30). 0.25.1 부터 자세 기호의 커서·팝업이 읽는다 | 지금은 손으로 받아 둔 `raw/20260930/`. 받는 명령은 jikhanjung P01 |
+| `kigam50k/` | KIGAM 5만 지질도 구조 요소 19 레이어(WFS) — 층리·엽리 기호·장미도·레이어군 "지질 구조 (5만)" 이 읽는다. 지금은 `raw/20260930/` 하나 (jikhanjung 004·005, wetherilli 197·199·202·223) | `manage.py fetch_kigam50k` — 사람이 가끔. 같으면 새 폴더 없이 확인한 날만 (wetherilli 199·208) |
 
 그 밖에 가끔 돌리는 것 — `data_status`(위 표의 파일마다 있는지·크기·고친 날·원본 판, wetherilli 312), `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`
 (`/openapi/wms` 가 속성을 열었는지), `upstream_stats`(얼마나 묻는지).
