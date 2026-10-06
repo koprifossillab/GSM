@@ -318,7 +318,7 @@ class PhoneScreenTests(PhoneBase):
         page.tap("#mg-save")
         page.wait_for_timeout(800)
         page.tap('#mg-tabs [data-tab="stored"]')
-        page.wait_for_timeout(500)
+        page.wait_for_selector("#mg-layers .mg-row-acts button", timeout=15000)   # IndexedDB 저장·다시 그리기를 기다린다 — 고정 대기는 느린 CI 에서 깨진다
         buttons = page.evaluate("""() => [...document.querySelectorAll('#mg-layers .mg-row-acts button')].map(b => {
             const r = b.getBoundingClientRect(); return [b.textContent, r.left, r.right]; })""")
         self.assertTrue(buttons, "저장한 개인 레이어의 단추가 없다")
