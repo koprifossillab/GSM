@@ -14,6 +14,8 @@
 """
 import os
 import re
+import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -21,6 +23,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.management import call_command
 
 try:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
     from playwright.sync_api import sync_playwright
 except ImportError:            # 운영 이미지·기본 시험에는 없다
     sync_playwright = None
@@ -101,6 +104,9 @@ class PhoneBase(StaticLiveServerTestCase):
         page = ctx.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
+        # 깨졌을 때 까닭을 적으려고 콘솔도 받아 둔다 — 검사하지는 않는다 (jikhanjung 010)
+        page.gsm_console = []
+        page.on("console", lambda m: page.gsm_console.append(f"{m.type}: {m.text}"[:200]))
         base = self.live_server_url + "/GSM/"
 
         def route(r):
@@ -596,13 +602,32 @@ class Phone3D(PhoneBase):
     """3D(MapLibre)를 손가락으로 — 점묶음의 점을 누르면 팝업이 화면 안에 선다. 최대 폭 320 px 이면 390 px 화면에서
     MapLibre 가 어느 쪽에 붙여도 넘쳤다(오른쪽으로 85 px, wetherilli 362)"""
 
+    #: 3D 의 첫 화면(`map.on("load")`)을 기다리는 시간. 이 시험은 갈래의 첫 시험이 되기 쉬워 크롬과 SwiftShader 의
+    #: 첫 시동을 떠안는다 — 러너가 느린 날은 15 초를 넘겨 깨졌다(10/05–06 의 main 여섯 번 가운데 둘, 그때 job 전체가
+    #: 168–173 초로 느렸다). 빠른 날은 몇 초에 지나가므로 넉넉히 두어도 잃는 것이 없다 (jikhanjung 010)
+    READY_TIMEOUT = 60
+
+    def wait_ready(self, page, started):
+        """3D 가 뜰 때까지. 넘기면 상태·콘솔을 실패 글에 적고, 화면을 열기 시작한 때(`started`)부터 걸린 초는 늘
+        기록에 남긴다 — 다음에 느려지면 견줄 수 있게."""
+        try:
+            page.wait_for_function("window.__gsm3dReady", timeout=self.READY_TIMEOUT * 1000)
+        except PlaywrightTimeout:
+            state = page.evaluate("""() => { const m = window.__gsm3d;
+                return { map: !!m, styleLoaded: m ? m.isStyleLoaded() : null, loaded: m ? m.loaded() : null,
+                         webgl: !!document.createElement("canvas").getContext("webgl") }; }""")
+            self.fail(f"3D 가 {self.READY_TIMEOUT} 초 안에 뜨지 않았다 — 상태 {state}, "
+                      f"콘솔 끝 {page.gsm_console[-8:]}")
+        print(f"\n3D 첫 화면 {time.monotonic() - started:.1f} 초", file=sys.stderr, flush=True)
+
     def test_점을_누르면_팝업이_화면_안이다(self):
         from viewer.models import Point, PointSet
         ps = PointSet.objects.create(name="대전 시료", color="#e4572e")
         Point.objects.create(pointset=ps, label="시료 1", lat=36.35, lon=127.38,
                              props={"암석": "화강암", "비고": "설명이 긴 시료라 팝업이 넓어진다 " * 4})
+        started = time.monotonic()
         page, errors = self.open("3d/?lat=36.36&lon=127.39&z=12&region=korea", settle=3000)
-        page.wait_for_function("window.__gsm3dReady", timeout=15000)
+        self.wait_ready(page, started)
         page.wait_for_timeout(1500)
         x, y = page.evaluate("(() => { const p = window.__gsm3d.project([127.38, 36.35]); return [p.x, p.y]; })()")
         self.assertTrue(0 < x < 390 and 0 < y < 844, "점이 화면 밖이다")
