@@ -7,9 +7,10 @@
 누가 쓰나
 - **컨테이너의 `fetch_*`·`build_*`** — `apps.py` 가 명령의 `execute` 를 감싸 끝날 때 한 줄을 적는다. 명령은 아는 것을 `note()` 로
   보탠다(`rows`·`expected`·`raw_path` …). 명령 마흔다섯을 하나하나 고치지 않으려고 한 자리에서 감쌌다
-- **호스트**(`run.sh` 가 `GSM_RUN_PLACE=host`)는 sqlite 에 쓰지 않는다 — 컨테이너와 한 파일에 쓰지 않게(검토의 "잠금").
-  매시 일은 지금처럼 `hourly_status.json` 이 남기고, 사람이 호스트에서 부른 일(ERA5·ECCO2)은 `fetch_log_host.jsonl` 에 한 줄을 덧붙인다.
-  컨테이너가 화면·healthz 를 그릴 때 둘을 옮겨 적는다(`sync()`)
+- **호스트**(`run.sh` 가 `GSM_RUN_PLACE=host`)는 **sqlite 를 만들지도 쓰지도 않는다** — 컨테이너와 한 파일에 쓰지 않게(검토의 "잠금").
+  읽을 때는 읽기 전용으로 열고, 없으면 빈 것이다. `hourly.sh` 가 부른 일(`GSM_HOURLY_JOB=1`)은 `hourly_status.json` 이 남기고, 그 밖에
+  호스트에서 부른 일(ERA5·ECCO2, 손으로 부른 `run.sh fetch_araon --past` 따위)은 `fetch_log_host.jsonl` 에 한 줄을 덧붙인다.
+  컨테이너가 화면·healthz 를 그릴 때 둘을 옮겨 적는다(`sync()`) — jsonl 은 읽은 자리를 기억해 새 줄만 읽는다
 """
 import contextlib
 import json
@@ -17,7 +18,7 @@ import os
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from django.conf import settings
@@ -44,13 +45,16 @@ CREATE TABLE IF NOT EXISTS fetch_log (
     UNIQUE (source, started_at, origin)
 );
 CREATE INDEX IF NOT EXISTS fetch_log_source ON fetch_log (source, started_at);
+CREATE TABLE IF NOT EXISTS fetch_log_meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
 """
 
 #: 명령이 `note()` 로 보탤 수 있는 칸
 FIELDS = ("upstream_version", "expected", "rows", "changed", "raw_path", "raw_sha256", "built_at", "built_by")
+COLUMNS = ("source", "command", "started_at", "seconds", "result", "note", "estimated", "origin", *FIELDS)
+_DEFAULTS = {"command": "", "note": "", "estimated": 0, "origin": "container", "upstream_version": "",
+             "raw_path": "", "raw_sha256": "", "built_at": "", "built_by": ""}
 
 _local = threading.local()
-_schema_done = set()
 
 
 def store_path() -> Path:
@@ -69,20 +73,30 @@ def on_host() -> bool:
     return os.environ.get("GSM_RUN_PLACE") == "host"
 
 
+def from_hourly() -> bool:
+    """`hourly.sh` 가 부른 일 — 그 결과는 `hourly_status.json` 이 남긴다"""
+    return os.environ.get("GSM_HOURLY_JOB") == "1"
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
+# ── 열기 ────────────────────────────────────────────────────────────
+
 @contextlib.contextmanager
 def connect():
+    """쓰는 연결 — 컨테이너만. 표는 열 때마다 `IF NOT EXISTS` 로 — 파일을 지우거나 되살려도 오래 떠 있는 일꾼이 다시 짓는다."""
+    if on_host():
+        raise RuntimeError("호스트는 store.sqlite 에 쓰지 않는다")
     p = store_path()
     p.parent.mkdir(parents=True, exist_ok=True)
+    new = not p.exists()
     db = sqlite3.connect(p, timeout=10)
     try:
-        if str(p) not in _schema_done:
-            db.execute("PRAGMA journal_mode=WAL")
-            db.executescript(SCHEMA)
-            _schema_done.add(str(p))
+        db.execute("PRAGMA journal_mode=WAL")
+        db.executescript(SCHEMA)
+        if new:
             try:
                 os.chmod(p, 0o664)
             except OSError:
@@ -93,15 +107,51 @@ def connect():
         db.close()
 
 
+@contextlib.contextmanager
+def reader():
+    """읽는 연결 — 파일을 만들지 않는다. 없으면 None. 호스트는 읽기 전용으로 연다."""
+    p = store_path()
+    if not p.exists():
+        yield None
+        return
+    if on_host():
+        db = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=10)
+    else:
+        db = sqlite3.connect(p, timeout=10)
+    try:
+        db.row_factory = sqlite3.Row
+        try:
+            db.execute("SELECT 1 FROM fetch_log LIMIT 1")
+        except sqlite3.Error:                     # 표가 아직 없다
+            yield None
+            return
+        yield db
+    finally:
+        db.close()
+
+
+def _values(row: dict) -> list:
+    values = [row.get(c) for c in COLUMNS]
+    return [_DEFAULTS.get(c) if v is None and c in _DEFAULTS else v for c, v in zip(COLUMNS, values)]
+
+
+_INSERT = f"INSERT OR IGNORE INTO fetch_log ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})"
+
+
 def write(row: dict):
     """한 줄을 적는다. 같은 (자료원·시작한 때·어디서)는 한 번만."""
-    cols = ["source", "command", "started_at", "seconds", "result", "note", "estimated", "origin", *FIELDS]
-    values = [row.get(c) for c in cols]
-    defaults = {"command": "", "note": "", "estimated": 0, "origin": "container", "upstream_version": "",
-                "raw_path": "", "raw_sha256": "", "built_at": "", "built_by": ""}
-    values = [defaults.get(c) if v is None and c in defaults else v for c, v in zip(cols, values)]
     with connect() as db:
-        db.execute(f"INSERT OR IGNORE INTO fetch_log ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", values)
+        db.execute(_INSERT, _values(row))
+
+
+def write_many(rows, db=None) -> int:
+    """여럿을 한 연결·한 트랜잭션에. 새로 적힌 줄 수."""
+    if db is None:
+        with connect() as conn:
+            return write_many(rows, conn)
+    before = db.total_changes
+    db.executemany(_INSERT, [_values(r) for r in rows])
+    return db.total_changes - before
 
 
 # ── 명령이 끝날 때 ─────────────────────────────────────────────────
@@ -124,7 +174,6 @@ def record(source: str, command: str, schedule: str = "manual"):
     previous = getattr(_local, "current", None)
     _local.current = extra
     tail = _Tail()
-    _local.tail = tail
     result, last = "ok", ""
     try:
         yield tail
@@ -141,7 +190,7 @@ def record(source: str, command: str, schedule: str = "manual"):
                "note": last or tail.last, **extra}
         try:
             if on_host():
-                if schedule != "hourly":          # 매시 일은 hourly_status.json 이 남긴다
+                if not from_hourly():             # hourly.sh 가 부른 것은 hourly_status.json 이 남긴다
                     _append_host(row)
             else:
                 write(row)
@@ -181,81 +230,123 @@ def _append_host(row: dict):
 
 # ── 옮겨 적기 ───────────────────────────────────────────────────────
 
-def sync(spec_rows=None) -> int:
-    """호스트가 남긴 것(`hourly_status.json`·`fetch_log_host.jsonl`)을 `fetch_log` 로. 옮긴 줄 수."""
-    if on_host():
-        return 0
-    if spec_rows is None:
-        from . import sources
-        spec_rows = sources.load().rows
+def _shift(at: str, seconds) -> str:
+    """`hourly.sh` 의 `at` 은 끝난 때다 — 걸린 초만큼 당겨 시작한 때로"""
+    try:
+        end = datetime.fromisoformat(at)
+    except (TypeError, ValueError):
+        return at
+    try:
+        return (end - timedelta(seconds=float(seconds or 0))).isoformat(timespec="seconds")
+    except (TypeError, ValueError):
+        return at
+
+
+def _hourly_rows(spec_rows) -> list:
+    """`hourly_status.json` 의 일마다 — 마지막 차례, 그리고 그것이 실패라면 마지막으로 된 차례(`last_ok`)도."""
     by_command = {c: r for r in spec_rows for c in r.get("commands", [])}
-    rows = []
     try:
         jobs = json.loads(hourly_status_path().read_text(encoding="utf-8")).get("jobs") or {}
     except (OSError, ValueError, AttributeError):
-        jobs = {}
+        return []
+    rows = []
     for command, job in jobs.items():
         source = by_command.get(command)
         if not source or not isinstance(job, dict) or not job.get("at"):
             continue
         result = {"ok": "ok", "skip": "skip"}.get(job.get("result"), "fail")
-        rows.append({"source": source["id"], "command": command, "started_at": job["at"],
+        rows.append({"source": source["id"], "command": command, "started_at": _shift(job["at"], job.get("seconds")),
                      "seconds": job.get("seconds"), "result": result, "note": str(job.get("note") or "")[:300],
                      "origin": "hourly"})
+        last_ok = job.get("last_ok")
+        if last_ok and last_ok != job["at"]:
+            # 옮기기 전에 성공 뒤 실패가 오면 성공 줄이 빠진다 — 걸린 초를 모르니 끝난 때 그대로, 그렇다고 적는다
+            rows.append({"source": source["id"], "command": command, "started_at": last_ok, "result": "ok",
+                         "note": "마지막으로 된 차례 — 끝난 때 (걸린 초는 모른다)", "origin": "hourly"})
+    return rows
+
+
+def _host_rows(db) -> list:
+    """jsonl 에서 지난번에 읽은 자리 뒤의 줄만. 파일이 줄었으면(바뀌었으면) 처음부터."""
+    p = host_log_path()
     try:
-        with open(host_log_path(), encoding="utf-8") as fh:
-            for line in fh:
-                try:
-                    row = json.loads(line)
-                except ValueError:
-                    continue
-                if isinstance(row, dict) and row.get("source") and row.get("started_at"):
-                    rows.append({**row, "origin": "host"})
+        size = p.stat().st_size
     except OSError:
-        pass
-    if not rows:
-        return 0
-    before = _count()
-    for row in rows:
+        return []
+    got = dict(db.execute("SELECT k, v FROM fetch_log_meta WHERE k = 'host_offset'").fetchall())
+    offset = int(got.get("host_offset", 0) or 0)
+    if offset > size:
+        offset = 0
+    rows = []
+    with open(p, "rb") as fh:
+        fh.seek(offset)
+        data = fh.read()
+    end = data.rfind(b"\n") + 1                   # 덜 적힌 마지막 줄은 다음 차례에
+    for line in data[:end].decode("utf-8", "replace").splitlines():
         try:
-            write(row)
-        except sqlite3.Error:
-            return 0
-    return _count() - before
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and row.get("source") and row.get("started_at"):
+            rows.append({**row, "origin": "host"})
+    db.execute("INSERT OR REPLACE INTO fetch_log_meta (k, v) VALUES ('host_offset', ?)", (str(offset + end),))
+    return rows
 
 
-def _count() -> int:
+def sync(spec_rows=None) -> int:
+    """호스트가 남긴 것(`hourly_status.json`·`fetch_log_host.jsonl`)을 `fetch_log` 로. 옮긴 줄 수.
+
+    호스트에서는 하지 않고, 기록이 꺼져 있으면(시험) 하지 않는다. 장부를 못 열면 0 — 부르는 쪽을 죽이지 않는다.
+    """
+    if on_host() or not getattr(settings, "FETCH_LOG", True):
+        return 0
+    if spec_rows is None:
+        from . import sources
+        spec_rows = sources.load().rows
     try:
         with connect() as db:
-            return db.execute("SELECT count(*) FROM fetch_log").fetchone()[0]
-    except sqlite3.Error:
+            rows = _hourly_rows(spec_rows) + _host_rows(db)
+            return write_many(rows, db) if rows else 0
+    except (sqlite3.Error, OSError):
         return 0
 
 
 # ── 읽기 ────────────────────────────────────────────────────────────
 
+_LAST = """
+SELECT * FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY source ORDER BY started_at DESC, id DESC) AS rn
+    FROM fetch_log {where}
+) WHERE rn = 1
+"""
+
+
 def latest() -> dict:
-    """자료원마다 마지막 줄과 마지막으로 된(ok) 줄 — {id: {"last": row, "last_ok": row}}."""
+    """자료원마다 마지막 줄과 마지막으로 된(ok·skip) 줄 — {id: {"last": row, "last_ok": row}}. 파일이 없으면 빈 것."""
     out = {}
     try:
-        with connect() as db:
-            db.row_factory = sqlite3.Row
-            for row in db.execute("SELECT * FROM fetch_log ORDER BY started_at, id"):
+        with reader() as db:
+            if db is None:
+                return out
+            for row in db.execute(_LAST.format(where="")):
                 d = dict(row)
-                entry = out.setdefault(d["source"], {"last": None, "last_ok": None})
-                entry["last"] = d
-                if d["result"] in ("ok", "skip"):
-                    entry["last_ok"] = d
-    except sqlite3.Error:
+                d.pop("rn", None)
+                out[d["source"]] = {"last": d, "last_ok": None}
+            for row in db.execute(_LAST.format(where="WHERE result IN ('ok', 'skip')")):
+                d = dict(row)
+                d.pop("rn", None)
+                out.setdefault(d["source"], {"last": None, "last_ok": None})["last_ok"] = d
+    except (sqlite3.Error, OSError):
         return {}
     return out
 
 
 def history(source: str, limit: int = 20) -> list:
     try:
-        with connect() as db:
-            db.row_factory = sqlite3.Row
+        with reader() as db:
+            if db is None:
+                return []
             return [dict(r) for r in db.execute(
                 "SELECT * FROM fetch_log WHERE source = ? ORDER BY started_at DESC, id DESC LIMIT ?", (source, limit))]
-    except sqlite3.Error:
+    except (sqlite3.Error, OSError):
         return []

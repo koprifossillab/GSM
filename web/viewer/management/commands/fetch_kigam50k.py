@@ -80,7 +80,7 @@ class Command(BaseCommand):
         if dest.exists():          # 같은 날 두 번째 — 새로 받은 것이 이긴다
             shutil.rmtree(dest)
         work.rename(dest)
-        fetchlog.note(raw_path=f"kigam50k/raw/{day}")
+        fetchlog.note(raw_path=f"kigam50k/raw/{day}", changed=1)        # 새 판 — 바뀐 레이어 수는 세지 않고 "바뀌었다" 만
         self.stdout.write(self.style.SUCCESS(f"레이어 {len(got)} 개 → {dest}"))
 
 

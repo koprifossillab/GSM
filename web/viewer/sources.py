@@ -137,7 +137,13 @@ def _latest_history():
 
 
 def _keep_history(data: bytes, sha: str):
-    """앞서 떠 둔 판과 다르면 이 판을 떠 둔다. 못 쓰면 조용히 넘어간다 — 읽기를 막지 않는다."""
+    """앞서 떠 둔 판과 다르면 이 판을 떠 둔다. 못 쓰면 조용히 넘어간다 — 읽기를 막지 않는다.
+
+    **호스트는 뜨지 않는다** — 매시 `hourly.sh` 가 명세를 먼저 읽으면 호스트가 이력만 뜨고 기록 표의 `_spec` 줄은 건너뛰어(호스트는
+    sqlite 에 쓰지 않는다), 뒤에 컨테이너가 "이미 뜬 판" 이라 아무것도 남기지 않았다(#369 검토). 컨테이너가 처음 보고 둘 다 적는다
+    """
+    if os.environ.get("GSM_RUN_PLACE") == "host":
+        return
     last = _latest_history()
     if last is not None and last.stem.endswith(sha[:12]):
         return

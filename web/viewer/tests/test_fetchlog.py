@@ -75,20 +75,46 @@ class Record(Base):
         self.assertTrue(done)
 
     def test_호스트는_sqlite_에_쓰지_않는다(self):
-        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host", "GSM_HOURLY_JOB": "1"}):
             with fetchlog.record("wind", "fetch_gfs_wind", "hourly"):
-                pass                                         # 매시 일 — hourly_status.json 이 남긴다
+                pass                                         # hourly.sh 가 부른 일 — hourly_status.json 이 남긴다
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
             with fetchlog.record("era5", "build_era5_wind", "manual"):
                 pass                                         # 사람이 부른 일 — jsonl 에 한 줄
+            with fetchlog.record("araon", "fetch_araon", "hourly"):
+                pass                                         # 매시 일이라도 손으로 부른 것(--past)은 jsonl 에 (#369 검토 5)
         self.assertFalse((self.dir / "store.sqlite").exists())
         lines = (self.dir / "fetch_log_host.jsonl").read_text(encoding="utf-8").splitlines()
-        self.assertEqual([json.loads(x)["source"] for x in lines], ["era5"])
+        self.assertEqual([json.loads(x)["source"] for x in lines], ["era5", "araon"])
+
+    def test_호스트는_읽기만_해도_파일을_만들지_않고_읽기_전용으로_연다(self):
+        """#369 검토 1 — latest()·history() 가 connect() 로 파일·표를 만들었다"""
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
+            self.assertEqual(fetchlog.latest(), {})
+            self.assertEqual(fetchlog.history("demo"), [])
+            self.assertFalse((self.dir / "store.sqlite").exists())
+            with self.assertRaises(RuntimeError):
+                fetchlog.write({"source": "x", "started_at": "t", "result": "ok"})
+        fetchlog.write({"source": "demo", "started_at": "2026-10-06T00:00:00+09:00", "result": "ok"})
+        before = (self.dir / "store.sqlite").stat().st_mtime_ns
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
+            self.assertIn("demo", fetchlog.latest())
+            self.assertEqual(len(fetchlog.history("demo")), 1)
+        self.assertEqual((self.dir / "store.sqlite").stat().st_mtime_ns, before)
+
+    def test_장부_파일을_지워도_다시_짓는다(self):
+        """#369 검토 6 — 표를 지었다는 기억이 프로세스에 남아 지운 뒤 소리 없이 끊겼다"""
+        fetchlog.write({"source": "demo", "started_at": "a", "result": "ok"})
+        (self.dir / "store.sqlite").unlink()
+        fetchlog.write({"source": "demo", "started_at": "b", "result": "ok"})
+        self.assertEqual([r["started_at"] for r in self.rows()], ["b"])
 
 
 class Sync(Base):
     def test_hourly_status_와_호스트_기록을_한_번만_옮겨_적는다(self):
         (self.dir / "hourly_status.json").write_text(json.dumps({"jobs": {
-            "fetch_gfs_wind": {"at": "2026-10-06T16:40:02+09:00", "result": "ok", "seconds": 1, "note": "할 일 없음"},
+            "fetch_gfs_wind": {"at": "2026-10-06T16:40:02+09:00", "result": "ok", "seconds": 2, "note": "할 일 없음",
+                               "last_ok": "2026-10-06T16:40:02+09:00"},
             "fetch_모르는것": {"at": "2026-10-06T16:40:02+09:00", "result": "ok"},
         }}), encoding="utf-8")
         (self.dir / "fetch_log_host.jsonl").write_text(json.dumps(
@@ -96,8 +122,39 @@ class Sync(Base):
              "result": "ok", "seconds": 60}) + "\n깨진 줄\n", encoding="utf-8")
         self.assertEqual(fetchlog.sync(), 2)
         self.assertEqual(fetchlog.sync(), 0)             # 두 번 적지 않는다
-        got = {(r["source"], r["origin"]) for r in self.rows()}
-        self.assertEqual(got, {("wind", "hourly"), ("era5", "host")})
+        got = {(r["source"], r["origin"], r["started_at"]) for r in self.rows()}
+        self.assertIn(("wind", "hourly", "2026-10-06T16:40:00+09:00"), got)   # at 은 끝난 때 — 걸린 초만큼 당긴다 (검토 3)
+        self.assertIn(("era5", "host", "2026-10-05T10:00:00+09:00"), got)
+
+    def test_실패_전의_성공도_옮긴다(self):
+        """#369 검토 3 — 옮기기 전에 성공 뒤 실패가 오면 성공 줄이 빠졌다"""
+        (self.dir / "hourly_status.json").write_text(json.dumps({"jobs": {
+            "fetch_gfs_wind": {"at": "2026-10-06T16:40:05+09:00", "result": "fail", "seconds": 5, "note": "상류 500",
+                               "last_ok": "2026-10-06T15:40:03+09:00"}}}), encoding="utf-8")
+        fetchlog.sync()
+        got = fetchlog.latest()["wind"]
+        self.assertEqual(got["last"]["result"], "fail")
+        self.assertEqual(got["last_ok"]["started_at"], "2026-10-06T15:40:03+09:00")
+
+    def test_호스트_기록은_읽은_자리_뒤만_읽는다(self):
+        """#369 검토 7 — 부를 때마다 jsonl 전체를 읽었다. 덜 적힌 마지막 줄은 다음 차례에"""
+        p = self.dir / "fetch_log_host.jsonl"
+        one = json.dumps({"source": "era5", "started_at": "t1", "result": "ok"})
+        two = json.dumps({"source": "era5", "started_at": "t2", "result": "ok"})
+        p.write_text(one + "\n" + two[:10], encoding="utf-8")      # 둘째 줄은 아직 덜 적혔다
+        self.assertEqual(fetchlog.sync(), 1)
+        with open(p, "a", encoding="utf-8") as fh:
+            fh.write(two[10:] + "\n")
+        self.assertEqual(fetchlog.sync(), 1)
+        self.assertEqual(sorted(r["started_at"] for r in self.rows()), ["t1", "t2"])
+
+    def test_장부를_못_열어도_옮겨_적기는_죽지_않는다(self):
+        """#369 검토 4 — sqlite3.Error 만 잡아 권한 오류에 sources_log·sources_backfill 이 죽었다"""
+        with override_settings(STORE_PATH="/proc/못쓰는자리/store.sqlite"):
+            self.assertEqual(fetchlog.sync(), 0)
+            out, err = io.StringIO(), io.StringIO()
+            call_command("sources_backfill", stdout=out, stderr=err)
+            call_command("sources_log", stdout=out, stderr=err)
 
     def test_자료원마다_마지막과_마지막으로_된_것(self):
         for at, result in (("2026-10-01T00:00:00+09:00", "ok"), ("2026-10-02T00:00:00+09:00", "fail")):
@@ -139,3 +196,20 @@ class SpecChange(Base):
             sources._cache.update(key=None, spec=None)
             sources.load()
         self.assertEqual([r["source"] for r in self.rows()], ["_spec"])
+
+    def test_호스트가_먼저_읽어도_컨테이너가_이력과_줄을_남긴다(self):
+        """#369 검토 2 — 호스트가 이력만 뜨고 _spec 줄을 건너뛰면, 뒤에 컨테이너는 "이미 뜬 판" 이라 아무것도 남기지 않았다"""
+        live = self.dir / "live.json"
+        history = self.dir / "sources_history"
+        with override_settings(SOURCES_PATH=str(live)):
+            live.write_text(json.dumps({"sources": []}), encoding="utf-8")
+            with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
+                sources._cache.update(key=None, spec=None)
+                sources.load()
+            self.assertFalse(history.exists() and any(history.glob("*.json")), "호스트가 이력을 떴다")
+            sources._cache.update(key=None, spec=None)
+            sources.load()
+        self.assertEqual(len(list(history.glob("*.json"))), 1)
+        self.assertEqual([r["source"] for r in self.rows()], ["_spec"])
+
+

@@ -35,7 +35,8 @@ trap 'rm -f "$OUT"' EXIT
 for job in "${JOBS[@]}"; do
     started=$(date +%s)
     echo "== $(date -Is) $job" >> "$LOG"
-    timeout "$LIMIT" "$HERE/run.sh" "$job" > "$OUT" 2>&1
+    # 이 차례의 결과는 아래에서 hourly_status.json 에 남긴다 — 명령이 따로 jsonl 에 또 적지 않게 (jikhanjung P02)
+    GSM_HOURLY_JOB=1 timeout "$LIMIT" "$HERE/run.sh" "$job" > "$OUT" 2>&1
     code=$?
     cat "$OUT" >> "$LOG"
     seconds=$(( $(date +%s) - started ))
