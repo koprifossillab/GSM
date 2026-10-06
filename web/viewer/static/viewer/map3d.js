@@ -293,6 +293,14 @@
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   map.addControl(new maplibregl.ScaleControl(), "bottom-left");
+  // 타일이 실패로 끝나면(404 말고) MapLibre 는 그 타일을 "errored" 로 두고 `error` 만 낼 뿐 다시 그리지 않는다.
+  // `load` 는 그리기 안에서 `loaded()` 를 보고 쏘므로, 마지막 타일이 마지막 그리기보다 늦게 실패하면 `load` 가
+  // 영영 오지 않는다 — 지형·점묶음이 사람이 지도를 움직일 때까지 안 뜬다. 실패마다 한 번 더 그리게 한다.
+  // 이 처리기가 있으면 MapLibre 가 콘솔에 오류를 찍지 않으므로 그 일도 대신한다 (jikhanjung 010)
+  map.on("error", function (e) {
+    if (e && e.error) console.error(e.error);
+    map.triggerRepaint();
+  });
   map.on("load", function () {
     map.setTerrain({ source: "dem", exaggeration: 1.5 });
     renderCustom();
