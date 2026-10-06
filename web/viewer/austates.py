@@ -634,3 +634,13 @@ def knows(upstream: str, name: str) -> bool:
 def first_zoom(upstream: str, name: str):
     spec = UPSTREAMS[upstream][1][name]
     return spec[2] if upstream in ("gsq", "mrt") else spec[1]
+
+
+#: 이 파일이 여는 상류 — `doors.py` 가 모아 views·prewarm·화면의 표를 짓는다 (wetherilli 371)
+REGISTRY = [
+    {"upstream": "gsnsw", "tag": "GSNSW", "title": "뉴사우스웨일스 지질조사소", "relay": GSNSW, "projected": True, "globe": True},
+    {"upstream": "gsq", "tag": "GSQ", "title": "퀸즐랜드 지질조사소", "relay": GSQ, "projected": True, "globe": True},
+    {"upstream": "gssa", "tag": "GSSA", "title": "남호주 지질조사소", "relay": GSSA, "projected": True, "globe": True},
+    {"upstream": "gsv", "tag": "GSV", "title": "빅토리아 지질조사소", "relay": GSV, "projected": True, "globe": True},
+    {"upstream": "mrt", "tag": "MRT", "title": "태즈메이니아 광물자원청", "relay": TAS, "projected": True, "globe": True},
+]
