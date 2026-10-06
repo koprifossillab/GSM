@@ -7,7 +7,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from viewer import fossils, pbdb
+from viewer import fetchlog, fossils, pbdb
 
 
 class Command(BaseCommand):
@@ -28,5 +28,28 @@ class Command(BaseCommand):
                 raise CommandError(str(exc)) from exc
             self.stdout.write(f"  {size / 1e6:.0f} MB")
         got = fossils.build(src, out, log=self.stdout.write)
+        # 기록 표에 — 원본 CSV 의 자리·sha 와 구운 곳의 수 (jikhanjung P02)
+        fetchlog.note(rows=got["rows"], raw_path=_rel(src), raw_sha256=_sha256(src))
         self.stdout.write(f"{got['rows']:,} 곳 (판을 찾은 것 {got['plated']:,}, 좌표 없는 것 {got['skipped']:,}) · "
                           f"{got['seconds']} 초 → {out}")
+
+
+def _sha256(path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    try:
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+    except OSError:
+        return ""
+    return h.hexdigest()
+
+
+def _rel(path) -> str:
+    """기록 표에는 `<DB 옆>` 아래 이름만 — 절대 경로를 남기지 않는다"""
+    from django.conf import settings
+    try:
+        return str(Path(path).resolve().relative_to(Path(settings.STORE_PATH).resolve().parent))
+    except ValueError:
+        return Path(path).name

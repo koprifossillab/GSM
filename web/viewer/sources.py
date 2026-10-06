@@ -149,6 +149,22 @@ def _keep_history(data: bytes, sha: str):
         tmp.write_bytes(data)
         os.replace(tmp, target)
     except OSError:
+        return
+    _log_spec_change(sha, target.name)
+
+
+def _log_spec_change(sha: str, name: str):
+    """명세가 바뀐 것을 기록 표에도 한 줄 — 자료원 `_spec` (P02 2 단계). 장부가 실패해도 읽기는 돈다."""
+    if not getattr(settings, "FETCH_LOG", False):
+        return
+    try:
+        from . import fetchlog
+        if fetchlog.on_host():
+            return
+        fetchlog.write({"source": "_spec", "command": "", "started_at": fetchlog._now(), "result": "ok",
+                        "note": f"명세가 바뀌었다 — {name}", "raw_path": f"sources_history/{name}", "raw_sha256": sha,
+                        "origin": "spec"})
+    except Exception:                    # noqa: BLE001
         pass
 
 
