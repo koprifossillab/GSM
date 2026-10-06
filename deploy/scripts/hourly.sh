@@ -67,4 +67,13 @@ with open(tmp, "w", encoding="utf-8") as f:
 os.replace(tmp, path)
 EOF
 done
+
+# 이 차례의 결과를 컨테이너의 기록 표(store.sqlite 의 fetch_log)로 옮겨 적는다 — 호스트는 그 파일에 쓰지 않는다(jikhanjung 012).
+# healthz 는 읽기만 하므로 여기서 하지 않으면 사람이 관리 화면을 열 때까지 옮겨지지 않고, hourly_status.json 은 마지막 차례만 지닌다
+# (#373 검토 2). 컨테이너가 없거나 늦어도 다음 차례에 다시 한다
+COMPOSE="${GSM_COMPOSE:-/srv/GSM/docker-compose.yml}"
+if [[ -f "$COMPOSE" ]] && command -v docker >/dev/null; then
+    timeout 60 docker compose -f "$COMPOSE" exec -T -w /app/web web python manage.py sources_log --sync-only >> "$LOG" 2>&1 \
+        || echo "-- 기록 표로 옮겨 적지 못했다 (다음 차례에)" >> "$LOG"
+fi
 echo "== $(date -Is) 끝" >> "$LOG"

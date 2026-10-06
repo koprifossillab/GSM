@@ -1,8 +1,8 @@
 """받은 차례의 기록 — `<DB 옆>/store.sqlite` 의 `fetch_log` (jikhanjung P02 2 단계).
 
-**문이 아니다.** 받아 두는 자료원(`sources.json`, P02 1 단계)마다 **받은 차례 하나가 한 줄**이다 — 언제·결과·걸린 초·마지막 말·
+**문이 아니다.** 받아 두는 데이터소스(`sources.json`, P02 1 단계)마다 **받은 차례 하나가 한 줄**이다 — 언제·결과·걸린 초·마지막 말·
 상류가 센 수 대 받은 수·원본 자리와 sha·구운 판. 사람이 정하는 것(조건·주기)은 명세에, 돌아가며 바뀌는 것은 여기에 둔다.
-`store.sqlite` 는 뒤의 적재(②)가 자료원마다 표를 더할 그 파일이다 — Django 의 `GSM.db` 에는 넣지 않는다(백업이 부푼다).
+`store.sqlite` 는 뒤의 적재(②)가 데이터소스마다 표를 더할 그 파일이다 — Django 의 `GSM.db` 에는 넣지 않는다(백업이 부푼다).
 
 누가 쓰나
 - **컨테이너의 `fetch_*`·`build_*`** — `apps.py` 가 명령의 `execute` 를 감싸 끝날 때 한 줄을 적는다. 명령은 아는 것을 `note()` 로
@@ -15,6 +15,7 @@
 import contextlib
 import json
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -139,7 +140,7 @@ _INSERT = f"INSERT OR IGNORE INTO fetch_log ({', '.join(COLUMNS)}) VALUES ({', '
 
 
 def write(row: dict):
-    """한 줄을 적는다. 같은 (자료원·시작한 때·어디서)는 한 번만."""
+    """한 줄을 적는다. 같은 (데이터소스·시작한 때·어디서)는 한 번만."""
     with connect() as db:
         db.execute(_INSERT, _values(row))
 
@@ -330,6 +331,36 @@ def sync(spec_rows=None) -> int:
         return 0
 
 
+# ── 화면에 내기 ─────────────────────────────────────────────────────
+
+#: 쿼리에 실리면 지우는 값 — 상류 requests 예외는 주소 전체를 담는다(#373 검토 1)
+_SECRET_QUERY = re.compile(r"(?i)\b(key|apikey|api_key|token|access_token|whoami|password|passwd|secret|auth)=[^&\s\"'<>]+")
+#: 자료 자리 밖의 절대 경로 — 이름만 남긴다. 주소 안의 경로(`https://…/data/…`)는 건드리지 않는다
+_ABS_PATH = re.compile(r"(?<![\w:/.])/(?:srv|home|data\d*|tmp|app|opt|var|root|mnt|nfs|usr)/[^\s\"'<>,;()]*")
+
+
+def _roots() -> list:
+    """settings 의 자료 자리 → 화면에 낼 이름. 긴 것부터 — `<DB 옆>/earth` 가 `<DB 옆>` 보다 먼저 맞게"""
+    found = {str(store_path().parent): "<DB 옆>"}
+    for name in dir(settings):
+        if name.endswith("_DIR") and name not in ("BASE_DIR", "REPO_DIR", "LOG_DIR"):
+            value = getattr(settings, name, None)
+            if isinstance(value, str) and value.startswith("/"):
+                found.setdefault(value.rstrip("/"), f"<{name}>")
+    return sorted(found.items(), key=lambda kv: -len(kv[0]))
+
+
+def shown(text: str) -> str:
+    """장부의 글(명령의 마지막 줄·예외 글)을 관리 화면에 낼 꼴로 — 열쇠 값을 지우고, 자료 자리는 `<DB 옆>/…` 로,
+    그 밖의 절대 경로는 이름만. 관리 화면은 계정을 묻지 않는다 (#373 검토 1)"""
+    if not text:
+        return ""
+    text = _SECRET_QUERY.sub(lambda m: f"{m.group(1)}=…", text)
+    for root, label in _roots():
+        text = text.replace(root + "/", label + "/").replace(root, label)
+    return _ABS_PATH.sub(lambda m: m.group(0).rstrip("/").rsplit("/", 1)[-1], text)
+
+
 # ── 읽기 ────────────────────────────────────────────────────────────
 
 _LAST = """
@@ -341,7 +372,7 @@ SELECT * FROM (
 
 
 def latest() -> dict:
-    """자료원마다 마지막 줄과 마지막으로 된(ok·skip) 줄 — {id: {"last": row, "last_ok": row}}. 파일이 없으면 빈 것."""
+    """데이터소스마다 마지막 줄과 마지막으로 된(ok·skip) 줄 — {id: {"last": row, "last_ok": row}}. 파일이 없으면 빈 것."""
     out = {}
     try:
         with reader() as db:

@@ -13,8 +13,8 @@ class ViewerConfig(AppConfig):
 def _record_fetch_commands():
     """`fetch_*`·`build_*` 명령이 끝날 때 기록 표에 한 줄을 남기게 한다 (jikhanjung P02 2 단계).
 
-    마흔다섯 명령을 하나하나 고치지 않으려고 `BaseCommand.execute` 를 한 자리에서 감싼다. 자료원은 명세(`sources.json`)의
-    `commands` 로 찾는다 — 명세에 없는 명령은 명령 이름을 자료원으로 적는다. 명령의 출력은 그대로 흘려보내며 마지막 줄만 기억한다.
+    마흔다섯 명령을 하나하나 고치지 않으려고 `BaseCommand.execute` 를 한 자리에서 감싼다. 데이터소스는 명세(`sources.json`)의
+    `commands` 로 찾는다 — 명세에 없는 명령은 명령 이름을 데이터소스로 적는다. 명령의 출력은 그대로 흘려보내며 마지막 줄만 기억한다.
     """
     from django.conf import settings
     from django.core.management.base import BaseCommand
