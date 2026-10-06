@@ -164,7 +164,9 @@ Django 가 붙인다. `kigam.clean_params()` 가 브라우저가 보낸 `key` �
 `/srv/GSM` 은 배포한 사람(root)의 것이라 **`.env` 도 `docker-compose.yml` 도
 못 고친다.** 쓸 수 있는 것은 `db/` 뿐이다(고칠 때는 사람이 sudo 로). 타일 캐시는 2026-09-30 에
 `/data/GSM/tiles`(8 TB 하드)로 옮겼다 — 컨테이너 안의 경로는 그대로 `/srv/GSM/tiles` 다 (wetherilli 082). 서버 DNS 가
-kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 둔다 — 서버 DNS 가 고쳐지면 지운다 (wetherilli 095). 2026-09-23 에 이것이
+kopri.re.kr 을 못 찾아 compose 에 KPDC 주소를 `extra_hosts` 로 박아 둔다 — 서버 DNS 가 고쳐지면 지운다 (wetherilli 095).
+호스트 cron 의 아라온호 받기는 그 설정을 타지 않아 **호스트 `/etc/hosts` 에 `203.250.180.137 live.kopri.re.kr`** 을 넣었다(2026-10-06,
+koprifossillab 019) — DNS 가 고쳐지면 함께 지운다. 2026-09-23 에 이것이
 세 번 걸렸다 — 빈 `SECRET_KEY` 로 기동 실패, `ALLOWED_HOSTS` 에 `paleolab` 이
 없어 400, 그리고 임시 스위치.
 
