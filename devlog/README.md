@@ -115,6 +115,8 @@
 | jikhanjung 007 | 2026-09-30 | [패널 접는 손잡이, 자세 기호 체크를 색 글자로](20260930_jikhanjung_007_panel_handle.md) |
 | jikhanjung 008 | 2026-09-30 | [달·화성 화면에도 패널 손잡이](20260930_jikhanjung_008_panel_handle_moon_mars.md) |
 | jikhanjung 009 | 2026-09-30 | [온 지구 화면에도 패널 손잡이](20260930_jikhanjung_009_panel_handle_earth.md) |
+| jikhanjung 010 | 2026-10-06 | [3D 가 늦게 실패한 타일 뒤에 뜨지 않던 것 — 휴대폰 시험이 가끔 깨진 까닭](20261006_jikhanjung_010_phone3d_cold_start.md) |
+| jikhanjung P02 | 2026-10-06 | [외부 자료원을 한 장부로 — 명세·기록 표·관리 화면 "자료원" 탭 (계획)](20261006_jikhanjung_P02_source_registry.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |
@@ -402,6 +404,7 @@
 | wetherilli 358 | 2026-10-05 | [남호주 방사능 — 누르면 K·Th·U 값 (그리고 TODOs 다시 묶기)](20261005_wetherilli_358_sa_radiometric_values.md) |
 | wetherilli 359 | 2026-10-05 | [팝업 속성 이름의 영어를 시험으로 지킨다](20261005_wetherilli_359_prop_en_guard.md) |
 | wetherilli 360 | 2026-10-05 | [구 화면의 레이어 목록에 출처 — 켜기 전에도 무엇을 얹는지](20261005_wetherilli_360_globe_layer_sources.md) |
+| wetherilli P12 | 2026-10-06 | [고유 주소 — 정적 판에 우리 도메인과 소개·출처 화면을 (계획)](20261006_wetherilli_P12_own_domain.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
@@ -423,3 +426,5 @@
 | koprifossillab 016 | 2026-10-01 | [바람과 해류를 같이 켜도 갈리게 — 색 계열과 선의 결](20261001_koprifossillab_016_flow_colors.md) |
 | koprifossillab 017 | 2026-10-01 | [아라온호 항적 — 기간을 고르고, 오래된 것일수록 옅게](20261001_koprifossillab_017_araon_period.md) |
 | koprifossillab 018 | 2026-10-01 | [바람·해류의 빠르기 범례](20261001_koprifossillab_018_flow_legend.md) |
+| koprifossillab 019 | 2026-10-06 | [아라온호 받기가 DNS 로 22 시간 멈춘 것 — 호스트 /etc/hosts 에 고정](20261006_koprifossillab_019_araon_dns.md) |
+| koprifossillab 020 | 2026-10-06 | [시험이 /tmp 에 흘린 것 — tempfile 의 기본 자리를 러너의 임시 자리로](20261006_koprifossillab_020_test_tmp_leak.md) |

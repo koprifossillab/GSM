@@ -544,11 +544,14 @@ EN = {
     "지열류 자료를 아직 굽지 않았다 (build_heatflow)": "Heat flow data not built yet (build_heatflow)",
     "최근 지진 (7 일, M2.5 이상)": "Recent earthquakes (7 days, M2.5+)",
     "속이 빈 고리 — 크기는 규모, 색은 지난 시간 (매시 받음)": "Hollow rings — size is magnitude, colour is time since (fetched hourly)",
-    "그 밖의 {n} 지역": "{n} more regions",
+    "그 밖의 {n} 지역": "{n} more regions",          # 소개 화면의 지역 칩 (wetherilli 344)
     "범례 {n}": "legends {n}",                   # 관리 화면의 대조 줄 (wetherilli 367)
     "깨진 범례 {n}": "broken legends {n}",
     "산지 수(채집 편향이 든다)": "locality counts (sampling bias included)",   # 온 지구 레이어의 곁말 (wetherilli 360)
-    "모의 결과": "model result",          # 소개 화면의 지역 칩 (wetherilli 344)
+    "모의 결과": "model result",
+    "명령 {n}": "commands {n}",                 # 관리 화면의 상류 표 (wetherilli 363)
+    "괄호 안의 명령은 화면이 아니라 서버의 명령(레이어 대조·미리 데우기·자료 받기)이 낸 호출이다 — 화면 쓰임은 건수에서 그것을 뺀 것이다.":
+        "Commands in brackets are calls made by server commands (layer checks, prewarming, data fetches), not by the viewer — viewer use is the count minus that.",
     # 관리 화면의 마지막 레이어 대조 (wetherilli 314)
     "마지막 레이어 대조 {day} — 그림 {drawn} · 빈 그림 {empty} · 오류 {error} · 건너뜀 {skipped}":
         "Last layer check {day} — drawn {drawn} · empty {empty} · error {error} · skipped {skipped}",
@@ -637,6 +640,9 @@ EN = {
     "토석류 유동 구역": "Debris-flow track zone",
     "등급 {grade}": "Class {grade}",
     "등급 없음": "No class",
+    "등급 {grade} — 가장 단단한 쪽 (암상으로 짐작)": "Class {grade} — strongest (inferred from lithology)",   # 대만 암체 강도 등급 (wetherilli 370)
+    "등급 {grade} — 가장 무른 쪽 (암상으로 짐작)": "Class {grade} — weakest (inferred from lithology)",
+    "I 단단 → VII 무름 (암상으로 짐작)": "I strong → VII weak (inferred from lithology)",
     "활동 적지 않음": "Activity not recorded",
     "대만 지질운 열린자료가 서버에 없다": "Taiwan Geology Cloud open data is not on the server",
     "대만 지질운 열린자료를 읽지 못했다": "Could not read Taiwan Geology Cloud open data",
@@ -1987,6 +1993,8 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    "특성": "Characteristics",                 # 대만 암체 강도 등급의 지층 특성 (wetherilli 370)
+    "등급의 차례": "Class order",
     # 호주 확인 자원·수리지질도 (wetherilli 325)
     "자원량 칸": "Resource size class",
     "대수층": "Aquifer",
