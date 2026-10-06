@@ -6,6 +6,7 @@
 """
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent   # web/
 REPO_DIR = BASE_DIR.parent                          # 저장소 뿌리
@@ -396,6 +397,10 @@ KIGAM50K_DIR = env("GSM_KIGAM50K_DIR") or str(_data_dir() / "kigam50k")
 #: 저장소의 씨앗(`SOURCES_SEED`)은 없는 id 만 덧붙인다 — `manage.py sources_seed` (jikhanjung P02)
 SOURCES_PATH = env("GSM_SOURCES_PATH") or str(_data_dir() / "sources.json")
 SOURCES_SEED = REPO_DIR / "data" / "sources.seed.json"
+#: 받은 차례의 기록 — `fetch_*`·`build_*` 가 끝날 때 한 줄씩(`viewer.fetchlog`, jikhanjung P02). 뒤의 적재(②)도 이 파일에 표를 더한다
+STORE_PATH = env("GSM_STORE_PATH") or str(_data_dir() / "store.sqlite")
+#: 명령을 기록할까 — 시험(`manage.py test`)에서는 끈다. 시험이 부르는 명령이 개발 장비의 장부에 쌓이지 않게
+FETCH_LOG = env_bool("GSM_FETCH_LOG", sys.argv[1:2] != ["test"])
 
 # 문서화된 주소. 제품이 타는 곳은 여기뿐이다.
 WMS_URL = env("GSM_WMS_URL", "https://data.kigam.re.kr/openapi/wms")

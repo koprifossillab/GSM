@@ -137,7 +137,13 @@ def _latest_history():
 
 
 def _keep_history(data: bytes, sha: str):
-    """앞서 떠 둔 판과 다르면 이 판을 떠 둔다. 못 쓰면 조용히 넘어간다 — 읽기를 막지 않는다."""
+    """앞서 떠 둔 판과 다르면 이 판을 떠 둔다. 못 쓰면 조용히 넘어간다 — 읽기를 막지 않는다.
+
+    **호스트는 뜨지 않는다** — 매시 `hourly.sh` 가 명세를 먼저 읽으면 호스트가 이력만 뜨고 기록 표의 `_spec` 줄은 건너뛰어(호스트는
+    sqlite 에 쓰지 않는다), 뒤에 컨테이너가 "이미 뜬 판" 이라 아무것도 남기지 않았다(#369 검토). 컨테이너가 처음 보고 둘 다 적는다
+    """
+    if os.environ.get("GSM_RUN_PLACE") == "host":
+        return
     last = _latest_history()
     if last is not None and last.stem.endswith(sha[:12]):
         return
@@ -149,6 +155,22 @@ def _keep_history(data: bytes, sha: str):
         tmp.write_bytes(data)
         os.replace(tmp, target)
     except OSError:
+        return
+    _log_spec_change(sha, target.name)
+
+
+def _log_spec_change(sha: str, name: str):
+    """명세가 바뀐 것을 기록 표에도 한 줄 — 자료원 `_spec` (P02 2 단계). 장부가 실패해도 읽기는 돈다."""
+    if not getattr(settings, "FETCH_LOG", False):
+        return
+    try:
+        from . import fetchlog
+        if fetchlog.on_host():
+            return
+        fetchlog.write({"source": "_spec", "command": "", "started_at": fetchlog._now(), "result": "ok",
+                        "note": f"명세가 바뀌었다 — {name}", "raw_path": f"sources_history/{name}", "raw_sha256": sha,
+                        "origin": "spec"})
+    except Exception:                    # noqa: BLE001
         pass
 
 
