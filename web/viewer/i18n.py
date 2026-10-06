@@ -1504,6 +1504,7 @@ EN = {
     "주기": "Schedule",
     "마지막 실행": "Last run",
     "마지막 성공": "Last success",
+    "결과": "Result",
     "산출물": "Outputs",
     "저장소": "repository",
     "기록 없음": "no record",
