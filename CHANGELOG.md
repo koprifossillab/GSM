@@ -10,7 +10,7 @@
 - **매시 일의 받은 수·상류 판** — 바람·위성 구름·아라온호·최근 지진이 받은 수·상류 판·바뀌었나를 데이터소스 장부에 남긴다. 같은 차례는 한 줄로, `hourly_status.json` 은 예비로 (jikhanjung 024)
 - **호스트 기록은 날마다** — 호스트가 남기는 기록·상류 호출 수를 `fetch_log_host/`·`upstream_host/` 의 날마다 한 파일로, 다 들인 그제 것부터 컨테이너가 지운다 (jikhanjung 023)
 - **설정의 한 줄 설명** — "여러 나라 지질조사기관의 지질도를 겹쳐 보는 지도뷰어. 한국지질자원연구원 오픈API 에서 시작했다", 소개의 meta description 도 (jikhanjung 022)
-- **운영** — 주간 백업을 월요일 03:10 으로(매시 받기 :40 와 겹치지 않게, WegenersDream 뒤에), 판을 띄운 뒤 옛 이미지를 정리, 정적 판 굽기의 임시 저장소 auto gc 를 끈다 (koprifossillab 022·023)
+- **운영** — 주간 백업을 월요일 03:10 으로(매시 받기 :40 와 겹치지 않게, WegenersDream 뒤에), 판을 띄운 뒤 옛 이미지를 정리, 정적 판 굽기의 임시 저장소 auto gc 를 끈다 (koprifossillab 022·023, wetherilli 371)
 
 ## v0.74.0 — 2026-10-07 · 다누리 KMAG 궤적, 그때의 지구에 PaleoDEM 고도·음영, 접는 시간 막대 (wetherilli 375–378, jikhanjung 020·021)
 
