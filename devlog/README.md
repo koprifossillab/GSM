@@ -423,6 +423,7 @@
 | wetherilli 368 | 2026-10-05 | [뷰의 남은 빈 곳 — 349 다음 차례](20261005_wetherilli_368_views_coverage.md) |
 | wetherilli 370 | 2026-10-05 | [대만 암체 강도 등급 — 암상으로 짐작한 차례로 칠한다](20261005_wetherilli_370_taiwan_rockmass_order.md) |
 | wetherilli 371 | 2026-10-06 | [문이 제 파일에 자기를 적는다 — 공유 줄 충돌을 없애고, 판 내기를 명령 하나로](20261006_wetherilli_371_door_registry_and_release_script.md) |
+| wetherilli 374 | 2026-10-07 | [온 세계 지명 찾기 — GeoNames 도시를 받아 두고, 지역 탭이 온 지구 찾기를 빌린다](20261007_wetherilli_374_world_place_search.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |
 | koprifossillab 002 | 2026-09-30 | [`/healthz/` — 판·DB·백업 상태를 한 장으로](20260930_koprifossillab_002_healthz.md) |
