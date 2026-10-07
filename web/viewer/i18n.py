@@ -1651,6 +1651,7 @@ EN = {
 
     # ── 소개 (wetherilli 113) ──
     "대돌여지도 소개": "About Great Stone Map",
+    "소개 다시 보지 않기": "Don't show the intro again",
     "지질도를 겹쳐 보고, 눌러 속성을 읽고, 내 좌표를 얹는 지도 — 한국·극지·일본, 그리고 달과 화성까지.":
         "Overlay geological maps, click to read attributes, drop your own coordinates on top — Korea, the poles, Japan, and on to the Moon and Mars.",
     "언어": "Language",

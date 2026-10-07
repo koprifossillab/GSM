@@ -689,6 +689,7 @@
     [/^gsm\.earth\./, T("온 지구")],
     [/^gsm\.moon\./, T("달")],
     [/^gsm\.mars\./, T("화성")],
+    [/^gsm\.intro\./, T("대돌여지도 소개")],
   ];
   function prefName(key) {
     for (var i = 0; i < PREF_NAMES.length; i++) if (PREF_NAMES[i][0].test(key)) return PREF_NAMES[i][1];
