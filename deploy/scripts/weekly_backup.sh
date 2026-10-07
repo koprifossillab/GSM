@@ -98,13 +98,24 @@ nas_put() {
     return 1
 }
 
+# free_name <자리/이름> <확장자> — 같은 날 두 번째 백업부터는 .2·.3 … 을 붙인다. 덮어쓰면 그날 아침의 사본(받기 전의 것)을 로컬·NAS
+# 둘 다 잃는다 — 오후에 `--backup-only` 를 한 번 더 돌린 사례가 있다 (.guides/web/data-safety.md §16, jikhanjung 025)
+free_name() {
+    local base=$1 ext=$2 n=2 p="$1$2"
+    while [ -e "$p" ] || { nas_up && timeout 30 test -e "$NAS/$(basename "$p")"; }; do
+        p="$base.$n$ext"; n=$((n + 1))
+    done
+    echo "$p"
+}
+
 # prune_built <디렉토리> — ② 를 나이로 줄인다: 30 일까지 전부, 그 뒤 달마다 가장 새 것 하나.
 # 개수가 아니라 나이로 — 개수는 판을 자주 올리는 달과 드문 달에 뜻이 바뀐다
 prune_built() {
     local dir=$1 cutoff kept="" f d m
     cutoff=$(date -d '30 days ago' +%Y%m%d)
-    for f in $(timeout 60 ls -1 "$dir" 2>/dev/null | grep -E '^GSM-built\.[0-9]{8}\.tar$' | sort -r); do
-        d=${f#GSM-built.}; d=${d%.tar}
+    # 새것부터 — 같은 날의 둘째(`.2`)가 있으면 그것이 그날의 대표다. 이름이 아니라 시각순(data-safety §10)
+    for f in $(timeout 60 ls -1t "$dir" 2>/dev/null | grep -E '^GSM-built\.[0-9]{8}(\.[0-9]+)?\.tar$'); do
+        d=${f#GSM-built.}; d=${d:0:8}
         [ "$d" -ge "$cutoff" ] && continue
         m=${d:0:6}
         if [ "$m" = "$kept" ]; then
@@ -155,7 +166,7 @@ cp "$COMPOSE" "$STAGE/docker-compose.yml" || fail "compose 를 못 읽었다"
 extra=()
 for p in dev_direct_wms public kopri kigam50k sources.json sources_history fetch_log_host.jsonl fetch_log_host earth/pbdb_collections.csv; do [ -e "$DB/$p" ] && extra+=("$p"); done
 
-ARCHIVE=$BACKUPS/GSM.$DAY.tar.gz
+ARCHIVE=$(free_name "$BACKUPS/GSM.$DAY" .tar.gz)
 args=(-C "$STAGE" GSM.db docker-compose.yml manifest-built.txt)
 [ -f "$STAGE/store.sqlite" ] && args+=(store.sqlite)
 [ ${#extra[@]} -gt 0 ] && args+=(-C "$DB" "${extra[@]}")
@@ -172,7 +183,7 @@ LAST=$BACKUPS/.manifest-built.last
 if [ -f "$LAST" ] && cmp -s "$LAST" "$STAGE/manifest-built.txt"; then
     echo "구운 것: 지난번과 같다 — 뜨지 않는다"
 else
-    BUILT_TAR=$BACKUPS/GSM-built.$DAY.tar
+    BUILT_TAR=$(free_name "$BACKUPS/GSM-built.$DAY" .tar)
     tar -cf "$BUILT_TAR.part" -C "$DB" --null -T "$STAGE/built.z" 2>"$LOGS/tar.err" \
         || fail "구운 것 tar 실패: $(tail -1 "$LOGS/tar.err")"
     tar -tf "$BUILT_TAR.part" >/dev/null 2>&1 || fail "만든 구운 것 tar 를 읽을 수 없다"
@@ -182,7 +193,7 @@ else
     echo "구운 것: $BUILT_TAR ($(du -h "$BUILT_TAR" | cut -f1), 파일 $(wc -l < "$STAGE/manifest-built.txt"))"
 fi
 # NAS 에 가장 새 ② 가 없으면(방금 뜬 것이든, 지난번에 못 옮긴 것이든) 옮긴다
-NEWEST=$(ls -1 "$BACKUPS" | grep -E '^GSM-built\.[0-9]{8}\.tar$' | sort | tail -1)
+NEWEST=$(ls -1t "$BACKUPS" | grep -E '^GSM-built\.[0-9]{8}(\.[0-9]+)?\.tar$' | head -1)
 if [ -n "$NEWEST" ] && nas_up && ! timeout 30 test -f "$NAS/$NEWEST"; then
     nas_put "$BACKUPS/$NEWEST" || { NAS_RESULT=fail; echo "NAS: ② 를 못 옮겼다 — 로컬에는 있다"; }
 fi
