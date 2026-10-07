@@ -161,6 +161,10 @@
 
 - **공간 연산 (GDAL·shapely·geopandas)** — 이 뷰어는 겹쳐 보고 클릭해 읽을 뿐이다.
   넣는 순간 web 이미지가 200 MB 대를 벗어난다. 필요해지면 그때 devlog 를 쓰고 더한다
+- **다누리(KPLO) LUTI 촬영 자리 — 지금은 접었다** (2026-10-07). 촬영 띠의 경위도 네모는 PDS4 라벨(`/kpds/search/xml/<_id>`, 14 KB,
+  키 없음, CORS 없음)에만 있는데, `_id` 를 얻는 길이 KPDS 검색(`/kpds/search/dataTableList`) 하나뿐이고 행마다 썸네일(base64,
+  평균 260 KB)이 붙는다 — Calibrated 16 887 장이면 목록만 4–5 GB 다. `param[type]`·`columns`·`length` 로는 썸네일이 빠지지 않았고 공간 검색도
+  없다. 다시 꺼낸다면 kpds@kari.re.kr 에 촬영 자리 목록(컬렉션 인벤토리)을 먼저 묻는다
 - **DiaRUGA·ForGIA 와 DB 를 나누기** — 저장소도 배포도 따로다. 시추 지점을
   지도에 올리고 싶어지면 `Locality.lat/lon` 을 내보내 `PointSet` 으로 받는다
 - **제품이 `/mgeo/geoserver` 를 타기** — 문서에 없는 주소다. 타일·범례는
