@@ -15,9 +15,7 @@ class Command(BaseCommand):
     help = "기록 표가 빈 데이터소스에 파일로 어림한 한 줄을 넣는다"
 
     def handle(self, *args, **opts):
-        if fetchlog.on_host():
-            self.stderr.write("호스트에서는 장부에 쓰지 않는다 — 컨테이너 안에서 부른다")
-            return
+        fetchlog.refuse_on_host("sources_backfill")
         spec = sources.load()
         fetchlog.sync(spec.rows)
         have = fetchlog.latest()

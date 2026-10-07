@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import transaction
 
 from . import sources
 from .models import DataSource, DataSourceChange, FetchRun, Layer, LayerGroup, Point, PointSet
@@ -62,13 +63,14 @@ class DataSourceAdmin(admin.ModelAdmin):
         sources.record_change(row["id"], row, None, "admin", request.user)
 
     def delete_queryset(self, request, queryset):
-        for obj in queryset:
-            self.delete_model(request, obj)
+        with transaction.atomic():                    # 중간에 깨지면 지운 줄·이력이 일부만 남지 않게 (#381 검토 6)
+            for obj in queryset:
+                self.delete_model(request, obj)
 
 
 @admin.register(DataSourceChange)
 class DataSourceChangeAdmin(admin.ModelAdmin):
-    list_display = ("at", "source", "origin", "by")
+    list_display = ("at", "source", "origin", "by_name")
     list_filter = ("origin",)
     search_fields = ("source",)
 
