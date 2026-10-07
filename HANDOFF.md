@@ -51,7 +51,7 @@
 - **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
 - **데이터소스 장부** — 받아 두는 바깥 자료 50 곳의 명세(`DataSource`)와 받은 차례의 기록(`FetchRun`)이 `GSM.db` 에 있다. 관리 화면
   `/GSM/manage/` 의 "데이터소스" 탭이 한 줄씩(조건·주기·마지막 실행·결과·마지막 성공·산출물, 늦음·실패는 붉게), healthz 가 늦음·실패의 수를.
-  **명세는 admin(`/GSM/admin/`, staff 계정 — 지금 `koprifossillab`)에서 고친다** — 고칠 때마다 누가·언제·앞뒤가 `DataSourceChange` 에.
+  **명세는 그 탭에서 staff 로 로그인해 펼친 줄의 폼, 또는 admin(`/GSM/admin/`)에서 고친다**(staff 계정 — 지금 `koprifossillab`, jikhanjung 020) — 고칠 때마다 누가·언제·앞뒤가 `DataSourceChange` 에.
   admin 은 아직 평문 HTTP 다(HTTPS 는 나중에, TODOs). 원본을 날짜 폴더에 두는 것은 바뀐 판만, 옛 벌은 사람이 `prune_raw`
   (jikhanjung P02·P03·011–018)
 
