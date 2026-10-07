@@ -34,7 +34,7 @@ from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsm
                fetchlog, marscraters, marsmap, mercurymap, sources, zhurong)
 from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, twopen, usage, usgscarib, usstates, vmme, ygs
-from . import doors, earthpoints, pointvalues, profileband, static_tables, tilegrid
+from . import doors, earthpoints, pointvalues, profileband, static_tables, tilegrid, timescale
 from .i18n import msg
 from .models import Layer, LayerGroup, Point, PointSet, PointSetDeletion, Shape
 
@@ -1544,6 +1544,8 @@ def earth_view(request):
         "pointsets": _script_json(_pointset_list("earth")),
         # 그때의 지구에 얹는 것의 시점 — 막대 위의 띠와 캡션이 쓴다 (wetherilli 097). 파일이 없으면 빈다
         "then_data": _script_json({"coast": paleocoast.ages(), "fossils": fossils.available(),
+                                   # 시간 축의 지질시대 띠 — ICS 의 누대·대·기·세 (wetherilli 373)
+                                   "timescale": timescale.units(lang),
                                    # 화석 산지 밀도 (wetherilli 286) — 같은 pbdb.sqlite 에서. 범례는 비율
                                    "fossildensity": fossils.density_legend(lang) if fossils.available() else [],
                                    # 홀로세 화산 (wetherilli 134) — 받아 둔 것이 있을 때만 목록에 선다. 범례도 함께

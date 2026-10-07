@@ -474,6 +474,14 @@ EN = {
     "연대를 넣는다 — 250, 20 ka, 1.2 Ga": "Type an age — 250, 20 ka, 1.2 Ga",
     "오늘로 — 연대를 0 으로": "Back to today — age 0",
     "판 조각 (PALEOMAP 2016)": "Plate pieces (PALEOMAP 2016)",
+    # 지질시대 띠 (wetherilli 373) — ICS 의 갈래와 막대의 손잡이
+    "누대": "Eon", "대": "Era", "기": "Period", "세": "Epoch", "절": "Age",
+    "그때의 지구 — 판을 돌린 복원 (PALEOMAP 2016)": "The Earth then — plates rotated back (PALEOMAP 2016)",
+    "오늘의 지구": "Today's Earth",
+    "오늘의 지구에 얹는다": "Today's Earth, with that age's layers",
+    "더 옛날로": "Older", "더 옛날로 — 한 칸": "Older — one step",
+    "오늘 쪽으로": "Younger", "오늘 쪽으로 — 한 칸": "Younger — one step",
+    "지질시대 띠를 접는다": "Fold the time scale", "지질시대 띠를 편다": "Unfold the time scale",
     "판 조각 경계": "Plate piece outlines",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구": "The Earth then, computed with the PALEOMAP 2016 plate rotations",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 다른 판 모델과는 100 Ma 에 1 000 km 안팎 다르다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
