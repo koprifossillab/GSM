@@ -24,6 +24,7 @@ from django.db.models import Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.utils.cache import patch_vary_headers
 from django.shortcuts import get_object_or_404, render
+from django.urls import NoReverseMatch, reverse
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_POST
 
@@ -401,7 +402,11 @@ def _sources_view(lang):
                         for h in item["history"]],
         })
     problems = [(where, "; ".join(i18n.t(m, lang) for m in found)) for where, found in ov["problems"]]
-    return {"rows": rows, "counts": ov["counts"], "problems": problems, "origin": ov["origin"],
+    try:                                         # 밖에 연 판에는 admin 경로가 없다 (#381 검토 3)
+        admin_url = reverse("admin:viewer_datasource_changelist")
+    except NoReverseMatch:
+        admin_url = ""
+    return {"rows": rows, "counts": ov["counts"], "problems": problems, "origin": ov["origin"], "admin_url": admin_url,
             "seed_differs": ov.get("seed_differs", 0),
             "origin_label": label(sources.SPEC_ORIGIN_LABELS, ov["origin"]),
             "spec_changed": when(ov["spec_changed"])}

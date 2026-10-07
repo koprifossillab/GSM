@@ -423,6 +423,7 @@
 | wetherilli 368 | 2026-10-05 | [뷰의 남은 빈 곳 — 349 다음 차례](20261005_wetherilli_368_views_coverage.md) |
 | wetherilli 370 | 2026-10-05 | [대만 암체 강도 등급 — 암상으로 짐작한 차례로 칠한다](20261005_wetherilli_370_taiwan_rockmass_order.md) |
 | wetherilli 371 | 2026-10-06 | [문이 제 파일에 자기를 적는다 — 공유 줄 충돌을 없애고, 판 내기를 명령 하나로](20261006_wetherilli_371_door_registry_and_release_script.md) |
+| wetherilli 372 | 2026-10-07 | [멕시코 1:5만 범례 — 상류가 바꾼 열 이름으로 묻는다](20261007_wetherilli_372_sgm_50k_legend_fields.md) |
 | wetherilli 373 | 2026-10-07 | [온 지구 시간 축 — ICS 지질시대 띠를 누르고 끌어 연대를 고른다](20261007_wetherilli_373_earth_timebar_ics.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |

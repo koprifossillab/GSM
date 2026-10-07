@@ -9,7 +9,7 @@
 from django.core.management.base import BaseCommand
 from django.db import DatabaseError
 
-from viewer import i18n, sources
+from viewer import fetchlog, i18n, sources
 
 
 class Command(BaseCommand):
@@ -19,6 +19,7 @@ class Command(BaseCommand):
         parser.add_argument("--check", action="store_true", help="옮기지 않고 견주기만")
 
     def handle(self, *args, **options):
+        fetchlog.refuse_on_host("sources_seed")
         say = self.stdout.write
         if not options["check"]:
             try:

@@ -254,3 +254,83 @@ class Coverage(SimpleTestCase):
         lines = sources.coverage(rows)
         self.assertTrue(any("fetch_없는것" in x for x in lines))
         self.assertTrue(any("fetch_pbdb" in x for x in lines))
+
+
+class Review381(Dir):
+    """#381 검토 — 옮기기는 한 번 깨져도 다시, 지운 것은 되살리지 않는다, 밖에 연 판에는 admin 이 없다."""
+
+    def test_씨앗이_먼저_들어갔어도_파일_쪽으로_덮는다(self):
+        """옮기기가 깨진 사이 씨앗이 표를 채웠다 — 다음에 뜰 때 사람이 고친 파일의 줄이 이긴다. admin 에서 고친 줄은 둔다"""
+        self.write_seed([_row(id="a"), _row(id="b"), _row(id="c")])
+        self.write_live([_row(id="a", license="사람이 고친 조건"), _row(id="b", license="파일의 조건"), _row(id="f")])
+        sources.seed()                                               # 옮기기보다 씨앗이 먼저 들어간 꼴
+        user = User.objects.create_user("editor")
+        obj = DataSource.objects.get(pk="b")
+        before = obj.as_row()
+        obj.license = "admin 에서 고친 조건"
+        obj.save()
+        sources.record_change("b", before, obj.as_row(), "admin", user)
+        done = sources.import_file()
+        self.assertEqual((done["added"], done["replaced"], done["kept"]), (["f"], ["a"], ["b"]))
+        rows = sources.load().by_id()
+        self.assertEqual((rows["a"]["license"], rows["b"]["license"]), ("사람이 고친 조건", "admin 에서 고친 조건"))
+        change = DataSourceChange.objects.filter(source="a", origin="import").get()
+        self.assertEqual((change.before["license"], change.after["license"]), ("CC BY 4.0", "사람이 고친 조건"))
+        self.write_live([_row(id="a", license="또 고친 것")])
+        self.assertFalse(sources.import_file()["done"])                # 표지가 있으면 두 번 옮기지 않는다
+
+    def test_기록은_표에_줄이_있어도_옮긴다(self):
+        Import.store(self, [{"source": "a", "started_at": "2026-10-06T17:40:00+09:00", "result": "ok"},
+                            {"source": "a", "started_at": "2026-10-06T18:40:00+09:00", "result": "ok"}], offset=10)
+        fetchlog.write({"source": "a", "started_at": "2026-10-07T10:00:00+09:00", "result": "ok"})   # 옮기기 전에 생긴 줄
+        FetchRunMark.objects.create(key="host_offset", value="99")
+        call_command("sources_import", stdout=io.StringIO(), stderr=io.StringIO())
+        call_command("sources_import", stdout=io.StringIO(), stderr=io.StringIO())
+        self.assertEqual(FetchRun.objects.count(), 3)
+        self.assertEqual(FetchRunMark.objects.get(key="host_offset").value, "99")   # 새 코드가 더 읽은 자리를 되돌리지 않는다
+
+    def test_옮기다_깨져도_명령은_끝나고_다음에_다시(self):
+        from unittest import mock
+        self.write_live([_row(id="a")])
+        from django.db import DatabaseError
+        with mock.patch.object(sources, "_put", side_effect=DatabaseError("database is locked")):
+            call_command("sources_import", stdout=io.StringIO(), stderr=io.StringIO())
+        self.assertFalse(FetchRunMark.objects.filter(key=sources.IMPORTED).exists())
+        call_command("sources_import", stdout=io.StringIO(), stderr=io.StringIO())
+        self.assertTrue(DataSource.objects.filter(pk="a").exists())
+
+    def test_지운_데이터소스는_씨앗이_되살리지_않는다(self):
+        self.write_seed([_row(id="a"), _row(id="b")])
+        sources.seed()
+        user = User.objects.create_superuser("tester", "", "pw")
+        self.client.force_login(user)
+        self.client.post("/GSM/admin/viewer/datasource/b/delete/", {"post": "yes"})
+        self.assertEqual(sources.seed()["added"], [])
+        self.assertEqual(list(DataSource.objects.values_list("id", flat=True)), ["a"])
+        self.assertEqual(DataSourceChange.objects.filter(source="b", after__isnull=True).get().by_name, "tester")
+
+    def test_목록_칸을_비우면_빈_목록(self):
+        obj = DataSource(id="a", **DataSource.fields_of(_row(id="a")))
+        obj.flags, obj.outputs, obj.docs = None, "", None
+        obj.full_clean()
+        self.assertEqual((obj.flags, obj.outputs, obj.docs), ([], [], []))
+
+    def test_밖에_연_판에는_admin_이_없다(self):
+        import importlib
+
+        from django.urls import clear_url_caches
+
+        import gsmweb.urls
+        self.write_seed([_row(id="a")])
+
+        def reload():
+            importlib.reload(gsmweb.urls)
+            clear_url_caches()
+        self.addCleanup(reload)
+        with override_settings(PUBLIC=True):
+            reload()
+            self.assertEqual(self.client.get("/GSM/admin/").status_code, 404)
+            page = self.client.get("/GSM/manage/").content.decode()
+            self.assertNotIn("명세 고치기</a>", page)
+        reload()
+        self.assertEqual(self.client.get("/GSM/admin/").status_code, 302)       # 연구소 안에서는 로그인으로
