@@ -405,6 +405,10 @@ class DataSource(models.Model):
         from django.core.exceptions import ValidationError
 
         from . import i18n, sources
+        # admin 에서 목록 칸을 비우면 폼이 None 을 넘긴다 — 빈 목록으로 받는다 (#381 검토 7)
+        for k in ("flags", "commands", "outputs", "docs"):
+            if getattr(self, k) in (None, ""):
+                setattr(self, k, [])
         found = sources.problems_of(self.as_row())
         if found:
             raise ValidationError([i18n.t(m) for m in found])
@@ -418,6 +422,8 @@ class DataSourceChange(models.Model):
     at = models.DateTimeField("때", auto_now_add=True)
     by = models.ForeignKey("auth.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
                            verbose_name="누가")
+    # 계정을 지워도 누가 고쳤는지 남게 이름을 글로도 (#381 검토 5)
+    by_name = models.CharField("누가(이름)", max_length=150, blank=True, default="")
     origin = models.CharField("어디서", max_length=16, choices=ORIGINS)
     before = models.JSONField("앞", null=True, blank=True)
     after = models.JSONField("뒤", null=True, blank=True)

@@ -773,6 +773,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": env("GSM_DB_PATH", str(REPO_DIR / "GSM.db")),
+        # 쓰기가 겹치면 기다린다 — 트랜잭션은 처음부터 쓰기 잠금을 잡고(IMMEDIATE, 읽다가 쓰기로 오르다 곧장 SQLITE_BUSY 가 나지
+        # 않게), 잠금은 20 초까지 기다린다. 받은 차례의 기록·상류 호출 수·점묶음 저장이 한 파일에 쓴다 (#381 검토 4). WAL 은 나중에(사람)
+        "OPTIONS": {"transaction_mode": "IMMEDIATE", "timeout": 20},
     }
 }
 

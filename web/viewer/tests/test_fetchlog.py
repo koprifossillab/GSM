@@ -227,6 +227,7 @@ class FromHost(Base):
     def test_상류_호출_수를_한_번만_더한다(self):
         from viewer import usage
         from viewer.models import UpstreamDay
+        self.addCleanup(usage.reset)       # 차단 조짐 수는 프로세스에 남는다 — 같은 일꾼의 다른 시험이 "쉬는 중" 에 걸리지 않게
         with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
             usage.record("kopri", ok=True, elapsed=1.2)
             usage.record("kopri", ok=False)
