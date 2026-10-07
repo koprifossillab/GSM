@@ -42,10 +42,6 @@ def path() -> Path:
     return Path(settings.SOURCES_PATH)
 
 
-def history_dir() -> Path:
-    return path().parent / "sources_history"
-
-
 def seed_path() -> Path:
     return Path(settings.SOURCES_SEED)
 
@@ -217,7 +213,8 @@ def last_change():
 def record_change(source_id: str, before, after, origin: str, by=None):
     """명세의 이력 한 줄. `before`·`after` 는 줄(dict) 또는 None(새로 넣음·지움)"""
     from .models import DataSourceChange
-    DataSourceChange.objects.create(source=source_id, before=before, after=after, origin=origin, by=by)
+    DataSourceChange.objects.create(source=source_id, before=before, after=after, origin=origin, by=by,
+                                    by_name=by.get_username() if by is not None else "")
 
 
 def _put(rows, origin: str, start: int = 0) -> list:
@@ -234,11 +231,20 @@ def _put(rows, origin: str, start: int = 0) -> list:
     return added
 
 
+def deleted_ids() -> set:
+    """사람이 지운 데이터소스 — 이력의 마지막 줄이 지움(`after` 가 빈 것)인 id. 씨앗이 되살리지 않는다(#381 검토 2)"""
+    from .models import DataSourceChange
+    last = {}
+    for source, after, at, pk in DataSourceChange.objects.values_list("source", "after", "at", "id").order_by("at", "id"):
+        last[source] = after
+    return {s for s, after in last.items() if after is None}
+
+
 def seed() -> dict:
     """씨앗을 표에 넣는다. 비었으면 통째로, 차 있으면 씨앗에만 있는 id 를 끝에 덧붙인다.
 
     돌려주는 것 — {"created": bool, "added": [id…], "differs": [id…]}. `differs` 는 씨앗과 표의 같은 id 가 다른 줄이다
-    (덮지 않았다 — 옮길지는 사람이 정한다).
+    (덮지 않았다 — 옮길지는 사람이 정한다). 사람이 지운 id 는 덧붙이지 않는다(`deleted_ids`).
     """
     from .models import DataSource
     seed_rows = read_seed().rows
@@ -247,25 +253,53 @@ def seed() -> dict:
         if not have:
             return {"created": True, "added": _put(seed_rows, "seed"), "differs": []}
         start = max(o.order for o in have.values()) + 1
-        added = _put([r for r in seed_rows if r["id"] not in have], "seed", start)
+        gone = deleted_ids()
+        added = _put([r for r in seed_rows if r["id"] not in have and r["id"] not in gone], "seed", start)
     differs = sorted(seed_differs([o.as_row() for o in have.values()]))
     return {"created": False, "added": added, "differs": differs}
 
 
-def import_file(p: Path = None) -> dict:
-    """파일 시절의 운영 명세(`sources.json`)를 표로 — **표가 비었을 때만** 한 번. {"done": bool, "added": [id…], "origin": …, "problems": …}
+IMPORTED = "sources_imported"
 
-    파일이 깨졌으면 마지막으로 떠 둔 판을 쓴다(`read_file`). 이미 차 있으면 아무것도 하지 않는다 — 두 번 옮겨 덮지 않게.
+
+def import_file(p: Path = None) -> dict:
+    """파일 시절의 운영 명세(`sources.json`)를 표로 — **한 번**. 끝나면 표지(`FetchRunMark` 의 `IMPORTED`)를 남긴다.
+
+    "표가 비었나" 로 정하지 않는다 — 옮기다 실패하고 그 사이 씨앗이 들어가면 다시 기회가 없었다(#381 검토 1). 표지가 없으면:
+    파일에만 있는 id 는 덧붙이고, 씨앗으로 들어간 줄이 파일과 다르면 **파일 쪽으로 덮는다**(파일이 사람이 고친 것이다) — 이력에 앞뒤를.
+    admin 에서 고친 줄은 덮지 않고 알린다. 파일이 깨졌으면 마지막으로 떠 둔 판을, 파일이 없으면(새 설치) 표지만 남긴다.
+    돌려주는 것 — {"done", "added", "replaced", "kept", "origin", "problems"}
     """
-    from .models import DataSource
+    from .models import DataSource, DataSourceChange, FetchRunMark
+    out = {"done": False, "added": [], "replaced": [], "kept": [], "origin": "", "problems": []}
+    if FetchRunMark.objects.filter(key=IMPORTED).exists():
+        out["origin"] = "done"
+        return out
     spec = read_file(p)
-    if spec.origin == "none" or not spec.rows:
-        return {"done": False, "added": [], "origin": spec.origin, "problems": spec.problems}
+    out.update(origin=spec.origin, problems=spec.problems)
     with transaction.atomic():
-        if DataSource.objects.exists():
-            return {"done": False, "added": [], "origin": "db", "problems": []}
-        added = _put(spec.rows, "import")
-    return {"done": True, "added": added, "origin": spec.origin, "problems": spec.problems}
+        if spec.origin != "none" and spec.rows:
+            have = {o.pk: o for o in DataSource.objects.all()}
+            edited = set(DataSourceChange.objects.filter(origin__in=("admin", "tab")).values_list("source", flat=True))
+            start = max((o.order for o in have.values()), default=-1) + 1
+            new = [r for r in spec.rows if r["id"] not in have]
+            out["added"] = _put(new, "import", start)
+            for i, row in enumerate(spec.rows):
+                obj = have.get(row["id"])
+                if obj is None or _normal(obj.as_row()) == _normal(row):
+                    continue
+                if obj.pk in edited:
+                    out["kept"].append(obj.pk)
+                    continue
+                before = obj.as_row()
+                for k, v in DataSource.fields_of(row).items():
+                    setattr(obj, k, v)
+                obj.save()
+                record_change(obj.pk, before, obj.as_row(), "import")
+                out["replaced"].append(obj.pk)
+        FetchRunMark.objects.update_or_create(key=IMPORTED, defaults={"value": spec.origin or "none"})
+    out["done"] = True
+    return out
 
 
 def _normal(row: dict) -> dict:

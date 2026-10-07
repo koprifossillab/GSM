@@ -69,8 +69,8 @@
 | `kigam_data/` | KIGAM `/openapi/data` 의 시료·분석·주제도·조사 | `manage.py fetch_kigam_data` (wetherilli 169) |
 | `kopri/` | 극지연구소 목록·상세 | `manage.py fetch_kopri` — 가끔, 새 것만 받는다 (053) |
 | `kigam50k/` | KIGAM 5만 지질도 구조 요소 19 레이어(WFS) — 층리·엽리 기호·장미도·레이어군 "지질 구조 (5만)" 이 읽는다. 지금은 `raw/20260930/` 하나 (jikhanjung 004·005, wetherilli 197·199·202·223) | `manage.py fetch_kigam50k` — 사람이 가끔. 같으면 새 폴더 없이 확인한 날만 (wetherilli 199·208). 옛 벌은 사람이 `manage.py prune_raw`(최근 3 벌, `--dry-run` 먼저, jikhanjung 015) |
-| `sources.json`·`sources_history/` | **파일 시절의** 데이터소스 명세와 그 사본 — P03 1 단계부터 명세는 `GSM.db` 의 `DataSource` 다. 컨테이너가 뜰 때 `sources_import` 가 표가 비었으면 한 번 옮긴다. 파일은 한 판 동안 견주려고 남긴다(P03 2 단계에서 읽는 길을 지운다) | 명세는 admin(`/GSM/admin/`, staff 계정)에서 고치고 `DataSourceChange` 에 이력. 씨앗은 `sources_seed` 가 없는 id 만 덧붙인다 (jikhanjung P03·016) |
-| `store.sqlite`·`fetch_log_host.jsonl` | 받은 차례의 기록은 P03 1 단계부터 `GSM.db` 의 `FetchRun` 이다 — `store.sqlite` 의 `fetch_log` 는 `sources_import` 가 한 번 옮긴 뒤 쓰지 않는다(② 적재 자리로 남긴다). 호스트가 사람 손으로 부른 일은 여전히 jsonl 에 | 저절로 쌓인다. 보기는 `sources_log`·admin 의 "받은 차례" (jikhanjung P02·012·P03·016) |
+| `sources.json`·`sources_history/` | **파일 시절의** 데이터소스 명세와 그 사본 — P03 1 단계부터 명세는 `GSM.db` 의 `DataSource` 다. 컨테이너가 뜰 때 `sources_import` 가 표가 비었으면 한 번 옮긴다. 파일은 한 판 동안 견주려고 남긴다(P03 2 단계에서 읽는 길을 지운다) | 명세는 admin(`/GSM/admin/`, staff 계정)에서 고치고 `DataSourceChange` 에 이력. 씨앗은 `sources_seed` 가 없는 id 만 덧붙인다 **판을 P03 앞으로 되돌리면 admin 에서 고친 것은 안 보인다**(옛 판은 sources.json 을 읽는다 — DB 에는 남는다) (jikhanjung P03·016) |
+| `store.sqlite`·`fetch_log_host.jsonl`·`upstream_host.jsonl` | 받은 차례의 기록은 P03 1 단계부터 `GSM.db` 의 `FetchRun` 이다 — `store.sqlite` 의 `fetch_log` 는 `sources_import` 가 한 번 옮긴 뒤 쓰지 않는다(② 적재 자리로 남긴다). **호스트는 GSM.db 를 열지 않는다** — 사람 손으로 부른 일은 `fetch_log_host.jsonl`, 상류 호출 수는 `upstream_host.jsonl` 에 남기고 컨테이너가 매시 들인다 | 저절로 쌓인다. 보기는 `sources_log`·admin 의 "받은 차례" (jikhanjung P02·012·P03·016) |
 
 그 밖에 가끔 돌리는 것 — `data_status`(위 표의 파일마다 있는지·크기·고친 날·원본 판, wetherilli 312), `fetch_grportal`(그린란드 시료·NPI 점·지명), `verify_layers --probe-info`
 (`/openapi/wms` 가 속성을 열었는지), `upstream_stats`(얼마나 묻는지).
@@ -192,7 +192,7 @@ koprifossillab 019) — DNS 가 고쳐지면 함께 지운다. 2026-09-23 에 �
 
 ### 백업
 
-매주 월요일 01:40 `/srv/GSM/scripts/weekly_backup.sh`(원본 `deploy/scripts/`) — 다시 못 얻는 것(GSM.db·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
+매주 월요일 01:40 `/srv/GSM/scripts/weekly_backup.sh`(원본 `deploy/scripts/`) — 다시 못 얻는 것(GSM.db — 사본은 컨테이너가 뜬다 `backup_db`, jikhanjung 017 ·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
 와 NAS 에, 캐시·원본은 거울로. 그 뒤 `fetch_kopri`. 무엇이 어디에 있고 어떻게 되살리나는 [docs/백업.md](docs/백업.md)
 (koprifossillab 001). 2026-09-30 에 paleoadmin 의 crontab 에 붙였다(`deploy/host/crontab.GSM`) — 첫 차례는 10-05(월).
 결과는 DB 옆 `backup_status.json` 에도 적혀 **`/GSM/healthz/` 가 읽는다** — 멈췄거나 여드레 넘게 없으면 `degraded`

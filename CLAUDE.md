@@ -262,7 +262,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   `manage.py build_paleomap <zip>`)으로 단위의 윗·밑 연대나 사람이 넣은 연대로 옮긴다. EarthThruTime3D 와 같은 모델·같은 줄임이다 —
   건너갔을 때 같은 자리에 핀이 서게. 셈은 ETT 의 코드(MIT, `docs/licenses/`)를 옮겼다. **계산이지 관측이 아니다**.
   옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다.
-  **시간 축**(wetherilli P07·091) — 연대 하나를 로그 막대로 고른다(`?age=`). 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
+  **시간 축**(wetherilli P07·091·373) — 연대 하나를 지도 위 너비를 다 쓰는 ICS 지질시대 띠(`timescale.py`)에서 누르거나 끌어 고른다(`?age=`). 왼쪽이 옛날, 제4기만 로그로 넓게 편다. 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
   서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
   판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다. 레이어의 `then: true` 는 1 Ma 부터만 뜬다 — 옛 해안선
   (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097).
@@ -585,6 +585,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   icemargins.py   최근 빙기의 빙상 가장자리 NADI-1·DATED-1 (data/ice_margins.json) -> 연대마다 경위도 타일. 문이 아니다
   ocean.py        해류 u·v 표층 -> PNG 텍스처(R=u·G=v·B=바다), 목록. 유속 파일의 밀린 경도를 바로잡는다. 굽기는 호스트에서만(numpy). 문이 아니다
   wind.py         바람 u·v 격자 -> PNG 텍스처(R=u·G=v), 구름량 -> 회색 PNG, 그리고 목록. 굽기는 호스트에서만(numpy). 문이 아니다
+  timescale.py    ICS 국제층서표의 누대·대·기·세·제4기의 절(경계·색·한국어 이름) -> 온 지구 시간 축의 띠. 문이 아니다
   crust.py        지각 두께 CRUST 2.0 (data/crust2_thickness.json) -> 경위도 타일·누른 자리의 두께. 문이 아니다
   glaciers.py     세계 빙하 RGI 7.0 속성 CSV -> sqlite(R*Tree) -> 넓이만 한 점의 경위도 타일(줌 3 부터)·누른 자리. 문이 아니다
   impacts.py      지구 충돌구(Wikidata CC0)·거대 화성암 지대(Johansson 2018) (data/earth_impacts.json) -> 경위도 타일. LIP 는 PALEOMAP 판으로 그때의 자리에. 문이 아니다
@@ -627,7 +628,7 @@ devlog/           왜 그렇게 했는지 — 색인은 devlog/README.md
 
 **상류마다 문이 하나다 — `kigam.py`·`vworld.py`·`geus.py`·`grportal.py`·`npolar.py`·`gsj.py`·`gsmma.py`·`emodnet.py`·`ngu.py`·`gtk.py`·`sgu.py`·`natt.py`·`bgs.py`·`brgm.py`·`egdi.py`·`bgr.py`·`cgs.py`·`igme.py`·`gsi.py`·`sgc.py`·`sgb.py`·`ingemmet.py`·`iige.py`·`mrdata.py`·`sgm.py`·`ga.py`·`austates.py`·`gns.py`·`mris.py`·`gsiindia.py`·`sgs.py`·`esdm.py`·`jmg.py`·`mgb.py`·`dmr.py`·`segemar.py`·`dinamige.py`·`ispra.py`·`lneg.py`·`swisstopo.py`·`nrcan.py`·`ogs.py`·`sigeom.py`·`ygs.py`·`skgs.py`·`nsgs.py`·`ags.py`·`bas.py`·`bcgs.py`·`calgs.py`·`usstates.py`·`geosphere.py`·`pig.py`·`tno.py`·`dov.py`·`spw.py`·`ineter.py`·`stri.py`·`usgscarib.py`·`vmme.py`·`georep.py`·`phyloserver.py`·`elevation.py`·`trek.py`·`kopri.py`·`macrostrat.py`·`pbdb.py`·`gvp.py`·`usgs.py`·`neotoma.py`·`basemaps.py`·`linked.py`·`gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py`.**
 이 일흔여섯 말고는 어디서도 `requests` 를 쓰지 않는다. `gfs.py`·`era5.py`·`gmgsi.py`·`ecco.py` 는 **호스트에서만** 부른다 — 바람·해류를 받아
-굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
+굽는 일(numpy·ecCodes·numcodecs, `requirements-wind.txt`)이 `/srv/GSM/scripts/run.sh` 의 전용 venv 에서 돌고(koprifossillab 005), 컨테이너는 구운 PNG 를 내주기만 한다(koprifossillab P02). **호스트는 `GSM.db` 를 열지 않는다**(사람, 2026-10-07, jikhanjung P03) — `run.sh` 가 거는 `GSM_RUN_PLACE=host` 면 설정이 DB 엔진을 dummy 로 바꿔 실수로 열면 곧장 깨진다. 호스트의 명령은 파일만 남기고(`hourly_status.json`·`fetch_log_host.jsonl`·`upstream_host.jsonl`) 컨테이너가 들인다(`hourly.sh` 끝의 `docker compose exec … sources_log --sync-only`). DB 가 필요한 일은 호스트에서 돌리지 않고 컨테이너 안에서 부른다(`docker compose exec web python manage.py …`) — 주간 백업의 DB 사본도 그렇다(`manage.py backup_db` 가 표준 출력으로 낸다, jikhanjung 017). `linked.py` 만은 주소를 우리가 정하지 않는다 — 개인 레이어를 남의 API 에
 이을 때 브라우저가 곧장 못 받으면 거친다(wetherilli P09·122). 사설망은 `GSM_LINKED_ALLOW` 에 적은 호스트만, 밖에 열면 닫는다. 뷰가 직접 부르지 않는다. 상류가 바뀌거나 주소가
 닫힐 때 고칠 자리를 하나로 묶어두려는 것이다. `geomap.py`·`janmayen.py`·`geo3al.py`·`peninsula.py`·`moonmap.py`·`caribmap.py`·`ibcso.py`·`admap.py`·`ntgeo.py`·`sarad.py`·`kigam50k.py`·`kigamdata.py`·`twopen.py`·`zhurong.py`·`marscraters.py`·`marsmap.py`·`mercurymap.py`·`spamap.py`·`paleo.py`·`paleocoast.py`·`fossils.py`·`volcanoes.py`·`quakes.py`·`paleoeco.py`·`crust.py`·`glaciers.py`·`impacts.py`·`faults.py`·`minerals.py`·`stress.py`·`tectonics.py`·`seafloor.py`·`glim.py`·`heatflow.py`·`naturalearth.py`·`geonames.py`·`icemargins.py`·`mantle.py`·`earthpoints.py`·`pointvalues.py`·`sources.py`·`fetchlog.py`·`rawstore.py` 는
 상류가 아니라 우리 디스크의 파일을 읽으므로 문이 아니다. `warp.py` 도 문이 아니다 — 원본은 부르는 쪽이 넘긴다. 문은 서로를 타지 않는다 —
