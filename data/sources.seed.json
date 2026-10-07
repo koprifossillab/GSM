@@ -688,6 +688,29 @@
    ]
   },
   {
+   "id": "paleodem",
+   "name": {
+    "ko": "그때의 땅과 바다 밑 PaleoDEM",
+    "en": "PaleoDEM paleo-elevation"
+   },
+   "org": "Zenodo 5460860",
+   "kind": "build",
+   "commands": [
+    "build_paleodem"
+   ],
+   "runs_on": "host",
+   "schedule": "manual",
+   "license": "CC BY 4.0",
+   "flags": [],
+   "outputs": [
+    "earth/paleodem"
+   ],
+   "docs": [
+    "wetherilli 375"
+   ],
+   "note": "numpy·h5py 로 굽는다 — /srv/GSM/scripts/run.sh build_paleodem <zip>"
+  },
+  {
    "id": "mantle",
    "name": {
     "ko": "맨틀 슬랩 Müller 2022 OPT1",

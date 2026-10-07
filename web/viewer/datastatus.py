@@ -65,6 +65,7 @@ ITEMS = [
     Item("earth/quakes_recent.json", "EARTH_DIR", "quakes_recent.json", msg("최근 지진"), "fetch_recent_quakes"),
     Item("earth/neotoma.sqlite", "EARTH_DIR", "neotoma.sqlite", msg("제4기 고생태 산지 Neotoma"), "fetch_neotoma"),
     Item("earth/paleocoastlines_v7.json", "EARTH_DIR", "paleocoastlines_v7.json", msg("옛 해안선"), "build_paleocoastlines"),
+    Item("earth/paleodem", "EARTH_DIR", "paleodem", msg("그때의 땅과 바다 밑 높이"), "build_paleodem"),
     Item("earth/mantle", "EARTH_DIR", "mantle", msg("맨틀 슬랩"), "build_mantle"),
     Item("earth/seafloor_age.json", "EARTH_DIR", "seafloor_age.json", msg("해양 지각 연대"), "build_seafloor"),
     Item("earth/seafloor_sediment.json", "EARTH_DIR", "seafloor_sediment.json", msg("해저 퇴적층 두께"), "build_seafloor"),
