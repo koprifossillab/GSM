@@ -1531,7 +1531,6 @@ EN = {
     "어림": "estimate",
     "명세": "spec",
     "저장소의 씨앗": "the repository seed",
-    "마지막으로 떠 둔 판": "the last saved copy",
     "빈 명세": "an empty spec",
     "명세가 없다 — 서버에서 manage.py sources_seed 를 부르면 저장소의 씨앗을 놓는다": "No spec — run manage.py sources_seed on the server to place the repository seed",
     "마지막으로 된 차례": "Last successful run",
@@ -1539,8 +1538,9 @@ EN = {
     "명세가 바뀌었다 — {name}": "Spec changed — {name}",
     "센 수 {e} · 받은 수 {n}": "counted {e} · received {n}",
     "받은 차례가 아직 없다": "No runs recorded yet",
-    "명세는 서버의 sources.json 을 손으로 고친다. 받은 차례는 명령이 끝날 때 저절로 쌓이고, 서버 쪽에서는 manage.py sources_log 로 같은 것을 본다.":
-        "The spec is edited by hand in sources.json on the server. Runs are recorded when each command finishes; on the server, manage.py sources_log shows the same.",
+    "명세는 admin 에서 고친다(staff 계정) — 고칠 때마다 누가·언제·앞뒤가 이력에 남는다. 받은 차례는 명령이 끝날 때 저절로 쌓이고, 서버 쪽에서는 manage.py sources_log 로 같은 것을 본다.":
+        "The spec is edited in the admin (staff account) — every edit records who, when and the before/after. Runs are recorded when each command finishes; on the server, manage.py sources_log shows the same.",
+    "명세 고치기": "Edit the spec",
     "매시": "hourly",
     "매주": "weekly",
     "매달 첫 월요일": "first Monday monthly",
