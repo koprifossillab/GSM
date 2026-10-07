@@ -460,3 +460,4 @@
 | koprifossillab 020 | 2026-10-06 | [시험이 /tmp 에 흘린 것 — tempfile 의 기본 자리를 러너의 임시 자리로](20261006_koprifossillab_020_test_tmp_leak.md) |
 | koprifossillab 021 | 2026-10-06 | [지난 바람 ERA5 를 8 TB 하드로 — 루트 SSD 를 비운다](20261006_koprifossillab_021_era5_on_data.md) |
 | koprifossillab 022 | 2026-10-07 | [판을 띄운 뒤 옛 이미지를 정리한다](20261007_koprifossillab_022_prune_old_images.md) |
+| koprifossillab 023 | 2026-10-07 | [주간 백업을 월요일 01:10 으로 — 매시 받기(:40)와 비낀다](20261007_koprifossillab_023_backup_at_10.md) |

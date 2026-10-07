@@ -1,5 +1,5 @@
 #!/bin/bash
-# 매주 한 번(월요일 01:40): GSM 운영 자료를 백업하고, 상류에서 모아 두는 것을 새로 받는다 (koprifossillab P01).
+# 매주 한 번(월요일 01:10): GSM 운영 자료를 백업하고, 상류에서 모아 두는 것을 새로 받는다 (koprifossillab P01).
 # paleoadmin 의 crontab 에서 돈다 — deploy/host/crontab.GSM. 도는 것은 /srv/GSM/scripts/ 의 사본이다(koprifossillab 005). 틀은 WegenersDream 의 weekly_refresh.sh 다.
 #
 #   /srv/GSM/scripts/weekly_backup.sh                 ①–④ 백업 → ⑤–⑦ 받기
