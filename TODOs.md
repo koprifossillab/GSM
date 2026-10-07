@@ -8,7 +8,7 @@
 
 ## 결정 없이 할 수 있는 것 — 값이 큰 차례
 
-- [ ] **데이터소스 P03 2 단계** — jikhanjung P03: 관리 화면 "데이터소스" 탭에서 고치기(로그인한 staff 만), 옛 파일 길(`sources.json`·`sources_history/`·`store.sqlite` 의 기록) 지우기, `prune_fetch_log`(데이터소스마다 1 년 안은 다 두고 그보다 옛것은 하루 한 줄, 실패·`changed > 0` 줄은 늘 남긴다, 사람이 부른다·`--dry-run` 먼저 — 정했다, 사람, 2026-10-07). 1 단계는 #381·#383(staff 계정은 만들었다)
+- [ ] **데이터소스 P03 2 단계** — jikhanjung P03: 관리 화면 "데이터소스" 탭에서 고치기와 탭 안의 로그인(staff, 사람 2026-10-07 — `feature/source-edit`), 옛 파일 길(`sources.json`·`sources_history/`·`store.sqlite` 의 기록) 지우기는 0.73.x 가 며칠 돈 뒤. 기록 줄이기(`prune_fetch_log`)는 하지 않는다 — 한 해 10 MB 안팎(사람, 2026-10-07). 1 단계는 #381·#383·#385·#388(0.73.0·0.73.1)
 - [ ] **호스트의 jsonl 이 끝없이 자란다** — `upstream_host.jsonl`(상류 호출 수, 매시 넷이면 한 해 십몇 MB)·`fetch_log_host.jsonl`. 날마다 파일을 나누고 다 들인 지난 날짜의 파일을 컨테이너가 지운다 (jikhanjung 018)
 - [ ] 매시 일이 `fetchlog.note()` 로 보탠 것(받은 수 따위)은 기록에 안 남는다 — `hourly_status.json` 에 그 칸이 없다. 매시 넷의 받은 수가 보고 싶어지면 `hourly.sh` 가 칸을 더한다 (jikhanjung 018)
 - [ ] **admin 이 평문 HTTP 다** — 데이터소스 명세를 고치는 창구라 staff 계정·세션이 오간다(#381 검토 3). HTTPS 는 나중에(사람, 2026-10-07). 그 전에 nginx 에서 사내 대역만 받을지도 정한다. 밖에 연 판(`GSM_PUBLIC`)에서는 admin 경로를 이미 뺀다
