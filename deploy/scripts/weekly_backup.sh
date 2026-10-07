@@ -23,7 +23,8 @@
 # (KPDC 의 extra_hosts 가 거기 있다, wetherilli 095). 받기가 실패해도 지난 파일이 그대로다.
 #   ⑤ fetch_kopri       매주 — 목록 여덟 장과 새 상세만, 수 분
 #   ⑥ (뺐다) fetch_kigam50k — 사람이 가끔 부른다. 문서에 없는 KIGAM GeoServer 로 정기적으로 나가지 않는다 (사용자, 2026-10-04, wetherilli 208)
-#   ⑦ fetch_pbdb        그달의 첫 월요일 — db/earth/ 가 운영에 섰을 때만 (WegenersDream 이 매주 받으므로 여기는 매달)
+#   ⑦ fetch_pbdb        매주 — 그달의 첫 월요일은 통째로, 그 밖은 바뀐 것만(--changed, 수십 KB) 받아 덮고 다시 굽는다.
+#                       db/earth/ 가 운영에 섰을 때만 (사람, 2026-10-07, jikhanjung 026)
 #
 # NAS 가 안 붙었거나 실패해도 로컬 백업과 받기는 한다 — 결과의 "nas" 에 남는다. 결과는 logs/last_backup.json.
 set -uo pipefail
@@ -216,15 +217,18 @@ echo "원본 거울: $SOURCES_RESULT ($(du -sh "$SOURCES" 2>/dev/null | cut -f1)
 STEP=fetch
 FIRST_MONDAY=$([ "$((10#$(date +%d)))" -le 7 ] && echo 1 || echo 0)
 done_=(); failed=()
-run() {   # run <명령> <timeout> — 컨테이너 안의 manage.py <명령>
-    echo "-- $1"
-    if timeout "$2" "${MANAGE[@]}" "$1"; then done_+=("$1"); else failed+=("$1"); fi
+run() {   # run <명령> <timeout> [인자…] — 컨테이너 안의 manage.py <명령> [인자…]
+    local name=$1 limit=$2; shift 2
+    echo "-- $name $*"
+    if timeout "$limit" "${MANAGE[@]}" "$name" "$@"; then done_+=("$name${*:+ $*}"); else failed+=("$name${*:+ $*}"); fi
 }
 
 run fetch_kopri 10800
-if [ "$FIRST_MONDAY" = 1 ]; then
-    if [ -d "$DB/earth" ]; then
-        run fetch_pbdb 3600
+if [ -d "$DB/earth" ]; then
+    if [ "$FIRST_MONDAY" = 1 ]; then
+        run fetch_pbdb 3600                 # 통째로 — 지운 산지·놓친 것을 맞춘다
+    else
+        run fetch_pbdb 1800 --changed       # 바뀐 것만 받아 덮고 다시 굽는다(굽기 2 분 남짓)
     fi
 fi
 FETCH="${done_[*]:-}${failed[*]:+ / 실패: ${failed[*]}}"
