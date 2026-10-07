@@ -9,6 +9,7 @@
 ## 결정 없이 할 수 있는 것 — 값이 큰 차례
 
 - [ ] **데이터소스 명세와 기록을 DB 로** — jikhanjung P03: 명세는 `GSM.db` 의 `DataSource`(이력 `DataSourceChange`), 받은 차례의 기록 `fetch_log` 도 `FetchRun` 으로 같은 작업에서, 매니페스트는 원본 폴더에 그대로. 호스트는 `GSM.db` 를 읽고, 고치기는 Django staff 계정(1 단계 뒤 admin, 2 단계에 관리 화면 탭) — 정했다(사람, 2026-10-07). **운영 `auth_user` 가 0 명** — 1 단계 배포 뒤 판 세션이 계정을 만든다. 기록 줄이기 정책 하나가 남았다
+- [ ] **주간 백업이 호스트에서 `GSM.db` 를 읽는다** — `weekly_backup.sh` 의 sqlite backup(읽기 전용). "호스트는 GSM.db 를 열지 않는다"(사람, 2026-10-07, jikhanjung 016)대로라면 컨테이너 안에서 뜨고(`docker compose exec`) 호스트는 파일만 받는다. `store.sqlite` 도 같다
 - [ ] 호주 남은 주 — 뉴사우스웨일스 이음매 없는 지질도뿐이다. `gs-seamless` 는 여전히 503, MinView 가 쓰는 `gs-mv` 는 공개 DNS 에 없다(NXDOMAIN, 2026-10-05). 살아나면 붙인다(wetherilli 361). 노던테리토리는 섰다
 - [ ] 남호주 지구물리의 값 누르기 — 방사능(K·Th·U)은 섰다(wetherilli 358). 자력·중력은 아직 RGB 뿐이다 — 중력 격자 4.7 GB(2016), 주 총자력 합본은 PDF·PNG 만 보였다. 가울러 크라톤 탐사의 합본 TMI 는 18 GB
 - [ ] **대만 지질운 열린자료의 빈 칸**(wetherilli 305·328) — `--holes` 로 1 km 네모까지 나눠 146 개를 더 받았다. 남은 여섯(1 km 남짓, 파일의 `holes`)은
