@@ -197,7 +197,7 @@ koprifossillab 019) — DNS 가 고쳐지면 함께 지운다. 2026-09-23 에 �
 
 ### 백업
 
-매주 월요일 01:40 `/srv/GSM/scripts/weekly_backup.sh`(원본 `deploy/scripts/`) — 다시 못 얻는 것(GSM.db — 사본은 컨테이너가 뜬다 `backup_db`, jikhanjung 017 ·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
+매주 월요일 03:10 `/srv/GSM/scripts/weekly_backup.sh`(원본 `deploy/scripts/`) — 다시 못 얻는 것(GSM.db — 사본은 컨테이너가 뜬다 `backup_db`, jikhanjung 017 ·kopri·kigam50k)과 구운 것을 `/data/GSM/backups`
 와 NAS 에, 캐시·원본은 거울로. 그 뒤 `fetch_kopri`. 무엇이 어디에 있고 어떻게 되살리나는 [docs/백업.md](docs/백업.md)
 (koprifossillab 001). 2026-09-30 에 paleoadmin 의 crontab 에 붙였다(`deploy/host/crontab.GSM`) — 첫 차례는 10-05(월).
 결과는 DB 옆 `backup_status.json` 에도 적혀 **`/GSM/healthz/` 가 읽는다** — 멈췄거나 여드레 넘게 없으면 `degraded`
@@ -207,7 +207,7 @@ koprifossillab 019) — DNS 가 고쳐지면 함께 지운다. 2026-09-23 에 �
 
 **cron 은 저장소를 부르지 않는다** — `/srv/GSM/scripts/` 의 사본을 부른다. 컨테이너가 뜰 때 이미지의 `deploy/scripts/`
 와 앱 코드 사본(`app/`)을 거기 깔고(`install.sh`), 파이썬 일은 `run.sh <관리 명령>` 이 전용 venv(`scripts/venv`)로 돌린다.
-venv 는 requirements 가 바뀌면 스스로 다시 만든다. cron 은 **두 줄**이다 — 주간 백업(월 01:40)과 **매시 받기**(매시 :40,
+venv 는 requirements 가 바뀌면 스스로 다시 만든다. cron 은 **두 줄**이다 — 주간 백업(월 03:10)과 **매시 받기**(매시 :40,
 `hourly.sh`, koprifossillab 013). `hourly.sh` 가 차례로 부르는 일: 지금의 바람·구름(`fetch_gfs_wind` → `db/wind/gfs/`, 판마다 분석과
 +12 시간까지의 예보, 48 시간만), 위성 구름(`fetch_gmgsi` → `db/wind/gmgsi/`, 스물네 장만), 아라온호 위치(`fetch_araon` →
 `db/kopri/araon.jsonl`), 최근 지진(`fetch_recent_quakes` → `db/earth/quakes_recent.json`). 일마다의 결과는 `db/hourly_status.json` 에 남고 **`/GSM/healthz/` 가 읽는다** — 기록이 2 시간 넘게 멈추거나,
