@@ -262,7 +262,7 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   `manage.py build_paleomap <zip>`)으로 단위의 윗·밑 연대나 사람이 넣은 연대로 옮긴다. EarthThruTime3D 와 같은 모델·같은 줄임이다 —
   건너갔을 때 같은 자리에 핀이 서게. 셈은 ETT 의 코드(MIT, `docs/licenses/`)를 옮겼다. **계산이지 관측이 아니다**.
   옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다.
-  **시간 축**(wetherilli P07·091·373) — 연대 하나를 지도 위 너비를 다 쓰는 ICS 지질시대 띠(`timescale.py`)에서 누르거나 끌어 고른다(`?age=`). 왼쪽이 옛날, 제4기만 로그로 넓게 편다. 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
+  **시간 축**(wetherilli P07·091·373·376) — 연대 하나를 지도 위 너비를 다 쓰는 ICS 지질시대 띠(`timescale.py`, 대·기·세 세 줄)에서 누르거나 끌어 고른다(`?age=`). 띠는 처음에 접혀 있다(376). 왼쪽이 옛날, 제4기만 로그로 넓게 편다. 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
   서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
   판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다. 레이어의 `then: true` 는 1 Ma 부터만 뜬다 — 옛 해안선
   (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097).

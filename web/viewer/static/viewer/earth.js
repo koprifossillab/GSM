@@ -2926,9 +2926,10 @@
     return best != null && Math.abs(best - a) <= 10 ? best : null;
   }
 
-  // ── 지질시대 띠 — ICS 국제층서표의 누대·대·기·세, 제4기의 절 (서버의 `timescale.py`) ──
+  // ── 지질시대 띠 — ICS 국제층서표의 대·기·세 (서버의 `timescale.py`) ──
+  // 띠에는 세 줄만 — 누대와 제4기의 절은 머리줄의 갈래(대 › 기 › 세 › 절)에만 쓴다 (wetherilli 376)
   var ICS = THEN.timescale || [];
-  var RANK_ROWS = [["eon", T("누대")], ["era", T("대")], ["period", T("기")], ["epoch", T("세")], ["stage", T("절")]];
+  var RANK_ROWS = [["era", T("대")], ["period", T("기")], ["epoch", T("세")]];
   /** 그 연대를 품은 단위 — 갈래마다 하나. 경계의 연대(66 Ma)는 그 밑의 옛 단위(백악기)의 끝으로 친다 */
   function unitsAt(a) {
     var out = {};
@@ -3010,17 +3011,19 @@
     tbObs.observe(timebar);
     if (toolbarEl) tbObs.observe(toolbarEl);
   } else window.addEventListener("resize", fitTimebar);
-  var folded = saved("gsm.earth.tbfold", "0") === "1";
-  function setFold(f) {
+  // 처음에는 접어 둔다 — 머리줄(‹ 연대 › 와 갈래)만. 사람이 펴거나 접은 것만 기억한다 (wetherilli 376).
+  // 열쇠를 바꾼 것은 옛 열쇠에 처음 열 때 저절로 적힌 "0"(편 것)이 남아 있어서다
+  var folded = saved("gsm.earth.timebar.folded", "1") === "1";
+  function setFold(f, keep) {
     folded = f;
     timebar.classList.toggle("folded", f);
     $("age-fold").setAttribute("aria-expanded", String(!f));
     $("age-fold").title = f ? T("지질시대 띠를 편다") : T("지질시대 띠를 접는다");
-    save("gsm.earth.tbfold", f ? "1" : "0");
+    if (keep) save("gsm.earth.timebar.folded", f ? "1" : "0");
     if (!f) fitTimebar();
   }
-  setFold(folded);
-  $("age-fold").addEventListener("click", function () { setFold(!folded); });
+  setFold(folded, false);
+  $("age-fold").addEventListener("click", function () { setFold(!folded, true); });
 
   // 그때의 지구 — 칠한 판 조각. 연대마다 타일 주소가 달라 레이어를 갈아 끼운다
   var cPaleo = null, paleoShown = null;
