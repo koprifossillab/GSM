@@ -484,6 +484,10 @@ EN = {
     "지질시대 띠를 접는다": "Fold the time scale", "지질시대 띠를 편다": "Unfold the time scale",
     "판 조각 경계": "Plate piece outlines",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구": "The Earth then, computed with the PALEOMAP 2016 plate rotations",
+    "땅과 바다 밑의 높이는 PaleoDEM 의 {ma} Ma (Scotese & Wright 2018)":
+        "Land and sea-floor heights from the PaleoDEM at {ma} Ma (Scotese & Wright 2018)",
+    "높이 격자(PaleoDEM)는 540 Ma 까지다 — 판 조각만 칠한다":
+        "The height grids (PaleoDEM) reach only 540 Ma — only the plate pieces are coloured",
     "PALEOMAP 2016 판 회전으로 셈한 그때의 지구다 — 관측이 아니다. 다른 판 모델과는 100 Ma 에 1 000 km 안팎 다르다. 오늘의 영상·지형·지질도는 오늘에만 뜬다":
         "The Earth then, computed with the PALEOMAP 2016 plate rotations — not an observation. "
         "Other plate models differ by around 1,000 km at 100 Ma. "
@@ -612,6 +616,7 @@ EN = {
     "최근 지진": "Recent earthquakes",
     "제4기 고생태 산지 Neotoma": "Quaternary palaeoecology sites Neotoma",
     "맨틀 슬랩": "Mantle slabs",
+    "그때의 땅과 바다 밑 높이": "Land and sea-floor heights then",
     "지각 응력": "Crustal stress",
     "광상": "Mineral deposits",
     "활성 단층 GEM": "Active faults GEM",

@@ -264,6 +264,8 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   옮겨진 연대에는 ETT 를 여는 링크가 붙는다(`earth.js` 의 `ettHref`, wetherilli 088) — 오늘의 좌표와 연대만 넘긴다.
   **시간 축**(wetherilli P07·091·373) — 연대 하나를 지도 위 너비를 다 쓰는 ICS 지질시대 띠(`timescale.py`)에서 누르거나 끌어 고른다(`?age=`). 왼쪽이 옛날, 제4기만 로그로 넓게 편다. 1 Ma 부터는 오늘의 영상·지형·지질도를 끄고
   서버가 판을 돌려 칠한 경위도 타일(`paleo.render_tile`, 그리는 법을 고치면 `paleo.RENDERER` 를 올린다)을 바다색 구에 그린다.
+  타일의 바탕은 **PaleoDEM**(Scotese & Wright 2018, CC BY 4.0, 0–540 Ma 5 Myr 간격)을 고도로 칠하고 음영을 얹은 것이고 판 경계는 가는 선이다 —
+  WegenersDream 의 배경과 같은 빛이다(`paleodem.py`, `<EARTH_DIR>/paleodem/` — 호스트에서 `run.sh build_paleodem <zip>`, wetherilli 375). 540 Ma 너머는 판 조각만 칠한다.
   판을 돌리는 셈은 서버의 `paleo.py` 하나다 — 브라우저에 두지 않는다. 레이어의 `then: true` 는 1 Ma 부터만 뜬다 — 옛 해안선
   (`paleocoast.py`, PaleoCoastlines v7.1, `<EARTH_DIR>/paleocoastlines_v7.json` — `manage.py build_paleocoastlines <zip>`, wetherilli 097).
   `always` 는 늘 뜬다 — **화석 산지**(PBDB 27 만 곳, 문 `pbdb.py`, `manage.py fetch_pbdb` 가 받아 `fossils.py` 가 `<EARTH_DIR>/pbdb.sqlite`
@@ -578,6 +580,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   spamap.py       남극–에이트켄 분지 지질도 원본(팔레트 GeoTIFF) -> 누른 자리의 단위. 타일은 Trek 의 것. 문이 아니다
   paleo.py        PALEOMAP 2016 판 회전(data/paleomap2016.json) -> 오늘의 한 자리가 옛 연대에 있던 곳. 문이 아니다
   paleocoast.py   옛 해안선 PaleoCoastlines v7.1 -> 그때의 지구에 얹는 경위도 타일. 문이 아니다
+  paleodem.py     그때의 땅과 바다 밑 PaleoDEM (Scotese & Wright 2018) — 고도를 칠하고 음영을 얹은 시점 그림 -> 판 조각 타일의 바탕. 굽기는 호스트에서만(numpy·h5py). 문이 아니다
   naturalearth.py 온 지구의 지명·강·호수·빙하 Natural Earth (data/earth_*.json) -> 찾기·이름표·경위도 타일. 문이 아니다
   mantle.py       맨틀 슬랩 Müller 2022 OPT1 — ParaView VTK(numpy 없이) -> 시점마다 삼각형 덩이. 문이 아니다
   icemargins.py   최근 빙기의 빙상 가장자리 NADI-1·DATED-1 (data/ice_margins.json) -> 연대마다 경위도 타일. 문이 아니다
