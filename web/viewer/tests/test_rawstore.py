@@ -57,14 +57,14 @@ class Base(SimpleTestCase):
 class Save(Base):
     def test_같은_판이면_새_폴더_없이_확인한_때만(self):
         with fetchlog.record("demo", "fetch_demo"):
-            folder, fresh = rawstore.save(self.raw, _entries(a="1", b="2"), {"source": "시험"}, _at("2026-10-01"), label="demo/raw")
+            folder, fresh = rawstore.save(self.raw, _entries(a="1", b="2"), {"source": "시험"}, _at("2026-10-01"), where="demo/raw")
         self.assertTrue(fresh)
         self.assertEqual([p.name for p in rawstore.versions(self.raw)], ["20261001"])
         manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source"], "시험")
         self.assertEqual(manifest["files"]["a"]["sha256"], hashlib.sha256(b"1").hexdigest())
         with fetchlog.record("demo", "fetch_demo"):
-            again, fresh = rawstore.save(self.raw, _entries(a="1", b="2"), {}, _at("2026-11-01"), label="demo/raw")
+            again, fresh = rawstore.save(self.raw, _entries(a="1", b="2"), {}, _at("2026-11-01"), where="demo/raw")
         self.assertFalse(fresh)
         self.assertEqual(again, folder)
         self.assertEqual([p.name for p in rawstore.versions(self.raw)], ["20261001"])
@@ -96,6 +96,7 @@ class Prune(Base):
     def make(self, *days):
         for day in days:
             (self.raw / day).mkdir(parents=True)
+            (self.raw / day / "manifest.json").write_text("{}", encoding="utf-8")
         (self.raw / "README").mkdir()                       # 날짜 폴더가 아닌 것
         (self.raw / ".20260101.part").mkdir()
 
@@ -113,6 +114,25 @@ class Prune(Base):
         self.make("20260101", "20260201")
         rawstore.prune(self.raw, keep=0)
         self.assertEqual([p.name for p in rawstore.versions(self.raw)], ["20260201"])
+
+    def test_매니페스트가_없는_날짜_폴더는_세지도_지우지도_않는다(self):
+        """#379 검토 — 구운 산출물도 날짜 폴더다(ERA5 의 wind/era5/20050601/). 명세의 raw 를 잘못 적어도 지우지 않는다"""
+        for day in ("20050601", "20050602", "20050603", "20050604", "20050605"):
+            (self.raw / day).mkdir(parents=True)
+            (self.raw / day / "10m.png").write_bytes(b"x")
+        self.assertEqual(rawstore.versions(self.raw), [])
+        self.assertEqual(rawstore.prune(self.raw, keep=1), [])
+        self.assertEqual(len([p for p in self.raw.iterdir() if p.is_dir()]), 5)
+
+    def test_확인한_때는_최근_것만(self):
+        """#379 검토 — 같은 판을 받을 때마다 checked 가 늘기만 했다"""
+        with mock.patch.object(rawstore, "CHECKED_KEEP", 3):
+            for i in range(1, 7):
+                folder, _ = rawstore.save(self.raw, _entries(a="1"), {}, _at(f"2026-10-0{i}"))
+        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(manifest["checked"]), 3)
+        self.assertEqual(manifest["checked_count"], 5)
+        self.assertEqual(list(folder.glob("*.tmp")), [])            # 바꿔치기 — 임시 파일이 남지 않는다
 
     def test_명령은_명세의_날짜_폴더만_본다(self):
         self.make("20260101", "20260201", "20260301", "20260401")

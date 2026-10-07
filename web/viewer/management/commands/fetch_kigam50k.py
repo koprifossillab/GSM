@@ -50,7 +50,7 @@ class Command(BaseCommand):
                       rows=sum(r["received"] for r in got.values()))
         entries = {name: {**{k: v for k, v in row.items() if k != "_body"}, "body": row["_body"]} for name, row in got.items()}
         folder, fresh = rawstore.save(
-            kigam50k.root() / "raw", entries, key="layers", now=now, label="kigam50k/raw",
+            kigam50k.root() / "raw", entries, key="layers", now=now, where="kigam50k/raw",
             meta={"source": "KIGAM GeoServer WFS (문서에 없는 주소, 키 없음) — CLAUDE.md \"두 개의 상류 주소\"",
                   "endpoint": kigam.wfs_url(), "crs": "EPSG:4326"})
         if not fresh:

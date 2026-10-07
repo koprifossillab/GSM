@@ -7,7 +7,8 @@
   확인한 때(`checked`)만 보탠다. 기록 표에는 `changed=0`
 - 쓰는 동안은 `.<날짜>.part` 에 적고 다 적은 뒤에 이름을 바꾼다 — 반쪽 판이 가장 새 폴더가 되지 않게. 같은 날 두 번째는 새로 받은 것이 이긴다
 - **지우기는 `prune()` 만** — 받는 일은 지우지 않는다. 사람이 `manage.py prune_raw` 로 부른다(cron 에 두지 않는다)
-- 날짜 폴더는 이름이 여덟 자리 숫자인 것뿐이다 — 다른 것은 세지도 지우지도 않는다
+- 날짜 폴더는 이름이 여덟 자리 숫자이고 **`manifest.json` 이 든 것**뿐이다 — 이 틀이 만든 판만 센다. 구운 산출물도 날짜 폴더일 수 있어서다
+  (ERA5 의 `wind/era5/20050601/` — 명세의 `raw` 를 잘못 적으면 `prune_raw` 가 그것을 지운다, #379 검토). 다른 것은 세지도 지우지도 않는다
 """
 import gzip
 import hashlib
@@ -24,6 +25,8 @@ from . import fetchlog
 DAY = re.compile(r"^\d{8}$")
 #: `prune_raw` 가 기본으로 남기는 벌 수 (사람, 2026-10-06)
 KEEP = 3
+#: 같은 판일 때 매니페스트에 남기는 확인한 때 — 가장 최근 것만 (#379 검토). 모두 몇 번이었는지는 `checked_count`
+CHECKED_KEEP = 30
 
 
 def resolve(raw: str) -> Path:
@@ -45,11 +48,11 @@ def label(path) -> str:
 
 
 def versions(folder: Path) -> list:
-    """날짜 폴더들 — 옛 것부터"""
+    """날짜 폴더들 — 옛 것부터. 이 틀이 만든 판(`manifest.json` 이 든 것)만"""
     folder = Path(folder)
     if not folder.is_dir():
         return []
-    return sorted(p for p in folder.iterdir() if p.is_dir() and DAY.match(p.name))
+    return sorted(p for p in folder.iterdir() if p.is_dir() and DAY.match(p.name) and (p / "manifest.json").is_file())
 
 
 def latest(folder: Path):
@@ -69,15 +72,18 @@ def _read(path: Path):
 
 
 def _write_json(path: Path, data):
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.chmod(path, 0o664)
+    """임시 파일에 적고 바꿔치기 — 가장 새 판의 매니페스트를 고쳐 쓰다 끊겨도 깨지지 않게 (#379 검토)"""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.chmod(tmp, 0o664)
+    os.replace(tmp, path)
 
 
-def save(folder: Path, entries: dict, meta: dict, now, key: str = "files", label: str = "") -> tuple:
+def save(folder: Path, entries: dict, meta: dict, now, key: str = "files", where: str = "") -> tuple:
     """원본 한 벌을 적는다. 돌려주는 것 — (그 폴더, 새로 적었나).
 
     `entries` 는 {이름: {"file": 파일 이름, "body": bytes, …덧붙일 칸}}. 파일 이름이 `.gz` 로 끝나면 gzip 으로 적는다. sha256 은 풀린 본문의 것.
-    매니페스트에는 `meta` 와 `{key: {이름: {file, bytes, sha256, …}}}`. `label` 은 기록 표의 `raw_path` 앞머리(`<DB 옆>` 아래 자리).
+    매니페스트에는 `meta` 와 `{key: {이름: {file, bytes, sha256, …}}}`. `where` 는 기록 표의 `raw_path` 앞머리(`<DB 옆>` 아래 자리).
     """
     folder = Path(folder)
     rows = {}
@@ -86,13 +92,15 @@ def save(folder: Path, entries: dict, meta: dict, now, key: str = "files", label
         rows[name] = {**{k: v for k, v in entry.items() if k != "body"}, "bytes": len(body),
                       "sha256": hashlib.sha256(body).hexdigest()}
     whole = hashlib.sha256("".join(rows[n]["sha256"] for n in sorted(rows)).encode()).hexdigest()
-    prefix = (label or str(folder)).rstrip("/")
+    prefix = (where or label(folder)).rstrip("/")
 
     prev = latest(folder)
     manifest = _read(prev / "manifest.json") if prev else None
     old = (manifest or {}).get(key) or {}
     if manifest and set(old) == set(rows) and all(old[n].get("sha256") == rows[n]["sha256"] for n in rows):
-        manifest.setdefault("checked", []).append(now.isoformat(timespec="seconds"))
+        checked = manifest.get("checked", []) + [now.isoformat(timespec="seconds")]
+        manifest["checked_count"] = int(manifest.get("checked_count", len(manifest.get("checked", [])))) + 1
+        manifest["checked"] = checked[-CHECKED_KEEP:]
         _write_json(prev / "manifest.json", manifest)
         fetchlog.note(raw_path=f"{prefix}/{prev.name}", raw_sha256=whole, changed=0)
         return prev, False
