@@ -1386,6 +1386,8 @@ EN = {
     "이 지역에서는 좌표로 간다 — 주소·장소는 한국·일본, 지명은 스발바르·그린란드·북극·남극 탭에서 찾는다":
         "Coordinates only here — addresses and places in Korea and Japan, place names in the Svalbard, Greenland, Arctic and Antarctica tabs",
     "좌표·지명으로 이동 — {example}": "Go to coordinates or a place name — {example}",
+    "지명 검색: {sources}": "Place search: {sources}",
+    "도시 이름": "city name",
     # 일본 찾기 칸 — 국토지리원 (wetherilli 155)
     "좌표·주소·지명으로 이동 — {example}": "Go to coordinates, an address or a place name — {example}",
     "주소·지명": "Address/place",
