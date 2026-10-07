@@ -616,6 +616,14 @@ EN = {
     "최근 지진": "Recent earthquakes",
     "제4기 고생태 산지 Neotoma": "Quaternary palaeoecology sites Neotoma",
     "맨틀 슬랩": "Mantle slabs",
+    "다누리 자기장 궤적": "Danuri magnetometer tracks",
+    # 달 화면의 다누리 KMAG 궤적 (wetherilli 378)
+    "다누리 (KPLO)": "Danuri (KPLO)",
+    "다누리 자기장 측정기(KMAG) 궤적": "Danuri magnetometer (KMAG) tracks",
+    "다누리 자기장 궤적 파일이 없다": "No Danuri magnetometer track file",
+    "여기 가까이 지난 궤적이 없다": "No track passes near here",
+    "|B| 는 바깥 자기장(태양풍·지구 자기권)이 섞인 값 — 지각 자기 이상이 아니다":
+        "|B| includes external fields (solar wind, Earth's magnetosphere) — it is not a crustal magnetic anomaly",
     "그때의 땅과 바다 밑 높이": "Land and sea-floor heights then",
     "지각 응력": "Crustal stress",
     "광상": "Mineral deposits",
@@ -2107,6 +2115,11 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 다누리 KMAG (wetherilli 378)
+    "시각": "Time",
+    "자기장 세기 |B|": "Field strength |B|",
+    "측정점": "Sample point",
+    "주의": "Note",
     "특성": "Characteristics",                 # 대만 암체 강도 등급의 지층 특성 (wetherilli 370)
     "등급의 차례": "Class order",
     # 호주 확인 자원·수리지질도 (wetherilli 325)

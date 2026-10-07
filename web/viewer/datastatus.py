@@ -89,6 +89,7 @@ ITEMS = [
     Item("kopri/kpdc.json", "KOPRI_DIR", "kpdc.json", msg("극지연구소 KPDC 자료"), "fetch_kopri"),
     Item("kopri/araon.jsonl", "KOPRI_DIR", "araon.jsonl", msg("아라온호 항적"), "fetch_araon"),
     Item("kopri/araon_past.json", "KOPRI_DIR", "araon_past.json", msg("아라온호 지난 1 년"), "fetch_araon --past"),
+    Item("kpds/kmag.sqlite", "KPDS_DIR", "kmag.sqlite", msg("다누리 자기장 궤적"), "fetch_kmag"),
     Item("kigam_data/data.json", "KIGAM_DATA_DIR", "data.json", msg("KIGAM 자료 목록"), "fetch_kigam_data"),
     Item("kigam50k/raw", "KIGAM50K_DIR", "raw", msg("KIGAM 5만 구조 요소"), "fetch_kigam50k"),
     Item("sgb/units.json", "SGB_DIR", "units.json", msg("브라질 지질 단위 이름표"), "fetch_sgb_units"),

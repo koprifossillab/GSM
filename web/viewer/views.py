@@ -37,7 +37,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar, ntgeo,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                fetchlog, marscraters, marsmap, mercurymap, sources, zhurong)
-from . import admap, arcpoints, caribmap, geonames, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, paleodem, usgs, volcanoes, wind
+from . import admap, arcpoints, kmag, caribmap, geonames, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, paleodem, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, twopen, usage, usgscarib, usstates, vmme, ygs
 from . import doors, earthpoints, pointvalues, profileband, static_tables, tilegrid, timescale
 from .i18n import msg
@@ -716,6 +716,8 @@ def moon_tile(request, layer, z, x, y):
     z, x, y = int(z), int(x), int(y)
     if moonmap.knows(layer):
         return _moon_original_tile(request, layer, z, x, y)
+    if layer == "kmag":
+        return _kmag_tile(request, None, z, x, y)
     if layer not in trek.LAYERS or not trek.valid_tile(z, x, y):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
     key = moon_tile_key(layer, z, x, y)
@@ -730,6 +732,29 @@ def moon_tile(request, layer, z, x, y):
             return _tile(old, cached=True)
         log.warning("달 지질도 타일을 받지 못했다 (%s %s/%s/%s): %s", layer, z, x, y, exc)
         return _tile(tiles.notice_tile(256, 256, tiles.SLOW if metatile.slow(exc) else tiles.NO_MAP), store=False)
+    tilecache.put(key, png)
+    response = _tile(png)
+    response["X-GSM-Cache"] = "miss"
+    return response
+
+
+def _kmag_tile(request, pole, z, x, y):
+    """다누리 KMAG 궤적 (wetherilli 378) — 모아 둔 sqlite(`kmag.py`)에서 우리가 긋는다. `pole` 이 None 이면 경위도 격자, 아니면 극 격자.
+    날이 더해지면 `kmag.stamp()` 가 바뀌어 옛 그림을 버린다"""
+    if pole is None and not trek.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not kmag.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_KMAG), store=False)
+    version = f"{kmag.DRAW}-{kmag.stamp()}"
+    key = tilecache.key_text("kmag", f"{version}/{pole or 'eq'}/{z}/{x}/{y}")
+    hit = tilecache.get(key)
+    if hit is not None:
+        return _tile(hit, cached=True)
+    try:
+        png = kmag.render_tile(z, x, y) if pole is None else kmag.render_polar_tile(pole, z, x, y)
+    except (sqlite3.Error, OSError) as exc:
+        log.warning("다누리 KMAG 궤적을 긋지 못했다 (%s %s/%s/%s): %s", pole, z, x, y, exc)
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_KMAG), store=False)
     tilecache.put(key, png)
     response = _tile(png)
     response["X-GSM-Cache"] = "miss"
@@ -766,6 +791,8 @@ def moon_polar_tile(request, pole, layer, z, x, y):
     그리고, 원도는 우리가 극 평사도법으로 굽는다."""
     z, x, y = int(z), int(x), int(y)
     lang = i18n.lang_of(request)
+    if layer == "kmag" and trek.polar_valid(z, x, y):
+        return _kmag_tile(request, pole, z, x, y)
     if not trek.polar_valid(z, x, y) or not (layer in trek.LAYERS or moonmap.knows(layer)):
         return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), lang)}, status=404)
     if moonmap.knows(layer):
@@ -985,6 +1012,8 @@ def moon_info(request):
         return _moon_original_info(lang, lon, lat)
     if request.GET.get("layer") == "spa":
         return _moon_spa_info(lang, lon, lat)
+    if request.GET.get("layer") == "kmag":
+        return _kmag_info(lang, lon, lat)
     # 1e-3° 는 달에서 30 m 남짓이다 — 1:500만 지도에는 한 점이다
     key = tilecache.key_text("trek-info", f"{lon:.3f},{lat:.3f}")
     raw = _cached_json(key)
@@ -1007,6 +1036,31 @@ def moon_info(request):
             value = trek.AGES_KO.get(value, value)
         rows.append([i18n.PROP_EN.get(label, label) if lang == "en" else label, value])
     return JsonResponse({"unit": hit.get("unit", ""), "rows": rows})
+
+
+def _kmag_info(lang, lon, lat):
+    """다누리 KMAG — 누른 자리에서 가장 가까운 측정점(반 도, 15 km 남짓 안)의 시각·고도·|B| (wetherilli 378).
+    |B| 는 바깥 자기장이 섞인 값이라 그렇다고 한 줄 붙인다"""
+    if not kmag.available():
+        return JsonResponse({"rows": [], "note": i18n.t(msg("다누리 자기장 궤적 파일이 없다"), lang)})
+    try:
+        hit = kmag.nearest(lon, lat)
+    except sqlite3.Error as exc:
+        log.warning("다누리 KMAG 를 읽지 못했다: %s", exc)
+        return JsonResponse({"error": i18n.t(msg("다누리 자기장 궤적 파일이 없다"), lang), "rows": []}, status=502)
+    if not hit:
+        return JsonResponse({"rows": [], "note": i18n.t(msg("여기 가까이 지난 궤적이 없다"), lang)})
+
+    def label(text):
+        return i18n.PROP_EN.get(text, text) if lang == "en" else text
+    b = f"{hit['b']:.2f} nT" if hit["b"] is not None else "—"
+    return JsonResponse({"rows": [
+        [label("시각"), hit["time"]],
+        [label("고도"), f"{hit['alt']:.1f} km"],
+        [label("자기장 세기 |B|"), b],
+        [label("측정점"), f"{hit['lat']:.3f}, {hit['lon']:.3f}"],
+        [label("주의"), i18n.t(msg("|B| 는 바깥 자기장(태양풍·지구 자기권)이 섞인 값 — 지각 자기 이상이 아니다"), lang)],
+    ]})
 
 
 def _moon_original_info(lang, lon, lat):
