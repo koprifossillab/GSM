@@ -92,8 +92,9 @@ class Record(Base):
             with fetchlog.record("araon", "fetch_araon", "hourly"):
                 pass                                         # 매시 일이라도 손으로 부른 것(--past)은 jsonl 에 (#369 검토 5)
         self.assertEqual(FetchRun.objects.count(), 0)
-        lines = self.today("fetch_log_host").read_text(encoding="utf-8").splitlines()
-        self.assertEqual([json.loads(x)["source"] for x in lines], ["era5", "araon"])
+        lines = [json.loads(x) for x in self.today("fetch_log_host").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([(x["source"], x.get("hourly", False)) for x in lines],
+                         [("wind", True), ("era5", False), ("araon", False)])      # hourly.sh 가 부른 일도 — 표시를 달고 (jikhanjung 024)
 
     def test_호스트는_DB_를_열지_않는다(self):
         """사람, 2026-10-07 — 호스트가 DB 를 건드려야 하면 컨테이너를 거친다. 호스트의 명령은 파일만 남긴다"""
@@ -305,6 +306,47 @@ class HostDaily(Base):
         self.assertEqual(sorted(UpstreamDay.objects.values_list("upstream", "ok")), [("kopri", 1), ("usgs", 1)])
         self.assertFalse(old.exists())
         self.assertTrue(self.today("upstream_host").exists())
+
+
+class HourlyNotes(Base):
+    """매시 일의 `note()` 값 — jsonl 이 가져오고, 같은 차례의 hourly_status.json 줄은 버린다 (jikhanjung 024)."""
+
+    def status(self, **job):
+        (self.dir / "hourly_status.json").write_text(json.dumps({"jobs": {"fetch_gfs_wind": job}}), encoding="utf-8")
+
+    def hourly_line(self, started, **extra):
+        from django.utils import timezone
+        p = self.dir / "fetch_log_host" / f"{timezone.localdate():%Y%m%d}.jsonl"
+        p.parent.mkdir(exist_ok=True)
+        with open(p, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"source": "fetch_gfs_wind", "command": "fetch_gfs_wind", "started_at": started,
+                                 "result": "ok", "hourly": True, **extra}) + "\n")
+
+    def test_jsonl_의_값이_이기고_한_줄이다(self):
+        self.hourly_line("2026-10-07T16:40:03+09:00", seconds=38.0, upstream_version="2026100700", expected=5, rows=5, changed=5)
+        self.status(at="2026-10-07T16:40:45+09:00", result="ok", seconds=42, note="받은 장 +0…", last_ok="2026-10-07T16:40:45+09:00")
+        self.assertEqual(fetchlog.sync(), 1)
+        [row] = self.rows()
+        self.assertEqual((row["source"], row["origin"], row["upstream_version"], row["rows"], row["changed"]),
+                         ("wind", "hourly", "2026100700", 5, 5))
+        self.assertEqual(fetchlog.sync(), 0)              # 다음 옮기기에도 hourly_status 의 같은 차례를 또 적지 않는다
+        self.assertEqual(len(self.rows()), 1)
+
+    def test_jsonl_이_없으면_hourly_status_로(self):
+        """시간을 넘겨 죽으면 파이썬은 jsonl 에 못 쓴다 — bash 가 남긴 실패가 기록이 된다"""
+        self.status(at="2026-10-07T17:30:00+09:00", result="fail", seconds=3000, note="3000초를 넘겨 멈췄다")
+        self.assertEqual(fetchlog.sync(), 1)
+        [row] = self.rows()
+        self.assertEqual((row["result"], row["note"]), ("fail", "3000초를 넘겨 멈췄다"))
+
+    def test_실패_전의_성공도_jsonl_이_있으면_한_줄(self):
+        self.hourly_line("2026-10-07T15:40:02+09:00", seconds=3.0, rows=7)
+        fetchlog.sync()
+        self.status(at="2026-10-07T16:40:05+09:00", result="fail", seconds=5, note="상류 500",
+                    last_ok="2026-10-07T15:40:05+09:00", last_ok_seconds=4)
+        fetchlog.sync()
+        oks = [r for r in self.rows() if r["result"] == "ok"]
+        self.assertEqual([(r["rows"], r["started_at"]) for r in oks], [(7, "2026-10-07T15:40:02+09:00")])
 
 
 class WrapsCommands(Base):
