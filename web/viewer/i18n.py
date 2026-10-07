@@ -612,6 +612,7 @@ EN = {
     "최근 지진": "Recent earthquakes",
     "제4기 고생태 산지 Neotoma": "Quaternary palaeoecology sites Neotoma",
     "맨틀 슬랩": "Mantle slabs",
+    "다누리 자기장 궤적": "Danuri magnetometer tracks",
     "지각 응력": "Crustal stress",
     "광상": "Mineral deposits",
     "활성 단층 GEM": "Active faults GEM",
