@@ -68,3 +68,6 @@ geo3al.dbf
 /upstream_host.jsonl
 /fetch_log_host/
 /upstream_host/
+
+# ../kopri-devdocs/guides 로 가는 심볼릭 링크 — kopri-devdocs 는 private 이라 커밋하지 않는다 (CLAUDE.md "공통 규약")
+.guides
