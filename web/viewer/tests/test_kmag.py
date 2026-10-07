@@ -129,3 +129,70 @@ class Door(SimpleTestCase):
             call_command("fetch_kmag", stdout=io.StringIO())
             self.assertEqual(kmag.summary()["points"], 5)
         self.assertEqual(len([c for c in calls if "/download/" in c[1]]), 1)
+
+
+class Moon(SimpleTestCase):
+    """달 화면 — 궤적 타일과 누른 자리 (wetherilli 378)."""
+
+    def setUp(self):
+        patch = override_settings(KPDS_DIR=tempfile.mkdtemp(prefix="gsm-kmag-"))
+        patch.enable()
+        self.addCleanup(patch.disable)
+        kmag._orbit_count.cache_clear()
+
+    def add(self, n=400):
+        conn = kmag.connect(write=True)
+        kmag.add_day(conn, "kplo_kmag_250331", kmag.parse(day_csv(n=n)))
+        conn.close()
+
+    def png(self, url):
+        from PIL import Image
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200, url)
+        return Image.open(io.BytesIO(r.content)).convert("RGBA")
+
+    def test_파일이_없으면_안내_타일(self):
+        img = self.png("/GSM/moon/tiles/kmag/0/1/0.png")
+        self.assertEqual(img.getpixel((5, 5))[3], 235)               # 안내 타일의 바탕
+
+    def test_궤적을_한_색으로_긋는다(self):
+        self.add()
+        img = self.png("/GSM/moon/tiles/kmag/0/1/0.png")              # 동반구 — 적도의 경도 10–13°
+        y = 128                                                        # 적도
+        x = int((11 - 0) / 180 * 256)
+        r, g, b, a = img.getpixel((x, y))
+        self.assertGreater(a, 0)
+        self.assertGreater(b, r)                                       # |B| 와 상관없는 한 색(하늘빛)
+        self.assertEqual(self.png("/GSM/moon/tiles/kmag/0/0/0.png").getextrema()[3], (0, 0))   # 서반구는 비었다
+
+    def test_극_타일(self):
+        self.add()
+        self.assertEqual(self.client.get("/GSM/moon/ptiles/n/kmag/0/0/0.png").status_code, 200)
+        self.assertEqual(self.client.get("/GSM/moon/ptiles/n/kmag/0/5/0.png").status_code, 404)
+
+    def test_누른_자리(self):
+        self.add()
+        rows = dict(self.client.get("/GSM/moon/info/?layer=kmag&lon=10.02&lat=0.1").json()["rows"])
+        self.assertEqual(rows["시각"], "2025-03-31 00:00:00 UTC")
+        self.assertEqual(rows["고도"], "60.0 km")
+        self.assertEqual(rows["자기장 세기 |B|"], "5.00 nT")
+        self.assertIn("지각 자기 이상이 아니다", rows["주의"])
+        empty = dict(self.client.get("/GSM/moon/info/?layer=kmag&lon=10.4&lat=0").json()["rows"])
+        self.assertEqual(empty["자기장 세기 |B|"], "—")                   # 빈 값은 자리만
+        far = self.client.get("/GSM/moon/info/?layer=kmag&lon=-100&lat=40").json()
+        self.assertEqual(far["rows"], [])
+        self.assertIn("note", far)
+
+    def test_영어판(self):
+        self.add()
+        self.client.cookies["gsm_lang"] = "en"
+        rows = dict(self.client.get("/GSM/moon/info/?layer=kmag&lon=10.02&lat=0.1").json()["rows"])
+        self.assertIn("Field strength |B|", rows)
+        self.assertIn("not a crustal magnetic anomaly", rows["Note"])
+
+    def test_넓게_보면_궤도를_솎는다(self):
+        self.add()
+        self.assertEqual(kmag._orbits(0), 1)                           # 하루치 열둘 — 끝(240)보다 적다
+        with mock.patch.object(kmag, "_orbit_count", return_value=12000):
+            self.assertEqual(kmag._orbits(0), 50)
+            self.assertEqual(kmag._orbits(6), 1)

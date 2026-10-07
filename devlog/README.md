@@ -428,6 +428,7 @@
 | wetherilli 372 | 2026-10-07 | [멕시코 1:5만 범례 — 상류가 바꾼 열 이름으로 묻는다](20261007_wetherilli_372_sgm_50k_legend_fields.md) |
 | wetherilli 373 | 2026-10-07 | [온 지구 시간 축 — ICS 지질시대 띠를 누르고 끌어 연대를 고른다](20261007_wetherilli_373_earth_timebar_ics.md) |
 | wetherilli 377 | 2026-10-07 | [다누리 자기장 측정기(KMAG) 궤적 — KPDS 문과 모아 두기](20261007_wetherilli_377_kpds_kmag.md) |
+| wetherilli 378 | 2026-10-07 | [달 화면에 다누리 KMAG 궤적 — 한 색 선, 멀리서는 궤도를 솎는다](20261007_wetherilli_378_moon_kmag_tracks.md) |
 | wetherilli 374 | 2026-10-07 | [온 세계 지명 찾기 — GeoNames 도시를 받아 두고, 지역 탭이 온 지구 찾기를 빌린다](20261007_wetherilli_374_world_place_search.md) |
 | koprifossillab P01 | 2026-09-30 | [백업 — WegenersDream 의 틀로, 바뀌는 빠르기에 따라 넷으로 (계획)](20260930_koprifossillab_P01_backup_plan.md) |
 | koprifossillab 001 | 2026-09-30 | [매주 월요일 새벽: 운영 자료 백업과 KPDC 목록 갱신](20260930_koprifossillab_001_weekly_backup.md) |

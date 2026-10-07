@@ -236,7 +236,9 @@ WMS·z/x/y·우리가 굽는 것) 계획을 따로 둔다 (029).
   Trek 을 곧장 부른다. 루나 오비터·클레멘타인 배경은 브라우저가 USGS Astrogeology WMS 를 칸의 경위도 범위로 곧장 부른다(공공 도메인,
   CORS `*`, wetherilli 229) — 극 평면에서는 USGS 극 판이 우리 극 격자와 맞지 않아 WAC 를 쓴다. 좌표는 달 경위도다 — 지구의 `toLL`·좌표계를 타지 않는다. 평면은 위도 65° 너머면
   달 극 평사도법(`IAU_2015:30130`·`30135`)이고 Trek 의 극지 판을 받는다 (052). 달 지명은
-  `data/moon_places.json`(`manage.py fetch_moon_places`). 원도 6 장(1971–1979)은 우리가 굽는다 — 아래 "파일을 받아"
+  `data/moon_places.json`(`manage.py fetch_moon_places`). 원도 6 장(1971–1979)은 우리가 굽는다 — 아래 "파일을 받아".
+  **다누리(KPLO) 자기장 측정기 궤적**은 모아 둔 것(`fetch_kmag`, `<KPDS_DIR>/kmag.sqlite`)을 서버가 한 색 선으로 긋는다(`kmag.py`, 경위도·극 타일,
+  wetherilli 377·378) — **|B| 로 칠하지 않는다**(바깥 자기장이 섞인 값이라 지각 자기 이상처럼 읽히면 오해다, 사람이 정했다). 누르면 시각·고도·|B|
 - **화성도 지역이 아니다** — 달 화면을 옮긴 따로 화면(`/GSM/mars/`, `mars.js`·`mars.html`, 058)이다. 틀은 달과 같고
   자료만 다르다 — USGS 화성 지질도(SIM 3292)·MOLA–HRSC 지형, 영상 배경은 Viking·THEMIS·MOLA. 문은 같은 `trek.py`
   (`mars_*`, 주소 `TREK_MARS_URL`)다 — 같은 NASA Trek 의 다른 몸이라 문을 새로 내지 않았다. 테마는 녹슨 주황이다.
