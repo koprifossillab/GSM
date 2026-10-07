@@ -199,7 +199,7 @@ def _alpha(z: int) -> int:
 
 
 #: 줌마다 온 달에 긋는 궤도 수의 끝 — 넘으면 궤도를 솎는다. 다 그으면 1 만 번 넘는 궤도가 온 달을 한 빛으로 덮는다
-_ORBIT_LINES = {0: 240, 1: 480, 2: 960, 3: 1920, 4: 3840, 5: 7680}
+_ORBIT_LINES = {0: 120, 1: 240, 2: 480, 3: 960, 4: 1920, 5: 3840, 6: 7680}
 
 
 @functools.lru_cache(maxsize=4)
@@ -215,10 +215,11 @@ def _orbit_count(stamp_: str) -> int:
     return days * 86400 // ORBIT if lo is not None else 0
 
 
-def _orbits(z: int) -> int:
-    """이 줌에서 궤도 몇에 하나를 긋나 — 모은 날 수에 따라"""
+def _orbits(z: int, polar: bool = False) -> int:
+    """이 줌에서 궤도 몇에 하나를 긋나 — 모은 날 수에 따라. 극 평면은 궤도가 모두 극을 지나 모이므로 넷에 하나를 더 솎는다"""
     top = _ORBIT_LINES.get(z)
-    return max(1, round(_orbit_count(stamp()) / top)) if top else 1
+    every = max(1, round(_orbit_count(stamp()) / top)) if top else 1
+    return every * 4 if polar and top else every
 
 
 def _png(img) -> bytes:
@@ -275,7 +276,7 @@ def render_polar_tile(pole: str, z: int, x: int, y: int) -> bytes:
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
     color = COLOR + (_alpha(z),)
-    for line in tracks(lon_lo - pad, max(-90.0, lat_lo - pad), lon_hi + pad, min(90.0, lat_hi + pad), _every(z), _orbits(z)):
+    for line in tracks(lon_lo - pad, max(-90.0, lat_lo - pad), lon_hi + pad, min(90.0, lat_hi + pad), _every(z), _orbits(z, polar=True)):
         pts = []
         for lon, lat in line:
             px, py = trek.lonlat_to_polar(lon, lat, pole)

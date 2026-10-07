@@ -192,7 +192,8 @@ class Moon(SimpleTestCase):
 
     def test_넓게_보면_궤도를_솎는다(self):
         self.add()
-        self.assertEqual(kmag._orbits(0), 1)                           # 하루치 열둘 — 끝(240)보다 적다
+        self.assertEqual(kmag._orbits(0), 1)                           # 하루치 열둘 — 끝(120)보다 적다
         with mock.patch.object(kmag, "_orbit_count", return_value=12000):
-            self.assertEqual(kmag._orbits(0), 50)
-            self.assertEqual(kmag._orbits(6), 1)
+            self.assertEqual(kmag._orbits(0), 100)
+            self.assertEqual(kmag._orbits(0, polar=True), 400)
+            self.assertEqual(kmag._orbits(7), 1)
