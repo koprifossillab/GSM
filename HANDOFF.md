@@ -3,7 +3,7 @@
 이 문서는 **지금 어디까지 왔고 다음이 무엇인지** 한 곳에서 답한다.
 왜 그렇게 했는지는 `devlog/`, 무엇이 언제 붙었는지는 `CHANGELOG.md`.
 
-마지막으로 손본 날: **2026-10-04**
+마지막으로 손본 날: **2026-10-07**
 
 ## 작업 방식 (2026-09-30 부터)
 
@@ -49,6 +49,11 @@
 - **3D** — 도구 막대의 단추로 늘 연다 (059). 한국·일본·북극·남극·유럽·남미 지형과 지질, 점묶음 (wetherilli 187·188)
 - **영어판** — 설정의 "언어 · Language". 화면의 글을 고치면 `viewer/i18n.py` 에 영어도 적는다 (008)
 - **연구실 내부용** — geo3al·phyloserver·한반도 지질도·kopri. 밖에 열 때 `GSM_PUBLIC=1` 로 내린다 (025·029·053)
+- **데이터소스 장부** — 받아 두는 바깥 자료 50 곳의 명세(`DataSource`)와 받은 차례의 기록(`FetchRun`)이 `GSM.db` 에 있다. 관리 화면
+  `/GSM/manage/` 의 "데이터소스" 탭이 한 줄씩(조건·주기·마지막 실행·결과·마지막 성공·산출물, 늦음·실패는 붉게), healthz 가 늦음·실패의 수를.
+  **명세는 admin(`/GSM/admin/`, staff 계정 — 지금 `koprifossillab`)에서 고친다** — 고칠 때마다 누가·언제·앞뒤가 `DataSourceChange` 에.
+  admin 은 아직 평문 HTTP 다(HTTPS 는 나중에, TODOs). 원본을 날짜 폴더에 두는 것은 바뀐 판만, 옛 벌은 사람이 `prune_raw`
+  (jikhanjung P02·P03·011–018)
 
 ### 운영에 두는 파일
 
@@ -205,8 +210,13 @@ koprifossillab 019) — DNS 가 고쳐지면 함께 지운다. 2026-09-23 에 �
 venv 는 requirements 가 바뀌면 스스로 다시 만든다. cron 은 **두 줄**이다 — 주간 백업(월 01:40)과 **매시 받기**(매시 :40,
 `hourly.sh`, koprifossillab 013). `hourly.sh` 가 차례로 부르는 일: 지금의 바람·구름(`fetch_gfs_wind` → `db/wind/gfs/`, 판마다 분석과
 +12 시간까지의 예보, 48 시간만), 위성 구름(`fetch_gmgsi` → `db/wind/gmgsi/`, 스물네 장만), 아라온호 위치(`fetch_araon` →
-`db/kopri/araon.jsonl`). 일마다의 결과는 `db/hourly_status.json` 에 남고 **`/GSM/healthz/` 가 읽는다** — 기록이 2 시간 넘게 멈추거나,
+`db/kopri/araon.jsonl`), 최근 지진(`fetch_recent_quakes` → `db/earth/quakes_recent.json`). 일마다의 결과는 `db/hourly_status.json` 에 남고 **`/GSM/healthz/` 가 읽는다** — 기록이 2 시간 넘게 멈추거나,
 한 일이 실패하거나, GFS 판이 12 시간·위성 장이 3 시간을 넘으면 `degraded`. 로그는 `/data/GSM/logs/hourly.log`.
+**호스트는 `GSM.db` 를 열지 않는다**(사람, 2026-10-07, jikhanjung 016) — `run.sh` 가 `GSM_RUN_PLACE=host` 를 걸어 호스트의 설정은 DB 엔진이 dummy 다.
+호스트의 일은 파일만 남기고(`hourly_status.json`·`fetch_log_host.jsonl`·`upstream_host.jsonl`) `hourly.sh` 가 차례 끝에 컨테이너의
+`sources_log --sync-only` 로 DB 에 들인다. **DB 가 필요한 명령은 컨테이너 안에서 부른다** —
+`docker compose -f /srv/GSM/docker-compose.yml exec -w /app/web web python manage.py <명령>`(compose 파일을 적어야 한다 — 저장소 체크아웃에는
+운영 compose 가 없다). `sources_log`·`sources_backfill`·`prune_raw`·`createsuperuser` 따위가 그렇다 — 호스트에서 부르면 "컨테이너 안에서" 로 멈춘다.
 지난 바람·구름(`db/wind/era5/`, 944 날)은 2026-10-01 저녁에 굽기 시작했다(바람 `/data/GSM/logs/era5_build.log`, 이어서 구름
 `era5_clouds.log`) — 다 구우면 다시 구울 일은 기간을 늘릴 때뿐이다. 판을 올리기 전에 고친 것을 돌려 보려면 저장소에서
 `deploy/scripts/install.sh . /srv/GSM/scripts` (koprifossillab 005). 운영 compose 에는 `scripts` 마운트를
@@ -214,7 +224,7 @@ venv 는 requirements 가 바뀌면 스스로 다시 만든다. cron 은 **두 �
 
 ### 판을 올릴 때
 
-- 기동할 때 이주와 씨앗(`seed_catalog`)이 저절로 들어간다
+- 기동할 때 이주와 씨앗(`seed_catalog`), 데이터소스의 옮기기·씨앗(`sources_import` — 파일 시절의 것을 한 번, `sources_seed` — 없는 id 만)이 저절로 들어간다
 - 새 파일이 드는 판이면 **판보다 먼저** 위 "운영에 두는 파일" 자리에 둔다
 - 새 상류가 생기면 운영 장비에서 그 주소로 나갈 수 있는지 먼저 본다 (KOPRI 망의 TLS 는 위)
 - 올린 뒤 `deploy/host/smoke.sh`
