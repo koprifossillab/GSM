@@ -189,8 +189,9 @@ def record(source: str, command: str, schedule: str = "manual"):
                "note": last or tail.last, **extra}
         try:
             if on_host():
-                if not from_hourly():             # hourly.sh 가 부른 것은 hourly_status.json 이 남긴다
-                    _append_host(row)
+                # hourly.sh 가 부른 일도 남긴다 — `note()` 로 보탠 값(받은 수·판·바뀐 수)은 이 프로세스만 안다. hourly_status.json 은
+                # bash 가 써서 종료 코드·초·마지막 말뿐이다. 같은 차례가 두 줄이 되지 않게 표시하고 옮길 때 하나로 (jikhanjung 024)
+                _append_host({**row, "hourly": True} if from_hourly() else row)
             else:
                 write(row)
         except Exception:                         # noqa: BLE001 — 장부가 일을 막으면 안 된다
@@ -253,7 +254,7 @@ def _hourly_rows(spec_rows, check: bool = False) -> list:
         result = {"ok": "ok", "skip": "skip"}.get(job.get("result"), "fail")
         rows.append({"source": source["id"], "command": command, "started_at": _shift(job["at"], job.get("seconds")),
                      "seconds": job.get("seconds"), "result": result, "note": str(job.get("note") or "")[:300],
-                     "origin": "hourly"})
+                     "origin": "hourly", "_end": job["at"]})
         last_ok = job.get("last_ok")
         if last_ok and last_ok != job["at"]:
             # 옮기기 전에 성공 뒤 실패가 오면 성공 줄이 빠진다. 그 성공을 이미 옮겼다면 같은 줄이 되어야 한다 —
@@ -261,10 +262,10 @@ def _hourly_rows(spec_rows, check: bool = False) -> list:
             took = job.get("last_ok_seconds")
             if took is not None:
                 rows.append({"source": source["id"], "command": command, "started_at": _shift(last_ok, took),
-                             "seconds": took, "result": "ok", "note": "마지막으로 된 차례", "origin": "hourly"})
+                             "seconds": took, "result": "ok", "note": "마지막으로 된 차례", "origin": "hourly", "_end": last_ok})
             elif not (check and _hourly_ok_near(source["id"], last_ok)):
                 rows.append({"source": source["id"], "command": command, "started_at": last_ok, "result": "ok",
-                             "note": "마지막으로 된 차례 — 끝난 때 (걸린 초는 모른다)", "origin": "hourly"})
+                             "note": "마지막으로 된 차례 — 끝난 때 (걸린 초는 모른다)", "origin": "hourly", "_end": last_ok})
     return rows
 
 
@@ -367,9 +368,29 @@ def _remove(done):
 
 
 def _host_rows() -> list:
-    """호스트 기록(jsonl)의 새 줄"""
-    return [{**r, "origin": "host"} for r in drain(HOST_LOG, "host_offset")
-            if r.get("source") and r.get("started_at")]
+    """호스트 기록(jsonl)의 새 줄 — `hourly.sh` 가 부른 일(`"hourly": true`)은 origin `hourly`, 그 밖은 `host`"""
+    out = []
+    for r in drain(HOST_LOG, "host_offset"):
+        if not (r.get("source") and r.get("started_at")):
+            continue
+        hourly = bool(r.pop("hourly", False))
+        out.append({**r, "origin": "hourly" if hourly else "host"})
+    return out
+
+
+def _seen_run(source: str, end, batch) -> bool:
+    """`end` 에 끝난 매시 차례를 jsonl 이 이미 가져왔나 — 이번에 함께 옮기는 줄이나 표에, 같은 데이터소스의 origin `hourly` 줄이
+    `end` 에서 `HOURLY_LIMIT` 초 안쪽에 시작한 것. 그러면 hourly_status.json 의 줄(값이 모자란 것)은 버린다 (jikhanjung 024)"""
+    from .models import FetchRun
+    stop = _dt(end)
+    if stop is None:
+        return False
+    start = stop - timedelta(seconds=HOURLY_LIMIT)
+    for r in batch:
+        when = _dt(r.get("started_at"))
+        if r["source"] == source and when is not None and start <= when <= stop:
+            return True
+    return FetchRun.objects.filter(source=source, origin="hourly", started_at__range=(start, stop)).exists()
 
 
 def sync(spec_rows=None) -> int:
@@ -395,7 +416,11 @@ def sync(spec_rows=None) -> int:
         with transaction.atomic():
             host = [{**r, "source": by_command.get(r["source"], r["source"]) if r["source"] not in ids else r["source"]}
                     for r in _host_rows()]
-            rows = _hourly_rows(spec_rows, True) + host
+            # jsonl 이 가져온 매시 차례(값이 다 있다)가 이긴다 — hourly_status.json 의 줄은 jsonl 이 없을 때(시간을 넘겨 죽었을 때 따위)만
+            from_jsonl = [r for r in host if r["origin"] == "hourly"]
+            status = [r for r in _hourly_rows(spec_rows, True)
+                      if not _seen_run(r["source"], r.pop("_end"), from_jsonl)]
+            rows = status + host
             moved = write_many(rows) if rows else 0
     except (DatabaseError, OSError):
         moved = 0

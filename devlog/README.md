@@ -130,6 +130,7 @@
 | jikhanjung 021 | 2026-10-07 | [소개 다시 보지 않기](20261007_jikhanjung_021_intro_skip.md) |
 | jikhanjung 022 | 2026-10-07 | [설정 시트의 한 줄 설명과 소개의 meta description](20261007_jikhanjung_022_tagline.md) |
 | jikhanjung 023 | 2026-10-07 | [호스트의 jsonl 을 날마다 나눈다](20261007_jikhanjung_023_host_jsonl_daily.md) |
+| jikhanjung 024 | 2026-10-07 | [매시 일의 `note()` 값도 기록에](20261007_jikhanjung_024_hourly_notes.md) |
 | wetherilli 078 | 2026-09-30 | [3D 극지 지형을 미리 받는다](20260930_wetherilli_078_polar_dem_prewarm.md) |
 | wetherilli 079 | 2026-09-30 | [화성 — USGS 지역 지질도를 옛 지질도에 얹는다](20260930_wetherilli_079_mars_regional_geology.md) |
 | wetherilli 080 | 2026-09-30 | [화성 — NASA Trek 판 목록을 화성 화면에](20260930_wetherilli_080_mars_trek_catalog.md) |
