@@ -131,7 +131,19 @@ STEP=backup
 # DB 의 잠금·저널(뒤의 WAL 이면 -shm)에 닿지 않는다. 컨테이너가 서 있지 않으면 백업은 실패로 끝난다 — 받기도 어차피 못 한다
 take() {   # take <받을 파일> [--store]
     timeout 900 "${MANAGE[@]}" backup_db "${@:2}" > "$1" 2>"$LOGS/backup_db.err" \
-        && [ "$(head -c 15 "$1")" = "SQLite format 3" ]
+        && [ "$(head -c 15 "$1")" = "SQLite format 3" ] \
+        && intact "$1"
+}
+# 받은 사본이 온전한가 — 머리만으로는 흘리다 잘린 사본을 못 잡는다(#385 검토). 여는 것은 살아 있는 DB 가 아니라 받아 둔 사본이다
+intact() {   # intact <사본>
+    python3 - "$1" <<'PY' 2>>"$LOGS/backup_db.err"
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+ok = db.execute("PRAGMA integrity_check").fetchone()[0]
+db.close()
+if ok != "ok":
+    sys.exit(f"받은 사본이 integrity_check 를 지나지 못했다: {ok}")
+PY
 }
 take "$STAGE/GSM.db" || fail "GSM.db 사본을 못 떴다(컨테이너): $(tail -1 "$LOGS/backup_db.err")"
 # 받은 차례의 기록(jikhanjung P02) — 옛 store.sqlite. 아직 있으면 같은 길로
