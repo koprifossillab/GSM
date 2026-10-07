@@ -19,11 +19,15 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
+from django.utils import timezone
 from django.utils.cache import patch_vary_headers
-from django.shortcuts import get_object_or_404, render
+from django.contrib import messages
+from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth.forms import AuthenticationForm
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_POST
@@ -33,7 +37,7 @@ from gsmweb.version import VERSION
 from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar, ntgeo,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                fetchlog, marscraters, marsmap, mercurymap, sources, zhurong)
-from . import admap, arcpoints, caribmap, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, paleodem, usgs, volcanoes, wind
+from . import admap, arcpoints, caribmap, geonames, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, paleodem, usgs, volcanoes, wind
 from . import ags, austates, bas, basemaps, bcgs, bgr, bgs, brgm, calgs, cgs, dinamige, dmr, dov, egdi, emodnet, esdm, ga, georep, geosphere, gns, gsi, gsiindia, gtk, igme, iige, ineter, ingemmet, ispra, jmg, linked, lneg, mgb, mrdata, mris, natt, ngu, nrcan, nsgs, ogs, pig, segemar, sgb, sgc, sgm, sgs, sgu, sigeom, skgs, spw, stri, swisstopo, tno, twopen, usage, usgscarib, usstates, vmme, ygs
 from . import doors, earthpoints, pointvalues, profileband, static_tables, tilegrid, timescale
 from .i18n import msg
@@ -338,11 +342,11 @@ def manage_view(request):
         "verify": verifylog.summary(),
         # 데이터소스 (jikhanjung P02 3 단계) — 명세·기록 표·구운 파일을 한 줄로. "구운 자료" 탭(wetherilli 312)을 녹였다.
         # 읽기만 하고 경로는 `<DB 옆>` 아래 이름뿐이다
-        "src": _sources_view(lang),
+        "src": _sources_view(lang, request),
     })
 
 
-def _sources_view(lang):
+def _sources_view(lang, request=None):
     try:
         ov = sources.overview(sync=True, history=True)
     except Exception as exc:                     # noqa: BLE001 — 장부가 깨져도 관리 화면은 선다
@@ -406,10 +410,136 @@ def _sources_view(lang):
         admin_url = reverse("admin:viewer_datasource_changelist")
     except NoReverseMatch:
         admin_url = ""
+    # 탭에서 고치기 (jikhanjung P03 2 단계, 020) — staff 로 로그인했으면 펼친 줄에 고치는 폼. 명세의 이력은 누구에게나(밖에 연 판은 탭째 없다)
+    editor = _is_editor(request)
+    changes = _spec_changes([r["id"] for r in rows], lang)
+    by_id = {item["row"]["id"]: item["row"] for item in ov["rows"]}
+    for r in rows:
+        r["changes"] = changes.get(r["id"], [])
+        if editor:
+            row = by_id[r["id"]]
+            r["edit"] = {"name_ko": row["name"]["ko"], "name_en": row["name"]["en"], "org": row.get("org", ""),
+                         "kind": row["kind"], "schedule": row["schedule"], "runs_on": row["runs_on"],
+                         "license": row["license"], "flags": row.get("flags", []), "raw": row.get("raw", ""),
+                         "note": row.get("note", ""), "commands": "\n".join(row.get("commands", [])),
+                         "outputs": "\n".join(row.get("outputs", [])), "docs": "\n".join(row.get("docs", []))}
+    user = getattr(request, "user", None)
     return {"rows": rows, "counts": ov["counts"], "problems": problems, "origin": ov["origin"], "admin_url": admin_url,
+            "editor": editor, "can_login": not settings.PUBLIC and ov["origin"] == "db",
+            "username": user.get_username() if user is not None and user.is_authenticated else "",
+            "choices": {"kind": [(k, k) for k in sources.KINDS],
+                        "schedule": [(k, i18n.t(sources.SCHEDULE_LABELS[k], lang)) for k in sources.SCHEDULES],
+                        "runs_on": [(k, i18n.t(sources.RUNS_ON_LABELS[k], lang)) for k in sources.RUNS_ON],
+                        "flags": [(f, i18n.t(sources.FLAG_LABELS[f], lang)) for f in sources.FLAGS]},
+            # 고치고 돌아오면 그 줄을 펼친다(`?src=`) — 화면의 JS 가 탭과 줄을, 여기서는 고치기 폼을
+            "open": (request.GET.get("src", "") if request is not None else ""),
             "seed_differs": ov.get("seed_differs", 0),
             "origin_label": label(sources.SPEC_ORIGIN_LABELS, ov["origin"]),
             "spec_changed": when(ov["spec_changed"])}
+
+
+def _is_editor(request) -> bool:
+    """탭에서 명세를 고칠 수 있나 — staff 로 로그인했고, 밖에 연 판이 아니다 (jikhanjung 020)"""
+    user = getattr(request, "user", None)
+    return bool(not settings.PUBLIC and user is not None and user.is_authenticated and user.is_active and user.is_staff)
+
+
+#: 명세의 이력에서 화면에 내는 줄 수(데이터소스마다)
+SPEC_CHANGES_SHOWN = 10
+
+
+def _spec_changes(ids, lang) -> dict:
+    """데이터소스마다 명세의 이력(새것부터) — 누가·언제·어디서·바뀐 칸. 질의 하나"""
+    from .models import DataSourceChange
+    origins = {"admin": msg("admin"), "tab": msg("관리 화면"), "seed": msg("씨앗"), "import": msg("파일에서 옮김")}
+    out = {}
+    try:
+        for c in DataSourceChange.objects.filter(source__in=ids).order_by("-at", "-id"):
+            got = out.setdefault(c.source, [])
+            if len(got) >= SPEC_CHANGES_SHOWN:
+                continue
+            if c.before is None:
+                what = i18n.t(msg("새로 넣음"), lang)
+            elif c.after is None:
+                what = i18n.t(msg("지움"), lang)
+            else:
+                keys = sorted(k for k in set(c.before) | set(c.after) if c.before.get(k) != c.after.get(k))
+                what = ", ".join(keys) or i18n.t(msg("바뀐 칸 없음"), lang)
+            got.append({"at": timezone.localtime(c.at).strftime("%Y-%m-%d %H:%M"), "by": c.by_name or "",
+                        "origin": i18n.t(origins.get(c.origin, c.origin), lang), "what": what})
+    except DatabaseError:
+        return {}
+    return out
+
+
+def _back_to_sources(source_id=""):
+    url = reverse("viewer:manage") + "?tab=sources"
+    return redirect(url + (f"&src={source_id}" if source_id else ""))
+
+
+@require_POST
+def manage_login(request):
+    """관리 화면 "데이터소스" 탭의 로그인 — Django 계정(admin 과 같은 계정·세션). staff 만 들인다 (jikhanjung 020).
+    **아직 평문 HTTP 다** — HTTPS 는 나중에(사람, 2026-10-07, TODOs). 밖에 연 판에는 없다"""
+    if settings.PUBLIC:
+        raise Http404
+    lang = i18n.lang_of(request)
+    form = AuthenticationForm(request, data=request.POST)
+    if not form.is_valid():
+        messages.error(request, i18n.t(msg("이름이나 비밀번호가 맞지 않는다"), lang))
+    elif not form.get_user().is_staff:
+        messages.error(request, i18n.t(msg("staff 계정이 아니다 — 명세를 고칠 수 없다"), lang))
+    else:
+        auth_login(request, form.get_user())
+        messages.success(request, i18n.t(msg("로그인했다 — 줄을 펼치면 명세를 고칠 수 있다"), lang))
+    return _back_to_sources()
+
+
+@require_POST
+def manage_logout(request):
+    if settings.PUBLIC:
+        raise Http404
+    auth_logout(request)
+    return _back_to_sources()
+
+
+def _lines(text: str) -> list:
+    return [x.strip() for x in (text or "").splitlines() if x.strip()]
+
+
+@require_POST
+def source_edit(request, source_id):
+    """탭에서 명세 한 줄을 고친다 — admin 과 같은 검사(`DataSource.clean`)를 지나야 저장하고, 이력에 앞뒤 줄을 남긴다 (jikhanjung 020)"""
+    from django.core.exceptions import ValidationError
+
+    from .models import DataSource
+    if settings.PUBLIC:
+        raise Http404
+    if not _is_editor(request):
+        return HttpResponse(status=403)
+    lang = i18n.lang_of(request)
+    obj = get_object_or_404(DataSource, pk=source_id)
+    before = obj.as_row()
+    p = request.POST
+    for k in ("name_ko", "name_en", "org", "kind", "schedule", "runs_on", "license", "raw", "note"):
+        setattr(obj, k, (p.get(k) or "").strip())
+    obj.flags = [f for f in p.getlist("flags") if f]
+    obj.commands, obj.outputs, obj.docs = _lines(p.get("commands")), _lines(p.get("outputs")), _lines(p.get("docs"))
+    try:
+        obj.full_clean()
+    except ValidationError as exc:
+        messages.error(request, i18n.t(msg("저장하지 않았다 — {why}", why="; ".join(exc.messages)), lang))
+        return _back_to_sources(source_id)
+    after = obj.as_row()
+    if after == before:
+        messages.info(request, i18n.t(msg("바뀐 것이 없다"), lang))
+        return _back_to_sources(source_id)
+    obj.updated_by = request.user
+    with transaction.atomic():
+        obj.save()
+        sources.record_change(obj.pk, before, after, "tab", request.user)
+    messages.success(request, i18n.t(msg("{id} 의 명세를 고쳤다", id=obj.pk), lang))
+    return _back_to_sources(source_id)
 
 
 def _changed(n, lang) -> str:
@@ -1906,11 +2036,19 @@ def earth_places(request):
     """`?q=바이칼` — 온 지구의 찾기. 지명(Natural Earth 의 도시·산맥·바다·호수·강)에 더해 화석 산지·지층(PBDB)과 화산(GVP)의
     이름도 찾는다(wetherilli 187). 모두 모아 둔 파일이라 상류를 타지 않는다.
 
-    결과마다 `group`(place·volcano·formation·fossil)이 붙고, `kind` 는 화면의 딱지 글이다 — 지명은 그 갈래(도시·강 …),
-    나머지는 "화산"·"지층"·"화석". 같은 이름 → 앞이 같은 것 → 들어 있는 것 차례로 섞고, 같은 차례면 지명·화산·지층·화석 순이다"""
+    결과마다 `group`(place·volcano·city·formation·fossil)이 붙고, `kind` 는 화면의 딱지 글이다 — 지명은 그 갈래(도시·강 …),
+    나머지는 "화산"·"지층"·"화석". 같은 이름 → 앞이 같은 것 → 들어 있는 것 차례로 섞고, 같은 차례면 지명·화산·도시·지층·화석 순이다
+
+    도시는 GeoNames 17 만 곳(`group` city, wetherilli 374)도 뒤진다 — Natural Earth 의 지명과 겹치면(`_same_place`) 한국어
+    이름이 붙은 Natural Earth 의 것을 남긴다. 지역 탭도 이 찾기를 부른다 — `bbox=서,남,동,북` 을 주면 같은 차례 안에서 그 범위의 것이 앞선다"""
     lang = i18n.lang_of(request)
     q = request.GET.get("q", "")[:80]
+    bbox = _lonlat_box(request.GET.get("bbox"))
     hits = [dict(h, group="place") for h in naturalearth.search(q, lang, limit=10)]
+    city_word = "도시" if lang == "ko" else "city"         # Natural Earth 의 갈래 말과 같게(`naturalearth.KIND_KO`)
+    for c in geonames.search(q, lang, bbox):
+        if not any(_same_place(c, h) for h in hits if h["group"] == "place"):
+            hits.append(dict(c, group="city", kind=city_word))
     for v in volcanoes.search(q):
         last = volcanoes.year_text(v["last"])
         sub = " · ".join(x for x in (v["country"], i18n.t(msg("마지막 분화 {year}", year=i18n.t(last, lang)), lang)
@@ -1927,16 +2065,51 @@ def earth_places(request):
         hits.append({"group": "fossil", "kind": i18n.t(msg("화석"), lang), "title": r["name"],
                      "sub": " · ".join(x for x in (r["formation"], _fossil_span(r["early"], r["late"], lang)) if x),
                      "lat": r["lat"], "lon": r["lon"]})
-    order = {"place": 0, "volcano": 1, "formation": 2, "fossil": 3}
+    order = {"place": 0, "volcano": 1, "city": 2, "formation": 3, "fossil": 4}
     folded = arcpoints.fold(q)
 
     def rank(hit):
-        name = arcpoints.fold(hit["title"].split(" (")[0])
-        return (0 if name == folded else 1 if name.startswith(folded) else 2, order[hit["group"]])
+        # 괄호의 다른 이름으로 맞은 것(리마 (Lima))도 같은 이름이다. GeoNames 는 별칭으로도 맞으니 제 차례(`match`)를 쓴다
+        match = hit.pop("match", None)
+        if match is None:
+            match = min(0 if name == folded else 1 if name.startswith(folded) else 2
+                        for name in (arcpoints.fold(n) for n in hit["title"].rstrip(")").split(" (")))
+        inside = hit.pop("inside", None)
+        if inside is None:
+            inside = _in_box(bbox, hit["lon"], hit["lat"])
+        return (match, not inside, order[hit["group"]])
     hits = sorted(hits, key=rank)[:25]                    # 같은 차례 안에서는 갈래마다 받은 차례 그대로다(정렬이 안정하다)
-    sources = ["Natural Earth 10 m"] + (["GVP"] if any(h["group"] == "volcano" for h in hits) else []) + \
+    sources = ["Natural Earth 10 m"] + (["GeoNames"] if any(h["group"] == "city" for h in hits) else []) + \
+        (["GVP"] if any(h["group"] == "volcano" for h in hits) else []) + \
         (["PBDB"] if any(h["group"] in ("formation", "fossil") for h in hits) else [])
     return JsonResponse({"results": hits, "sources": sources}, json_dumps_params={"ensure_ascii": False})
+
+
+def _lonlat_box(text):
+    """`서,남,동,북` 경위도 → 튜플. 서가 동보다 크면 날짜변경선을 넘는다. 읽지 못하면 None."""
+    try:
+        west, south, east, north = (float(v) for v in (text or "").split(","))
+    except ValueError:
+        return None
+    if not (-90 <= south <= north <= 90 and -180 <= west <= 180 and -180 <= east <= 180):
+        return None
+    return west, south, east, north
+
+
+def _in_box(bbox, lon, lat) -> bool:
+    if not bbox:
+        return False
+    west, south, east, north = bbox
+    return south <= lat <= north and (west <= lon <= east if west <= east else (lon >= west or lon <= east))
+
+
+def _same_place(city, place) -> bool:
+    """GeoNames 도시가 Natural Earth 의 지명과 같은 곳인가 — 0.05° 안이거나, 이름 하나가 같고(괄호의 다른 이름도 본다) 0.3° 안.
+    서울·서울특별시처럼 이름이 달라도 자리가 거의 같으면 같은 곳이다"""
+    def names(title):
+        return {arcpoints.fold(n) for n in title.rstrip(")").split(" (")}
+    near = max(abs(city["lat"] - place["lat"]), abs(city["lon"] - place["lon"]))
+    return near < 0.05 or (near < 0.3 and bool(names(city["title"]) & names(place["title"])))
 
 
 def _fossil_span(early, late, lang):
