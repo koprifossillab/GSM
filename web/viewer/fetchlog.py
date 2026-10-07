@@ -54,6 +54,14 @@ def on_host() -> bool:
     return os.environ.get("GSM_RUN_PLACE") == "host"
 
 
+def refuse_on_host(command: str):
+    """DB 를 여는 명령은 호스트에서 돌리지 않는다(P03) — 컨테이너에서 부르라고 알리고 멈춘다"""
+    if on_host():
+        from django.core.management.base import CommandError
+        raise CommandError(f"호스트는 GSM.db 를 열지 않는다 — 컨테이너 안에서 부른다: "
+                           f"docker compose exec web python manage.py {command}")
+
+
 def from_hourly() -> bool:
     """`hourly.sh` 가 부른 일 — 그 결과는 `hourly_status.json` 이 남긴다"""
     return os.environ.get("GSM_HOURLY_JOB") == "1"
@@ -241,36 +249,42 @@ def _hourly_ok_near(source: str, end: str) -> bool:
                                    started_at__range=(stop - timedelta(seconds=HOURLY_LIMIT), stop)).exists()
 
 
-def _host_rows() -> list:
-    """jsonl 에서 지난번에 읽은 자리 뒤의 줄만. 파일이 줄었으면(바뀌었으면) 처음부터."""
+def new_lines(path: Path, mark: str) -> list:
+    """덧붙이기만 하는 jsonl 에서 지난번에 읽은 자리(`FetchRunMark` 의 `mark`) 뒤의 줄만 — dict 의 목록. 파일이 줄었으면(바뀌었으면)
+    처음부터, 덜 적힌 마지막 줄은 다음 차례에. 호스트가 남긴 파일을 컨테이너가 들일 때 쓴다(기록·상류 호출 수)"""
     from .models import FetchRunMark
-    p = host_log_path()
     try:
-        size = p.stat().st_size
+        size = path.stat().st_size
     except OSError:
         return []
-    mark = FetchRunMark.objects.filter(key="host_offset").first()
-    offset = int(mark.value) if mark and mark.value.isdigit() else 0
+    got = FetchRunMark.objects.filter(key=mark).first()
+    offset = int(got.value) if got and got.value.isdigit() else 0
     if offset > size:
         offset = 0
-    rows = []
-    with open(p, "rb") as fh:
+    with open(path, "rb") as fh:
         fh.seek(offset)
         data = fh.read()
-    end = data.rfind(b"\n") + 1                   # 덜 적힌 마지막 줄은 다음 차례에
+    end = data.rfind(b"\n") + 1
+    rows = []
     for line in data[:end].decode("utf-8", "replace").splitlines():
         try:
             row = json.loads(line)
         except ValueError:
             continue
-        if isinstance(row, dict) and row.get("source") and row.get("started_at"):
-            rows.append({**row, "origin": "host"})
-    FetchRunMark.objects.update_or_create(key="host_offset", defaults={"value": str(offset + end)})
+        if isinstance(row, dict):
+            rows.append(row)
+    FetchRunMark.objects.update_or_create(key=mark, defaults={"value": str(offset + end)})
     return rows
 
 
+def _host_rows() -> list:
+    """호스트 기록(jsonl)의 새 줄"""
+    return [{**r, "origin": "host"} for r in new_lines(host_log_path(), "host_offset")
+            if r.get("source") and r.get("started_at")]
+
+
 def sync(spec_rows=None) -> int:
-    """호스트가 남긴 것(`hourly_status.json`·`fetch_log_host.jsonl`)을 `FetchRun` 으로. 옮긴 줄 수.
+    """호스트가 남긴 것(`hourly_status.json`·`fetch_log_host.jsonl`)을 `FetchRun` 으로, `upstream_host.jsonl` 을 `UpstreamDay` 로. 옮긴 기록 줄 수.
 
     호스트에서는 하지 않고, 기록이 꺼져 있으면(시험) 하지 않는다. 못 적으면 0 — 부르는 쪽을 죽이지 않는다.
     """
@@ -279,12 +293,22 @@ def sync(spec_rows=None) -> int:
     if spec_rows is None:
         from . import sources
         spec_rows = sources.load().rows
+    # 호스트는 명세를 읽지 않아 명령 이름을 데이터소스 자리에 적어 둔다(P03) — 여기서 데이터소스로 바꾼다
+    by_command = {c: r["id"] for r in spec_rows for c in r.get("commands", [])}
+    ids = {r["id"] for r in spec_rows}
+    moved = 0
     try:
         with transaction.atomic():
-            rows = _hourly_rows(spec_rows, True) + _host_rows()
-            return write_many(rows) if rows else 0
+            host = [{**r, "source": by_command.get(r["source"], r["source"]) if r["source"] not in ids else r["source"]}
+                    for r in _host_rows()]
+            rows = _hourly_rows(spec_rows, True) + host
+            moved = write_many(rows) if rows else 0
     except (DatabaseError, OSError):
-        return 0
+        moved = 0
+    # 호스트가 센 상류 호출(`upstream_host.jsonl`)도 같은 차례에 들인다 — 호스트는 UpstreamDay 에 쓰지 않는다(P03)
+    from . import usage
+    usage.sync_host()
+    return moved
 
 
 # ── 화면에 내기 ─────────────────────────────────────────────────────

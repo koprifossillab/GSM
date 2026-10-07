@@ -25,6 +25,7 @@ class Command(BaseCommand):
         parser.add_argument("--dry-run", action="store_true", help="옮기지 않고 무엇이 있는지만")
 
     def handle(self, *args, **opts):
+        fetchlog.refuse_on_host("sources_import")
         from viewer.models import DataSource, FetchRun, FetchRunMark
 
         say = self.stdout.write

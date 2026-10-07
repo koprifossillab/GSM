@@ -89,15 +89,37 @@ class Record(Base):
         lines = (self.dir / "fetch_log_host.jsonl").read_text(encoding="utf-8").splitlines()
         self.assertEqual([json.loads(x)["source"] for x in lines], ["era5", "araon"])
 
-    def test_호스트는_읽기만_한다(self):
-        """#369 검토 1 — 호스트는 읽고, 쓰는 길은 막혀 있다"""
-        fetchlog.write({"source": "demo", "started_at": "2026-10-06T00:00:00+09:00", "result": "ok"})
-        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
-            self.assertIn("demo", fetchlog.latest())
-            self.assertEqual(len(fetchlog.history("demo")), 1)
+    def test_호스트는_DB_를_열지_않는다(self):
+        """사람, 2026-10-07 — 호스트가 DB 를 건드려야 하면 컨테이너를 거친다. 호스트의 명령은 파일만 남긴다"""
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}), \
+                mock.patch.object(sources, "load", side_effect=AssertionError("호스트가 명세를 읽었다")), \
+                mock.patch("viewer.management.commands.fetch_kigam50k.Command.handle", side_effect=lambda *a, **k: None), \
+                override_settings(KIGAM50K_DIR=str(self.dir / "k")), CaptureQueriesContext(connection) as ctx:
+            call_command("fetch_kigam50k", stdout=io.StringIO())          # apps.py 의 감싸기 — 명세를 읽지 않고 명령 이름을
+            from viewer import usage
+            usage.record("kopri", ok=True, elapsed=1.2)                  # 상류 호출 수 — 파일에
             with self.assertRaises(RuntimeError):
                 fetchlog.write({"source": "x", "started_at": "2026-10-06T00:00:00+09:00", "result": "ok"})
             self.assertEqual(fetchlog.sync(), 0)
+            for name in ("sources_log", "sources_import", "sources_seed", "sources_backfill", "prune_raw"):
+                with self.assertRaisesRegex(CommandError, "컨테이너 안에서"):
+                    call_command(name, stdout=io.StringIO(), stderr=io.StringIO())
+        self.assertEqual(ctx.captured_queries, [])
+        [line] = (self.dir / "fetch_log_host.jsonl").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(json.loads(line)["source"], "fetch_kigam50k")
+        self.assertTrue((self.dir / "upstream_host.jsonl").exists())
+
+    def test_호스트의_설정은_DB_엔진이_없다(self):
+        import subprocess
+        import sys
+        web = Path(__file__).resolve().parents[2]
+        code = ("import django; django.setup()\n"
+                "from django.conf import settings; print(settings.DATABASES['default']['ENGINE'])\n"
+                "from viewer.models import DataSource\n"
+                "try:\n    DataSource.objects.count()\nexcept Exception as e:\n    print(type(e).__name__)\n")
+        env = {**os.environ, "GSM_RUN_PLACE": "host", "DJANGO_SETTINGS_MODULE": "gsmweb.settings", "GSM_SECRET_KEY": "x"}
+        out = subprocess.run([sys.executable, "-c", code], cwd=web, env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.stdout.split(), ["django.db.backends.dummy", "ImproperlyConfigured"], out.stderr[-500:])
 
     def test_때를_못_읽는_줄은_버린다(self):
         self.assertEqual(fetchlog.write_many([{"source": "demo", "started_at": "어제", "result": "ok"},
@@ -188,6 +210,32 @@ class Sync(Base):
         self.assertEqual(got["last"]["result"], "fail")
         self.assertEqual(got["last_ok"]["started_at"][:10], "2026-10-01")
         self.assertEqual(len(fetchlog.history("demo")), 2)
+
+
+class FromHost(Base):
+    """호스트가 남긴 파일을 컨테이너가 들인다 (P03) — 명령 이름은 데이터소스로, 상류 호출 수는 UpstreamDay 로."""
+
+    def test_명령_이름을_데이터소스로(self):
+        (self.dir / "fetch_log_host.jsonl").write_text("\n".join(json.dumps(r) for r in (
+            {"source": "fetch_gfs_wind", "command": "fetch_gfs_wind", "started_at": "2026-10-07T01:00:00+09:00", "result": "ok"},
+            {"source": "wind", "command": "fetch_gfs_wind", "started_at": "2026-10-07T02:00:00+09:00", "result": "ok"},  # 옛 줄
+            {"source": "build_모르는것", "started_at": "2026-10-07T03:00:00+09:00", "result": "ok"},
+        )) + "\n", encoding="utf-8")
+        self.assertEqual(fetchlog.sync(), 3)
+        self.assertEqual(sorted(r["source"] for r in self.rows()), ["build_모르는것", "wind", "wind"])
+
+    def test_상류_호출_수를_한_번만_더한다(self):
+        from viewer import usage
+        from viewer.models import UpstreamDay
+        with mock.patch.dict(os.environ, {"GSM_RUN_PLACE": "host"}):
+            usage.record("kopri", ok=True, elapsed=1.2)
+            usage.record("kopri", ok=False)
+            usage.record("kopri", ok=False, blocked=True)
+        self.assertFalse(UpstreamDay.objects.exists())
+        fetchlog.sync()
+        fetchlog.sync()                                   # 두 번 더하지 않는다
+        row = UpstreamDay.objects.get(upstream="kopri")
+        self.assertEqual((row.ok, row.fail, row.blocked, row.timed), (1, 1, 1, 1))
 
 
 class WrapsCommands(Base):
