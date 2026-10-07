@@ -45,7 +45,7 @@ Docker Hub 이미지(`koprifossillab/gsm`), 브라우저 `localStorage` 키.
 | 점묶음에 든 선·면 하나 | **모양**(`Shape`) | 도형, 피처 |
 | 클릭해 읽은 속성 | **속성** | 정보, 피처 |
 | 지도의 보이는 범위 | **범위**(bbox) | 영역, 뷰포트 |
-| 받아 두는 바깥 자료의 출처 하나 | **데이터소스**(`sources.json`) | 자료원 |
+| 받아 두는 바깥 자료의 출처 하나 | **데이터소스**(`DataSource`) | 자료원 |
 
 **개인 레이어**는 관리 화면(`/GSM/manage/`)에서 반입해 **그 브라우저(IndexedDB)에만 두는 것**이다 — 서버의
 점묶음과 다르다. 상류가 주는 레이어와 헷갈리지 않게 늘 "개인" 을 붙인다. 양식은 `docs/개인레이어_양식.md` 하나이고
@@ -593,8 +593,8 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   glim.py         세계 암상 GLiM 0.5° 격자(data/glim_05deg.json) -> 경위도 타일·누른 자리의 갈래. 문이 아니다
   heatflow.py     IHFC 세계 지열류 2024 글 파일 -> sqlite(R*Tree) -> 경위도 점 타일·누른 자리. 문이 아니다
   seafloor.py     해양 지각 연대 Seton 2020(NetCDF-3)·해저 퇴적층 두께 GlobSed v3(글 격자) — numpy 없이 -> <EARTH_DIR> 의 칠한 PNG·int16 값 -> 경위도 타일·누른 자리. 문이 아니다
-  sources.py      받아 두는 데이터소스의 명세(<DB 옆>/sources.json — 서버에서 손으로 고친다) — 읽기·검사·씨앗 덧붙이기·바뀐 판 떠 두기. 씨앗은 data/sources.seed.json, 새 fetch_*·build_* 를 더하면 거기 한 줄 (jikhanjung P02). 문이 아니다
-  fetchlog.py     받은 차례의 기록(<DB 옆>/store.sqlite 의 fetch_log) — fetch_*·build_* 가 끝날 때 한 줄(apps.py 가 BaseCommand.execute 를 감싼다), 명령은 fetchlog.note() 로 보탠다. 호스트(GSM_RUN_PLACE=host)는 sqlite 에 쓰지 않는다 — hourly_status.json·fetch_log_host.jsonl 을 컨테이너가 옮겨 적는다(jikhanjung P02). 문이 아니다
+  sources.py      받아 두는 데이터소스의 명세(`GSM.db` 의 `DataSource` — admin 에서 고치고 `DataSourceChange` 에 이력, jikhanjung P03) — 읽기·검사·씨앗 덧붙이기, 파일 시절의 `<DB 옆>/sources.json` 을 한 번 옮기기(`sources_import`). 씨앗은 data/sources.seed.json, 새 fetch_*·build_* 를 더하면 거기 한 줄 (jikhanjung P02). 문이 아니다
+  fetchlog.py     받은 차례의 기록(`GSM.db` 의 `FetchRun`, P03 에서 store.sqlite 의 fetch_log 를 옮겼다) — fetch_*·build_* 가 끝날 때 한 줄(apps.py 가 BaseCommand.execute 를 감싼다), 명령은 fetchlog.note() 로 보탠다. 호스트(GSM_RUN_PLACE=host)는 읽기만 한다 — hourly_status.json·fetch_log_host.jsonl 을 컨테이너가 옮겨 적는다(jikhanjung P02). 받은 판의 정보는 원본 폴더의 manifest.json(`rawstore`). 문이 아니다
   rawstore.py     받은 원본을 날짜 폴더(`<자리>/<YYYYMMDD>/` + manifest)에 — 바뀐 판만(sha256 이 같으면 확인한 때만), 지우기는 사람이 부르는 `prune_raw`(최근 3 벌, `--dry-run` 먼저). kigam50k 의 틀을 뽑았다(jikhanjung P02 4 단계). 문이 아니다
   datastatus.py   구운 자료의 나이 — <DB 옆> 의 파일마다 있는지·크기·고친 날·원본 판(`ITEMS` 한 표). data_status·healthz·관리 화면의 "데이터소스" 탭(산출물 칸, jikhanjung 013)이 읽는다. 문이 아니다
   earthpoints.py  지역 탭의 화석 산지·홀로세 화산·지진·고생태 산지 — 온 지구의 모아 둔 sqlite·JSON 에서 지역의 네모만 점 GeoJSON 으로. 문이 아니다
@@ -613,7 +613,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   crs.py          평면 좌표계(TM·UTM-K·옛 Bessel·람베르트·북극 람베르트 등적) <-> 위경도. pyproj 없이
   i18n.py         한국어 원문 -> 영어 번역표. 지질시대 옮기기
   tilecache.py    받아온 타일을 디스크에 둔다. 같은 것을 두 번 받지 않는다
-  models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay
+  models.py       Layer·LayerGroup·PointSet·Point·Shape·PointSetDeletion·UpstreamDay·DataSource·DataSourceChange·FetchRun·FetchRunMark
   views.py        화면 하나 + 프록시 둘 + 업로드
 deploy/           Docker·nginx·배포 스크립트. cron 이 부르는 것은 deploy/scripts/ — 컨테이너가 뜰 때 /srv/GSM/scripts/ 에 깔고
                   호스트 cron 은 그 사본을 전용 venv 로 돌린다(run.sh). 저장소를 부르지 않는다 (koprifossillab 005)
