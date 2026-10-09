@@ -73,3 +73,18 @@ def read_tile(path, key: str, opened=None):
     with open(path, "rb") as f:
         f.seek(base + where[0])
         return f.read(where[1])
+
+
+def listing(folder) -> list:
+    """폴더의 묶음 — 이름·크기와 머리의 제목·날짜·범위·레이어. 머리를 읽지 못하는 것은 뺀다. 새것이 앞이다."""
+    out = []
+    for path in sorted(Path(folder).glob(f"*{SUFFIX}"), key=lambda p: p.stat().st_mtime, reverse=True):
+        try:
+            head, _ = read_header(path)
+        except (OSError, ValueError):
+            continue
+        out.append({"file": path.name, "bytes": path.stat().st_size, "box": head.get("box", ""),
+                    "title": head.get("title", path.stem), "built": head.get("built", ""), "bbox": head.get("bbox"),
+                    "tiles": len(head.get("tiles", {})), "layers": list(head.get("layers", {})),
+                    "dropped": head.get("dropped", {})})
+    return out

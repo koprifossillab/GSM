@@ -608,6 +608,7 @@ web/viewer/       뷰어 앱 하나뿐이다. 앱을 더 가르지 않는다
   rawstore.py     받은 원본을 날짜 폴더(`<자리>/<YYYYMMDD>/` + manifest)에 — 바뀐 판만(sha256 이 같으면 확인한 때만), 지우기는 사람이 부르는 `prune_raw`(최근 3 벌, `--dry-run` 먼저). kigam50k 의 틀을 뽑았다(jikhanjung P02 4 단계). 문이 아니다
   datastatus.py   구운 자료의 나이 — <DB 옆> 의 파일마다 있는지·크기·고친 날·원본 판(`ITEMS` 한 표). data_status·healthz·관리 화면의 "데이터소스" 탭(산출물 칸, jikhanjung 013)이 읽는다. 문이 아니다
   earthpoints.py  지역 탭의 화석 산지·홀로세 화산·지진·고생태 산지 — 온 지구의 모아 둔 sqlite·JSON 에서 지역의 네모만 점 GeoJSON 으로. 문이 아니다
+  offlinepack.py  오프라인 묶음(.gsmpack) 꼴 쓰기·읽기 — 박스 하나의 타일을 파일 하나로(`build_offline_pack`, `/GSM/offline/`, 연구실 안에서만, wetherilli P13·381). 문이 아니다
   pointvalues.py  점묶음 CSV 에 붙일 값 — 점마다 GeoMAP 단위·지각 두께·가까운 PBDB 산지, 달·화성·수성은 그 지질도 단위. 우리 파일만. 문이 아니다
   profileband.py  높이 그래프 밑의 지질 띠 — 잰 선의 점마다 GeoMAP·geo3al·달·화성·수성 파일의 단위, 온 지구는 지각 두께 칸. 상류뿐인 레이어는 띠가 없다. 문이 아니다
   static_tables.py 정적 판(GitHub Pages)이 극지 상류를 곧장 부를 때 쓸 표 — 문의 명세·이름 표를 JSON 으로 뜬다. `static-kinds.js` 가 읽는다. 문이 아니다
