@@ -843,6 +843,16 @@ EN = {
     # 2D 지도의 방위 (wetherilli 114)
     "방위 — 바늘이 지도의 본래 위쪽을 가리킨다. 우클릭한 채 끌면 지도가 돌고, 누르면 처음 방위로 되돌린다":
         "Heading — the needle points to the map's original up. Right-drag to rotate the map; click to restore the original heading",
+    # 내 위치 (wetherilli 380)
+    "내 위치": "My location",
+    "내 위치 — 이 기기의 GPS 로 지금 자리를 띄우고 따라간다. 다시 누르면 끈다":
+        "My location — shows where you are from this device's GPS and follows it. Press again to turn off",
+    "내 위치가 이 지역의 지도 밖이다": "Your location is outside this region's map",
+    "내 위치 ±{m} m": "My location ±{m} m",
+    "위치를 찾는 중": "Finding your location",
+    "위치 권한이 막혀 있다 — 브라우저 설정에서 허용한다": "Location permission is blocked — allow it in the browser settings",
+    "위치를 제때 받지 못했다": "Location timed out",
+    "위치를 받지 못했다": "Could not get your location",
     "평면에서 그렇게 끌면 구로 넘어가며 기울어진다.": "Doing so on the flat map switches to the globe and tilts.",
     "화면 한가운데 점에서 본 기울기(곧장 내려다봄 0°)와 방위(달의 북쪽 0°)":
         "Tilt (0° looking straight down) and heading (0° lunar north) at the point in the middle of the screen",

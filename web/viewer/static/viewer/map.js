@@ -2223,6 +2223,7 @@
     initAttitudes();
     rightDragRotate(map);
     initCompass();
+    initLocate();
   }
 
   /** 우클릭한 채 끌면 지도가 돈다 — 화면 가운데를 축으로, 누른 자리가 가운데를 도는 만큼 (wetherilli 114).
@@ -2277,6 +2278,73 @@
       needle.setAttribute("transform", "rotate(" + (r * 180 / Math.PI).toFixed(1) + " 12 12)");
       button.disabled = Math.abs(r) < 1e-6;
     });
+  }
+
+  /** "자세" 묶음의 내 위치 (wetherilli 380) — 이 기기의 GPS(`navigator.geolocation`)로 파란 점과 정확도 원을 띄우고 따라간다.
+   *  처음 잡힌 자리로 한 번 가고, 그 뒤로는 점만 옮긴다 — 지도를 끌어 보는 사람을 붙잡지 않게. 다시 누르면 끈다.
+   *  브라우저는 보안 연결(https·localhost)에서만 위치를 준다 — 연구소 판(평문 http)에서는 단추를 숨긴다.
+   *  자리는 위경도로 들고 그릴 때마다 지금 투영으로 옮긴다 — 지역을 바꿔도 따라온다. 어디에도 보내거나 적지 않는다 */
+  var here = null, hereNote = "";
+  function initLocate() {
+    var button = document.getElementById("tool-locate");
+    if (!button || !navigator.geolocation || !window.isSecureContext) return;
+    button.hidden = false;
+    var source = new ol.source.Vector();
+    var layer = new ol.layer.Vector({
+      source: source,
+      zIndex: 600,
+      style: function (f) {
+        return f.get("ring")
+          ? new ol.style.Style({ fill: new ol.style.Fill({ color: "rgba(30,136,229,0.15)" }),
+                                 stroke: new ol.style.Stroke({ color: "rgba(30,136,229,0.6)", width: 1 }) })
+          : new ol.style.Style({ image: new ol.style.Circle({ radius: 7, fill: new ol.style.Fill({ color: "#1e88e5" }),
+                                                               stroke: new ol.style.Stroke({ color: "#fff", width: 2.5 }) }) });
+      },
+    });
+    map.addLayer(layer);
+    var watch = null, moved = false;
+    function note(text) { hereNote = text; updateToolOut(); }
+    function draw() {
+      source.clear();
+      if (!here) return;
+      var proj = viewProj();
+      var at = fromLL([here.lon, here.lat]);
+      var inside = isMercator() ? Math.abs(here.lat) < 85 : ol.extent.containsCoordinate(proj.getExtent(), at);
+      if (!inside) { note(T("내 위치가 이 지역의 지도 밖이다")); return; }
+      var ring = ol.geom.Polygon.circular([here.lon, here.lat], Math.max(here.acc, 1), 64).transform("EPSG:4326", proj);
+      source.addFeatures([new ol.Feature({ geometry: ring, ring: true }), new ol.Feature({ geometry: new ol.geom.Point(at) })]);
+      note(T("내 위치 ±{m} m", { m: Math.round(here.acc) }));
+      if (!moved) {
+        moved = true;
+        var view = map.getView();
+        view.animate({ center: at, resolution: Math.min(view.getResolution(), 20), duration: 700 });
+      }
+    }
+    function stop() {
+      if (watch !== null) navigator.geolocation.clearWatch(watch);
+      watch = null; here = null; moved = false;
+      button.classList.remove("on");
+      button.setAttribute("aria-pressed", "false");
+      source.clear();
+      note("");
+    }
+    button.addEventListener("click", function () {
+      if (watch !== null) { stop(); return; }
+      button.classList.add("on");
+      button.setAttribute("aria-pressed", "true");
+      note(T("위치를 찾는 중"));
+      watch = navigator.geolocation.watchPosition(function (pos) {
+        here = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 0 };
+        draw();
+      }, function (err) {
+        var why = err.code === 1 ? T("위치 권한이 막혀 있다 — 브라우저 설정에서 허용한다")
+          : err.code === 3 ? T("위치를 제때 받지 못했다") : T("위치를 받지 못했다");
+        stop();
+        note(why);
+      }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+    });
+    // 지역을 바꿔 투영이 달라지면 새 보기에 다시 그린다. 자리를 옮기지는 않는다 — 그 지역의 기억한 자리로 연다
+    map.on("change:view", function () { if (here) draw(); });
   }
 
   /** 투영 하나의 보기. **OpenLayers 는 보기의 투영을 바꾸지 못한다** — 지역을
@@ -3590,6 +3658,7 @@
     if (mode === "line" && !lastMeasure) bits.push(T("눌러 가며 잇는다 · 두 번 누르면 끝"));
     if (mode === "area" && !lastMeasure) bits.push(T("눌러 가며 두른다 · 두 번 누르면 끝"));
     if (mode === "box" && !rangeSource.getFeatures().length) bits.push(T("누른 채 끌어 네모를 그린다"));
+    if (hereNote) bits.push(hereNote);
     out.textContent = bits.join("  ·  ");
     out.hidden = !bits.length;
   }
@@ -7814,6 +7883,11 @@
         go.disabled = !p.bbox;
         go.addEventListener("click", function () {
           var b = p.bbox;
+          // 정적 판은 남극으로 연다(wetherilli 379) — 묶음의 지역(한국)으로 먼저 넘어가야 그 투영으로 맞춘다
+          if (p.region && REGIONS[p.region] && p.region !== region) {
+            if (addedRegions.indexOf(p.region) < 0 && PINNED.indexOf(p.region) < 0) addedRegions.push(p.region);
+            switchRegion(p.region);
+          }
           map.getView().fit(ol.proj.transformExtent(b, "EPSG:4326", viewProj()), { padding: [24, 24, 24, 24] });
           document.getElementById("settings").hidden = true;
         });
@@ -7919,7 +7993,8 @@
       }
       var shown = document.querySelector("#key-dialog .key-check");
       if (shown) showVerdict(shown, result);
-      else if (REGIONS[region].vworld) openKeyDialog({ verdict: result });
+      // 묶음을 들인 판은 현장에서 망 없이 열린다 — 닿지 못한 것을 키 창으로 알리지 않는다 (wetherilli 382)
+      else if (REGIONS[region].vworld && !(Offline && Offline.held())) openKeyDialog({ verdict: result });
     });
   }
 

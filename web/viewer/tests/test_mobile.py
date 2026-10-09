@@ -772,7 +772,8 @@ class OfflinePack(PhoneBase):
         call_command("seed_catalog", stdout=open(os.devnull, "w"))
         bbox = [128.85, 37.10, 128.86, 37.11]
         pack = tiny_pack(bbox, {"L_50K_Geology_Map": (12, 17), "vworld:Base": (12, 18)})
-        page, errors = self.open("map/?region=korea")
+        # 정적 판처럼 남극에서 연다(wetherilli 379) — "가 보기" 가 묶음의 지역(한국)으로 넘어가야 한다
+        page, errors = self.open("map/?region=antarctica")
         page.evaluate("""() => { window.__blobs = 0; const make = URL.createObjectURL;
                                  URL.createObjectURL = function (b) { window.__blobs++; return make.call(URL, b); }; }""")
         page.tap("#panel-handle")
@@ -790,6 +791,8 @@ class OfflinePack(PhoneBase):
         # 가 보기 — 묶음의 범위로 가면 표가 뜨고, 켠 5만 지질도 타일이 묶음에서 온다
         page.locator("#offline-list button", has_text="가 보기").tap()
         page.wait_for_timeout(2000)
+        self.assertEqual(page.evaluate("document.querySelector('#regions .region-tab.on').dataset.region"), "korea",
+                         "가 보기가 묶음의 지역으로 넘어가지 않았다")
         badge = page.locator("#offline-badge")
         self.assertTrue(badge.is_visible(), "묶음 안인데 오프라인 표가 없다")
         self.assertIn("오프라인: 시험 묶음 · 10-10", badge.inner_text())
