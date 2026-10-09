@@ -76,6 +76,14 @@ def client_table(lang: str) -> dict:
 # ── 화면·메시지 ──────────────────────────────────────────────────────
 
 EN = {
+    # 오프라인 묶음 (wetherilli 381)
+    "오프라인 묶음": "Offline packs",
+    "연구실 현장용 — 밖으로 나누지 않는다": "For lab fieldwork — do not share outside the lab",
+    "타일 {n} 장": "{n} tiles",
+    "구운 묶음이 아직 없다": "No packs have been built yet",
+    "연구소 망에서 묶음을 내려받는다": "Download a pack while on the institute network",
+    "공개 판을 홈 화면에 추가해 앱으로 연다": "Add the public site to your home screen and open it as an app",
+    "앱의 ‘오프라인 묶음 불러오기’ 로 내려받은 파일을 고른다": "Pick the downloaded file with “Load offline pack” in the app",
     # 대만 지질 민감구역의 갈래 (wetherilli 336)
     "활성단층 민감구역": "Active fault sensitive area", "지하수 함양 민감구역": "Groundwater recharge sensitive area",
     "지질 유산 민감구역": "Geoheritage sensitive area", "산사태·지활 민감구역": "Landslide sensitive area",
