@@ -2109,6 +2109,27 @@ EN = {
     "이 브라우저는 저장소(IndexedDB)를 쓰지 못한다": "This browser cannot use storage (IndexedDB)",
     "저장하지 못했다 — 저장소가 찼을 수 있다": "Could not save — storage may be full",
     "이름 없는 레이어": "Untitled layer",
+    # 오프라인 묶음 (wetherilli P13·382)
+    "오프라인": "Offline",
+    "오프라인 묶음 불러오기": "Load an offline pack",
+    "연구소에서 구운 묶음(.gsmpack)을 고르면 그 범위의 지질도·배경지도를 망과 인증키 없이 본다. 묶음은 이 브라우저에만 남는다.":
+        "Pick a pack (.gsmpack) built at the institute to view its geological maps and basemaps without a network or API keys. The pack stays in this browser only.",
+    "들인 묶음": "Loaded packs",
+    "연구실 현장용이다 — 묶음 파일을 밖으로 나누지 않는다.": "For the lab's fieldwork — do not share pack files outside.",
+    "들인 묶음이 없다": "No packs loaded",
+    "{built} 구움 · {size} · 타일 {n}장": "Built {built} · {size} · {n} tiles",
+    "가 보기": "Go there",
+    "{name} 묶음을 이 브라우저에서 지운다": "Delete the pack {name} from this browser",
+    "들이는 중…": "Loading…",
+    "{name} 을 들였다. 배경지도는 다시 열면 고르개에 오른다.": "Loaded {name}. Its basemaps appear in the picker after reopening.",
+    "{name} 을 들였다. 이 범위는 망 없이도 보인다.": "Loaded {name}. This extent now shows without a network.",
+    "다시 열기": "Reopen",
+    "묶음을 들이지 못했다": "Could not load the pack",
+    "오프라인: {name} · {date}": "Offline: {name} · {date}",
+    "출처: {names}": "Source: {names}",
+    "오프라인 묶음(.gsmpack)이 아니다": "Not an offline pack (.gsmpack)",
+    "묶음의 머리가 잘렸다": "The pack header is truncated",
+    "묶음의 머리를 읽지 못했다": "Could not read the pack header",
 }
 
 
