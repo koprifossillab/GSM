@@ -114,6 +114,8 @@
 
 ## 지켜볼 것·막힌 것
 
+- [ ] **(사람) 운영 compose 에 한 줄** — `/srv/GSM/docker-compose.yml` 의 `extra_hosts` 에 `- "rock.kopri.re.kr:203.250.179.26"` 를 더하고 `docker compose up -d web`.
+      서버 DNS 가 rock 을 못 찾아 주간 백업의 `fetch_kopri` 가 멈추고 healthz 가 degraded 다(10-12). 급하지 않다 — 시료 목록이 묵을 뿐 (wetherilli 383)
 되살아나거나 바뀌면 그때 한다.
 
 - GSJ 는 호출 제한 수치를 밝히지 않는다 — `upstream_stats` 의 `gsj` 를 지켜본다
