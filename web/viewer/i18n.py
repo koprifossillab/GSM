@@ -3584,6 +3584,7 @@ GROUP_EN = {
     "필리핀 지질도 (MGB)": "Geology of the Philippines (MGB)", "태국 지질도 (DMR)": "Geology of Thailand (DMR)",
     "지질 구조 (5만)": "Geological structures (1:50k)",
     "화석·화산·지진": "Fossils, volcanoes, earthquakes",
+    "지각 구조": "Crustal structure", "광상": "Mineral deposits",
     "국토지리원 주제도": "GSI thematic maps",
     "쇄빙연구선 아라온호": "Icebreaker RV Araon",
     "동·동남아시아 지질도 (CCOP)": "East & Southeast Asia geology (CCOP)",
@@ -4777,4 +4778,8 @@ LAYER_EN.update({f"earth:{kind}_{box}": f"{title} — {area}"
                  for box, area in {'eastasia': 'East Asia', 'southeast_asia': 'Southeast Asia', 'southasia': 'South and West Asia', 'europe': 'Europe', 'north_america': 'North America', 'central_america': 'Central America and Caribbean', 'south_america': 'South America', 'oceania': 'Oceania', 'africa': 'Africa'}.items()
                  for kind, title in (("pbdb", "Fossil collections (PBDB)"), ("gvp", "Holocene volcanoes (GVP)"),
                                      ("quakes", "Earthquakes M5+ (USGS)"), ("neotoma", "Quaternary palaeoecology sites (Neotoma)"),
-                                     ("heatflow", "Heat flow (IHFC)"), ("recentquakes", "Recent earthquakes (7 days, M2.5+)"))})
+                                     ("heatflow", "Heat flow (IHFC)"), ("recentquakes", "Recent earthquakes (7 days, M2.5+)"),
+                                     # 온 지구 화면에 구워 둔 선·면·막대 (wetherilli 390)
+                                     ("faults", "Active faults (GEM)"), ("plates", "Plate boundaries (Hasterok 2022)"),
+                                     ("provinces", "Geologic provinces (Hasterok 2022)"), ("stress", "Crustal stress (WSM 2025)"),
+                                     ("minerals", "Mineral deposits (USGS)"))})
