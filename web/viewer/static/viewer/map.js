@@ -687,8 +687,20 @@
   // `STATE` 를 거친다 — 링크로 연 동안에는 덧층에만 쓰고 그 사람의 localStorage 는 건드리지 않는다. 실리지 않은 지역(정적 판)은
   // 링크를 버리고 늘 하던 대로 연다. 레이어·배경은 되살릴 때 카탈로그에 없으면 조용히 건너뛴다(`restoreState`·`savedBasemap`)
   var SHARED = window.GSMShare ? GSMShare.read() : null;
+  // 넘겨받은 임시 레이어(`#ext=`, wetherilli 392)는 링크의 지역이 없어도(나라 밖의 점) 받는다 — SHARED 를 버리기 전에 떼어 둔다
+  var EXT = extFrom(SHARED);
   if (SHARED && !(SHARED.r && REGIONS[SHARED.r])) SHARED = null;
   var STATE = window.GSMShare ? GSMShare.store(SHARED && sharedSeed(SHARED)) : null;
+  /** 넘겨받은 임시 레이어의 주소와 이름 (wetherilli 392). 같은 nginx 아래의 형제 앱(Cropobite 따위)이 `#ext=/앱/….geojson&extname=앱`
+   *  으로 제 점을 넘긴다. **같은 사이트의 경로만** 받는다 — 남의 주소(`//`·`http:`)를 받으면 아무 자료나 이 지도에 얹힌다.
+   *  정적 판(Pages)에는 같은 사이트의 앱이 없어 받지 않는다 */
+  function extFrom(q) {
+    if (!q || !q.ext || STATIC) return null;
+    var path = String(q.ext);
+    if (path.charAt(0) !== "/" || path.charAt(1) === "/" || /[\\\s]/.test(path)) return null;
+    return { path: path, name: String(q.extname || "").slice(0, 60) || T("넘겨받은 점") };
+  }
+
   function sharedSeed(q) {
     var r = q.r, key = function (name) { return r === "korea" ? name : name + "." + r; };
     var seed = { "gsm.region": r };
@@ -2414,6 +2426,7 @@
     pointLayers = {};
     renderPointSets();
     drawPersonal();
+    drawExt();
     // 나란히 보기의 오른쪽 지도는 같은 보기를 나눠 쓴다
     if (map2) map2.setView(map.getView());
     showProjection(true);
@@ -5502,6 +5515,10 @@
         personalParts(feature, personalSeen).forEach(function (own) { parts.push(own); });
         return;
       }
+      if (feature.get("_ext")) {
+        parts.push(extPart(feature));
+        return;
+      }
       parts.push({ title: feature.get("_점묶음") || T("내 자료"), props: plain(feature.getProperties()) });
     }, {
       hitTolerance: 5,
@@ -6443,6 +6460,88 @@
     if (go()) return;
     var key = source.on("change", function () { if (go()) ol.Observable.unByKey(key); });
     setTimeout(function () { ol.Observable.unByKey(key); }, 10000);
+  }
+
+  // ── 넘겨받은 임시 레이어 (wetherilli 392) ──
+  // 같은 사이트의 형제 앱이 `#ext=` 로 넘긴 GeoJSON 점을 띄운다. **저장하지 않는다** — 서버의 점묶음(PointSet)도, 이 브라우저의
+  // 개인 레이어(IndexedDB)도, 기억(localStorage)도 타지 않는다. 새로 고치면 사라진다. 그래서 점묶음 목록에도 서지 않는다 —
+  // 거기 서면 "점묶음으로 저장" 흐름을 탄다. 모양은 점묶음의 것(`pointStyle`)을 빌리고 색은 점마다(`color`) 받는다
+  var extData = null, extLayer = null, extShown = true;
+  function drawExt() {
+    if (!extData) return null;
+    if (extLayer) pointLayerGroup.getLayers().remove(extLayer);
+    var features = new ol.format.GeoJSON({ featureProjection: viewProj() }).readFeatures(extData);
+    features.forEach(function (f) {
+      f.set("_ext", true);
+      if (f.get("name") && !f.get("이름표")) f.set("이름표", f.get("name"));
+    });
+    var styles = {};
+    extLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: features }),
+      style: function (f, res) {
+        var c = /^#[0-9a-f]{6}$/i.test(f.get("color") || "") ? f.get("color") : "#e4572e";
+        return (styles[c] = styles[c] || pointStyle(c))(f, res);
+      },
+      declutter: true,
+      visible: extShown,
+    });
+    pointLayerGroup.getLayers().push(extLayer);
+    return extLayer;
+  }
+  /** 팝업 한 덩이 — 이름, 메모, 그리고 넘겨 준 앱의 그 화면으로 가는 링크(같은 사이트의 경로만) */
+  function extPart(feature) {
+    var props = {};
+    if (feature.get("note")) props[T("메모")] = String(feature.get("note"));
+    var url = String(feature.get("url") || "");
+    if (url.charAt(0) === "/" && url.charAt(1) !== "/") {
+      props[T("열기")] = { text: "", links: [{ url: url, label: T("{name}에서 열기", { name: EXT.name }) }] };
+    }
+    return { title: String(feature.get("name") || EXT.name), props: props };
+  }
+  /** 넘겨받았다는 띠 — 공유 링크의 띠(`share-notice`) 꼴. 감추기·보이기와 닫기 */
+  function extNotice(n) {
+    var text = n < 0 ? T("{name} 의 점을 받지 못했다", { name: EXT.name })
+      : n === 0 ? T("{name} 에서 넘겨받은 점이 없다", { name: EXT.name })
+      : T("{name} 의 점 {n}개를 임시로 띄웠다 — 저장하지 않는다", { name: EXT.name, n: n });
+    var bar = document.createElement("div");
+    bar.className = "share-notice ext-notice";
+    bar.setAttribute("role", "status");
+    var span = document.createElement("span");
+    span.textContent = text;
+    bar.appendChild(span);
+    if (n > 0) {
+      var toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.textContent = T("감추기");
+      toggle.addEventListener("click", function () {
+        extShown = !extShown;
+        if (extLayer) extLayer.setVisible(extShown);
+        toggle.textContent = extShown ? T("감추기") : T("보이기");
+      });
+      bar.appendChild(toggle);
+    }
+    var x = document.createElement("button");
+    x.type = "button";
+    x.className = "share-notice-x";
+    x.textContent = "×";
+    x.setAttribute("aria-label", "×");
+    x.addEventListener("click", function () { bar.remove(); });
+    bar.appendChild(x);
+    (document.getElementById("map-wrap") || document.body).appendChild(bar);
+  }
+  function loadExt() {
+    if (!EXT) return;
+    fetch(EXT.path, { credentials: "same-origin" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || data.type !== "FeatureCollection" || !Array.isArray(data.features)) throw new Error("GeoJSON");
+        extData = data;
+        var layer = drawExt();
+        extNotice(data.features.length);
+        // 링크가 자리를 주지 않았으면(나라 밖의 점) 점들로 맞춘다
+        if (!SHARED && data.features.length) fitToSource(layer.getSource());
+      })
+      .catch(function () { extNotice(-1); });
   }
 
   function loadPointSet(ps) {
@@ -8239,8 +8338,10 @@
   if (window.GSMShare) {
     GSMShare.wire(document.getElementById("tool-share"), shareLink,
                   { done: T("복사했다"), ask: T("이 링크를 복사한다") });
-    if (SHARED) GSMShare.notice(T("링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다"), T("내 화면으로"));
+    // 넘겨받은 점이 있으면 그 띠 하나만 — 두 띠가 같은 자리에 겹친다 (wetherilli 392)
+    if (SHARED && !EXT) GSMShare.notice(T("링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다"), T("내 화면으로"));
   }
+  loadExt();
 
   // ── 대기 화면 ────────────────────────────────────────────────────
   //
