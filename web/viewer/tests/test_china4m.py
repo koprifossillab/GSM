@@ -234,3 +234,42 @@ class UnitGrid(TestCase):
         (Path(self.tmp.name) / china4m.UNITS).unlink()
         response = self.client.get("/GSM/china4m/info/", {"layer": china4m.NAME, "lat": 30.5, "lon": 105.5})
         self.assertEqual(response.status_code, 503)
+
+
+class Places(TestCase):
+    """지명 이름표 (wetherilli 389) — Natural Earth 지명 가운데 중국 땅 안의 것, 한국어(영어)와 한자."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patch = override_settings(CHINA4M_DIR=self.tmp.name, PUBLIC=False)
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def labels(self, lang="ko"):
+        return {f["properties"]["label"] for f in china4m.place_features(lang)}
+
+    def test_한국어와_한자를_나란히(self):
+        self.assertIn("시안시 西安", self.labels())
+        self.assertIn("Lanzhou 兰州", self.labels("en"))
+
+    def test_땅_밖은_뺀다(self):
+        """색 번호 격자가 없으면 범위만 본다 — 서울도 든다. 격자가 있으면 땅 밖(0)이라 빠진다."""
+        self.assertTrue(any(label.startswith("서울") for label in self.labels()))
+        w, h = china4m.SIZE[0] // 2, china4m.SIZE[1] // 2
+        root = Path(self.tmp.name)
+        (root / china4m.UNITS_META).write_text(f'{{"width": {w}, "height": {h}, "scale": 2}}')
+        with open(root / china4m.UNITS, "wb") as f:
+            f.truncate(w * h)
+        self.assertEqual(self.labels(), set())
+
+    def test_점_주소와_카탈로그(self):
+        response = self.client.get("/GSM/points/", {"layer": china4m.PLACES})
+        self.assertEqual(response["Content-Type"], "application/geo+json")
+        self.assertGreater(len(response.json()["features"]), 400)
+        group = LayerGroup.objects.create(name="중국 지질도 1:400만 (2002)", region="china")
+        Layer.objects.create(name=china4m.PLACES, title="지명 (Natural Earth)", group=group, upstream="china4m")
+        rows = {l["name"]: l for g in self.client.get("/GSM/catalog/").json()["groups"] for l in g["layers"]}
+        self.assertEqual(rows[china4m.PLACES]["style"], "label")
+        with override_settings(PUBLIC=True):
+            self.assertEqual(self.client.get("/GSM/points/", {"layer": china4m.PLACES}).status_code, 404)

@@ -3589,6 +3589,10 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
                 "projection": "EPSG:5179", "grid": sheet.grid(),
                 "tiles": _versioned_url(f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}",
                                         _dir_version(sheet.tiles_dir()))}
+    if layer.upstream == "china4m" and layer.name == china4m.PLACES:
+        # 중국 지질도 1:400만의 지명 이름표(wetherilli 389) — Natural Earth 의 한국어·영어 이름과 한자. 화면이 글자로 그린다
+        return {"kind": "points", "queryable": False, "style": "label", "attribution": naturalearth.CREDIT,
+                "source": "https://www.naturalearthdata.com/", "sourceLabel": str(msg("원본 자료 — Natural Earth 10 m, 퍼블릭 도메인"))}
     if layer.upstream == "china4m" and layer.name == china4m.NAME:
         # 중국 지질도 1:400만 스캔(wetherilli 387) — 우리가 경위선으로 좌표를 붙여 3857 로 잘라 둔 z/x/y. 그 위 줌은 화면이 늘린다
         # 누른 자리·범례는 범례 색으로 칠해 둔 색 번호 격자에서 읽는다(`china4m/info/`·`china4m/legend/`, wetherilli 388·389)
@@ -5714,6 +5718,8 @@ def point_layer(request):
         return _kopri_layer(name, lang)
     if earthpoints.knows(name):
         return _earth_points_layer(request, name, lang)
+    if name == china4m.PLACES:
+        return _china4m_places(name, lang)
     if kigam50k.knows_file(name):
         return _kigam50k_layer(name, lang)
     _, module = _point_door(name)
@@ -5937,6 +5943,17 @@ def _kigam50k_layer(name, lang):
         log.warning("5만 구조 요소를 읽지 못했다 (%s): %s", name, exc)
         return JsonResponse({"error": i18n.t(msg("모아 둔 자료를 읽지 못했다"), lang)}, status=500)
     response = HttpResponse(content, content_type="application/geo+json")
+    if settings.TILE_CACHE_SECONDS > 0:
+        response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
+    return response
+
+
+def _china4m_places(name, lang):
+    """중국 지질도 1:400만의 지명 이름표(wetherilli 389) — Natural Earth 지명 가운데 중국 땅 안의 것, 한국어(영어)와 한자를 나란히.
+    저장소의 파일과 색 번호 격자에서 고를 뿐이라 상류를 타지 않는다. 연구실 내부용 레이어군에 딸려 밖에 열면 닫는다"""
+    if _lab_only(name):
+        return JsonResponse({"error": i18n.t(msg("그런 레이어는 없다"), lang)}, status=404)
+    response = HttpResponse(china4m.places_body(lang), content_type="application/geo+json")
     if settings.TILE_CACHE_SECONDS > 0:
         response["Cache-Control"] = f"public, max-age={settings.TILE_CACHE_SECONDS}"
     return response

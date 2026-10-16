@@ -1502,6 +1502,7 @@ EN = {
     "중국 지질도 자료(USGS geo3al)가 서버에 없다": "The China geology data (USGS geo3al) is not on the server",
     # 중국 지질도 1:400만 스캔 (china4m.py, wetherilli 388·389)
     "중국 지질도 1:400만의 색 번호 격자가 서버에 없다": "The colour-index grid of the China 1:4M map is not on the server",
+    "원본 자료 — Natural Earth 10 m, 퍼블릭 도메인": "Source dataset — Natural Earth 10 m, public domain",
     "중국 지질도 자료(USGS geo3al)를 읽지 못했다": "Could not read the China geology data (USGS geo3al)",
     "원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지":
         "Source dataset — USGS geo3al (OFR 97-470F). Internal lab use only, no redistribution",
@@ -4340,6 +4341,7 @@ LAYER_EN = {
     "geo3al:rock": "Igneous rocks & eolian deposits",
     # 중국 지질도 1:400만 스캔 (china4m.py, wetherilli 387)
     "china4m:geology": "Geological Map of China 1:4M (scan)",
+    "china4m:places": "Place names (Natural Earth)",
     # 연구실의 암맥 기록 — phyloserver (devlog 026)
     "phyloserver:dikes": "Dike records",
     "phyloserver:peninsula": "Korean Peninsula geology (scan)",
@@ -4657,6 +4659,7 @@ ABSTRACT_EN = {
     "nrcan:ree": "Prospectivity of carbonatites for REE and Nb (deep-learning model)",
     "nsgs:9": "Faults — from zoom 8",
     "ogs:11": "OMEIS Mineral Inventory — 18,697 sites",
+    "china4m:places": "Cities, ranges, basins, deserts, rivers and lakes inside China from Natural Earth 10 m (public domain), with the English and Chinese names side by side — the scan's own labels are part of the picture and cannot be clicked. Larger names first when zoomed out",
     "china4m:geology": "A scan of the Geological Map of China, 2nd ed. (Institute of Geology, CAGS, 2002) georeferenced from its graticule — with stratigraphic codes, faults and place names. The graticule fits within one pixel (430 m); the land drawn on it is off by 2–10 km from the original map's generalization. Internal lab use only",
     "peninsula:plain": "The Korean Peninsula geological map (shaded) without hillshade — 85 m per pixel; the flat colours overlay well on other basemaps. Jeju is not included",
     "peninsula:shaded": "The same map as the Korean Peninsula geological map (scan) blended with hillshade — 59 m per pixel; up close the scan is more detailed",

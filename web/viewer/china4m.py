@@ -431,6 +431,50 @@ def extent_legend(west: float, south: float, east: float, north: float, lang: st
     return [legend_row(i, lang) for i in picked[:MAX_LEGEND]], max(0, len(picked) - MAX_LEGEND)
 
 
+# ── 지명 이름표 (wetherilli 389) ─────────────────────────────────────
+#
+# 원도에 적힌 지명은 그림이라 누를 수 없고, 한자라 못 읽는 사람이 많다. Natural Earth 10 m(퍼블릭 도메인, `data/earth_places.json`)의
+# 도시·산맥·사막·분지·강·호수 가운데 **중국 땅(색 번호 격자가 땅이라 하는 곳) 안의 것**을 한국어(영어판이면 영어)와 한자를
+# 나란히 적은 이름표로 낸다. 1:400만 원도의 밀도(성도·주요 도시·큰 산맥·분지·강·호수)와 맞는다. 바다 이름은 원도의 바다가 지워져
+# 있어(386) 띄우지 않는다. 화면이 순위(scalerank)로 멀리서는 큰 것만 띄우고 겹친 글자를 거른다.
+
+PLACES = "china4m:places"
+#: 이름표로 띄우는 Natural Earth 갈래
+PLACE_KINDS = {"city", "river", "lake", "Range/mtn", "Plateau", "Desert", "Basin", "Plain", "Peninsula", "Island",
+               "Island group", "Valley", "Delta", "Depression", "Lowland", "Foothills", "Gorge", "Wetlands", "Geoarea"}
+
+
+def _on_land(lon: float, lat: float) -> bool:
+    """중국 땅인가 — 색 번호 격자가 있으면 그 칸이 땅 밖(0)이 아닌지, 없으면 `BBOX` 와 도곽만 본다."""
+    x, y = to_pixel(lon, lat)
+    if not on_map(x, y):
+        return False
+    if not units_available():
+        west, south, east, north = BBOX
+        return west <= lon <= east and south <= lat <= north
+    return _window(int(x // UNITS_SCALE), int(y // UNITS_SCALE), 1).count(OUTSIDE) < 9
+
+
+def place_features(lang: str = "ko") -> list:
+    """이름표 GeoJSON feature 들 — 속성은 `label`(보일 글)·`kind`·`rank`(작을수록 크다)."""
+    from . import naturalearth
+    out = []
+    for name, ko, kind, lon, lat, rank, *rest in naturalearth.places():
+        if kind not in PLACE_KINDS or not _on_land(lon, lat):
+            continue
+        zh = rest[0] if rest else ""
+        shown = (ko or name) if lang == "ko" else name
+        label = f"{shown} {zh}" if zh and zh != shown else shown
+        out.append({"type": "Feature", "id": len(out), "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                    "properties": {"label": label, "kind": kind, "rank": rank}})
+    return out
+
+
+def places_body(lang: str = "ko") -> bytes:
+    return json.dumps({"type": "FeatureCollection", "features": place_features(lang)},
+                      ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
 class China4mError(RuntimeError):
     pass
 
