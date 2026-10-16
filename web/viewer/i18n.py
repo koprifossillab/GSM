@@ -655,6 +655,7 @@ EN = {
     "한반도 지질도 음영판": "Korean Peninsula geological map (shaded)",
     "한반도 지질도 민판": "Korean Peninsula geological map (plain)",
     "중국 USGS geo3al": "China USGS geo3al",
+    "중국 지질도 1:400만 스캔": "China geological map 1:4M (scan)",
     "대만 지질운 열린자료": "Taiwan Geology Cloud open data",
     # 대만 지질운 열린자료 (wetherilli 305)
     "5만 탄층": "1:50k coal seam",
@@ -3614,6 +3615,7 @@ GROUP_EN = {
     "심리스 지질도 (GSJ)": "Seamless geological map (GSJ)",
     # 중국 (geo3al.py, devlog 025)
     "중국·동아시아 지질 (USGS)": "China & East Asia geology (USGS)",
+    "중국 지질도 1:400만 (2002)": "Geological Map of China 1:4M (2002)",
     # 우리가 모은 자료로 그린 레이어 — 첫째가 phyloserver 의 암맥 (devlog 026)
     "커스텀 지질도": "Custom geological maps",
     "극지연구소 시료": "KOPRI samples",
@@ -4330,6 +4332,8 @@ LAYER_EN = {
     # 중국 — USGS geo3al (geo3al.py)
     "geo3al:age": "Geologic age (1:5M)",
     "geo3al:rock": "Igneous rocks & eolian deposits",
+    # 중국 지질도 1:400만 스캔 (china4m.py, wetherilli 387)
+    "china4m:geology": "Geological Map of China 1:4M (scan)",
     # 연구실의 암맥 기록 — phyloserver (devlog 026)
     "phyloserver:dikes": "Dike records",
     "phyloserver:peninsula": "Korean Peninsula geology (scan)",
@@ -4647,6 +4651,7 @@ ABSTRACT_EN = {
     "nrcan:ree": "Prospectivity of carbonatites for REE and Nb (deep-learning model)",
     "nsgs:9": "Faults — from zoom 8",
     "ogs:11": "OMEIS Mineral Inventory — 18,697 sites",
+    "china4m:geology": "A scan of the Geological Map of China, 2nd ed. (Institute of Geology, CAGS, 2002) georeferenced from its graticule — with stratigraphic codes, faults and place names. The graticule fits within one pixel (430 m); the land drawn on it is off by 2–10 km from the original map's generalization. Internal lab use only",
     "peninsula:plain": "The Korean Peninsula geological map (shaded) without hillshade — 85 m per pixel; the flat colours overlay well on other basemaps. Jeju is not included",
     "peninsula:shaded": "The same map as the Korean Peninsula geological map (scan) blended with hillshade — 59 m per pixel; up close the scan is more detailed",
     "pgc:antarctica_contours": "25 m contours from REMA 2 m elevation. Drawn from zoom 10. Click for the elevation",

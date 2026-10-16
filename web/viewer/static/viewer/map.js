@@ -1135,6 +1135,8 @@
     bas: { source: esriGridSource, info: null },
     phyloserver: { source: phyloserverSource, info: null },
     peninsula: { source: peninsulaSource, info: null },
+    // 중국 지질도 1:400만 스캔(wetherilli 387) — 우리가 3857 로 잘라 둔 z/x/y. 그리는 손은 일본의 것과 같다
+    china4m: { source: gsjSource, info: null },
     // 남극 IBCSO 자료 출처(071) — GeoMAP 과 같은 3031 격자에 우리가 잘라 둔 것
     ibcso: { source: geomapSource, info: ibcsoInfoUrl },
     // 남극 자력 이상 ADMAP-2(wetherilli 262) — 우리가 잘라 둔 3031 타일, 누른 자리는 위경도로

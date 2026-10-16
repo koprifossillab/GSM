@@ -3,11 +3,15 @@
 진짜 스캔(45 MB)은 쓰지 않는다. 좌표는 2026-10-16 에 스캔의 경위선 위에서 짚은 점으로 본다 — 맞춘 모형이 낸 값이
 아니라 그림에서 잰 값이라, 상수를 잘못 옮기면 깨진다.
 """
+import tempfile
 import unittest
+from pathlib import Path
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, override_settings
+from PIL import Image
 
-from viewer import china4m
+from viewer import china4m, views
+from viewer.models import Layer, LayerGroup
 
 #: (경선이면 'lon'·위선이면 'lat', 도, 원본 화소 x, y) — 하늘색 경위선의 가운데를 짚은 것
 GRATICULE = [
@@ -64,3 +68,74 @@ class MaskColours(SimpleTestCase):
         # 노란 제4계는 바탕이 아니다. 쥐라계 J3 의 청록은 바다 수심 색과 같다 — 그래서 색이 아니라 이어짐으로 가른다
         self.assertFalse((grey | sea | white | pink)[0, 3])
         self.assertTrue(sea[0, 4])
+
+
+class Grid(SimpleTestCase):
+    def test_range(self):
+        self.assertTrue(china4m.valid_tile(3, 6, 3))                  # 온 중국이 든 z3 의 한 장
+        self.assertFalse(china4m.valid_tile(2, 2, 1))                 # 첫 줌 밑
+        self.assertFalse(china4m.valid_tile(10, 800, 400))            # 마지막 줌 위 — 화면이 늘린다
+        self.assertFalse(china4m.valid_tile(5, 0, 0))                 # 범위 밖
+
+    def test_factor(self):
+        """원본 한 화소(431 m)보다 타일 한 화소가 두 배 넘게 거칠면 줄인 원본에서 편다."""
+        self.assertEqual(china4m.factor_for(9), 1)
+        self.assertEqual(china4m.factor_for(8), 1)
+        self.assertEqual(china4m.factor_for(7), 2)
+        self.assertEqual(china4m.factor_for(3), 32)
+
+
+class Cut(SimpleTestCase):
+    def test_땅_밖은_투명하고_다_비면_없다(self):
+        """원본을 1/32 로 줄인 크기의 가짜 그림 — 오른쪽 반만 칠했다. z3 에서 서쪽(신장) 장은 비고 동쪽 장은 찬다."""
+        w, h = china4m.SIZE[0] // 32 + 1, china4m.SIZE[1] // 32 + 1
+        level = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        level.paste((200, 100, 50, 255), (w // 2, 0, w, h))
+        level = level.convert("RGBa")
+        west = china4m.tile_range(3)[0]
+        self.assertIsNone(china4m.cut(level, 32, 3, west, 3))
+        tile = china4m.cut(level, 32, 3, west + 1, 3)
+        self.assertEqual(tile.size, (256, 256))
+        self.assertEqual(tile.getpixel((255, 128)), (200, 100, 50, 255))
+
+
+class TileView(TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patch = override_settings(CHINA4M_DIR=self.tmp.name, PUBLIC=False)
+        patch.enable()
+        self.addCleanup(patch.disable)
+
+    def test_잘라_둔_것이_없으면_안내_타일(self):
+        response = self.client.get("/GSM/china4m/3/6/3.webp")
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["Cache-Control"], "no-store")
+
+    def test_잘라_둔_타일을_내준다(self):
+        target = Path(self.tmp.name) / "tiles" / "3" / "6" / "3.webp"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"RIFF fake webp")
+        response = self.client.get("/GSM/china4m/3/6/3.webp")
+        self.assertEqual(response.content, b"RIFF fake webp")
+        self.assertEqual(response["Content-Type"], "image/webp")
+        # 중국 밖(잘라 두지 않은 자리)은 투명한 빈 타일
+        self.assertEqual(self.client.get("/GSM/china4m/3/5/3.webp").content, views.tiles.blank_tile(256, 256))
+        self.assertEqual(self.client.get("/GSM/china4m/3/0/0.webp").status_code, 404)
+
+    def test_밖에_열면_닫는다(self):
+        (Path(self.tmp.name) / "tiles").mkdir()
+        with override_settings(PUBLIC=True):
+            self.assertEqual(self.client.get("/GSM/china4m/3/6/3.webp").status_code, 404)
+
+    def test_카탈로그가_타일을_알린다(self):
+        group = LayerGroup.objects.create(name="중국 지질도 1:400만 (2002)", region="china")
+        Layer.objects.create(name=china4m.NAME, title="중국 지질도 1:400만 (스캔)", group=group, upstream="china4m")
+        rows = {l["name"]: l for g in self.client.get("/GSM/catalog/").json()["groups"] for l in g["layers"]}
+        row = rows[china4m.NAME]
+        self.assertEqual(row["projection"], "EPSG:3857")
+        self.assertEqual(row["tiles"], "china4m/{z}/{x}/{y}.webp")
+        self.assertEqual(row["maxZoom"], 9)
+        with override_settings(PUBLIC=True):
+            rows = {l["name"] for g in self.client.get("/GSM/catalog/").json()["groups"] for l in g["layers"]}
+            self.assertNotIn(china4m.NAME, rows)

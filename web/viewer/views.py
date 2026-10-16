@@ -34,7 +34,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from gsmweb.version import VERSION
 
-from . import (coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar, ntgeo,
+from . import (china4m, coords, crs, datastatus, geo3al, geomap, geus, grportal, gsj, gsmma, i18n, ibcso, janmayen, kigam, kopri, npolar, ntgeo,
                patchnotes, elevation, moonmap, peninsula, phyloserver, pointsets, tilecache, tiles, trek, vworld, warp,
                fetchlog, marscraters, marsmap, mercurymap, sources, zhurong)
 from . import admap, arcpoints, kmag, caribmap, geonames, crust, glaciers, impacts, faults, minerals, stress, tectonics, seafloor, glim, heatflow, fossils, gvp, icemargins, kigam50k, macrostrat, mantle, metatile, naturalearth, neotoma, paleo, paleoeco, paleocoast, pbdb, quakes, recentquakes, verifylog, spamap, ocean, paleodem, usgs, volcanoes, wind
@@ -640,7 +640,7 @@ def map3d_view(request):
                                    or (l.get("upstream") == "geomap" and l["name"] in geomap.LAYERS)
                                    # IBCSO 자료 출처·ADMAP 자력 이상도 GeoMAP 처럼 서버가 3857 로 편다 (wetherilli 335)
                                    or l["name"] in ("ibcso:tid", admap.NAME)
-                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows") and l.get("tiles")))])
+                                   or (l.get("upstream") in ("gsj", "gsitile", "ingemmet", "ags", "sim3534", "gsjows", "china4m") and l.get("tiles")))])
               for g in catalog]
     # 커스텀 지질도 — 한반도 지질도 셋은 서버가 3857 로 다시 펴 주고(`warp/`), 암맥은
     # 모양 한 덩이(`points/`)라 3D 가 그대로 그린다. 밖에 열면 `_catalog` 가 이미 뺐다
@@ -2943,7 +2943,7 @@ def earth_legend(request):
 #: 연구실 안에서만 보는 상류. 밖에 열면(`settings.PUBLIC`) 목록에서 빠지고 길도
 #: 닫힌다. 레이어 이름이 `<상류>:…` 꼴이라 이름만 보고 가른다.
 #: 극지연구소(`kopri`)는 KPDC 공개 자료라 싣는다 — 사용자가 정했다(2026-10-02, wetherilli P11)
-LAB_ONLY = ("geo3al", "phyloserver", "peninsula")
+LAB_ONLY = ("geo3al", "phyloserver", "peninsula", "china4m")
 
 
 def _lab_only(name: str) -> bool:
@@ -2996,7 +2996,7 @@ def _catalog(lang="ko"):
             "bbox": l.bbox,
             "queryable": l.queryable,
             # 대조할 상류가 없는 것(우리가 그리는 GeoMAP)은 "대조 안 함" 표를 달지 않는다
-            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "kopri", "usgscarib", "stri", "sim3534", "vmme", "ntgs")
+            "verified": bool(l.verified_at) or l.upstream in ("geomap", "janmayen", "geo3al", "peninsula", "china4m", "kopri", "usgscarib", "stri", "sim3534", "vmme", "ntgs")
                         or twopen.knows(l.name),
             # 영어판은 설명의 영어(`i18n.ABSTRACT_EN`, wetherilli 333) — 없으면 한국어가 든 설명을 숨긴다
             "abstract": _abstract_en(l) if en else l.abstract,
@@ -3589,6 +3589,11 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
                 "projection": "EPSG:5179", "grid": sheet.grid(),
                 "tiles": _versioned_url(f"peninsula/{layer.name.split(':', 1)[1]}/{{z}}/{{x}}/{{y}}.{peninsula.FORMAT}",
                                         _dir_version(sheet.tiles_dir()))}
+    if layer.upstream == "china4m" and layer.name == china4m.NAME:
+        # 중국 지질도 1:400만 스캔(wetherilli 387) — 우리가 경위선으로 좌표를 붙여 3857 로 잘라 둔 z/x/y. 그 위 줌은 화면이 늘린다
+        return {"attribution": china4m.ATTRIBUTION, "projection": "EPSG:3857", "maxZoom": china4m.MAX_ZOOM,
+                "queryable": False, "noLegend": True,
+                "tiles": _versioned_url(f"china4m/{{z}}/{{x}}/{{y}}.{china4m.FORMAT}", _dir_version(china4m.tiles_dir()))}
     return {}
 
 
@@ -3971,6 +3976,24 @@ def peninsula_tile(request, layer, z, x, y):
         return _tile(tiles.notice_tile(256, 256, tiles.NO_PENINSULA), store=False)
     data = sheet.read_tile(z, x, y)
     version = _dir_version(sheet.tiles_dir())
+    if data is None:
+        return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
+    return _immutable(request, _tile(data, content_type="image/webp"), version)
+
+
+@require_GET
+def china4m_tile(request, z, x, y):
+    """중국 지질도 1:400만 스캔 타일 — `china4m/<z>/<x>/<y>.webp` (wetherilli 387).
+
+    `manage.py build_china4m` 이 잘라 둔 파일을 내주기만 한다. 캐시에 담지 않는다 — 이미 우리 디스크의 타일이다.
+    잘라 둔 것이 없으면 안내 타일, 중국 밖은 빈 타일이다. 연구실 내부용이라 밖에 열면 길을 닫는다"""
+    z, x, y = int(z), int(x), int(y)
+    if _lab_only(china4m.NAME) or not china4m.valid_tile(z, x, y):
+        return JsonResponse({"error": i18n.t(msg("그런 타일은 없다"), i18n.lang_of(request))}, status=404)
+    if not china4m.available():
+        return _tile(tiles.notice_tile(256, 256, tiles.NO_CHINA4M), store=False)
+    data = china4m.read_tile(z, x, y)
+    version = _dir_version(china4m.tiles_dir())
     if data is None:
         return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
     return _immutable(request, _tile(data, content_type="image/webp"), version)
