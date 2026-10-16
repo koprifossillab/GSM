@@ -682,6 +682,8 @@ PHYLOSERVER_CATALOG_SEED = REPO_DIR / "data" / "phyloserver_layers.json"
 #: 한반도 지질도 음영판 — 우리 디스크의 PDF (devlog 027)
 PENINSULA_CATALOG_SEED = REPO_DIR / "data" / "peninsula_layers.json"
 CHINA4M_CATALOG_SEED = REPO_DIR / "data" / "china4m_layers.json"
+#: 중국 지질도 1:400만의 범례 173 칸 — 누른 자리의 색을 대어 시기·암상을 띄운다 (wetherilli 388)
+CHINA4M_LEGEND = REPO_DIR / "data" / "china4m_legend.json"
 #: 남극 IBCSO 자료 출처(TID) — 우리가 잘라 둔 3031 타일 (071)
 IBCSO_CATALOG_SEED = REPO_DIR / "data" / "ibcso_layers.json"
 ADMAP_CATALOG_SEED = REPO_DIR / "data" / "admap_layers.json"

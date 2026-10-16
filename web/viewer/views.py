@@ -3591,8 +3591,9 @@ def _layer_extra_base(layer, lang: str = "ko") -> dict:
                                         _dir_version(sheet.tiles_dir()))}
     if layer.upstream == "china4m" and layer.name == china4m.NAME:
         # 중국 지질도 1:400만 스캔(wetherilli 387) — 우리가 경위선으로 좌표를 붙여 3857 로 잘라 둔 z/x/y. 그 위 줌은 화면이 늘린다
+        # 누른 자리·범례는 범례 색으로 칠해 둔 색 번호 격자에서 읽는다(`china4m/info/`·`china4m/legend/`, wetherilli 388·389)
         return {"attribution": china4m.ATTRIBUTION, "projection": "EPSG:3857", "maxZoom": china4m.MAX_ZOOM,
-                "queryable": False, "noLegend": True,
+                "legend": "extent", "legendUrl": "china4m/legend/",
                 "tiles": _versioned_url(f"china4m/{{z}}/{{x}}/{{y}}.{china4m.FORMAT}", _dir_version(china4m.tiles_dir()))}
     return {}
 
@@ -3997,6 +3998,48 @@ def china4m_tile(request, z, x, y):
     if data is None:
         return _immutable(request, _tile(tiles.blank_tile(256, 256)), version)
     return _immutable(request, _tile(data, content_type="image/webp"), version)
+
+
+@require_GET
+@browser_cached
+def china4m_info(request):
+    """`?layer=china4m:geology&lat=34.3&lon=108.9` — 누른 자리의 범례 칸 (wetherilli 389). 둘레의 색을 범례 색에 대어 고른다.
+    팝업이 받는 꼴은 `/featureinfo/` 와 같다. 색이 같은 범례 칸이 여럿이면 "같은 색의 칸" 에 적는다"""
+    lang = i18n.lang_of(request)
+    lat, lon = _float(request.GET.get("lat")), _float(request.GET.get("lon"))
+    if request.GET.get("layer") != china4m.NAME or lat is None or lon is None or _lab_only(china4m.NAME):
+        return JsonResponse({"error": i18n.t(msg("layer·lat·lon 이 없다"), lang), "features": []}, status=400)
+    if not china4m.units_available():
+        return JsonResponse({"error": i18n.t(msg("중국 지질도 1:400만의 색 번호 격자가 서버에 없다"), lang), "features": []},
+                            status=503)
+    hit = china4m.unit_at(lon, lat)
+    if not hit:
+        return JsonResponse({"features": []})
+    index, share = hit
+    props = china4m.friendly(index, lang)
+    if not props:
+        return JsonResponse({"features": []})
+    props["범례 색의 몫"] = f"{share * 100:.0f} %"
+    if lang == "en":
+        props = i18n.props_en(props)
+    return JsonResponse({"features": [{"id": f"{china4m.NAME}:{index}", "props": props}]})
+
+
+@require_GET
+@browser_cached
+def china4m_legend(request):
+    """`?layer=china4m:geology&bbox=서,남,동,북` — 보는 범위에 든 범례 칸 (wetherilli 388). 색 번호 격자를 표본으로 센다"""
+    lang = i18n.lang_of(request)
+    if request.GET.get("layer") != china4m.NAME or _lab_only(china4m.NAME):
+        return JsonResponse({"error": i18n.t(msg("범례가 없는 레이어다"), lang), "rows": []}, status=400)
+    parts = [_float(v) for v in (request.GET.get("bbox") or "").split(",")]
+    if len(parts) != 4 or None in parts:
+        return JsonResponse({"error": i18n.t(msg("bbox 가 없다"), lang), "rows": []}, status=400)
+    if not china4m.units_available():
+        return JsonResponse({"error": i18n.t(msg("중국 지질도 1:400만의 색 번호 격자가 서버에 없다"), lang), "rows": []},
+                            status=503)
+    rows, more = china4m.extent_legend(*parts, lang=lang)
+    return JsonResponse({"rows": rows, "more": more})
 
 
 @require_GET

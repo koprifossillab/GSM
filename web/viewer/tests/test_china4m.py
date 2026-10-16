@@ -139,3 +139,98 @@ class TileView(TestCase):
         with override_settings(PUBLIC=True):
             rows = {l["name"] for g in self.client.get("/GSM/catalog/").json()["groups"] for l in g["layers"]}
             self.assertNotIn(china4m.NAME, rows)
+
+
+def _index_of(code):
+    return next(i for i, ids in enumerate(china4m.classes()) if code in ids)
+
+
+class Legend(SimpleTestCase):
+    def test_색이_같은_칸은_한_번호를_쓴다(self):
+        self.assertEqual(_index_of("Nh"), _index_of("Pt3²"))
+        self.assertNotEqual(_index_of("J3"), _index_of("J2"))
+
+    def test_바다_수심_칸은_넣지_않는다(self):
+        """땅 안의 그 청록은 쥐라계다 — 바다 칸이 있으면 쓰촨 분지를 눌러 '수심 200–1000 m' 가 뜬다."""
+        self.assertFalse(any(i.startswith("sea_") for ids in china4m.classes() for i in ids))
+
+    def test_지층의_설명은_되풀이하지_않는다(self):
+        props = china4m.friendly(_index_of("J3"))
+        self.assertEqual(props["기호"], "J3")
+        self.assertEqual(props["지질시대"], "쥐라기 후기")
+        self.assertNotIn("설명", props)
+        props = china4m.friendly(_index_of("γ5³"), "en")
+        self.assertEqual(props["암상"], "granite")
+
+    def test_같은_색의_칸을_적는다(self):
+        props = china4m.friendly(_index_of("Nh"))
+        self.assertIn("같은 색의 칸", props)
+
+    def test_색_번호를_매긴다(self):
+        """범례 색 → 그 번호, 검정·청록 지명 글자 → 먹, 마스크 밖 → 0."""
+        from viewer.management.commands.build_china4m import Command  # noqa: F401 — 명령이 import 되는지도 본다
+        j3 = tuple(next(u["rgb"] for u in china4m.legend()["units"] if u["id"] == "J3"))
+        colors = [j3, (0, 0, 0), (32, 130, 120), (228, 252, 252), j3]
+        image = Image.new("RGB", (10, 2))
+        for i, c in enumerate(colors):
+            image.paste(c, (2 * i, 0, 2 * i + 2, 2))
+        mask = Image.new("L", (10, 2), 255)
+        mask.paste(0, (8, 0, 10, 2))
+        w, h, data = china4m.build_units(image, mask)
+        self.assertEqual((w, h), (5, 1))
+        self.assertEqual(list(data), [_index_of("J3"), china4m.INK, china4m.INK, china4m.WATER, china4m.OUTSIDE])
+
+
+class UnitGrid(TestCase):
+    """색 번호 격자(37 MB)는 성긴 파일로 흉내 낸다 — 0(땅 밖)이 거의 다고 짚은 자리만 쓴다."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patch = override_settings(CHINA4M_DIR=self.tmp.name, PUBLIC=False)
+        patch.enable()
+        self.addCleanup(patch.disable)
+        self.w, self.h = china4m.SIZE[0] // 2, china4m.SIZE[1] // 2
+        root = Path(self.tmp.name)
+        (root / china4m.UNITS_META).write_text(f'{{"width": {self.w}, "height": {self.h}, "scale": 2}}')
+        with open(root / china4m.UNITS, "wb") as f:
+            f.truncate(self.w * self.h)
+
+    def paint(self, lon, lat, value, r=6, centre=None):
+        x, y = china4m.to_pixel(lon, lat)
+        cx, cy = int(x // 2), int(y // 2)
+        with open(Path(self.tmp.name) / china4m.UNITS, "r+b") as f:
+            for yy in range(cy - r, cy + r + 1):
+                f.seek(yy * self.w + cx - r)
+                f.write(bytes([value]) * (2 * r + 1))
+            if centre is not None:
+                f.seek(cy * self.w + cx)
+                f.write(bytes([centre]))
+
+    def test_먹을_빼고_고른다(self):
+        self.paint(105.5, 30.5, _index_of("J3"), centre=china4m.INK)
+        index, share = china4m.unit_at(105.5, 30.5)
+        self.assertEqual(index, _index_of("J3"))
+        self.assertEqual(share, 1.0)
+        self.assertIsNone(china4m.unit_at(110.0, 35.0))           # 칠하지 않은 자리 — 땅 밖
+
+    def test_속성_주소(self):
+        self.paint(105.5, 30.5, _index_of("J3"))
+        response = self.client.get("/GSM/china4m/info/", {"layer": china4m.NAME, "lat": 30.5, "lon": 105.5})
+        props = response.json()["features"][0]["props"]
+        self.assertEqual(props["기호"], "J3")
+        self.client.cookies["gsm_lang"] = "en"
+        props = self.client.get("/GSM/china4m/info/", {"layer": china4m.NAME, "lat": 30.5, "lon": 105.5}).json()["features"][0]["props"]
+        self.assertEqual(props["Geologic age"], "Late Jurassic")
+        self.assertEqual(self.client.get("/GSM/china4m/info/", {"layer": "x", "lat": 1, "lon": 1}).status_code, 400)
+
+    def test_보는_범위의_범례(self):
+        self.paint(105.5, 30.5, _index_of("J3"), r=30)
+        rows = self.client.get("/GSM/china4m/legend/", {"layer": china4m.NAME, "bbox": "105,30,106,31"}).json()["rows"]
+        self.assertEqual([r["symbol"] for r in rows], ["J3"])
+        self.assertEqual(self.client.get("/GSM/china4m/legend/", {"layer": china4m.NAME}).status_code, 400)
+
+    def test_격자가_없으면_503(self):
+        (Path(self.tmp.name) / china4m.UNITS).unlink()
+        response = self.client.get("/GSM/china4m/info/", {"layer": china4m.NAME, "lat": 30.5, "lon": 105.5})
+        self.assertEqual(response.status_code, 503)

@@ -25,7 +25,10 @@
 **경위선은 맞지만 그려진 땅은 2–10 km 어긋난다.** 도시 기호 열여섯·해안 곶 열여섯을 대 보니 종이 위 0.5–2.5 mm
 — 1:400만 원도가 땅을 일반화해 그린 정도다. 방향이 제각각이라 고무판처럼 펴지 않는다.
 """
+import collections
+import functools
 import io
+import json
 import math
 from pathlib import Path
 
@@ -210,6 +213,222 @@ def encode(tile) -> bytes:
     buf = io.BytesIO()
     tile.save(buf, format="WEBP", quality=82, method=4)
     return buf.getvalue()
+
+
+# ── 범례와 색 번호 격자 (wetherilli 388) ─────────────────────────────
+#
+# 범례 173 칸(`data/china4m_legend.json`)의 색으로 원본을 칠해 **색 번호 격자**를 굽는다 — 원본을 반으로 줄여(한 칸 860 m) 칸마다
+# 바이트 하나, 37 MB. Pillow 의 `quantize(palette=…)` 가 가장 가까운 색에 매긴다(정확한 최근접과 95 % 같다 — Pillow 는 색 상자로
+# 어림한다). 0 은 땅 밖, 1 은 먹(검은 선·글자, 청록 지명 글자도 여기로 접는다), 2 는 물(호수·강의 연한 하늘색), 그다음이 범례 색이다. 범례에서 색이 같은 칸(ΔRGB 3 안)은 한 번호를 함께 쓴다 — 쥐라계 청록과 바다, 원생대 변성
+# 칸과 덮개 칸 따위다. 누를 때는 둘레 창에서 먹을 뺀 다수결로 고르고(`unit_at`), 범례는 보는 범위를 표본으로 센다(`extent_legend`).
+
+UNITS = "units.u8"
+UNITS_META = "units.json"
+#: 색 번호 격자의 줄임 — 원본 두 화소에 한 칸
+UNITS_SCALE = 2
+OUTSIDE, INK, WATER = 0, 1, 2
+#: 먹·물·지명 글자의 색 — 2026-10-16 에 땅 화소 가운데 범례 색에서 먼 것을 셌다(먹이 거의 다다). 청록 지명 글자·도시 기호
+#: (32,130,120)와 그 가장자리는 섬록암 δ(0,204,127)·D₁ 으로 끌려가 황토고원에서까지 δ 가 범례 위에 떴다 — 먹으로 접는다
+SPECIAL = ((0, 0, 0), (228, 252, 252), (32, 130, 120), (70, 124, 108))
+#: 먹으로 접는 팔레트 번호 — 0(땅 밖과 같은 검정)과 지명 글자
+_TO_INK = (0, 3, 4)
+#: 같은 색으로 묶는 거리(RGB)
+SAME = 3
+
+#: 범례 칸의 종류 → (한국어, 영어)
+KINDS = {"stratum": ("지층", "stratified unit"), "intrusive": ("관입암", "intrusive rock"),
+         "hypabyssal": ("천성암·잠화산암", "hypabyssal rock"), "volcanic": ("화산암", "volcanic rock"),
+         "mixed": ("혼잡암", "mélange")}
+
+
+def legend_path() -> Path:
+    return Path(settings.CHINA4M_LEGEND)
+
+
+@functools.lru_cache(maxsize=1)
+def legend() -> dict:
+    return json.loads(legend_path().read_text(encoding="utf-8"))
+
+
+@functools.lru_cache(maxsize=1)
+def classes() -> list:
+    """색 번호 → 범례 칸 id 들. 땅 밖·먹·물·지명 글자는 빈 목록이다. 바다 수심 칸은 넣지 않는다 — 땅 안의 그 색은 쥐라계다."""
+    out = [[] for _ in range(len(SPECIAL) + 1)]
+    colors = list(SPECIAL)
+    for unit in legend()["units"]:
+        if unit["kind"] == "ocean" or not unit.get("rgb"):
+            continue
+        rgb = tuple(unit["rgb"])
+        for i, color in enumerate(colors[len(SPECIAL):], start=len(SPECIAL) + 1):
+            if max(abs(a - b) for a, b in zip(rgb, color)) <= SAME:
+                out[i].append(unit["id"])
+                break
+        else:
+            colors.append(rgb)
+            out.append([unit["id"]])
+    classes.colors = colors
+    return out
+
+
+def palette() -> list:
+    """quantize 에 줄 팔레트 — 번호 0 은 땅 밖(먹과 같은 검정이라 칠한 뒤 다시 1 로 돌린다)."""
+    classes()
+    return [(0, 0, 0)] + list(classes.colors)
+
+
+def units_by_id() -> dict:
+    return {u["id"]: u for u in legend()["units"]}
+
+
+def build_units(image, mask):
+    """원본(RGB)·마스크(L) → (가로, 세로, 바이트). 원본의 1/`UNITS_SCALE`."""
+    from PIL import Image
+    w, h = image.size[0] // UNITS_SCALE, image.size[1] // UNITS_SCALE
+    small = image.resize((w, h), Image.NEAREST)
+    land = mask.resize((w, h), Image.NEAREST)
+    pal = palette()
+    table = Image.new("P", (1, 1))
+    flat = [v for c in pal for v in c]
+    table.putpalette(flat + [0] * (768 - len(flat)))
+    indexed = small.quantize(palette=table, dither=Image.Dither.NONE)
+    # 번호 0 과 1 은 같은 검정 — quantize 는 앞의 0 을 고른다. 땅 안의 0 은 먹(1)으로, 땅 밖은 0 으로
+    numbers = Image.frombytes("L", (w, h), indexed.tobytes()).point(lambda v: INK if v in _TO_INK else v)
+    numbers = Image.composite(numbers, Image.new("L", (w, h), OUTSIDE), land)
+    return w, h, numbers.tobytes()
+
+
+def units_available() -> bool:
+    return (root() / UNITS).exists() and (root() / UNITS_META).exists()
+
+
+@functools.lru_cache(maxsize=1)
+def _units_meta(stamp: float) -> dict:
+    return json.loads((root() / UNITS_META).read_text(encoding="utf-8"))
+
+
+def units_meta() -> dict:
+    return _units_meta((root() / UNITS_META).stat().st_mtime)
+
+
+def _window(cx: int, cy: int, r: int) -> list:
+    """색 번호 격자에서 (cx, cy) 둘레 (2r+1)² 칸 — 격자 밖은 0."""
+    meta = units_meta()
+    w, h = meta["width"], meta["height"]
+    out = []
+    with open(root() / UNITS, "rb") as f:
+        for y in range(cy - r, cy + r + 1):
+            if not 0 <= y < h:
+                out.extend([OUTSIDE] * (2 * r + 1))
+                continue
+            x0, x1 = max(cx - r, 0), min(cx + r + 1, w)
+            f.seek(y * w + x0)
+            row = f.read(max(0, x1 - x0))
+            out.extend([OUTSIDE] * (x0 - (cx - r)) + list(row) + [OUTSIDE] * ((cx + r + 1) - x1))
+    return out
+
+
+#: 누른 자리를 고르는 창의 반지름(색 번호 칸, 한 칸 860 m) — 지층 부호 글자(2–3 mm) 하나를 넘는다
+RADIUS = 3
+
+
+def unit_at(lon: float, lat: float):
+    """누른 자리의 색 번호와 그 몫 — (번호, 몫) 또는 None(땅 밖). 먹은 세지 않는다."""
+    x, y = to_pixel(lon, lat)
+    if not on_map(x, y):
+        return None
+    cx, cy = int(x // UNITS_SCALE), int(y // UNITS_SCALE)
+    cells = _window(cx, cy, RADIUS)
+    if cells[len(cells) // 2] == OUTSIDE:
+        return None
+    counts = collections.Counter(v for v in cells if v not in (OUTSIDE, INK))
+    if not counts:
+        return None
+    # 가운데에 가까울수록 무겁게 — 경계에서 옆 칸에 끌려가지 않게
+    side = 2 * RADIUS + 1
+    weighted = collections.Counter()
+    for i, v in enumerate(cells):
+        if v in (OUTSIDE, INK):
+            continue
+        dx, dy = i % side - RADIUS, i // side - RADIUS
+        weighted[v] += 1.0 / (1 + dx * dx + dy * dy)
+    best, _ = weighted.most_common(1)[0]
+    return best, counts[best] / sum(counts.values())
+
+
+def _pick(unit: dict, field: str, lang: str) -> str:
+    return unit.get(f"{field}_{lang}") or unit.get(f"{field}_ko") or ""
+
+
+def _ma(unit: dict) -> str:
+    top, base = unit.get("age_top_ma"), unit.get("age_base_ma")
+    if top is None and base is None:
+        return ""
+    if base is None:
+        return f"> {top:g}"
+    return f"{top:g}–{base:g}"
+
+
+def friendly(index: int, lang: str = "ko") -> dict:
+    """팝업의 칸 — 범례에서 옮긴 그대로. 색이 같은 칸이 여럿이면 첫 칸을 보이고 나머지는 "같은 색의 칸" 에 적는다."""
+    if index == WATER:
+        return {"갈래": "물 (호수·강)" if lang == "ko" else "Water (lake, river)"}
+    ids = classes()[index] if 0 <= index < len(classes()) else []
+    if not ids:
+        return {}
+    units = units_by_id()
+    # 막대(계·대 묶음)보다 세분 칸이 먼저다 — 지도는 대개 세분으로 칠한다
+    ordered = sorted(ids, key=lambda i: bool(units[i].get("bar")))
+    unit = units[ordered[0]]
+    kind = KINDS.get(unit["kind"], ("", ""))[0 if lang == "ko" else 1]
+    origin, text = unit.get("desc_zh", ""), _pick(unit, "desc", lang)
+    if origin and origin in text:             # 지층 칸의 설명은 "대표 층군: <원문>" 이라 되풀이다
+        text = ""
+    rows = (("기호", unit["code"]), ("갈래", kind), ("지질시대", _pick(unit, "age", lang)), ("연대 (Ma)", _ma(unit)),
+            ("암상", _pick(unit, "lith", lang)), ("대표 층군", origin), ("설명", text),
+            ("같은 색의 칸", " · ".join(units[i]["code"] for i in ordered[1:])))
+    return {k: v for k, v in rows if v}
+
+
+def legend_row(index: int, lang: str = "ko") -> dict:
+    ids = classes()[index]
+    units = units_by_id()
+    ordered = sorted(ids, key=lambda i: bool(units[i].get("bar")))
+    unit = units[ordered[0]]
+    codes = " · ".join(units[i]["code"] for i in ordered)
+    what = _pick(unit, "lith", lang) or KINDS.get(unit["kind"], ("", ""))[0 if lang == "ko" else 1]
+    r, g, b = classes.colors[index - 1]
+    return {"symbol": codes, "lithology": f"{codes} {what}".strip(), "age": _pick(unit, "age", lang),
+            "color": f"rgb({r},{g},{b})", "swatch": ""}
+
+
+#: 범례를 세는 표본 — 범위를 이만큼의 격자로 짚는다
+LEGEND_SAMPLES = 90
+MAX_LEGEND = 40
+
+
+def extent_legend(west: float, south: float, east: float, north: float, lang: str = "ko") -> tuple:
+    """보는 범위에 든 범례 칸 — (행들, 더 있는 칸 수). 범위를 격자로 짚어 많이 나온 칸부터.
+    짚은 땅의 0.3 % 에 못 미치는 칸은 버린다 — 먹·경계 가장자리의 섞인 색이 엉뚱한 칸으로 한두 번씩 잡힌다."""
+    meta = units_meta()
+    w, h = meta["width"], meta["height"]
+    counts = collections.Counter()
+    table = classes()
+    with open(root() / UNITS, "rb") as f:
+        for j in range(LEGEND_SAMPLES):
+            lat = south + (north - south) * (j + 0.5) / LEGEND_SAMPLES
+            for i in range(LEGEND_SAMPLES):
+                lon = west + (east - west) * (i + 0.5) / LEGEND_SAMPLES
+                x, y = to_pixel(lon, lat)
+                cx, cy = int(x // UNITS_SCALE), int(y // UNITS_SCALE)
+                if not (on_map(x, y) and 0 <= cx < w and 0 <= cy < h):
+                    continue
+                f.seek(cy * w + cx)
+                v = f.read(1)[0]
+                if v < len(table) and table[v]:
+                    counts[v] += 1
+    floor = max(2, sum(counts.values()) * 0.003)
+    picked = [i for i, n in counts.most_common() if n >= floor]
+    return [legend_row(i, lang) for i in picked[:MAX_LEGEND]], max(0, len(picked) - MAX_LEGEND)
 
 
 class China4mError(RuntimeError):

@@ -2,12 +2,18 @@
 
     manage.py build_china4m                 <GSM_CHINA4M_DIR>/GeoChina400*.jpg + GeoChina400_mask.png → tiles/{z}/{x}/{y}.webp
     manage.py build_china4m --max-zoom 6    시험 삼아 거친 줌만
+    manage.py build_china4m --units-only    색 번호 격자(units.u8)만 — 범례(data/china4m_legend.json)를 고쳤을 때
 
 마스크(`build_china4m_mask`, numpy 가 있는 곳에서 한 번)가 먼저 있어야 한다. 이 명령은 **Pillow 만** 쓴다 — 컨테이너에서도 돈다.
 새로 자른 것을 옆 자리(`.new`)에 다 쓰고 나서 바꿔 끼운다 — 자르는 동안에도 뷰어는 옛것을 낸다.
 
 원본을 통째로 풀어 땅 밖을 투명하게 하고 미리 곱해 둔다. 메모리를 1.2 GB 남짓 쓴다.
+
+타일과 함께 **색 번호 격자**(`units.u8`·`units.json`, wetherilli 388)도 굽는다 — 원본을 범례 색으로 칠한 것이다. 누른 자리의 속성과
+보는 범위의 범례가 이것을 읽는다.
 """
+import hashlib
+import json
 import shutil
 import time
 
@@ -22,6 +28,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--source", help="원본 스캔 (기본: GSM_CHINA4M_DIR 의 GeoChina400*.jpg)")
         parser.add_argument("--max-zoom", type=int, default=china4m.MAX_ZOOM, help="여기까지만 자른다")
+        parser.add_argument("--units-only", action="store_true", help="색 번호 격자만 다시 굽는다")
 
     def handle(self, *args, **options):
         from PIL import Image
@@ -40,6 +47,9 @@ class Command(BaseCommand):
         mask = Image.open(mask_path).convert("L")
         if mask.size != image.size:
             raise CommandError(f"마스크가 {mask.size} 다 — 원본과 크기가 다르다")
+        self._units(image, mask)
+        if options["units_only"]:
+            return
         image.putalpha(mask)
         del mask
         # 줄일 때 투명한 가장자리가 희게 번지지 않게 미리 곱해 둔다 (peninsula 와 같다)
@@ -81,3 +91,17 @@ class Command(BaseCommand):
         shutil.rmtree(old, ignore_errors=True)
         self.stdout.write(self.style.SUCCESS(
             f"타일 {written} 장, {size / 1024 / 1024:.1f} MB — {out} ({time.monotonic() - started:.0f} 초)"))
+
+    def _units(self, image, mask):
+        w, h, data = china4m.build_units(image, mask)
+        out = china4m.root() / china4m.UNITS
+        fresh = out.with_name(out.name + ".new")
+        fresh.write_bytes(data)
+        fresh.replace(out)
+        legend = china4m.legend_path().read_bytes()
+        meta = {"width": w, "height": h, "scale": china4m.UNITS_SCALE, "classes": len(china4m.classes()),
+                "legend_sha256": hashlib.sha256(legend).hexdigest()}
+        (china4m.root() / china4m.UNITS_META).write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+        inside = sum(1 for v in data[::97] if v != china4m.OUTSIDE)
+        ink = sum(1 for v in data[::97] if v == china4m.INK)
+        self.stdout.write(f"색 번호 격자 {w}×{h}, 범례 색 {sum(1 for ids in china4m.classes() if ids)} — 땅 안의 먹 {ink / max(inside, 1) * 100:.1f} %")

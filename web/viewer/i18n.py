@@ -1500,6 +1500,8 @@ EN = {
     "원본 뷰어에서 본다 — GSJ": "See it in the original viewer — GSJ",
     # 중국 — USGS geo3al (geo3al.py·views.py·map.js, devlog 025)
     "중국 지질도 자료(USGS geo3al)가 서버에 없다": "The China geology data (USGS geo3al) is not on the server",
+    # 중국 지질도 1:400만 스캔 (china4m.py, wetherilli 388·389)
+    "중국 지질도 1:400만의 색 번호 격자가 서버에 없다": "The colour-index grid of the China 1:4M map is not on the server",
     "중국 지질도 자료(USGS geo3al)를 읽지 못했다": "Could not read the China geology data (USGS geo3al)",
     "원본 자료 — USGS geo3al (OFR 97-470F). 연구실 내부용, 재배포 금지":
         "Source dataset — USGS geo3al (OFR 97-470F). Internal lab use only, no redistribution",
@@ -2159,6 +2161,10 @@ EN = {
 # 모았다. 영문 열(`symnum`·`GRAY_INDEX` …)은 그대로 둔다.
 
 PROP_EN = {
+    # 중국 지질도 1:400만 스캔 — 범례 칸 (china4m.py, wetherilli 389)
+    "대표 층군": "Representative units (Chinese)",
+    "같은 색의 칸": "Legend boxes of the same colour",
+    "범례 색의 몫": "Share of the legend colour",
     # 다누리 KMAG (wetherilli 378)
     "시각": "Time",
     "자기장 세기 |B|": "Field strength |B|",
