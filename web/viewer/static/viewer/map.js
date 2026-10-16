@@ -4834,10 +4834,14 @@
       if (!fade) return null;
     }
     var azimuth = feature.get("azimuth");
-    var key = code + "|" + type + (far ? "f" : "n") + fade + (azimuth != null ? "|" + Math.round(azimuth / 5) * 5 : "");
+    // 점마다 모양을 덮을 수 있다 — 세계 광상의 대규모는 마름모(wetherilli 390). 응력 막대의 길이는 품질(`q`)
+    var own = feature.get("shape"), quality = feature.get("q");
+    var key = code + "|" + type + (far ? "f" : "n") + fade + (azimuth != null ? "|" + Math.round(azimuth / 5) * 5 : "") +
+      (own ? "|" + own : "") + (quality ? "|" + quality : "");
     if (cache[key]) return cache[key];
     var spec = {};
     (getLayer().get("gsmLegend") || []).forEach(function (r) { if (r.code === code) spec = r; });
+    if (own) spec = Object.assign({}, spec, { shape: own });
     var color = spec.color || "#888888";
     if (fade < 1) { var faded = ol.color.asArray(color).slice(); faded[3] = fade; color = faded; }
     var style;
@@ -4854,9 +4858,22 @@
       style = new ol.style.Style({ image: new ol.style.Icon({
         src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(attitudeSvg(spec.shape, color, 22)),
         rotation: (Math.round(azimuth / 5) * 5) * Math.PI / 180, rotateWithView: true, scale: far ? 0.6 : 1 }) });
+    } else if (spec.shape === "bar" && azimuth != null) {
+      // 지각 응력(wetherilli 390) — 최대 수평 응력 방향의 막대. 길이는 품질(A 가장 길게), WSM 지도의 관례다. 흰 테 위에 체제의 색
+      var half = (far ? 6 : 10) * ({ A: 1, B: 0.8, C: 0.6, D: 0.4 }[quality] || 0.6);
+      var turn = (Math.round(azimuth / 5) * 5) * Math.PI / 180;
+      style = [new ol.style.Style({ image: new ol.style.RegularShape({ points: 2, radius: half + 1, angle: 0, rotation: turn,
+                 rotateWithView: true, stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 4 }) }) }),
+               new ol.style.Style({ image: new ol.style.RegularShape({ points: 2, radius: half, angle: 0, rotation: turn,
+                 rotateWithView: true, stroke: new ol.style.Stroke({ color: color, width: 2 }) }) })];
     } else if (spec.shape === "dash") {
       // 날짜만 아는 지난 항적(koprifossillab 009) — 지금 쌓는 것과 갈라 보이게 가늘게 끊어
       style = new ol.style.Style({ stroke: new ol.style.Stroke({ color: color, width: 1.6, lineDash: [6, 4] }) });
+    } else if (spec.shape === "area") {
+      // 세계 지질구(wetherilli 390) — 지질도 위에 겹쳐 읽게 옅게 칠하고 테두리를 또렷이
+      var tone = ol.color.asArray(color);
+      style = new ol.style.Style({ fill: new ol.style.Fill({ color: [tone[0], tone[1], tone[2], 0.22] }),
+                                   stroke: new ol.style.Stroke({ color: [tone[0], tone[1], tone[2], 0.9], width: 1.2 }) });
     } else if (type === "Polygon" || type === "MultiPolygon" || type === "LineString" || type === "MultiLineString") {
       var rgb = ol.color.asArray(color);
       style = new ol.style.Style({
@@ -4917,6 +4934,18 @@
         sw.className = "sw-line";
         sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="' +
           esc(r.color || "#888") + '" stroke-width="' + (r.shape === "dash" ? '1.6" stroke-dasharray="6 4' : "2.5") + '"/></svg>';
+      } else if (row.style === "class" && r.shape === "bar") {
+        // 지각 응력 막대(wetherilli 390)
+        sw = document.createElement("span");
+        sw.className = "sw-line";
+        sw.innerHTML = '<svg width="30" height="10" aria-hidden="true"><line x1="6" y1="5" x2="24" y2="5" stroke="' +
+          esc(r.color || "#888") + '" stroke-width="2.5"/></svg>';
+      } else if (row.style === "class" && r.shape === "area") {
+        // 세계 지질구(wetherilli 390) — 옅게 칠한 면
+        sw = document.createElement("span");
+        sw.className = "sw box";
+        sw.style.background = r.color || "#888";
+        sw.style.opacity = "0.55";
       } else if (row.style === "class" && (r.shape === "arrow" || r.shape === "strike")) {
         sw = document.createElement("span");
         sw.className = "sw-line";
