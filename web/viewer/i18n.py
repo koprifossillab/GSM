@@ -1144,6 +1144,15 @@ EN = {
     "링크": "Link",
     "이 링크를 복사한다": "Copy this link",
     "링크로 연 화면이다 — 여기서 바꾼 것은 이 브라우저에 기억하지 않는다": "Opened from a link — changes here are not remembered in this browser",
+    # 넘겨받은 임시 레이어 (wetherilli 392)
+    "넘겨받은 점": "Handed-over points",
+    "{name} 의 점 {n}개를 임시로 띄웠다 — 저장하지 않는다": "Showing {n} points from {name} as a temporary layer — nothing is saved",
+    "{name} 에서 넘겨받은 점이 없다": "No points came from {name}",
+    "{name} 의 점 {total}개 가운데 {n}개만 임시로 띄웠다 — 저장하지 않는다": "Showing {n} of {total} points from {name} as a temporary layer — nothing is saved",
+    "{name} 의 점을 받지 못했다": "Could not load the points from {name}",
+    "{name}에서 열기": "Open in {name}",
+    "감추기": "Hide",
+    "보이기": "Show",
     "내 화면으로": "Back to my view",
     # 높이 그래프 밑의 지질 띠 (wetherilli 180)
     "거리 {d} · 높이 {h} · {unit}": "distance {d} · elevation {h} · {unit}",
