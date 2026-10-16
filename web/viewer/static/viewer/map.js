@@ -696,9 +696,20 @@
    *  정적 판(Pages)에는 같은 사이트의 앱이 없어 받지 않는다 */
   function extFrom(q) {
     if (!q || !q.ext || STATIC) return null;
-    var path = String(q.ext);
-    if (path.charAt(0) !== "/" || path.charAt(1) === "/" || /[\\\s]/.test(path)) return null;
+    var path = sameSite(q.ext);
+    if (!path) return null;
     return { path: path, name: String(q.extname || "").slice(0, 60) || T("넘겨받은 점") };
+  }
+  /** 같은 사이트의 주소면 그 경로(+질의·해시)를, 아니면 null. **브라우저가 읽는 대로 읽어 본다** — 앞 글자만 보면
+   *  `/\evil.com` 이나 `/<탭>/evil.com` 이 `//evil.com` 으로 읽혀 바깥으로 가는 링크가 된다(열린 넘김, gsm-63 검토).
+   *  그래서 URL 로 풀어 오리진을 대고, 푼 결과의 경로만 쓴다 */
+  function sameSite(url) {
+    var s = String(url || "");
+    if (s.charAt(0) !== "/") return null;
+    try {
+      var u = new URL(s, location.origin);
+      return u.origin === location.origin ? u.pathname + u.search + u.hash : null;
+    } catch (e) { return null; }
   }
 
   function sharedSeed(q) {
@@ -6467,6 +6478,8 @@
   // 개인 레이어(IndexedDB)도, 기억(localStorage)도 타지 않는다. 새로 고치면 사라진다. 그래서 점묶음 목록에도 서지 않는다 —
   // 거기 서면 "점묶음으로 저장" 흐름을 탄다. 모양은 점묶음의 것(`pointStyle`)을 빌리고 색은 점마다(`color`) 받는다
   var extData = null, extLayer = null, extShown = true;
+  //: 넘겨받는 점의 상한 — 같은 사이트라 위험은 작지만 수만 점이면 화면이 멈춘다 (gsm-63 검토)
+  var EXT_MAX = 5000;
   function drawExt() {
     if (!extData) return null;
     if (extLayer) pointLayerGroup.getLayers().remove(extLayer);
@@ -6492,16 +6505,15 @@
   function extPart(feature) {
     var props = {};
     if (feature.get("note")) props[T("메모")] = String(feature.get("note"));
-    var url = String(feature.get("url") || "");
-    if (url.charAt(0) === "/" && url.charAt(1) !== "/") {
-      props[T("열기")] = { text: "", links: [{ url: url, label: T("{name}에서 열기", { name: EXT.name }) }] };
-    }
+    var url = sameSite(feature.get("url"));
+    if (url) props[T("열기")] = { text: "", links: [{ url: url, label: T("{name}에서 열기", { name: EXT.name }) }] };
     return { title: String(feature.get("name") || EXT.name), props: props };
   }
   /** 넘겨받았다는 띠 — 공유 링크의 띠(`share-notice`) 꼴. 감추기·보이기와 닫기 */
-  function extNotice(n) {
+  function extNotice(n, total) {
     var text = n < 0 ? T("{name} 의 점을 받지 못했다", { name: EXT.name })
       : n === 0 ? T("{name} 에서 넘겨받은 점이 없다", { name: EXT.name })
+      : total > n ? T("{name} 의 점 {total}개 가운데 {n}개만 임시로 띄웠다 — 저장하지 않는다", { name: EXT.name, n: n, total: total })
       : T("{name} 의 점 {n}개를 임시로 띄웠다 — 저장하지 않는다", { name: EXT.name, n: n });
     var bar = document.createElement("div");
     bar.className = "share-notice ext-notice";
@@ -6535,9 +6547,10 @@
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (data) {
         if (!data || data.type !== "FeatureCollection" || !Array.isArray(data.features)) throw new Error("GeoJSON");
-        extData = data;
+        var total = data.features.length;
+        extData = { type: "FeatureCollection", features: data.features.slice(0, EXT_MAX) };
         var layer = drawExt();
-        extNotice(data.features.length);
+        extNotice(extData.features.length, total);
         // 링크가 자리를 주지 않았으면(나라 밖의 점) 점들로 맞춘다
         if (!SHARED && data.features.length) fitToSource(layer.getSource());
       })

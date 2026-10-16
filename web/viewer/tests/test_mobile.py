@@ -301,9 +301,13 @@ class PhoneScreenTests(PhoneBase):
 
     def test_넘겨받은_점_남의_주소는_거절(self):
         """`ext` 는 같은 사이트의 경로만 받는다 — 남의 주소면 띠도 레이어도 없다 (wetherilli 392)"""
-        page, errors = self.open("map/#r=korea&c=127.5,36.5&z=7&ext=//example.com/x.geojson&extname=Evil")
-        self.assertEqual(errors, [])
-        self.assertEqual(page.locator(".ext-notice").count(), 0)
+        # `/\` 와 `/<탭>/` 은 앞 글자만 보면 같은 사이트 같지만 브라우저는 `//` 로 읽는다 (gsm-63 검토)
+        for bad in ("//example.com/x.geojson", "/%5Cexample.com/x.geojson", "/%09/example.com/x.geojson",
+                    "https://example.com/x.geojson"):
+            with self.subTest(ext=bad):
+                page, errors = self.open(f"map/#r=korea&c=127.5,36.5&z=7&ext={bad}&extname=Evil", settle=800)
+                self.assertEqual(errors, [])
+                self.assertEqual(page.locator(".ext-notice").count(), 0)
 
     def test_설정_창(self):
         """설정 창(판 이력·언어·기억 지우기)이 휴대폰 화면 안에 선다 (wetherilli 203)"""

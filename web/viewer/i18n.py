@@ -1148,6 +1148,7 @@ EN = {
     "넘겨받은 점": "Handed-over points",
     "{name} 의 점 {n}개를 임시로 띄웠다 — 저장하지 않는다": "Showing {n} points from {name} as a temporary layer — nothing is saved",
     "{name} 에서 넘겨받은 점이 없다": "No points came from {name}",
+    "{name} 의 점 {total}개 가운데 {n}개만 임시로 띄웠다 — 저장하지 않는다": "Showing {n} of {total} points from {name} as a temporary layer — nothing is saved",
     "{name} 의 점을 받지 못했다": "Could not load the points from {name}",
     "{name}에서 열기": "Open in {name}",
     "감추기": "Hide",
